@@ -29,10 +29,10 @@
         </PackageReference>
         <PackageReference Include="Lib.Harmony" Version="$(HarmonyVersion)" PrivateAssets="All" />
 
-        <PackageReference Include="Bannerlord.ReferenceAssemblies.Core.EarlyAccess" Version="$(GameVersion).*" PrivateAssets="All" />
-        <PackageReference Include="Bannerlord.ReferenceAssemblies.Native.EarlyAccess" Version="$(GameVersion).*" PrivateAssets="All" />
-        <PackageReference Include="Bannerlord.ReferenceAssemblies.StoryMode.EarlyAccess" Version="$(GameVersion).*" PrivateAssets="All" />
-        <PackageReference Include="Bannerlord.ReferenceAssemblies.Sandbox.EarlyAccess" Version="$(GameVersion).*" PrivateAssets="All" />
+        <PackageReference Include="Bannerlord.ReferenceAssemblies.Core" Version="$(GameVersion).*" PrivateAssets="All" />
+        <PackageReference Include="Bannerlord.ReferenceAssemblies.Native" Version="$(GameVersion).*" PrivateAssets="All" />
+        <PackageReference Include="Bannerlord.ReferenceAssemblies.StoryMode" Version="$(GameVersion).*" PrivateAssets="All" />
+        <PackageReference Include="Bannerlord.ReferenceAssemblies.Sandbox" Version="$(GameVersion).*" PrivateAssets="All" />
         <Reference Include="System.Windows.Forms" />
     </ItemGroup>
 
