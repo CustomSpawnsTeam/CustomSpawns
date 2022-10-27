@@ -55,10 +55,6 @@ namespace CustomSpawns.Data
             try
             {
                 string path = "";
-#if !API_MODE
-                path = Path.Combine(BasePath.Name, "Modules", "CustomSpawns", "ModuleData", "Data", "CustomDialogue.xml"); // the usual path deal, located in the CustomSpawns or Data folder
-                ParseDialogueFile(path);
-#endif
                 foreach (var subMod in ModIntegration.SubModManager.LoadAllValidDependentMods())
                 {
                     path = Path.Combine(subMod.CustomSpawnsDirectoryPath, "CustomDialogue.xml");

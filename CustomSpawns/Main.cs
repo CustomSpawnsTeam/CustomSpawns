@@ -1,3 +1,4 @@
+using System;
 using CustomSpawns.AI;
 using CustomSpawns.CampaignData.Implementations;
 using CustomSpawns.Config;
@@ -22,6 +23,7 @@ namespace CustomSpawns
 
     public class Main : MBSubModuleBase
     {
+        public static string ModuleName = "CustomSpawns";
         public static PartySpeedContext PartySpeedContext;
 
         private IDiplomacyActionModel _diplomacyActionModel;
@@ -79,11 +81,11 @@ namespace CustomSpawns
 
         protected override void OnBeforeInitialModuleScreenSetAsRoot() //assure player :) also myself lol
         {
-            UX.ShowMessage("CustomSpawns is now enabled. Enjoy! :)", Color.ConvertStringToColor("#001FFFFF"));
+            UX.ShowMessage("Custom Spawns API loaded", Color.ConvertStringToColor("#001FFFFF"));
             AIManager.FlushRegisteredBehaviours(); //forget old behaviours to allocate space. 
             foreach (var subMod in SubModManager.LoadAllValidDependentMods())
             {
-                UX.ShowMessage(subMod.SubModuleName + " is now integrated into the CustomSpawns API.",
+                UX.ShowMessage(subMod.SubModuleName + " is now integrated into the Custom Spawns API.",
                     Color.ConvertStringToColor("#001FFFFF"));
             }
 

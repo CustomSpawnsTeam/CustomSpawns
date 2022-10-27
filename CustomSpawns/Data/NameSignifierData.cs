@@ -40,10 +40,6 @@ namespace CustomSpawns.Data
         private NameSignifierData()
         {
             string path = "";
-#if !API_MODE
-            path = Path.Combine(BasePath.Name, "Modules", "CustomSpawns", "ModuleData", "Data", "NameSignifiers.xml");
-            ConstructFromXML(path);
-#endif
             foreach(var subMod in ModIntegration.SubModManager.LoadAllValidDependentMods())
             {
                 path = Path.Combine(subMod.CustomSpawnsDirectoryPath, "NameSignifiers.xml");
