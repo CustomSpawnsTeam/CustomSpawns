@@ -1,0 +1,6 @@
+---------------------------------------------------------------------------------------------------
+Version: 1.9.0
+Game Versions: v1.0.0
+* Adds compatibility against v1.0.0.
+* Seperated Calradia At War and Custom Spawns into seperate modules. CaW will now use the API as any other Custom Spawns mod.
+---------------------------------------------------------------------------------------------------

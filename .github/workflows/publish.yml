@@ -1,0 +1,16 @@
+name: Publish
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  publish:
+    uses: CustomSpawnsTeam/workflows/.github/workflows/publish-common.yml@master
+    with:
+      mod_id: CustomSpawns
+      workshop_id: 2878685456
+    secrets:
+      STEAM_WORKSHOP_LOGIN: ${{ secrets.STEAM_WORKSHOP_LOGIN }}
+      STEAM_WORKSHOP_PASSWORD: ${{ secrets.STEAM_WORKSHOP_PASSWORD }}
+      STEAM_WORKSHOP_AUTH_CODE: ${{ secrets.STEAM_WORKSHOP_AUTH_CODE }}
