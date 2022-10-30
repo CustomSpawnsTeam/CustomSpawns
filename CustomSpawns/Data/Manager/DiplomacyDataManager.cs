@@ -15,10 +15,6 @@ namespace CustomSpawns.Data.Manager
             var diplomacyData = new Dictionary<string,DiplomacyData>();
             try
             {
-#if !API_MODE
-                path = Path.Combine(BasePath.Name, "Modules", "CustomSpawns", "ModuleData", "Data", "Diplomacy.xml");
-                diplomacyData = ConstructListFromXML(path);
-#endif
                 foreach (var subMod in ModIntegration.SubModManager.LoadAllValidDependentMods())
                 {
                     path = Path.Combine(subMod.CustomSpawnsDirectoryPath, "Diplomacy.xml");

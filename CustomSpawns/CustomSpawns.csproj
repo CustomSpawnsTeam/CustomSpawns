@@ -5,19 +5,20 @@
         <Platforms>x64</Platforms>
         <LangVersion>9.0</LangVersion>
         <Nullable>enable</Nullable>
-        <Configurations>Api_Stable_Debug;Api_Stable_Release;Api_Beta_Debug;Api_Beta_Release;Stable_Debug;Stable_Release;Beta_Debug;Beta_Release</Configurations>
+        <Configurations>Debug;Release</Configurations>
     </PropertyGroup>
 
     <PropertyGroup>
         <ModuleName>CustomSpawns</ModuleName>
-        <DisplayName>Custom Spawns</DisplayName>
+        <DisplayName>Custom Spawns API</DisplayName>
         <AssemblyName>$(ModuleName)</AssemblyName>
+        <Version>1.9.0</Version>
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(Configuration.StartsWith('Api'))">
-        <DefineConstants>$(DefineConstants);API_MODE</DefineConstants>
-        <ModuleName>CustomSpawnsCleanAPI</ModuleName>
-        <DisplayName>CustomSpawns Clean API</DisplayName>
+    <!-- Versions of Major Dependencies (For Package References & SubModule.xml Substitution) -->
+    <PropertyGroup>
+        <BuildResourcesVersion>1.0.0.33</BuildResourcesVersion>
+        <HarmonyVersion>2.2.2</HarmonyVersion>
     </PropertyGroup>
 
     <!-- NuGet Packages -->
@@ -28,18 +29,12 @@
         </PackageReference>
         <PackageReference Include="Lib.Harmony" Version="$(HarmonyVersion)" PrivateAssets="All" />
 
-        <PackageReference Include="Bannerlord.ReferenceAssemblies.Core.EarlyAccess" Version="$(GameVersion).*" PrivateAssets="All" />
-        <PackageReference Include="Bannerlord.ReferenceAssemblies.Native.EarlyAccess" Version="$(GameVersion).*" PrivateAssets="All" />
-        <PackageReference Include="Bannerlord.ReferenceAssemblies.StoryMode.EarlyAccess" Version="$(GameVersion).*" PrivateAssets="All" />
-        <PackageReference Include="Bannerlord.ReferenceAssemblies.Sandbox.EarlyAccess" Version="$(GameVersion).*" PrivateAssets="All" />
+        <PackageReference Include="Bannerlord.ReferenceAssemblies.Core" Version="$(GameVersion).*" PrivateAssets="All" />
+        <PackageReference Include="Bannerlord.ReferenceAssemblies.Native" Version="$(GameVersion).*" PrivateAssets="All" />
+        <PackageReference Include="Bannerlord.ReferenceAssemblies.StoryMode" Version="$(GameVersion).*" PrivateAssets="All" />
+        <PackageReference Include="Bannerlord.ReferenceAssemblies.Sandbox" Version="$(GameVersion).*" PrivateAssets="All" />
         <Reference Include="System.Windows.Forms" />
     </ItemGroup>
-
-    <Target Name="Setup CustomSpawnCleanAPI in game folder" AfterTargets="Build" Condition="$(Configuration.StartsWith('Api'))">
-        <CopyFolder FromDirectory="$(ProjectDir)\..\$(ModuleName)\_Module" ToDirectory="$(GameFolder)/Modules/$(ModuleName)" Regex="^.*$" Clean="true" />
-        <ReplaceFileText Condition="'@(SubModuleOverrides-&gt;Count())' &gt; 0" File="$(GameFolder)/Modules/$(ModuleName)/SubModule.xml" Regex="%(SubModuleOverrides.Regex)" ReplacementText="%(SubModuleOverrides.Replacement)" />
-        <RemoveDir Directories="$(GameFolder)\Modules\$(ModuleName)\ModuleData\Data" />
-    </Target>
 
     <!-- Extra Substitution Variables to Use in SubModule.xml -->
     <ItemGroup>
@@ -47,26 +42,6 @@
             <Regex>\$displayname\$</Regex>
             <Replacement>$(DisplayName)</Replacement>
         </SubModuleOverrides>
-    </ItemGroup>
-    <ItemGroup>
-      <Content Include="..\CustomSpawnsCleanAPI\_Module\ModuleData\config.xml">
-        <Link>CustomSpawnsCleanAPI\_Module\ModuleData\config.xml</Link>
-      </Content>
-      <Content Include="..\CustomSpawnsCleanAPI\_Module\ModuleData\custom_spawns_campaign_data_config.xml">
-        <Link>CustomSpawnsCleanAPI\_Module\ModuleData\custom_spawns_campaign_data_config.xml</Link>
-      </Content>
-      <Content Include="..\CustomSpawnsCleanAPI\_Module\ModuleData\prisoner_recruitment_config.xml">
-        <Link>CustomSpawnsCleanAPI\_Module\ModuleData\prisoner_recruitment_config.xml</Link>
-      </Content>
-      <Content Include="..\CustomSpawnsCleanAPI\_Module\Schema\PartyRewardTemplateSchema.xsd">
-        <Link>CustomSpawnsCleanAPI\_Module\Schema\PartyRewardTemplateSchema.xsd</Link>
-      </Content>
-      <Content Include="..\CustomSpawnsCleanAPI\_Module\SubModule.xml">
-        <Link>CustomSpawnsCleanAPI\_Module\SubModule.xml</Link>
-      </Content>
-    </ItemGroup>
-    <ItemGroup>
-      <Folder Include="PrisonerRecruitment" />
     </ItemGroup>
 
 </Project>

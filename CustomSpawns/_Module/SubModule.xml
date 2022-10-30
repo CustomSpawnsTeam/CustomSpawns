@@ -1,122 +1,32 @@
-<Module>
+ <Module>
 	<Name value="$displayname$"/>
 	<Id value="$modulename$"/>
 	<Version value="v$version$"/>
 	<SingleplayerModule value="true"/>
 	<MultiplayerModule value="false"/>
-	<DependedModules>
-		<DependedModule Id="Native"/>
-		<DependedModule Id="SandBoxCore"/>
-		<DependedModule Id="Sandbox"/>
-		<DependedModule Id="StoryMode"/>
-	</DependedModules>
-	<DependedModuleMetadatas>
-		<DependedModuleMetadata id="Native" order="LoadBeforeThis" version="e$gameversion$.*"/>
-		<DependedModuleMetadata id="SandBoxCore" order="LoadBeforeThis" version="e$gameversion$.*"/>
-		<DependedModuleMetadata id="Sandbox" order="LoadBeforeThis" version="e$gameversion$.*"/>
-		<DependedModuleMetadata id="StoryMode" order="LoadBeforeThis" version="e$gameversion$.*"/>
-		<DependedModuleMetadata id="CustomBattle" order="LoadBeforeThis" version="e$gameversion$.*" optional="true"/>
-	</DependedModuleMetadatas>
+	<ModuleType value="Community"/>
+	<ModuleCategory value="Singleplayer" />
+	 <DependedModules>
+		 <DependedModule Id="Native" DependentVersion="v$gameversion$" Optional="false"/>
+		 <DependedModule Id="SandBoxCore" DependentVersion="v$gameversion$" Optional="false"/>
+		 <DependedModule Id="Sandbox" DependentVersion="v$gameversion$" Optional="false"/>
+	 </DependedModules>
+	 <DependedModuleMetadatas>
+		 <DependedModuleMetadata id="Native" order="LoadBeforeThis" version="v$gameversion$.*"/>
+		 <DependedModuleMetadata id="SandBoxCore" order="LoadBeforeThis" version="v$gameversion$.*"/>
+		 <DependedModuleMetadata id="Sandbox" order="LoadBeforeThis" version="v$gameversion$.*"/>
+	 </DependedModuleMetadatas>
 	<SubModules>
 		<SubModule>
-			<Name value="$modulename$"/>
-			<DLLName value="$modulename$.dll"/>
-			<SubModuleClassType value="$modulename$.Main"/>
+			<Name value="CustomSpawns"/>
+			<DLLName value="CustomSpawns.dll"/>
+			<SubModuleClassType value="CustomSpawns.Main"/>
 			<Tags>
 				<Tag key="DedicatedServerType" value="none"/>
 				<Tag key="IsNoRenderModeElement" value="false"/>
 			</Tags>
 		</SubModule>
 	</SubModules>
-	<Xmls>
-		<XmlNode>
-			<XmlName path="CustomTroopTemplates" id="partyTemplates"/>
-			<IncludedGameTypes>
-				<GameType value="Campaign"/>
-				<GameType value="CampaignStoryMode"/>
-				<GameType value="CustomGame"/>
-				<GameType value="EditorGame"/>
-			</IncludedGameTypes>
-		</XmlNode>
-		<XmlNode>
-			<XmlName id="CraftingPieces" path="CustomTroopGearPieces"/>
-			<IncludedGameTypes>
-				<GameType value="Campaign"/>
-				<GameType value="CampaignStoryMode"/>
-				<GameType value="CustomGame"/>
-				<GameType value="EditorGame"/>
-			</IncludedGameTypes>
-		</XmlNode>
-		<XmlNode>
-			<XmlName id="CraftingTemplates" path="CustomTroopGearTemplates"/>
-		</XmlNode>
-		<XmlNode>
-			<XmlName id="Items" path="CustomTroopGear"/>
-			<IncludedGameTypes>
-				<GameType value="Campaign"/>
-				<GameType value="CampaignStoryMode"/>
-				<GameType value="CustomGame"/>
-				<GameType value="EditorGame"/>
-			</IncludedGameTypes>
-		</XmlNode>
-		<XmlNode>
-			<XmlName path="CustomTroops" id="NPCCharacters"/>
-			<IncludedGameTypes>
-				<GameType value="Campaign"/>
-				<GameType value="CampaignStoryMode"/>
-				<GameType value="CustomGame"/>
-				<GameType value="EditorGame"/>
-			</IncludedGameTypes>
-		</XmlNode>
-		<XmlNode>
-			<XmlName id="EquipmentRosters" path="CustomSpawns_equipment_sets"/>
-			<IncludedGameTypes>
-				<GameType value="Campaign"/>
-				<GameType value="CampaignStoryMode"/>
-				<GameType value="CustomGame"/>
-				<GameType value="EditorGame"/>
-			</IncludedGameTypes>
-		</XmlNode>
-		<XmlNode>
-			<XmlName id="NPCCharacters" path="CustomLords"/>
-			<IncludedGameTypes>
-				<GameType value="Campaign"/>
-				<GameType value="CampaignStoryMode"/>
-				<GameType value="EditorGame"/>
-			</IncludedGameTypes>
-		</XmlNode>
-		<XmlNode>
-			<XmlName id="BodyProperties" path="CustomSpawns_bodyproperties"/>
-			<IncludedGameTypes>
-				<GameType value="Campaign"/>
-				<GameType value="CampaignStoryMode"/>
-			</IncludedGameTypes>
-		</XmlNode>
-		<XmlNode>
-			<XmlName id="Heroes" path="CustomHeroes"/>
-			<IncludedGameTypes>
-				<GameType value="Campaign"/>
-				<GameType value="CampaignStoryMode"/>
-				<GameType value="EditorGame"/>
-			</IncludedGameTypes>
-		</XmlNode>
-		<XmlNode>
-			<XmlName path="CustomFactions" id="Factions"/>
-			<IncludedGameTypes>
-				<GameType value="Campaign"/>
-				<GameType value="CampaignStoryMode"/>
-				<GameType value="CustomGame"/>
-				<GameType value="EditorGame"/>
-			</IncludedGameTypes>
-		</XmlNode>
-		<XmlNode>
-			<XmlName path="WeaponDescriptions" id="WeaponDescriptions"/>
-			<IncludedGameTypes>
-				<GameType value="Campaign"/>
-				<GameType value="CampaignStoryMode"/>
-				<GameType value="CustomGame"/>
-				<GameType value="EditorGame"/>
-			</IncludedGameTypes>
-		</XmlNode>
-	</Xmls>
-</Module>
+     <Xmls>
+     </Xmls>
+ </Module>

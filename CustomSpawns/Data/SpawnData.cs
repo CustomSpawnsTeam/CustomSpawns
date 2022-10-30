@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -62,25 +63,14 @@ namespace CustomSpawns.Data
             }
         }
 
-        public MBReadOnlyDictionary<string, SpawnData> PartyIDToData
+        public ReadOnlyDictionary<string, SpawnData> AllSpawnData()
         {
-            get
-            {
-                return partyIDtoData.GetReadOnlyDictionary();
-            }
+                return new(partyIDtoData);   
         }
 
         private SpawnDataManager()
         {
             string path = "";
-#if !API_MODE
-            path = Path.Combine(BasePath.Name, "Modules", "CustomSpawns", "ModuleData", "Data", "CustomDailySpawn.xml");
-            if (!File.Exists(path))
-            {
-                path = Path.Combine(BasePath.Name, "Modules", "CustomSpawns", "ModuleData", "Data", "RegularBanditDailySpawn.xml");
-            }
-            ConstructListFromXML(path);
-#endif
             foreach (var subMod in ModIntegration.SubModManager.LoadAllValidDependentMods())
             {
                 path = Path.Combine(subMod.CustomSpawnsDirectoryPath, "CustomDailySpawn.xml");

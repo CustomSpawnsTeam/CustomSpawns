@@ -33,11 +33,7 @@ namespace CustomSpawns.CampaignData.Config
         private CampaignDataConfigLoader()
         {
             string path = "";
-#if API_MODE
-            path = Path.Combine(BasePath.Name, "Modules", "CustomSpawnsCleanAPI", "ModuleData", "custom_spawns_campaign_data_config.xml");
-#else
-            path = Path.Combine(BasePath.Name, "Modules", "CustomSpawns", "ModuleData", "custom_spawns_campaign_data_config.xml");
-#endif
+            path = Path.Combine(BasePath.Name, "Modules", Main.ModuleName, "ModuleData", "custom_spawns_campaign_data_config.xml");
             ConstructConfigs(path);
         }
 

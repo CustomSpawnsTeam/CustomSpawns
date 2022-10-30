@@ -27,11 +27,7 @@ namespace CustomSpawns.Config
         private ConfigLoader()
         {
             string path = "";
-#if API_MODE
-            path = Path.Combine(BasePath.Name, "Modules", "CustomSpawnsCleanAPI", "ModuleData", "config.xml");
-#else
-            path = Path.Combine(BasePath.Name, "Modules", "CustomSpawns", "ModuleData", "config.xml");
-#endif
+            path = Path.Combine(BasePath.Name, "Modules", Main.ModuleName, "ModuleData", "config.xml");
             Config = getConfig(path);
         }
 

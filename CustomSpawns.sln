@@ -6,6 +6,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{12CCA2B5-A874-47B3-BB43-799275014D7B}"
 	ProjectSection(SolutionItems) = preProject
 		supported-game-versions.txt = supported-game-versions.txt
+		changelog.txt = changelog.txt
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{CB20C6C8-2857-4B1E-9C00-265893C094E3}"
@@ -13,57 +14,37 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{CB20C6C8
 		build\common.props = build\common.props
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "github", "github", "{D92D1817-633F-4FDB-B964-BF64B8B68432}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{133BE529-CC26-44D3-B2DE-8F2778FE2F39}"
+ProjectSection(SolutionItems) = preProject
+	.github\workflows\publish.yml = .github\workflows\publish.yml
+EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Stable_Debug|x64 = Stable_Debug|x64
-		Stable_Release|x64 = Stable_Release|x64
-		Beta_Debug|x64 = Beta_Debug|x64
-		Beta_Release|x64 = Beta_Release|x64
-		Api_Stable_Debug|x64 = Api_Stable_Debug|x64
-		Api_Stable_Release|x64 = Api_Stable_Release|x64
-		Api_Beta_Debug|x64 = Api_Beta_Debug|x64
-		Api_Beta_Release|x64 = Api_Beta_Release|x64
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{E1047BC3-78A9-444C-B74F-41E1B9744ED3}.Stable_Debug|x64.ActiveCfg = Stable_Debug|x64
-		{E1047BC3-78A9-444C-B74F-41E1B9744ED3}.Stable_Debug|x64.Build.0 = Stable_Debug|x64
-		{E1047BC3-78A9-444C-B74F-41E1B9744ED3}.Stable_Release|x64.ActiveCfg = Stable_Release|x64
-		{E1047BC3-78A9-444C-B74F-41E1B9744ED3}.Stable_Release|x64.Build.0 = Stable_Release|x64
-		{E1047BC3-78A9-444C-B74F-41E1B9744ED3}.Beta_Debug|x64.ActiveCfg = Beta_Debug|x64
-		{E1047BC3-78A9-444C-B74F-41E1B9744ED3}.Beta_Debug|x64.Build.0 = Beta_Debug|x64
-		{E1047BC3-78A9-444C-B74F-41E1B9744ED3}.Beta_Release|x64.ActiveCfg = Beta_Release|x64
-		{E1047BC3-78A9-444C-B74F-41E1B9744ED3}.Beta_Release|x64.Build.0 = Beta_Release|x64
-		{E1047BC3-78A9-444C-B74F-41E1B9744ED3}.Api_Stable_Debug|x64.ActiveCfg = Api_Stable_Debug|x64
-		{E1047BC3-78A9-444C-B74F-41E1B9744ED3}.Api_Stable_Debug|x64.Build.0 = Api_Stable_Debug|x64
-		{E1047BC3-78A9-444C-B74F-41E1B9744ED3}.Api_Stable_Release|x64.ActiveCfg = Api_Stable_Release|x64
-		{E1047BC3-78A9-444C-B74F-41E1B9744ED3}.Api_Stable_Release|x64.Build.0 = Api_Stable_Release|x64
-		{E1047BC3-78A9-444C-B74F-41E1B9744ED3}.Api_Beta_Debug|x64.ActiveCfg = Api_Beta_Debug|x64
-		{E1047BC3-78A9-444C-B74F-41E1B9744ED3}.Api_Beta_Debug|x64.Build.0 = Api_Beta_Debug|x64
-		{E1047BC3-78A9-444C-B74F-41E1B9744ED3}.Api_Beta_Release|x64.ActiveCfg = Api_Beta_Release|x64
-		{E1047BC3-78A9-444C-B74F-41E1B9744ED3}.Api_Beta_Release|x64.Build.0 = Api_Beta_Release|x64
+		{E1047BC3-78A9-444C-B74F-41E1B9744ED3}.Debug|x64.ActiveCfg = Debug|x64
+		{E1047BC3-78A9-444C-B74F-41E1B9744ED3}.Debug|x64.Build.0 = Debug|x64
+		{E1047BC3-78A9-444C-B74F-41E1B9744ED3}.Release|x64.ActiveCfg = Release|x64
+		{E1047BC3-78A9-444C-B74F-41E1B9744ED3}.Release|x64.Build.0 = Release|x64
 
-		{17F43D01-48C7-43DC-A6E6-28C303AAC8DB}.Stable_Debug|x64.ActiveCfg = Stable_Debug|x64
-		{17F43D01-48C7-43DC-A6E6-28C303AAC8DB}.Stable_Debug|x64.Build.0 = Stable_Debug|x64
-		{17F43D01-48C7-43DC-A6E6-28C303AAC8DB}.Stable_Release|x64.ActiveCfg = Stable_Release|x64
-		{17F43D01-48C7-43DC-A6E6-28C303AAC8DB}.Stable_Release|x64.Build.0 = Stable_Release|x64
-		{17F43D01-48C7-43DC-A6E6-28C303AAC8DB}.Beta_Debug|x64.ActiveCfg = Beta_Debug|x64
-		{17F43D01-48C7-43DC-A6E6-28C303AAC8DB}.Beta_Debug|x64.Build.0 = Beta_Debug|x64
-		{17F43D01-48C7-43DC-A6E6-28C303AAC8DB}.Beta_Release|x64.ActiveCfg = Beta_Release|x64
-		{17F43D01-48C7-43DC-A6E6-28C303AAC8DB}.Beta_Release|x64.Build.0 = Beta_Release|x64
-		{17F43D01-48C7-43DC-A6E6-28C303AAC8DB}.Api_Stable_Debug|x64.ActiveCfg = Api_Stable_Debug|x64
-		{17F43D01-48C7-43DC-A6E6-28C303AAC8DB}.Api_Stable_Debug|x64.Build.0 = Api_Stable_Debug|x64
-		{17F43D01-48C7-43DC-A6E6-28C303AAC8DB}.Api_Stable_Release|x64.ActiveCfg = Api_Stable_Release|x64
-		{17F43D01-48C7-43DC-A6E6-28C303AAC8DB}.Api_Stable_Release|x64.Build.0 = Api_Stable_Release|x64
-		{17F43D01-48C7-43DC-A6E6-28C303AAC8DB}.Api_Beta_Debug|x64.ActiveCfg = Api_Beta_Debug|x64
-		{17F43D01-48C7-43DC-A6E6-28C303AAC8DB}.Api_Beta_Debug|x64.Build.0 = Api_Beta_Debug|x64
-		{17F43D01-48C7-43DC-A6E6-28C303AAC8DB}.Api_Beta_Release|x64.ActiveCfg = Api_Beta_Release|x64
-		{17F43D01-48C7-43DC-A6E6-28C303AAC8DB}.Api_Beta_Release|x64.Build.0 = Api_Beta_Release|x64
+		{17F43D01-48C7-43DC-A6E6-28C303AAC8DB}.Debug|x64.ActiveCfg = Debug|x64
+		{17F43D01-48C7-43DC-A6E6-28C303AAC8DB}.Debug|x64.Build.0 = Debug|x64
+		{17F43D01-48C7-43DC-A6E6-28C303AAC8DB}.Release|x64.ActiveCfg = Release|x64
+		{17F43D01-48C7-43DC-A6E6-28C303AAC8DB}.Release|x64.Build.0 = Release|x64
+
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{CB20C6C8-2857-4B1E-9C00-265893C094E3} = {12CCA2B5-A874-47B3-BB43-799275014D7B}
+		{D92D1817-633F-4FDB-B964-BF64B8B68432} = {12CCA2B5-A874-47B3-BB43-799275014D7B}
+		{133BE529-CC26-44D3-B2DE-8F2778FE2F39} = {D92D1817-633F-4FDB-B964-BF64B8B68432}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B3D4AB65-9162-4EE2-9413-1867C12DC041}
