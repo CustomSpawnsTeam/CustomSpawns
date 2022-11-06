@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Collections.Generic;
 using System.Linq;
 using CustomSpawns.Data;
+using CustomSpawns.Data.Dao;
 using CustomSpawns.Dialogues.DialogueAlgebra;
 using CustomSpawns.Dialogues.DialogueAlgebra.Condition;
 using CustomSpawns.Exception;
@@ -16,8 +17,13 @@ namespace CustomSpawns.Dialogues
     public class DialogueConditionInterpretor
     {
 
-        public DialogueConditionInterpretor()
+        private static SpawnDao _spawnDao;
+        private readonly MessageBoxService _messageBoxService;
+        
+        public DialogueConditionInterpretor(SpawnDao spawnDao, MessageBoxService messageBoxService)
         {
+            _spawnDao = spawnDao;
+            _messageBoxService = messageBoxService;
             allMethods = typeof(DialogueConditionInterpretor).GetMethods(BindingFlags.Static | BindingFlags.NonPublic).
                  Where((m) => m.GetCustomAttributes(typeof(DialogueConditionImplementorAttribute), false).Count() > 0).ToList();
         }
@@ -100,7 +106,7 @@ namespace CustomSpawns.Dialogues
             }
             catch(System.Exception e)
             {
-                ErrorHandler.ShowPureErrorMessage("Could not parse dialogue condition: \n" + text + "\n Error Message: \n" + e.Message);
+                _messageBoxService.ShowMessage("Could not parse dialogue condition: \n" + text + "\n Error Message: \n" + e.Message);
                 return null;
             }
 
@@ -347,8 +353,8 @@ namespace CustomSpawns.Dialogues
         [DialogueConditionImplementor("IsCustomSpawnParty")]
         private static bool IsCustomSpawnParty(DialogueParams param)
         {
-            // TODO refactor when these "managers" are not singletons anymore. 
-            return SpawnDataManager.Instance.AllSpawnData().Keys.Any(partyId => param?.AdversaryParty?.StringId?.StartsWith(partyId) ?? false);
+            return _spawnDao.FindAllPartyTemplateId()
+                .Any(partyId => param?.AdversaryParty?.StringId?.StartsWith(partyId) ?? false);
         }
 
         [DialogueConditionImplementor("IsPlayerEncounterInsideSettlement")]

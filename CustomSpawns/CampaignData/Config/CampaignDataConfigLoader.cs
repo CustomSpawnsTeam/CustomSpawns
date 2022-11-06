@@ -5,35 +5,20 @@ using System.Linq;
 using System.Reflection;
 using System.Xml.Linq;
 using System.Xml.Serialization;
+using CustomSpawns.ModIntegration;
 using CustomSpawns.Utils;
-using TaleWorlds.Library;
 
 namespace CustomSpawns.CampaignData.Config
 {
     class CampaignDataConfigLoader
     {
+        private readonly MessageBoxService _messageBoxService;
+        private readonly Dictionary<Type, object> _typeToConfig = new();
 
-        private static CampaignDataConfigLoader _instance = null;
-
-        private static Dictionary<Type, object> typeToConfig = new Dictionary<Type, object>();
-
-        public static CampaignDataConfigLoader Instance
+        public CampaignDataConfigLoader(SubModService subModService, MessageBoxService messageBoxService)
         {
-            get
-            {
-                if (_instance == null)
-                {
-                    _instance = new CampaignDataConfigLoader();
-                }
-
-                return _instance;
-            }
-        }
-
-        private CampaignDataConfigLoader()
-        {
-            string path = "";
-            path = Path.Combine(BasePath.Name, "Modules", Main.ModuleName, "ModuleData", "custom_spawns_campaign_data_config.xml");
+            _messageBoxService = messageBoxService;
+            string path = Path.Combine(subModService.GetCustomSpawnsModule(), "ModuleData", "custom_spawns_campaign_data_config.xml");
             ConstructConfigs(path);
         }
 
@@ -58,20 +43,20 @@ namespace CustomSpawns.CampaignData.Config
                         if(ele.Name.LocalName.ToString() == t.Name)
                         {
                             var config = DeserializeNode(ele, t);
-                            typeToConfig.Add(t, config);
+                            _typeToConfig.Add(t, config);
                             processed = true;
                         }
                     }
 
                     if (!processed)
                     {
-                        ErrorHandler.ShowPureErrorMessage("Could not find Campaign Data config file for type " + t.Name);
+                        _messageBoxService.ShowMessage("Could not find Campaign Data config file for type " + t.Name);
                     }
                 }
             }
             catch (System.Exception e)
             {
-                ErrorHandler.HandleException(e, "CAMPAIGN DATA XML READING");
+                _messageBoxService.ShowCustomSpawnsErrorMessage(e, "CAMPAIGN DATA XML READING");
             }
 
         }
@@ -87,9 +72,9 @@ namespace CustomSpawns.CampaignData.Config
 
         public T GetConfig<T>() where T: class, ICampaignDataConfig, new()
         {
-            if (typeToConfig.ContainsKey(typeof(T)))
+            if (_typeToConfig.ContainsKey(typeof(T)))
             {
-                return typeToConfig[typeof(T)] as T;
+                return _typeToConfig[typeof(T)] as T;
             }
 
             return null;

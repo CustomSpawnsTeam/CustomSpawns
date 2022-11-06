@@ -10,11 +10,16 @@ namespace CustomSpawns.Spawn
     {
         private readonly BanditPartySpawnFactory _banditPartySpawnFactory;
         private readonly CustomPartySpawnFactory _customPartySpawnFactory;
+        private readonly MessageBoxService _messageBoxService;
+        private readonly ModDebug _modDebug;
 
-        public Spawner(BanditPartySpawnFactory banditPartySpawnFactory, CustomPartySpawnFactory customPartySpawnFactory)
+        public Spawner(BanditPartySpawnFactory banditPartySpawnFactory, CustomPartySpawnFactory customPartySpawnFactory,
+            MessageBoxService messageBoxService, ModDebug modDebug)
         {
             _banditPartySpawnFactory = banditPartySpawnFactory;
             _customPartySpawnFactory = customPartySpawnFactory;
+            _messageBoxService = messageBoxService;
+            _modDebug = modDebug;
         }
         
         // TODO use the speed parameter here instead of using the harmony patch  
@@ -22,17 +27,9 @@ namespace CustomSpawns.Spawn
         {
             try
             {
-                if(templateObject == null)
-                {
-                    ErrorHandler.ShowPureErrorMessage(
-                        "Party Template with ID " + templateObject.StringId + " possibly does not exist. It was tried to be assigned to "
-                        + templateObject.StringId);
-                    return null;
-                }
-
                 //get name and show message.
                 TextObject name = partyName ?? clan.Name;
-                ModDebug.ShowMessage("CustomSpawns: Spawning " + name + " at " + spawnedSettlement.GatePosition + " in settlement " + spawnedSettlement.Name.ToString(), DebugMessageType.Spawn);
+                _modDebug.ShowMessage("CustomSpawns: Spawning " + name + " at " + spawnedSettlement.GatePosition + " in settlement " + spawnedSettlement.Name.ToString(), DebugMessageType.Spawn);
 
                 if (clan.IsBanditFaction)
                 {
@@ -41,8 +38,8 @@ namespace CustomSpawns.Spawn
                 return _customPartySpawnFactory.SpawnParty(spawnedSettlement, name, clan, templateObject);
             }
             catch (System.Exception e) {
-                ErrorHandler.ShowPureErrorMessage("Possible invalid spawn data. Spawning of party terminated.");
-                ErrorHandler.HandleException(e, "party spawning");
+                _messageBoxService.ShowMessage("Possible invalid spawn data. Spawning of party terminated.");
+                _messageBoxService.ShowCustomSpawnsErrorMessage(e, "party spawning");
                 return null;
             }
 

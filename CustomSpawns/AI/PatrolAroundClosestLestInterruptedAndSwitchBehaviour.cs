@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using CustomSpawns.Data.Adapter;
 using CustomSpawns.Utils;
 using TaleWorlds.Core;
 using TaleWorlds.CampaignSystem;
@@ -9,10 +10,16 @@ namespace CustomSpawns.AI
 {
     public class PatrolAroundClosestLestInterruptedAndSwitchBehaviour: CampaignBehaviorBase, IAIBehaviour
     {
+        private readonly ModDebug _modDebug;
+
+        public PatrolAroundClosestLestInterruptedAndSwitchBehaviour(ModDebug modDebug)
+        {
+            _modDebug = modDebug;
+        }
 
         public override void RegisterEvents()
         {
-            CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, hourlyAI);
+            CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, HourlyAI);
             AIManager.PatrolAroundClosestLestInterruptedAndSwitchBehaviour = this;
         }
 
@@ -21,11 +28,11 @@ namespace CustomSpawns.AI
             
         }
 
-        private List<PatrolAroundClosestLestInterruptedAndSwitchBehaviourData> instances = new List<PatrolAroundClosestLestInterruptedAndSwitchBehaviourData>();
+        private List<PatrolAroundClosestLestInterruptedAndSwitchBehaviourData> instances = new();
 
-        private void hourlyAI()
+        private void HourlyAI()
         {
-            List<PatrolAroundClosestLestInterruptedAndSwitchBehaviourData> toRemove = new List<PatrolAroundClosestLestInterruptedAndSwitchBehaviourData>();
+            List<PatrolAroundClosestLestInterruptedAndSwitchBehaviourData> toRemove = new();
             for(int i = 0; i < instances.Count; i++)
             {
                 var dat = instances[i];
@@ -96,9 +103,9 @@ namespace CustomSpawns.AI
                 if (!b.IsCompatible(this))
                     return false;
             }
-            ModDebug.ShowMessage(mb.StringId + " will now patrol around closest settlement, unless interrupted, and, if has not been interrupted, will" +
-                " switch settlements every " + data.minStablePatrolDays.ToString() + " to " + 
-                data.maxStablePatrolDays.ToString() + " days.", DebugMessageType.AI);
+            _modDebug.ShowMessage(mb.StringId + " will now patrol around closest settlement, unless interrupted, and, if has not been interrupted, will" +
+                                  " switch settlements every " + data.minStablePatrolDays + " to " +
+                                  data.maxStablePatrolDays + " days.", DebugMessageType.AI);
             AIManager.RegisterAIBehaviour(mb, this);
             instances.Add(data);
             return true;
@@ -128,9 +135,9 @@ namespace CustomSpawns.AI
             public float minStablePatrolDays;
             public float maxStablePatrolDays;
             public bool isValidData;
-            public List<Data.SpawnSettlementType> preferredSettlements;
+            public List<SpawnSettlementType> preferredSettlements;
 
-            public PatrolAroundClosestLestInterruptedAndSwitchBehaviourData(MobileParty party, float minDays, float maxDays, List<Data.SpawnSettlementType> preferredSettlements)
+            public PatrolAroundClosestLestInterruptedAndSwitchBehaviourData(MobileParty party, float minDays, float maxDays, List<SpawnSettlementType> preferredSettlements)
             {
                 this.party = party;
                 minStablePatrolDays = minDays;

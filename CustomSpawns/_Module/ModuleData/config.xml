@@ -12,7 +12,5 @@
 
 	<IsRemovalMode> false </IsRemovalMode>
 
-	<SameErrorShowUntil> 2 </SameErrorShowUntil> <!-- The same error will be shown in the log if it exceeds this number in one play time. -->
-
 	<SpawnChanceFlatMultiplier> 1 </SpawnChanceFlatMultiplier>
 </Config>

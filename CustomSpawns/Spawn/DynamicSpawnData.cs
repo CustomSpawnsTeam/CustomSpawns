@@ -1,68 +1,42 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
+using CustomSpawns.Data;
+using CustomSpawns.Data.Dao;
+using CustomSpawns.Data.Dto;
+using CustomSpawns.UtilityBehaviours;
 using CustomSpawns.Utils;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 
-namespace CustomSpawns.Data
+namespace CustomSpawns.Spawn
 {
     public class DynamicSpawnData
     {
-        private static DynamicSpawnData _instance;
+        private readonly Dictionary<MobileParty, CSPartyData> _dynamicSpawnData = new ();
+        private readonly SpawnDao _spawnDao;
 
-        public static DynamicSpawnData Instance
+        public DynamicSpawnData(SpawnDao spawnDao, SaveInitialiser saveInitialiser)
         {
-            get
-            {
-                return _instance;
-            }
-            private set
-            {
-                _instance = value;
-                
-            }
+            _spawnDao = spawnDao;
+            saveInitialiser.RunCallbackOnFirstCampaignTick(Init);
         }
 
-        public static void ClearInstance(Main caller)
-        {
-            if (caller == null)
-                return;
-            _dynamicSpawnData.Clear();
-            _instance = null;
-        }
-
-        public static void Init()
-        {
-            if (_instance == null)
-            {
-                _instance = new DynamicSpawnData();
-            }
-        }
-
-        private DynamicSpawnData()
+        private void Init()
         {
             foreach (MobileParty mb in MobileParty.All)
             {
                 if (mb == null)
                     return;
-                foreach (var dat in SpawnDataManager.Instance.Data)
+                foreach (SpawnDto dat in _spawnDao.FindAll())
                 {
                     if (CampaignUtils.IsolateMobilePartyStringID(mb) == dat.PartyTemplate.StringId) //TODO could deal with sub parties in the future as well!
                     {
                         //this be a custom spawns party :O
                         AddDynamicSpawnData(mb, new CSPartyData(dat, null));
-                        dat.IncrementNumberSpawned();
                         UpdateDynamicData(mb);
                         UpdateRedundantDynamicData(mb);
                     }
                 }
             }
-        }
-
-        private static Dictionary<MobileParty, CSPartyData> _dynamicSpawnData = new Dictionary<MobileParty, CSPartyData>();
-
-        public void FlushSpawnData()
-        {
-            _dynamicSpawnData.Clear();
         }
 
         public void AddDynamicSpawnData(MobileParty mb, CSPartyData data)
@@ -101,12 +75,12 @@ namespace CustomSpawns.Data
 
     public class CSPartyData
     {
-        public SpawnData spawnBaseData;
+        public SpawnDto spawnBaseDto;
         public Settlement latestClosestSettlement;
 
-        public CSPartyData(SpawnData spawnData, Settlement latestClosestSettlement)
+        public CSPartyData(SpawnDto spawnDto, Settlement latestClosestSettlement)
         {
-            this.spawnBaseData = spawnData;
+            spawnBaseDto = spawnDto;
             this.latestClosestSettlement = latestClosestSettlement;
         }
     }

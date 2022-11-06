@@ -9,6 +9,13 @@ namespace CustomSpawns.AI
 {
     public class AttackClosestIfIdleForADayBehaviour : CampaignBehaviorBase, IAIBehaviour
     {
+        private readonly ModDebug _modDebug;
+
+        public AttackClosestIfIdleForADayBehaviour(ModDebug modDebug)
+        {
+            _modDebug = modDebug;
+        }
+        
         public override void RegisterEvents()
         {
             AIManager.AttackClosestIfIdleForADayBehaviour = this;
@@ -59,7 +66,7 @@ namespace CustomSpawns.AI
                     return false;
             }
             registeredParties.Add(mb);
-            ModDebug.ShowMessage(mb.StringId + " is now prevented from idling for 2 days. If it does idle for 2 days it will head to closest hostile settlement.", DebugMessageType.AI);
+            _modDebug.ShowMessage(mb.StringId + " is now prevented from idling for 2 days. If it does idle for 2 days it will head to closest hostile settlement.", DebugMessageType.AI);
             AIManager.RegisterAIBehaviour(mb, this);
             return true;
         }

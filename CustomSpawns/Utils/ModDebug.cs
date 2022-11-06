@@ -1,26 +1,31 @@
 ﻿using CustomSpawns.CampaignData.Config;
 using CustomSpawns.Config;
-using TaleWorlds.Core;
 using TaleWorlds.Library;
 
 
 namespace CustomSpawns.Utils
 {
-    class ModDebug
+    public class ModDebug
     {
-
-        public static void ShowMessage(string message, DebugMessageType messageType)
+        private readonly ConfigLoader _configLoader;
+        
+        public ModDebug(ConfigLoader configLoader)
         {
-            if (!ConfigLoader.Instance.Config.IsDebugMode)
+            _configLoader = configLoader;
+        }
+        
+        public void ShowMessage(string message, DebugMessageType messageType)
+        {
+            if (!_configLoader.Config.IsDebugMode)
                 return;
-            if (messageType == DebugMessageType.AI && !ConfigLoader.Instance.Config.ShowAIDebug)
+            if (messageType == DebugMessageType.AI && !_configLoader.Config.ShowAIDebug)
                 return;
-            if (messageType == DebugMessageType.DeathTrack && !ConfigLoader.Instance.Config.ShowDeathTrackDebug)
+            if (messageType == DebugMessageType.DeathTrack && !_configLoader.Config.ShowDeathTrackDebug)
                 return;
             InformationManager.DisplayMessage(new InformationMessage(message, Color.ConvertStringToColor("#FF8F00FF")));
         }
 
-        public static void ShowMessage(string message, ICampaignDataConfig config)
+        public void ShowMessage(string message, ICampaignDataConfig config)
         {
             if (!config.ShowConfigDebug)
             {

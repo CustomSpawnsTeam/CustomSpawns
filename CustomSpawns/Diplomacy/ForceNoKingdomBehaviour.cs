@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using CustomSpawns.CampaignData.Implementations;
-using CustomSpawns.Data;
-using CustomSpawns.Data.Manager;
+using CustomSpawns.Data.Reader;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using static TaleWorlds.CampaignSystem.Actions.ChangeKingdomAction.ChangeKingdomActionDetail;
@@ -11,12 +10,13 @@ namespace CustomSpawns.Diplomacy
 {
     class ForceNoKingdomBehaviour : CampaignBehaviorBase
     {
-        private readonly DailyLogger _dailyLogger = new();
-        private readonly IDataManager<Dictionary<string,DiplomacyData>> _dataManager;
+        private readonly DailyLogger _dailyLogger;
+        private readonly IDataReader<Dictionary<string,Data.Model.Diplomacy>> _dataReader;
 
-        public ForceNoKingdomBehaviour(IDataManager<Dictionary<string,DiplomacyData>> dataManager)
+        public ForceNoKingdomBehaviour(IDataReader<Dictionary<string,Data.Model.Diplomacy>> dataReader, DailyLogger dailyLogger)
         {
-            _dataManager = dataManager;
+            _dataReader = dataReader;
+            _dailyLogger = dailyLogger;
         }
 
         public override void RegisterEvents()
@@ -36,9 +36,9 @@ namespace CustomSpawns.Diplomacy
                 return;
             }
             
-            if (_dataManager.Data.ContainsKey(clan.StringId))
+            if (_dataReader.Data.ContainsKey(clan.StringId))
             {
-                if(_dataManager.Data[clan.StringId].ForceNoKingdom && clan.Kingdom != null)
+                if(_dataReader.Data[clan.StringId].ForceNoKingdom && clan.Kingdom != null)
                 {
                     ChangeKingdomAction.ApplyByLeaveKingdom(clan, true);
                     _dailyLogger.Info(clan.StringId + " has forcefully been removed from parent kingdom " + oldKingdom?.Name ?? "");

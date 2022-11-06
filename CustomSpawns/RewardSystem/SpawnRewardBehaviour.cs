@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
-using CustomSpawns.RewardSystem.Models;
+using CustomSpawns.Data.Dao;
+using CustomSpawns.Data.Model.Reward;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Extensions;
 using TaleWorlds.CampaignSystem.MapEvents;
@@ -10,13 +11,14 @@ using TaleWorlds.MountAndBlade;
 
 namespace CustomSpawns.RewardSystem
 {
-    public class SpawnRewardBehavior : CampaignBehaviorBase
+    public class SpawnRewardBehaviour : CampaignBehaviorBase
     {
         private const string PlayerPartyId = "player_party";
+        private readonly RewardDao _rewardDao;
 
-        public SpawnRewardBehavior() : base()
+        public SpawnRewardBehaviour(RewardDao rewardDao)
         {
-            XmlRewardData.GetInstance();
+            _rewardDao = rewardDao;
         }
         
         public override void RegisterEvents()
@@ -47,11 +49,11 @@ namespace CustomSpawns.RewardSystem
                 var moneyAmount = 0;
                 var renownAmount = 0;
                 var influenceAmount = 0;
-                var partyRewards = XmlRewardData.GetInstance().PartyRewards;
+                var partyRewards = _rewardDao.FindAll();
                 var partyReward = partyRewards.FirstOrDefault(el => party.Party.Id.Contains(el.PartyId));
                 if (partyReward != null)
                 {
-                    foreach (Reward reward in partyReward.Rewards)
+                    foreach (Reward reward in partyReward.RewardsList)
                     {
                         switch (reward.Type)
                         {

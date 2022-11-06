@@ -1,4 +1,4 @@
-﻿namespace CustomSpawns.RewardSystem.Models
+﻿namespace CustomSpawns.Data.Model.Reward
 {
     public enum RewardType
     {

@@ -10,36 +10,42 @@ namespace CustomSpawns.PartySpeed
         private readonly Dictionary<string, float> _partyIdToBaseSpeed = new();
         private readonly Dictionary<string, float> _partyIdToMinimumSpeed = new();
         private readonly Dictionary<string, float> _partyIdToMaximumSpeed = new();
+        private readonly ConfigLoader _configLoader;
+        
+        public PartySpeedContext(ConfigLoader configLoader)
+        {
+            _configLoader = configLoader;
+        }
 
         public void RegisterPartyExtraBonusSpeed(string partyBaseId, float extraSpeed)
         {
-            if (_partyIdToExtraSpeed.ContainsKey(partyBaseId) || !ConfigLoader.Instance.Config.ModifyPartySpeeds)
+            if (_partyIdToExtraSpeed.ContainsKey(partyBaseId) || !_configLoader.Config.ModifyPartySpeeds)
                 return;
             _partyIdToExtraSpeed.Add(partyBaseId, extraSpeed);
         }
 
         public void RegisterPartyMinimumSpeed(string partyBaseId, float minimumSpeed)
         {
-            if (_partyIdToMinimumSpeed.ContainsKey(partyBaseId) || !ConfigLoader.Instance.Config.ModifyPartySpeeds)
+            if (_partyIdToMinimumSpeed.ContainsKey(partyBaseId) || !_configLoader.Config.ModifyPartySpeeds)
                 return;
             _partyIdToMinimumSpeed.Add(partyBaseId, minimumSpeed);
         }
 
         public void RegisterPartyMaximumSpeed(string partyBaseId, float maximumSpeed)
         {
-            if (_partyIdToMaximumSpeed.ContainsKey(partyBaseId) || !ConfigLoader.Instance.Config.ModifyPartySpeeds)
+            if (_partyIdToMaximumSpeed.ContainsKey(partyBaseId) || !_configLoader.Config.ModifyPartySpeeds)
                 return;
             _partyIdToMaximumSpeed.Add(partyBaseId, maximumSpeed);
         }
 
         public void RegisterPartyBaseSpeed(string partyBaseId, float maximumSpeed)
         {
-            if (_partyIdToBaseSpeed.ContainsKey(partyBaseId) || !ConfigLoader.Instance.Config.ModifyPartySpeeds)
+            if (_partyIdToBaseSpeed.ContainsKey(partyBaseId) || !_configLoader.Config.ModifyPartySpeeds)
                 return;
             _partyIdToBaseSpeed.Add(partyBaseId, maximumSpeed);
         }
 
-        public bool IsPartySpeedBonusAllowedByUser() => ConfigLoader.Instance.Config.ModifyPartySpeeds;
+        public bool IsPartySpeedBonusAllowedByUser() => _configLoader.Config.ModifyPartySpeeds;
         
         public bool IsBasePartySpeedOverriden(string partyBaseId) => _partyIdToBaseSpeed.ContainsKey(partyBaseId);
         

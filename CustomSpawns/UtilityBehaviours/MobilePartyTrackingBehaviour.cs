@@ -8,60 +8,33 @@ namespace CustomSpawns.UtilityBehaviours
 {
     class MobilePartyTrackingBehaviour: CampaignBehaviorBase
     {
+        private readonly ModDebug _modDebug;
 
-        #region Singleton Architecture
-        private static MobilePartyTrackingBehaviour _singleton;
-
-        public static MobilePartyTrackingBehaviour Singleton
+        public MobilePartyTrackingBehaviour(SaveInitialiser saveInitialiser, ModDebug modDebug)
         {
-            get
-            {
-                if (_singleton == null)
-                    _singleton = new MobilePartyTrackingBehaviour();
-                return _singleton;
-            }
-            private set
-            {
-                _singleton = value;
-            }
+            _modDebug = modDebug;
+            saveInitialiser.RunCallbackOnFirstCampaignTick(OnGameStart);
         }
-
-        private MobilePartyTrackingBehaviour()
-        {
-            OnSaveStartRunBehaviour.Singleton.RegisterFunctionToRunOnSaveStart(OnGameStart);
-        }
-
-        #endregion
-
-        #region Taleworlds Implementations
-
+        
         public override void RegisterEvents()
         {
             CampaignEvents.HourlyTickPartyEvent.AddNonSerializedListener(this, OnMobilePartyHourlyTick);
             CampaignEvents.MobilePartyDestroyed.AddNonSerializedListener(this, OnMobilePartyDestroyed);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, LateDailyTick);
-
-            
         }
 
         public override void SyncData(IDataStore dataStore) //maybe make this work between loads too? it is just a daily event tho.
-        {
-            
-        }
+        { }
 
-        #endregion
-
-        private Dictionary<MobileParty, List<Settlement>> dailyPresences = new();
-        private Dictionary<Settlement, List<MobileParty>> settlementDailyPresences = new();
-
-
-        private List<MobileParty> toBeRemoved = new List<MobileParty>();
+        private readonly Dictionary<MobileParty, List<Settlement>> _dailyPresences = new();
+        private readonly Dictionary<Settlement, List<MobileParty>> _settlementDailyPresences = new();
+        private readonly List<MobileParty> _toBeRemoved = new();
 
         private void OnGameStart()
         {
             foreach(Settlement s in Settlement.All)
             {
-                settlementDailyPresences.Add(s, new List<MobileParty>());
+                _settlementDailyPresences.Add(s, new List<MobileParty>());
             }
 
         }
@@ -73,36 +46,36 @@ namespace CustomSpawns.UtilityBehaviours
 
             Settlement closest = CampaignUtils.GetClosestSettlement(mb);
 
-            if (!dailyPresences.ContainsKey(mb))
-                dailyPresences.Add(mb, new List<Settlement>());
+            if (!_dailyPresences.ContainsKey(mb))
+                _dailyPresences.Add(mb, new List<Settlement>());
 
-            if (!dailyPresences[mb].Contains(closest))
+            if (!_dailyPresences[mb].Contains(closest))
             {
-                dailyPresences[mb].Add(closest);
-                settlementDailyPresences[closest].Add(mb);
+                _dailyPresences[mb].Add(closest);
+                _settlementDailyPresences[closest].Add(mb);
             }
         }
 
         private void OnMobilePartyDestroyed(MobileParty mb, PartyBase pb)
         {
-            toBeRemoved.Add(mb);
+            _toBeRemoved.Add(mb);
         }
 
         private void LateDailyTick() 
         {
-            foreach(var mb in toBeRemoved)
+            foreach(var mb in _toBeRemoved)
             {
-                dailyPresences.Remove(mb);
+                _dailyPresences.Remove(mb);
             }
 
-            toBeRemoved.Clear();
+            _toBeRemoved.Clear();
 
-            foreach(var l in settlementDailyPresences.Values)
+            foreach(var l in _settlementDailyPresences.Values)
             {
                 l.Clear();
             }
 
-            foreach(var l in dailyPresences.Values)
+            foreach(var l in _dailyPresences.Values)
             {
                 l.Clear();
             }
@@ -115,13 +88,13 @@ namespace CustomSpawns.UtilityBehaviours
         /// <returns></returns>
         public List<Settlement> GetMobilePartyDailyPresences(MobileParty mb)
         {
-            if (dailyPresences.ContainsKey(mb))
+            if (_dailyPresences.ContainsKey(mb))
             {
-                return dailyPresences[mb];
+                return _dailyPresences[mb];
             }
             else
             {
-                ModDebug.ShowMessage("Tried to get daily presences of an invalid mobile party!", DebugMessageType.Development);
+                _modDebug.ShowMessage("Tried to get daily presences of an invalid mobile party!", DebugMessageType.Development);
                 return new List<Settlement>();
             }
         }
@@ -133,15 +106,12 @@ namespace CustomSpawns.UtilityBehaviours
         /// <returns></returns>
         public List<MobileParty> GetSettlementDailyMobilePartyPresences(Settlement s)
         {
-            if (settlementDailyPresences.ContainsKey(s))
+            if (_settlementDailyPresences.ContainsKey(s))
             {
-                return settlementDailyPresences[s];
+                return _settlementDailyPresences[s];
             }
-            else
-            {
-                ModDebug.ShowMessage("Tried to get daily presences of an invalid settlement!", DebugMessageType.Development);
-                return new List<MobileParty>();
-            }
+            _modDebug.ShowMessage("Tried to get daily presences of an invalid settlement!", DebugMessageType.Development);
+            return new List<MobileParty>();
         }
 
     }

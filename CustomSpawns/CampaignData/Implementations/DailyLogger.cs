@@ -2,7 +2,9 @@
 using System.IO;
 using CustomSpawns.CampaignData.Config;
 using CustomSpawns.Data;
-using CustomSpawns.Exception;
+using CustomSpawns.ModIntegration;
+using CustomSpawns.Spawn;
+using CustomSpawns.Utils;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Party;
@@ -10,29 +12,30 @@ using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Library;
 
 namespace CustomSpawns.CampaignData.Implementations { 
-    class DailyLogger : CustomCampaignDataBehaviour<DailyLogger, DailyLoggerConfig>
+    class DailyLogger : CampaignBehaviorBase
     {
-
         private string _logDir;
-
         private string _filename;
+        private bool _dataWrittenToday = false;
+        private int _dayCount;
+        private readonly DynamicSpawnData _dynamicSpawnData;
+        private readonly DevestationMetricData _devestationMetricData;
+        private readonly DailyLoggerConfig _config;
+        private readonly MessageBoxService _messageBoxService;
+        private readonly SubModService _subModService;
 
-        public override void FlushSavedData()
+        public DailyLogger(DevestationMetricData devestationMetricData, DynamicSpawnData dynamicSpawnData,
+            CampaignDataConfigLoader campaignDataConfigLoader, MessageBoxService messageBoxService, SubModService subModService)
         {
-
+            _devestationMetricData = devestationMetricData;
+            _dynamicSpawnData = dynamicSpawnData;
+            _config = campaignDataConfigLoader.GetConfig<DailyLoggerConfig>();
+            _messageBoxService = messageBoxService;
+            _subModService = subModService;
+            Init();
         }
 
-        protected override void OnSaveStart()
-        {
-
-        }
-
-        protected override void SyncSaveData(IDataStore dataStore)
-        {
-
-        }
-
-        protected override void OnRegisterEvents()
+        public override void RegisterEvents()
         {
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnAfterDailyTick);
             CampaignEvents.WarDeclared.AddNonSerializedListener(this, OnWarDeclared);
@@ -41,10 +44,12 @@ namespace CustomSpawns.CampaignData.Implementations {
             CampaignEvents.OnSettlementOwnerChangedEvent.AddNonSerializedListener(this, OnSettlementChange);
         }
 
-        public DailyLogger()
+        public override void SyncData(IDataStore dataStore) { }
+
+        private void Init()
         {
             _filename  = "RudimentaryLastSessionLog_" + DateTime.Now.ToString("yyyy-MM-dd_h-mm_tt") + ".txt";
-            _logDir = Path.Combine(BasePath.Name, "Modules", "CustomSpawns", "Logs");
+            _logDir = Path.Combine(BasePath.Name, _subModService.GetCustomSpawnsModule(), "Logs");
 
             if (!Directory.Exists(_logDir))
             {
@@ -56,11 +61,9 @@ namespace CustomSpawns.CampaignData.Implementations {
                 File.Create(filepath);
         }
 
-        private bool DataWrittenToday = false;
-        private int dayCount;
         private void OnAfterDailyTick()
         {
-            dayCount = (int)Campaign.Current.CampaignStartTime.ElapsedDaysUntilNow;
+            _dayCount = (int)Campaign.Current.CampaignStartTime.ElapsedDaysUntilNow;
         }
 
         public void Info(String s)
@@ -72,16 +75,14 @@ namespace CustomSpawns.CampaignData.Implementations {
         {
             try
             {
-                var a = DateTime.Now.ToString("yyyy-MM-dd h:mm tt");
-                using (StreamWriter w = File.AppendText(_logDir + "\\" + _filename))
-                {
-                    w.WriteLine("[{0} {1}][Campaign Day {2}] {3}", DateTime.Now.ToLongTimeString(),
-                        a, dayCount, s);
-                }
+                var date = DateTime.Now.ToString("yyyy-MM-dd h:mm tt");
+                using StreamWriter w = File.AppendText(_logDir + "\\" + _filename);
+                w.WriteLine("[{0} {1}][Campaign Day {2}] {3}", DateTime.Now.ToLongTimeString(), date, _dayCount, s);
+                w.Close();
             }
             catch (System.Exception ex)
             {
-                throw new TechnicalException("Could not write into the log file", ex);
+                _messageBoxService.ShowCustomSpawnsErrorMessage(ex, "Could not write into the log file");
             }
         }
 
@@ -122,16 +123,16 @@ namespace CustomSpawns.CampaignData.Implementations {
             }
         }
 
-        public static void ReportSpawn(MobileParty spawned, float chanceOfSpawnBeforeSpawn)
+        public void ReportSpawn(MobileParty spawned, float chanceOfSpawnBeforeSpawn)
         {
-            if (Singleton == null || spawned.Party.TotalStrength < Singleton.campaignConfig.MinimumSpawnLogValue || chanceOfSpawnBeforeSpawn > Singleton.campaignConfig.MinimumRarityToLog)
+            if (spawned.Party.TotalStrength < _config.MinimumSpawnLogValue || chanceOfSpawnBeforeSpawn > _config.MinimumRarityToLog)
                 return;
 
             string msg = "New Spawn: " + spawned.StringId +
                 "\nTotal Strength:" + spawned.Party.TotalStrength +
                 "\nChance of Spawn: " + chanceOfSpawnBeforeSpawn;
 
-            var spawnData = DynamicSpawnData.Instance.GetDynamicSpawnData(spawned).spawnBaseData;
+            var spawnData = _dynamicSpawnData.GetDynamicSpawnData(spawned).spawnBaseDto;
 
             if (spawnData.DynamicSpawnChanceEffect > 0)
             {
@@ -139,20 +140,18 @@ namespace CustomSpawns.CampaignData.Implementations {
                 msg += "\nDynamic Spawn Chance Base Value During Spawn: " + DataUtils.GetCurrentDynamicSpawnCoeff(spawnData.DynamicSpawnChancePeriod);
             }
 
-            var spawnSettlement = DynamicSpawnData.Instance.GetDynamicSpawnData(spawned).latestClosestSettlement;
+            var spawnSettlement = _dynamicSpawnData.GetDynamicSpawnData(spawned).latestClosestSettlement;
 
             if (spawnSettlement.IsVillage)
             {
                 msg += "\nDevestation at spawn settlement: " +
-                    DevestationMetricData.Singleton.GetDevestation(spawnSettlement);
+                       _devestationMetricData.GetDevestation(spawnSettlement);
             }
 
 
             msg += "\n";
 
-            Singleton.WriteString(msg);
+            WriteString(msg);
         }
-
-        
     }
 }

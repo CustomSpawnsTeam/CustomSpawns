@@ -10,16 +10,30 @@ using TaleWorlds.TwoDimension;
 
 namespace CustomSpawns.CampaignData.Implementations
 {
-    class DevestationMetricData : CustomCampaignDataBehaviour<DevestationMetricData, DevestationMetricConfig>
+    class DevestationMetricData : CampaignBehaviorBase
     {
 
-        private Dictionary<Settlement, float> settlementToDevestation = new();
-
+        private Dictionary<Settlement, float> _settlementToDevestation = new();
+        private readonly DevestationMetricConfig _config;
+        private readonly MessageBoxService _messageBoxService;
+        private readonly MobilePartyTrackingBehaviour _mobilePartyTrackingBehaviour;
+        private readonly ModDebug _modDebug;
+        
+        public DevestationMetricData(MobilePartyTrackingBehaviour mobilePartyTrackingBehaviour,
+            CampaignDataConfigLoader campaignDataConfigLoader, SaveInitialiser saveInitialiser,
+            MessageBoxService messageBoxService, ModDebug modDebug)
+        {
+            // TODO refactor mobilePartyTrackingBehaviour so that the stateful data is in another class.
+            _mobilePartyTrackingBehaviour = mobilePartyTrackingBehaviour;
+            _config = campaignDataConfigLoader.GetConfig<DevestationMetricConfig>();
+            _messageBoxService = messageBoxService;
+            _modDebug = modDebug;
+            saveInitialiser.RunCallbackOnFirstCampaignTick(OnSaveStart);
+        }
 
         #region Custom Campaign Data Implementation
 
-
-        protected override void OnRegisterEvents()
+        public override void RegisterEvents()
         {
             CampaignEvents.MapEventEnded.AddNonSerializedListener(this, OnMapEventEnded);
             CampaignEvents.VillageLooted.AddNonSerializedListener(this, OnVillageLooted);
@@ -27,14 +41,14 @@ namespace CustomSpawns.CampaignData.Implementations
             CampaignEvents.DailyTickSettlementEvent.AddNonSerializedListener(this, OnSettlementDaily);
         }
 
-        protected override void SyncSaveData(IDataStore dataStore)
+        public override void SyncData(IDataStore dataStore)
         {
-            dataStore.SyncData("settlementToDevestation", ref settlementToDevestation);
+            dataStore.SyncData("_settlementToDevestation", ref _settlementToDevestation);
         }
 
-        protected override void OnSaveStart()
+        private void OnSaveStart()
         {
-            if (settlementToDevestation.Count != 0) //If you include non-village etc. or add new settlements this approach will break old saves.
+            if (_settlementToDevestation.Count != 0) //If you include non-village etc. or add new settlements this approach will break old saves.
             {
                 return;
             }
@@ -45,13 +59,13 @@ namespace CustomSpawns.CampaignData.Implementations
                 {
                     continue;
                 }
-                settlementToDevestation.Add(s, 0);
+                _settlementToDevestation.Add(s, 0);
             }
         }
 
-        public override void FlushSavedData()
+        private void FlushSavedData()
         {
-            settlementToDevestation.Clear();
+            _settlementToDevestation.Clear();
         }
 
 
@@ -64,19 +78,19 @@ namespace CustomSpawns.CampaignData.Implementations
             if (e == null)
                 return;
 
-            float increase = (e.AttackerSide.CasualtyStrength + e.DefenderSide.CasualtyStrength) * campaignConfig.FightOccuredDevestationPerPower;
+            float increase = (e.AttackerSide.CasualtyStrength + e.DefenderSide.CasualtyStrength) * _config.FightOccuredDevestationPerPower;
 
             Settlement closestSettlement = CampaignUtils.GetClosestVillage(e.Position);
 
-            if (!settlementToDevestation.ContainsKey(closestSettlement))
+            if (!_settlementToDevestation.ContainsKey(closestSettlement))
             {
-                ErrorHandler.HandleException(new System.Exception("Devestation value for settlement could not be found!"));
+                _messageBoxService.ShowCustomSpawnsErrorMessage(new System.Exception("Devestation value for settlement could not be found!"));
                 return;
             }
 
             ChangeDevestation(closestSettlement, increase);
 
-            ModDebug.ShowMessage("Fight at " + closestSettlement.Name + ". Increasing devestation by " + increase + ". New devestation is: " + settlementToDevestation[closestSettlement], campaignConfig);
+            _modDebug.ShowMessage("Fight at " + closestSettlement.Name + ". Increasing devestation by " + increase + ". New devestation is: " + _settlementToDevestation[closestSettlement], _config);
         }
 
         private void OnVillageLooted(Village v)
@@ -84,9 +98,9 @@ namespace CustomSpawns.CampaignData.Implementations
             if (v == null)
                 return;
 
-            ChangeDevestation(v.Settlement, campaignConfig.DevestationPerTimeLooted);
+            ChangeDevestation(v.Settlement, _config.DevestationPerTimeLooted);
 
-            ModDebug.ShowMessage("Successful Looting at " + v.Name + ". Increasing devestation by " + campaignConfig.DevestationPerTimeLooted, campaignConfig);
+            _modDebug.ShowMessage("Successful Looting at " + v.Name + ". Increasing devestation by " + _config.DevestationPerTimeLooted, _config);
         }
 
         private void OnSettlementDaily(Settlement s)
@@ -94,13 +108,13 @@ namespace CustomSpawns.CampaignData.Implementations
             if (s == null || !s.IsVillage)
                 return;
 
-            if (!settlementToDevestation.ContainsKey(s))
+            if (!_settlementToDevestation.ContainsKey(s))
             {
-                ErrorHandler.HandleException(new System.Exception("Devastation value for settlement could not be found!"));
+                _messageBoxService.ShowCustomSpawnsErrorMessage(new System.Exception("Devastation value for settlement could not be found!"));
                 return;
             }
 
-            var presentInDay = MobilePartyTrackingBehaviour.Singleton.GetSettlementDailyMobilePartyPresences(s);
+            var presentInDay = _mobilePartyTrackingBehaviour.GetSettlementDailyMobilePartyPresences(s);
 
             float hostileDecay = 0;
 
@@ -110,15 +124,15 @@ namespace CustomSpawns.CampaignData.Implementations
             {
                 if (mb.IsBandit)
                 {
-                    hostileDecay += campaignConfig.HostilePresencePerPowerDaily * mb.Party.TotalStrength;
+                    hostileDecay += _config.HostilePresencePerPowerDaily * mb.Party.TotalStrength;
                 }
                 else if (s.OwnerClan.MapFaction.IsAtWarWith(mb.Party.MapFaction))
                 {
-                    hostileDecay += campaignConfig.HostilePresencePerPowerDaily * mb.Party.TotalStrength;
+                    hostileDecay += _config.HostilePresencePerPowerDaily * mb.Party.TotalStrength;
                 }
                 else if (s.OwnerClan.MapFaction == mb.Party.MapFaction)
                 {
-                    friendlyGain += campaignConfig.FriendlyPresenceDecayPerPowerDaily * mb.Party.TotalStrength;
+                    friendlyGain += _config.FriendlyPresenceDecayPerPowerDaily * mb.Party.TotalStrength;
                 }
             }
 
@@ -132,19 +146,19 @@ namespace CustomSpawns.CampaignData.Implementations
 
             if(hostileDecay > 0)
             {
-                ModDebug.ShowMessage("Calculating hostile presence devestation gain in " + s.Name + ". Increasing devestation by " + hostileDecay, campaignConfig);
+                _modDebug.ShowMessage("Calculating hostile presence devestation gain in " + s.Name + ". Increasing devestation by " + hostileDecay, _config);
 
                 ChangeDevestation(s, hostileDecay);
             }
 
             if(GetDevestation(s) > 0)
             {
-                ModDebug.ShowMessage("Calculating daily Devestation Decay in " + s.Name + ". Decreasing devestation by " + campaignConfig.DailyDevestationDecay, campaignConfig);
-                ChangeDevestation(s, -campaignConfig.DailyDevestationDecay);
+                _modDebug.ShowMessage("Calculating daily Devestation Decay in " + s.Name + ". Decreasing devestation by " + _config.DailyDevestationDecay, _config);
+                ChangeDevestation(s, -_config.DailyDevestationDecay);
             }
 
             if(GetDevestation(s) != 0)
-                ModDebug.ShowMessage("Current Devestation at " + s.Name + " is now " + settlementToDevestation[s], campaignConfig);
+                _modDebug.ShowMessage("Current Devestation at " + s.Name + " is now " + _settlementToDevestation[s], _config);
         }
 
         #endregion
@@ -153,15 +167,15 @@ namespace CustomSpawns.CampaignData.Implementations
 
         private void ChangeDevestation(Settlement s, float change)
         {
-            if (!settlementToDevestation.ContainsKey(s))
+            if (!_settlementToDevestation.ContainsKey(s))
             {
-                ErrorHandler.HandleException(new System.Exception("Devastation value for settlement could not be found!"));
+                _messageBoxService.ShowCustomSpawnsErrorMessage(new System.Exception("Devastation value for settlement could not be found!"));
                 return;
             }
 
-            settlementToDevestation[s] += change;
+            _settlementToDevestation[s] += change;
 
-            settlementToDevestation[s] = Mathf.Clamp(settlementToDevestation[s], campaignConfig.MinDevestationPerSettlement, campaignConfig.MaxDevestationPerSettlement);
+            _settlementToDevestation[s] = Mathf.Clamp(_settlementToDevestation[s], _config.MinDevestationPerSettlement, _config.MaxDevestationPerSettlement);
         }
 
         public float GetDevestation(Settlement s)
@@ -170,34 +184,32 @@ namespace CustomSpawns.CampaignData.Implementations
             {
                 return 0;
             }
-            if (settlementToDevestation.ContainsKey(s))
-                return settlementToDevestation[s];
+            if (_settlementToDevestation.ContainsKey(s))
+                return _settlementToDevestation[s];
 
-            ErrorHandler.HandleException(new System.Exception("Devestation value for settlement could not be found!"));
+            _messageBoxService.ShowCustomSpawnsErrorMessage(new System.Exception("Devestation value for settlement could not be found!"));
             return 0;
         }
 
         public float GetMinimumDevestation()
         {
-            return campaignConfig.MinDevestationPerSettlement;
+            return _config.MinDevestationPerSettlement;
         }
 
         public float GetMaximumDevestation()
         {
-            return campaignConfig.MaxDevestationPerSettlement;
+            return _config.MaxDevestationPerSettlement;
         }
 
 
         public float GetAverageDevestation()
         {
-            return settlementToDevestation.Values.Aggregate((c,d) => c+d) / settlementToDevestation.Count; //TODO make more efficient
+            return _settlementToDevestation.Values.Aggregate((c,d) => c+d) / _settlementToDevestation.Count; //TODO make more efficient
         }
 
         public float GetDevestationLerp()
         {
             return GetAverageDevestation() / GetMaximumDevestation();
         }
-
-
     }
 }

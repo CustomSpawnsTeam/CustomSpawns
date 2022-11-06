@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using CustomSpawns.Data;
+using CustomSpawns.Data.Model;
 using CustomSpawns.Dialogues.DialogueAlgebra;
 
 namespace CustomSpawns.Dialogues
@@ -24,83 +24,83 @@ namespace CustomSpawns.Dialogues
             DefaultDialogueData.Add(FriendlyDialogue());
         }
         
-        public List<DialogueData> DefaultDialogueData { get; }
+        public List<Dialogue> DefaultDialogueData { get; }
 
-        private DialogueData HostileAttackDialogue()
+        private Dialogue HostileAttackDialogue()
         {
             DialogueCondition dialogueCondition =
                 _dialogueConditionInterpretor.ParseCondition("!IsPlayerEncounterInsideSettlement " +
                                                              "AND IsCustomSpawnParty AND IsHostile AND IsAttacking");
             DialogueConsequence consequence = _dialogueConsequenceInterpretor.ParseConsequence("Battle");
-            DialogueData dialogueData = new();
-            dialogueData.Dialogue_ID = "CS_Default_Dialogue_1";
-            dialogueData.InjectedToTaleworlds = false;
-            dialogueData.IsPlayerDialogue = false;
-            dialogueData.DialogueText = "That's a nice head on your shoulders!";
-            dialogueData.Consequence = consequence;
-            dialogueData.Condition = dialogueCondition;
-            dialogueData.Children = new();
-            return dialogueData;
+            Dialogue dialogue = new();
+            dialogue.Dialogue_ID = "CS_Default_Dialogue_1";
+            dialogue.InjectedToTaleworlds = false;
+            dialogue.IsPlayerDialogue = false;
+            dialogue.DialogueText = "That's a nice head on your shoulders!";
+            dialogue.Consequence = consequence;
+            dialogue.Condition = dialogueCondition;
+            dialogue.Children = new();
+            return dialogue;
         }
         
-        private DialogueData HostileDefendDialogue()
+        private Dialogue HostileDefendDialogue()
         {
             DialogueCondition dialogueCondition =
                 _dialogueConditionInterpretor.ParseCondition("!IsPlayerEncounterInsideSettlement " +
                                                              "AND IsCustomSpawnParty AND IsHostile AND IsDefending");
             DialogueConsequence consequence = _dialogueConsequenceInterpretor.ParseConsequence("Battle");
-            DialogueData dialogueData = new();
-            dialogueData.Dialogue_ID = "CS_Default_Dialogue_2";
-            dialogueData.InjectedToTaleworlds = false;
-            dialogueData.IsPlayerDialogue = false;
-            dialogueData.DialogueText = "I will drink from your skull!";
-            dialogueData.Consequence = consequence;
-            dialogueData.Condition = dialogueCondition;
-            dialogueData.Children = new();
-            return dialogueData;
+            Dialogue dialogue = new();
+            dialogue.Dialogue_ID = "CS_Default_Dialogue_2";
+            dialogue.InjectedToTaleworlds = false;
+            dialogue.IsPlayerDialogue = false;
+            dialogue.DialogueText = "I will drink from your skull!";
+            dialogue.Consequence = consequence;
+            dialogue.Condition = dialogueCondition;
+            dialogue.Children = new();
+            return dialogue;
         }
         
-        private DialogueData FriendlyDialogue()
+        private Dialogue FriendlyDialogue()
         {
             DialogueCondition dialogueCondition =
                 _dialogueConditionInterpretor.ParseCondition("!IsPlayerEncounterInsideSettlement " +
                                                              "AND IsCustomSpawnParty AND IsFriendly");
-            DialogueData dialogueData = new();
-            dialogueData.Dialogue_ID = "CS_Default_Dialogue_3";
-            dialogueData.InjectedToTaleworlds = false;
-            dialogueData.IsPlayerDialogue = false;
-            dialogueData.DialogueText = "It's almost harvesting season!";
-            dialogueData.Condition = dialogueCondition;
-            dialogueData.Children = new();
-            dialogueData.Children.Add(AttackFriendlyDialogue());
-            dialogueData.Children.Add(LeaveFriendlyDialogue());
-            return dialogueData;
+            Dialogue dialogue = new();
+            dialogue.Dialogue_ID = "CS_Default_Dialogue_3";
+            dialogue.InjectedToTaleworlds = false;
+            dialogue.IsPlayerDialogue = false;
+            dialogue.DialogueText = "It's almost harvesting season!";
+            dialogue.Condition = dialogueCondition;
+            dialogue.Children = new();
+            dialogue.Children.Add(AttackFriendlyDialogue());
+            dialogue.Children.Add(LeaveFriendlyDialogue());
+            return dialogue;
         }
         
-        private DialogueData LeaveFriendlyDialogue()
+        private Dialogue LeaveFriendlyDialogue()
         {
             DialogueConsequence consequence = _dialogueConsequenceInterpretor.ParseConsequence("Leave");
-            DialogueData dialogueData = new();
-            dialogueData.Dialogue_ID = "CS_Default_Dialogue_4";
-            dialogueData.InjectedToTaleworlds = false;
-            dialogueData.IsPlayerDialogue = true;
-            dialogueData.DialogueText = "Away with you vile beggar!";
-            dialogueData.Consequence = consequence;
-            dialogueData.Children = new();
-            return dialogueData;
+            Dialogue dialogue = new();
+            dialogue.Dialogue_ID = "CS_Default_Dialogue_4";
+            dialogue.InjectedToTaleworlds = false;
+            dialogue.IsPlayerDialogue = true;
+            dialogue.DialogueText = "Away with you vile beggar!";
+            dialogue.Consequence = consequence;
+            dialogue.Children = new();
+            return dialogue;
         }
         
-        private DialogueData AttackFriendlyDialogue()
+        private Dialogue AttackFriendlyDialogue()
         {
             DialogueConsequence consequence = _dialogueConsequenceInterpretor.ParseConsequence("Battle");
-            DialogueData dialogueData = new();
-            dialogueData.Dialogue_ID = "CS_Default_Dialogue_5";
-            dialogueData.InjectedToTaleworlds = false;
-            dialogueData.IsPlayerDialogue = true;
-            dialogueData.DialogueText = "I will tear you limb from limb!";
-            dialogueData.Consequence = consequence;
-            dialogueData.Children = new();
-            return dialogueData;
+            Dialogue dialogue = new();
+            dialogue.Dialogue_ID = "CS_Default_Dialogue_5";
+            dialogue.InjectedToTaleworlds = false;
+            dialogue.IsPlayerDialogue = true;
+            dialogue.DialogueText = "I will tear you limb from limb!";
+            dialogue.Consequence = consequence;
+            dialogue.Children = new();
+            return dialogue;
         }
     }
 }

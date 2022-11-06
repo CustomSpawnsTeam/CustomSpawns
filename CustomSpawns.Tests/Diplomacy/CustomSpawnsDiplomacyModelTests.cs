@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using CustomSpawns.Data;
-using CustomSpawns.Data.Manager;
+using CustomSpawns.Data.Reader;
 using CustomSpawns.Diplomacy;
 using Moq;
 using NUnit.Framework;
@@ -16,24 +15,24 @@ namespace CustomSpawns.Tests.Diplomacy
         private readonly String WAR_TARGET_CLAN_ID = "warTargetClanId";
         private readonly String PLAYER_FACTION_ID = "player_faction";
 
-        private Dictionary<string, DiplomacyData> InitAttackerAsCustomSpawnsClan()
+        private Dictionary<string, Data.Model.Diplomacy> InitAttackerAsCustomSpawnsClan()
         {
-            var customSpawnData = new Dictionary<string, DiplomacyData>();
-            var attackerDiplomacyData = new DiplomacyData();
-            attackerDiplomacyData.ForcedWarPeaceDataInstance = new DiplomacyData.ForcedWarPeaceData();
-            var warTargetDiplomacyData = new DiplomacyData();
-            warTargetDiplomacyData.ForcedWarPeaceDataInstance = new DiplomacyData.ForcedWarPeaceData();
+            var customSpawnData = new Dictionary<string, Data.Model.Diplomacy>();
+            var attackerDiplomacyData = new Data.Model.Diplomacy();
+            attackerDiplomacyData.ForcedWarPeaceDataInstance = new Data.Model.Diplomacy.ForcedWarPeaceData();
+            var warTargetDiplomacyData = new Data.Model.Diplomacy();
+            warTargetDiplomacyData.ForcedWarPeaceDataInstance = new Data.Model.Diplomacy.ForcedWarPeaceData();
             customSpawnData.Add(ATTACKER_CLAN_ID, attackerDiplomacyData);
             return customSpawnData;
         }
         
-        private Dictionary<string, DiplomacyData> InitAttackerAndWarTargetAsCustomSpawnsClans()
+        private Dictionary<string, Data.Model.Diplomacy> InitAttackerAndWarTargetAsCustomSpawnsClans()
         {
-            var customSpawnData = new Dictionary<string, DiplomacyData>();
-            var attackerDiplomacyData = new DiplomacyData();
-            attackerDiplomacyData.ForcedWarPeaceDataInstance = new DiplomacyData.ForcedWarPeaceData();
-            var warTargetDiplomacyData = new DiplomacyData();
-            warTargetDiplomacyData.ForcedWarPeaceDataInstance = new DiplomacyData.ForcedWarPeaceData();
+            var customSpawnData = new Dictionary<string, Data.Model.Diplomacy>();
+            var attackerDiplomacyData = new Data.Model.Diplomacy();
+            attackerDiplomacyData.ForcedWarPeaceDataInstance = new Data.Model.Diplomacy.ForcedWarPeaceData();
+            var warTargetDiplomacyData = new Data.Model.Diplomacy();
+            warTargetDiplomacyData.ForcedWarPeaceDataInstance = new Data.Model.Diplomacy.ForcedWarPeaceData();
             customSpawnData.Add(ATTACKER_CLAN_ID, attackerDiplomacyData);
             customSpawnData.Add(WAR_TARGET_CLAN_ID, warTargetDiplomacyData);
             return customSpawnData;
@@ -69,38 +68,38 @@ namespace CustomSpawns.Tests.Diplomacy
             return attacker.Object;
         }
         
-        private CustomSpawnsClanDiplomacyModel InitModel(Dictionary<String, DiplomacyData> data) 
+        private CustomSpawnsClanDiplomacyModel InitModel(Dictionary<String, Data.Model.Diplomacy> data) 
         {
             var clanKingdomTrackable = new Mock<IClanKingdom>();
             var diplomacyModel = new Mock<IDiplomacyActionModel>();
-            var dataManager = new Mock<IDataManager<Dictionary<string,DiplomacyData>>>();
+            var dataManager = new Mock<IDataReader<Dictionary<string,Data.Model.Diplomacy>>>();
             dataManager.Setup(manager => manager.Data).Returns(data);
             return new CustomSpawnsClanDiplomacyModel(clanKingdomTrackable.Object, diplomacyModel.Object, dataManager.Object);
         }
         
-        private CustomSpawnsClanDiplomacyModel InitModel(IDiplomacyActionModel model, Dictionary<String, DiplomacyData> data)
+        private CustomSpawnsClanDiplomacyModel InitModel(IDiplomacyActionModel model, Dictionary<String, Data.Model.Diplomacy> data)
         {
             var clanKingdomTrackable = new Mock<IClanKingdom>();
-            var dataManager = new Mock<IDataManager<Dictionary<string,DiplomacyData>>>();
+            var dataManager = new Mock<IDataReader<Dictionary<string,Data.Model.Diplomacy>>>();
             dataManager.Setup(manager => manager.Data).Returns(data);
             return new CustomSpawnsClanDiplomacyModel(clanKingdomTrackable.Object, model, dataManager.Object);
         }
         
-        private CustomSpawnsClanDiplomacyModel InitModel(IClanKingdom clanKingdom, IDiplomacyActionModel diplomacyAction, Dictionary<String, DiplomacyData> data)
+        private CustomSpawnsClanDiplomacyModel InitModel(IClanKingdom clanKingdom, IDiplomacyActionModel diplomacyAction, Dictionary<String, Data.Model.Diplomacy> data)
         {
-            var dataManager = new Mock<IDataManager<Dictionary<string,DiplomacyData>>>();
+            var dataManager = new Mock<IDataReader<Dictionary<string,Data.Model.Diplomacy>>>();
             dataManager.Setup(manager => manager.Data).Returns(data);
             return new CustomSpawnsClanDiplomacyModel(clanKingdom, diplomacyAction, dataManager.Object);
         }
         
-        private CustomSpawnsClanDiplomacyModel InitModelWithInitialFactionDiplomacy(Dictionary<String, DiplomacyData> data, bool atWar)
+        private CustomSpawnsClanDiplomacyModel InitModelWithInitialFactionDiplomacy(Dictionary<String, Data.Model.Diplomacy> data, bool atWar)
         {
             var diplomacyActionModel = new Mock<IDiplomacyActionModel>();
             diplomacyActionModel.Setup(diplomacyModel => diplomacyModel.IsAtWar(It.IsAny<IFaction>(), It.IsAny<IFaction>())).Returns(atWar);
             return InitModel(diplomacyActionModel.Object, data);
         }
 
-        private CustomSpawnsClanDiplomacyModel InitModelWithTogglableWarAndClansNotPartOfAKingdom(Dictionary<String, DiplomacyData> data, bool atWar)
+        private CustomSpawnsClanDiplomacyModel InitModelWithTogglableWarAndClansNotPartOfAKingdom(Dictionary<String, Data.Model.Diplomacy> data, bool atWar)
         {
             var diplomacyActionModel = new Mock<IDiplomacyActionModel>();
             diplomacyActionModel.Setup(diplomacyModel => diplomacyModel.IsAtWar(It.IsAny<IFaction>(), It.IsAny<IFaction>())).Returns(atWar);
@@ -109,7 +108,7 @@ namespace CustomSpawns.Tests.Diplomacy
             return InitModel(clanKingdomTrackable.Object, diplomacyActionModel.Object, data);
         }
         
-        private CustomSpawnsClanDiplomacyModel InitModelWithTogglableWarAndAttackerNotInAKingdomAndWarTargetInAKingdom(Dictionary<String, DiplomacyData> data, bool atWar)
+        private CustomSpawnsClanDiplomacyModel InitModelWithTogglableWarAndAttackerNotInAKingdomAndWarTargetInAKingdom(Dictionary<String, Data.Model.Diplomacy> data, bool atWar)
         {
             var diplomacyActionModel = new Mock<IDiplomacyActionModel>();
             diplomacyActionModel.Setup(diplomacyModel => diplomacyModel.IsAtWar(It.IsAny<IFaction>(), It.IsAny<IFaction>())).Returns(atWar);
@@ -120,7 +119,7 @@ namespace CustomSpawns.Tests.Diplomacy
             return InitModel(clanKingdomTrackable.Object, diplomacyActionModel.Object, data);
         }
 
-        private CustomSpawnsClanDiplomacyModel InitModelWithTogglableWarAndAttackerAndWarTargetInADifferentKingdom(Dictionary<String, DiplomacyData> data, bool atWar)
+        private CustomSpawnsClanDiplomacyModel InitModelWithTogglableWarAndAttackerAndWarTargetInADifferentKingdom(Dictionary<String, Data.Model.Diplomacy> data, bool atWar)
         {
             var diplomacyActionModel = new Mock<IDiplomacyActionModel>();
             diplomacyActionModel.Setup(diplomacyModel => diplomacyModel.IsAtWar(It.IsAny<IFaction>(), It.IsAny<IFaction>())).Returns(atWar);
@@ -132,7 +131,7 @@ namespace CustomSpawns.Tests.Diplomacy
             return InitModel(clanKingdomTrackable.Object, diplomacyActionModel.Object, data);
         }
         
-        private CustomSpawnsClanDiplomacyModel InitModelWithTogglableWarAndAttackerAndWarTargetInSameKingdom(Dictionary<String, DiplomacyData> data, bool atWar)
+        private CustomSpawnsClanDiplomacyModel InitModelWithTogglableWarAndAttackerAndWarTargetInSameKingdom(Dictionary<String, Data.Model.Diplomacy> data, bool atWar)
         {
             var diplomacyActionModel = new Mock<IDiplomacyActionModel>();
             diplomacyActionModel.Setup(diplomacyModel => diplomacyModel.IsAtWar(It.IsAny<IFaction>(), It.IsAny<IFaction>())).Returns(atWar);
@@ -144,7 +143,7 @@ namespace CustomSpawns.Tests.Diplomacy
             return InitModel(clanKingdomTrackable.Object, diplomacyActionModel.Object, data);
         }
         
-        private CustomSpawnsClanDiplomacyModel InitModelWithTogglableWarAndAttackerInAKingdomAndWarTargetNotInAKingdom(Dictionary<String, DiplomacyData> data, bool atWar)
+        private CustomSpawnsClanDiplomacyModel InitModelWithTogglableWarAndAttackerInAKingdomAndWarTargetNotInAKingdom(Dictionary<String, Data.Model.Diplomacy> data, bool atWar)
         {
             var diplomacyActionModel = new Mock<IDiplomacyActionModel>();
             diplomacyActionModel.Setup(diplomacyModel => diplomacyModel.IsAtWar(It.IsAny<IFaction>(), It.IsAny<IFaction>())).Returns(atWar);
@@ -158,7 +157,7 @@ namespace CustomSpawns.Tests.Diplomacy
         [Test]
         public void IsWarDeclarationPossible_WhenAttackerIsNull_ReturnsFalse()
         {
-            bool isWarDeclarationPossible = InitModel(new Dictionary<string, DiplomacyData>()).IsWarDeclarationPossible(null, ValidClan(WAR_TARGET_CLAN_ID));
+            bool isWarDeclarationPossible = InitModel(new Dictionary<string, Data.Model.Diplomacy>()).IsWarDeclarationPossible(null, ValidClan(WAR_TARGET_CLAN_ID));
 
             Assert.False(isWarDeclarationPossible);
         }
@@ -166,7 +165,7 @@ namespace CustomSpawns.Tests.Diplomacy
         [Test]
         public void IsWarDeclarationPossible_WhenWarTargetAttackerIsNull_ReturnsFalse()
         {
-            bool isWarDeclarationPossible = InitModel(new Dictionary<string, DiplomacyData>()).IsWarDeclarationPossible(ValidClan(ATTACKER_CLAN_ID), null);
+            bool isWarDeclarationPossible = InitModel(new Dictionary<string, Data.Model.Diplomacy>()).IsWarDeclarationPossible(ValidClan(ATTACKER_CLAN_ID), null);
 
             Assert.False(isWarDeclarationPossible);
         }
@@ -174,7 +173,7 @@ namespace CustomSpawns.Tests.Diplomacy
         [Test]
         public void IsWarDeclarationPossible_WhenAttackerFactionIsEliminated_ReturnsFalse()
         {
-            bool isWarDeclarationPossible = InitModel(new Dictionary<string, DiplomacyData>()).IsWarDeclarationPossible(EliminatedClan(ATTACKER_CLAN_ID), ValidClan(WAR_TARGET_CLAN_ID));
+            bool isWarDeclarationPossible = InitModel(new Dictionary<string, Data.Model.Diplomacy>()).IsWarDeclarationPossible(EliminatedClan(ATTACKER_CLAN_ID), ValidClan(WAR_TARGET_CLAN_ID));
 
             Assert.False(isWarDeclarationPossible);
         }
@@ -182,7 +181,7 @@ namespace CustomSpawns.Tests.Diplomacy
         [Test]
         public void IsWarDeclarationPossible_WhenWarTargetIsEliminated_ReturnsFalse()
         {
-            bool isWarDeclarationPossible = InitModel(new Dictionary<string, DiplomacyData>()).IsWarDeclarationPossible(ValidClan(ATTACKER_CLAN_ID), EliminatedClan(WAR_TARGET_CLAN_ID));
+            bool isWarDeclarationPossible = InitModel(new Dictionary<string, Data.Model.Diplomacy>()).IsWarDeclarationPossible(ValidClan(ATTACKER_CLAN_ID), EliminatedClan(WAR_TARGET_CLAN_ID));
 
             Assert.False(isWarDeclarationPossible);
         }
@@ -192,7 +191,7 @@ namespace CustomSpawns.Tests.Diplomacy
         {
             var attacker = ValidClan(ATTACKER_CLAN_ID);
 
-            bool isWarDeclarationPossible = InitModel(new Dictionary<string, DiplomacyData>()).IsWarDeclarationPossible(attacker, attacker);
+            bool isWarDeclarationPossible = InitModel(new Dictionary<string, Data.Model.Diplomacy>()).IsWarDeclarationPossible(attacker, attacker);
 
             Assert.False(isWarDeclarationPossible);
         }
@@ -200,7 +199,7 @@ namespace CustomSpawns.Tests.Diplomacy
         [Test]
         public void IsWarDeclarationPossible_WhenAttackerAndWarTargetAreAtWar_ReturnsFalse()
         {
-            var customSpawnData = new Dictionary<string, DiplomacyData>();
+            var customSpawnData = new Dictionary<string, Data.Model.Diplomacy>();
             var model = InitModelWithInitialFactionDiplomacy(customSpawnData, true);
             
             bool isWarDeclarationPossible = model.IsWarDeclarationPossible(ValidClan(ATTACKER_CLAN_ID), ValidClan(WAR_TARGET_CLAN_ID));
@@ -211,7 +210,7 @@ namespace CustomSpawns.Tests.Diplomacy
         [Test]
         public void IsWarDeclarationPossible_WhenAttackerAndWarTargetAreNotCustomSpawnFactions_ReturnsFalse()
         {
-            var customSpawnData = new Dictionary<string, DiplomacyData>();
+            var customSpawnData = new Dictionary<string, Data.Model.Diplomacy>();
             var model = InitModelWithInitialFactionDiplomacy(customSpawnData, false);
             
             bool isWarDeclarationPossible = model.IsWarDeclarationPossible(ValidClan(ATTACKER_CLAN_ID), ValidClan(WAR_TARGET_CLAN_ID));
@@ -489,7 +488,7 @@ namespace CustomSpawns.Tests.Diplomacy
         [Test]
         public void IsPeaceDeclarationPossible_WhenAttackerIsNull_ReturnsFalse()
         {
-            bool isWarDeclarationPossible = InitModel(new Dictionary<string, DiplomacyData>()).IsPeaceDeclarationPossible(null, ValidClan(WAR_TARGET_CLAN_ID));
+            bool isWarDeclarationPossible = InitModel(new Dictionary<string, Data.Model.Diplomacy>()).IsPeaceDeclarationPossible(null, ValidClan(WAR_TARGET_CLAN_ID));
 
             Assert.False(isWarDeclarationPossible);
         }
@@ -499,7 +498,7 @@ namespace CustomSpawns.Tests.Diplomacy
         {
             var attacker = ValidClan(ATTACKER_CLAN_ID);
 
-            bool isWarDeclarationPossible = InitModel(new Dictionary<string, DiplomacyData>()).IsPeaceDeclarationPossible(attacker, null);
+            bool isWarDeclarationPossible = InitModel(new Dictionary<string, Data.Model.Diplomacy>()).IsPeaceDeclarationPossible(attacker, null);
 
             Assert.False(isWarDeclarationPossible);
         }
@@ -507,7 +506,7 @@ namespace CustomSpawns.Tests.Diplomacy
         [Test]
         public void IsPeaceDeclarationPossible_WhenAttackerFactionIsEliminated_ReturnsFalse()
         {
-            bool isWarDeclarationPossible = InitModel(new Dictionary<string, DiplomacyData>()).IsPeaceDeclarationPossible(EliminatedClan(ATTACKER_CLAN_ID), ValidClan(WAR_TARGET_CLAN_ID));
+            bool isWarDeclarationPossible = InitModel(new Dictionary<string, Data.Model.Diplomacy>()).IsPeaceDeclarationPossible(EliminatedClan(ATTACKER_CLAN_ID), ValidClan(WAR_TARGET_CLAN_ID));
 
             Assert.False(isWarDeclarationPossible);
         }
@@ -515,7 +514,7 @@ namespace CustomSpawns.Tests.Diplomacy
         [Test]
         public void IsPeaceDeclarationPossible_WhenWarTargetIsEliminated_ReturnsFalse()
         {
-            bool isWarDeclarationPossible = InitModel(new Dictionary<string, DiplomacyData>()).IsPeaceDeclarationPossible(ValidClan(ATTACKER_CLAN_ID), EliminatedClan(WAR_TARGET_CLAN_ID));
+            bool isWarDeclarationPossible = InitModel(new Dictionary<string, Data.Model.Diplomacy>()).IsPeaceDeclarationPossible(ValidClan(ATTACKER_CLAN_ID), EliminatedClan(WAR_TARGET_CLAN_ID));
 
             Assert.False(isWarDeclarationPossible);
         }
@@ -525,7 +524,7 @@ namespace CustomSpawns.Tests.Diplomacy
         {
             var attacker = ValidClan(ATTACKER_CLAN_ID);
 
-            bool isWarDeclarationPossible = InitModel(new Dictionary<string, DiplomacyData>()).IsPeaceDeclarationPossible(attacker, attacker);
+            bool isWarDeclarationPossible = InitModel(new Dictionary<string, Data.Model.Diplomacy>()).IsPeaceDeclarationPossible(attacker, attacker);
 
             Assert.False(isWarDeclarationPossible);
         }
@@ -533,7 +532,7 @@ namespace CustomSpawns.Tests.Diplomacy
         [Test]
         public void IsPeaceDeclarationPossible_WhenAttackerAndWarTargetAreAtPeace_ReturnsFalse()
         {
-            var customSpawnData = new Dictionary<string, DiplomacyData>();
+            var customSpawnData = new Dictionary<string, Data.Model.Diplomacy>();
             var model = InitModelWithInitialFactionDiplomacy(customSpawnData, false);
             
             bool isWarDeclarationPossible = model.IsPeaceDeclarationPossible(ValidClan(ATTACKER_CLAN_ID), ValidClan(WAR_TARGET_CLAN_ID));
@@ -544,7 +543,7 @@ namespace CustomSpawns.Tests.Diplomacy
         [Test]
         public void IsPeaceDeclarationPossible_WhenAttackerAndWarTargetAreNotCustomSpawnFactions_ReturnsFalse()
         {
-            var customSpawnData = new Dictionary<string, DiplomacyData>();
+            var customSpawnData = new Dictionary<string, Data.Model.Diplomacy>();
             var model = InitModelWithInitialFactionDiplomacy(customSpawnData, true);
             
             bool isWarDeclarationPossible = model.IsPeaceDeclarationPossible(ValidClan(ATTACKER_CLAN_ID), ValidClan(WAR_TARGET_CLAN_ID));

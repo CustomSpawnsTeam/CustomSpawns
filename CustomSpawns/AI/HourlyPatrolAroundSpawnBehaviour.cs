@@ -9,6 +9,16 @@ namespace CustomSpawns.AI
 {
     public class HourlyPatrolAroundSpawnBehaviour : CampaignBehaviorBase, IAIBehaviour
     {
+
+        private readonly MessageBoxService _messageBoxService;
+        private readonly ModDebug _modDebug;
+
+        public HourlyPatrolAroundSpawnBehaviour(MessageBoxService messageBoxService, ModDebug modDebug)
+        {
+            _messageBoxService = messageBoxService;
+            _modDebug = modDebug;
+        }
+
         public override void RegisterEvents()
         {
             AIManager.HourlyPatrolAroundSpawn = this;
@@ -79,13 +89,13 @@ namespace CustomSpawns.AI
             var patrollerInstance = GetPatroller(mb);
             if (patrollerInstance.patrollerParty != null && patrollerInstance.patrolledSettlement != s)
             {
-                ErrorHandler.HandleException(new System.Exception("The same mobile party cannot patrol around two different settlements!"));
+                _messageBoxService.ShowCustomSpawnsErrorMessage(new System.Exception("The same mobile party cannot patrol around two different settlements!"));
             }
             if (patrollerInstance.patrolledSettlement == s)
                 return false;
             registeredPatrollers.Add(new Patroller(mb, s));
             mb.SetCustomHomeSettlement(s);
-            ModDebug.ShowMessage(mb.StringId + " is now engaged in patrol behaviour around " + s.Name, DebugMessageType.AI);
+            _modDebug.ShowMessage(mb.StringId + " is now engaged in patrol behaviour around " + s.Name, DebugMessageType.AI);
             AIManager.RegisterAIBehaviour(mb, this);
             return true;
         }

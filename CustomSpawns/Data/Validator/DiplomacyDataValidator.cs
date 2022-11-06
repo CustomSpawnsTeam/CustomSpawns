@@ -6,9 +6,9 @@ using TaleWorlds.Core;
 namespace CustomSpawns.Data.Validator
 {
     // TODO create data validator system
-    public class DiplomacyDataValidator : IValidator<Dictionary<string,DiplomacyData>>
+    public class DiplomacyDataValidator : IValidator<Dictionary<string,Model.Diplomacy>>
     {
-        public IList<string> ValidateData(Dictionary<string,DiplomacyData> data)
+        public IList<string> ValidateData(Dictionary<string,Model.Diplomacy> data)
         {
             var errors = new List<string>();
             var clans = Clan.All;
@@ -19,7 +19,7 @@ namespace CustomSpawns.Data.Validator
                 return errors;
             }
 
-            foreach(KeyValuePair<string,DiplomacyData> clanData in data)
+            foreach(KeyValuePair<string,Model.Diplomacy> clanData in data)
             {
                 if (clans.Count(clan => clan.StringId.Equals(clanData.Key)) == 0)
                 {
@@ -32,7 +32,7 @@ namespace CustomSpawns.Data.Validator
             return errors;
         }
 
-        public IList<string> ValidateDiplomacyData(string clanId, DiplomacyData data)
+        public IList<string> ValidateDiplomacyData(string clanId, Model.Diplomacy data)
         {
             var errors = new List<string>();
             var kingdoms = Kingdom.All;

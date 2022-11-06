@@ -1,49 +1,40 @@
 ﻿using System;
 using System.IO;
 using System.Xml.Serialization;
+using CustomSpawns.ModIntegration;
 using CustomSpawns.Utils;
-using TaleWorlds.Library;
 
 namespace CustomSpawns.Config
 {
-    class ConfigLoader
+    public class ConfigLoader
     {
-        private static ConfigLoader? _instance;
+        private readonly MessageBoxService _messageBoxService;
+        
         public Config Config { get; }
 
-        public static ConfigLoader Instance
+        public ConfigLoader(SubModService subModService, MessageBoxService messageBoxService)
         {
-            get
+            _messageBoxService = messageBoxService;
+            Config = ReadConfig(subModService.GetCustomSpawnsModule());
+        }
+
+        private Config ReadConfig(String? filePath)
+        {
+            if (filePath == null)
             {
-                if (_instance == null)
-                {
-                    _instance = new ConfigLoader();
-                }
-
-                return _instance;
+                return new();
             }
-        }
-
-        private ConfigLoader()
-        {
-            string path = "";
-            path = Path.Combine(BasePath.Name, "Modules", Main.ModuleName, "ModuleData", "config.xml");
-            Config = getConfig(path);
-        }
-
-        private Config getConfig(String filePath)
-        {
             try
             {
                 XmlSerializer serializer = new(typeof(Config));
-                using (var reader = new StreamReader(filePath))
+                using (var reader = new StreamReader(Path.Combine(filePath, "ModuleData", "config.xml")))
                 {
                     return (Config)serializer.Deserialize(reader);
                 }
             }
             catch (System.Exception e)
             {
-                ErrorHandler.HandleException(e);
+                _messageBoxService.ShowCustomSpawnsErrorMessage(e);
                 Config config = new();
                 config.IsDebugMode = true;
                 return config;

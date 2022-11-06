@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using CustomSpawns.Exception;
 using CustomSpawns.Utils;
 using HarmonyLib;
@@ -46,12 +47,6 @@ namespace CustomSpawns.Diplomacy
                     {
                         ClanInKingdoms.Add(clan.StringId, newKingdom);
                     }
-                    else
-                    {
-                        ErrorHandler.ShowPureErrorMessage("Unexpected change kingdom action \"" + detail + "\". " +
-                                                          " for clan " + clan.StringId + "/" + clan.Name + "A new " +
-                                                          "update added a new state. It needs fixing.");
-                    }
                 }
                 return true;
             }
@@ -67,12 +62,12 @@ namespace CustomSpawns.Diplomacy
         {
             if (clan == null)
             {
-                throw new TechnicalException("Cannot get the kingdom of a null clan");
+                throw new ArgumentException("Cannot get the kingdom of a null clan");
             }
             if (clan.IsEliminated)
             {
-                throw new FunctionalException("The faction with id + " + clan.StringId + " and name "+ clan.Name 
-                                              + " has been eliminated. Therefore, the kingdom for this faction can not be retrieved");
+                throw new ArgumentException("The faction with id + " + clan.StringId + " and name "+ clan.Name 
+                                             + " has been eliminated. Therefore, the kingdom for this faction can not be retrieved");
             }
             
             if (clan.IsKingdomFaction)

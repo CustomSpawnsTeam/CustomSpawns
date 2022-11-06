@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
-using CustomSpawns.Data;
-using CustomSpawns.Data.Manager;
+using CustomSpawns.Data.Reader;
 using TaleWorlds.CampaignSystem;
 
 namespace CustomSpawns.Diplomacy
@@ -9,13 +8,13 @@ namespace CustomSpawns.Diplomacy
     {
         private const string PlayerFactionId = "player_faction";
         private readonly IClanKingdom _clanKingdom;
-        private readonly IDictionary<string, DiplomacyData> _customSpawnsClanData;
+        private readonly IDictionary<string, Data.Model.Diplomacy> _customSpawnsClanData;
         private readonly IDiplomacyActionModel _diplomacyModel; 
 
-        public CustomSpawnsClanDiplomacyModel(IClanKingdom clanKingdom, IDiplomacyActionModel diplomacyModel, IDataManager<Dictionary<string,DiplomacyData>> diplomacyDataManager)
+        public CustomSpawnsClanDiplomacyModel(IClanKingdom clanKingdom, IDiplomacyActionModel diplomacyModel, IDataReader<Dictionary<string,Data.Model.Diplomacy>> diplomacyDataReader)
         {
             _clanKingdom = clanKingdom;
-            _customSpawnsClanData = diplomacyDataManager.Data;
+            _customSpawnsClanData = diplomacyDataReader.Data;
             _diplomacyModel = diplomacyModel;
         }
         
@@ -82,23 +81,23 @@ namespace CustomSpawns.Diplomacy
             return false;
         }
         
-        private bool IsCustomSpawnClanWarDeclarationPossible(IFaction? customFaction, IFaction? warTarget)
+        private bool IsCustomSpawnClanWarDeclarationPossible(IFaction? attacker, IFaction? warTarget)
         {
-            if (customFaction == null || warTarget == null || customFaction == warTarget || customFaction.IsEliminated || warTarget.IsEliminated ||
-                customFaction.IsBanditFaction || warTarget.IsBanditFaction || GetHardCodedExceptionClans().Contains(customFaction.StringId) || GetHardCodedExceptionClans().Contains(warTarget.StringId) || _diplomacyModel.IsAtWar(customFaction, warTarget))
+            if (attacker == null || warTarget == null || attacker == warTarget || attacker.IsEliminated || warTarget.IsEliminated ||
+                attacker.IsBanditFaction || warTarget.IsBanditFaction || GetHardCodedExceptionClans().Contains(attacker.StringId) || GetHardCodedExceptionClans().Contains(warTarget.StringId) || _diplomacyModel.IsAtWar(attacker, warTarget))
             {
                 return false;
             }
             
-            if (!_customSpawnsClanData.ContainsKey(customFaction.StringId) || 
-                _customSpawnsClanData[customFaction.StringId].ForcedWarPeaceDataInstance == null)
+            if (!_customSpawnsClanData.ContainsKey(attacker.StringId) || 
+                _customSpawnsClanData[attacker.StringId].ForcedWarPeaceDataInstance == null)
             {
                 return false;
             }
 
-            var forcedWarPeaceInstance = _customSpawnsClanData[customFaction.StringId].ForcedWarPeaceDataInstance!;
+            var forcedWarPeaceInstance = _customSpawnsClanData[attacker.StringId].ForcedWarPeaceDataInstance!;
 
-            if (customFaction.IsClan && !_clanKingdom.IsPartOfAKingdom(customFaction))
+            if (attacker.IsClan && !_clanKingdom.IsPartOfAKingdom(attacker))
             {
                 if(warTarget.IsKingdomFaction
                    && !forcedWarPeaceInstance.ExceptionKingdoms.Contains(warTarget.StringId)
@@ -111,20 +110,20 @@ namespace CustomSpawns.Diplomacy
                 {
                     return true;
                 }   
-            } else if (customFaction.IsClan
-                       && _clanKingdom.IsPartOfAKingdom(customFaction)
+            } else if (attacker.IsClan
+                       && _clanKingdom.IsPartOfAKingdom(attacker)
                        && warTarget.IsClan
                        && _clanKingdom.IsPartOfAKingdom(warTarget)
-                       && !_clanKingdom.Kingdom(warTarget).StringId.Equals(_clanKingdom.Kingdom(customFaction).StringId)
+                       && !_clanKingdom.Kingdom(warTarget).StringId.Equals(_clanKingdom.Kingdom(attacker).StringId)
                        && !forcedWarPeaceInstance.ExceptionKingdoms.Contains(_clanKingdom.Kingdom(warTarget).StringId)
-                   || (customFaction.IsClan
-                       && _clanKingdom.IsPartOfAKingdom(customFaction)
+                   || (attacker.IsClan
+                       && _clanKingdom.IsPartOfAKingdom(attacker)
                        && warTarget.IsClan
                        && !_clanKingdom.IsPartOfAKingdom(warTarget)
                        && !forcedWarPeaceInstance.AtPeaceWithClans.Contains(warTarget.StringId)))
             {
                 return true;
-            } else if (customFaction.IsKingdomFaction)
+            } else if (attacker.IsKingdomFaction)
             {
                 // Custom Spawn Kingdoms mechanic is not supported yet. Does it even make sense ?
                 return true;

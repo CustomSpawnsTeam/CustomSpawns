@@ -1,57 +1,73 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Xml;
 using CustomSpawns.Exception;
+using CustomSpawns.ModIntegration;
+using CustomSpawns.Utils;
 using MonoMod.Utils;
-using TaleWorlds.Library;
 
-namespace CustomSpawns.Data.Manager
+namespace CustomSpawns.Data.Reader.Impl
 {
-    public class DiplomacyDataManager : AbstractDataManager<DiplomacyDataManager, Dictionary<string,DiplomacyData>>
+    public class DiplomacyDataReader : AbstractDataReader<DiplomacyDataReader, Dictionary<string,Model.Diplomacy>>
     {
-        private DiplomacyDataManager()
+        private readonly MessageBoxService _messageBoxService;
+        private readonly Dictionary<string, Model.Diplomacy> _data;
+        
+        public DiplomacyDataReader(SubModService subModService, MessageBoxService messageBoxService)
         {
-            string path = "";
-            var diplomacyData = new Dictionary<string,DiplomacyData>();
-            try
-            {
-                foreach (var subMod in ModIntegration.SubModManager.LoadAllValidDependentMods())
-                {
-                    path = Path.Combine(subMod.CustomSpawnsDirectoryPath, "Diplomacy.xml");
-                    if (File.Exists(path))
-                        diplomacyData.AddRange(ConstructListFromXML(path));
-                }
-
-                Data = diplomacyData;
-            }
-            catch (System.Exception e)
-            {
-                throw new TechnicalException("Diplomacy Data Parsing of " + path, e);
-            }
+            _messageBoxService = messageBoxService;
+            _data = LoadDiplomacyDataFromAllSubMods(subModService);
         }
 
-        private Dictionary<string,DiplomacyData> ConstructListFromXML(string path)
+        public override Dictionary<string, Model.Diplomacy> Data
         {
-            Dictionary<string, DiplomacyData> data = new Dictionary<string, DiplomacyData>();
-            XmlDocument doc = new XmlDocument();
+            get => _data;
+        }
+
+        private Dictionary<string, Model.Diplomacy> LoadDiplomacyDataFromAllSubMods(SubModService subModService)
+        {
+            var diplomacyData = new Dictionary<string,Model.Diplomacy>();
+            foreach (var subMod in subModService.GetAllLoadedSubMods())
+            {
+                string path = Path.Combine(subMod.CustomSpawnsDirectoryPath, "Diplomacy.xml");
+                if (File.Exists(path))
+                {
+                    try
+                    {
+                        diplomacyData.AddRange(ConstructListFromXML(path));       
+                    }
+                    catch (ArgumentException e)
+                    {
+                        _messageBoxService.ShowCustomSpawnsErrorMessage(e, "Diplomacy Data Parsing of " + path);
+                    }
+                }
+            }
+            return diplomacyData;
+        }
+
+        private Dictionary<string,Model.Diplomacy> ConstructListFromXML(string path)
+        {
+            Dictionary<string, Model.Diplomacy> data = new();
+            XmlDocument doc = new();
             doc.Load(path);
 
             foreach (XmlNode node in doc.DocumentElement)
             {
                 if (node.NodeType == XmlNodeType.Comment)
                     continue;
-                DiplomacyData diplomacyData = new DiplomacyData();
+                Model.Diplomacy diplomacy = new();
                 if(node.Attributes["target"] == null || node.Attributes["target"].InnerText == "")
                 {
-                    throw new TechnicalException("Each diplomacy data instance must have a target faction!");
+                    throw new ArgumentException("Each diplomacy data instance must have a target faction!");
                 }
-                diplomacyData.clanString = node.Attributes["target"].InnerText;
+                diplomacy.clanString = node.Attributes["target"].InnerText;
                 if (node["ForceWarPeaceBehaviour"] != null)
                 {
                     //handle forced war peace data.
-                    diplomacyData.ForcedWarPeaceDataInstance = new DiplomacyData.ForcedWarPeaceData();
+                    diplomacy.ForcedWarPeaceDataInstance = new Model.Diplomacy.ForcedWarPeaceData();
                     XmlElement forceNode = node["ForceWarPeaceBehaviour"];
-                    HandleForcedWarPeaceBehaviourData(forceNode, diplomacyData);
+                    HandleForcedWarPeaceBehaviourData(forceNode, diplomacy);
                 }
                 if(node["ForceNoKingdom"] != null)
                 {
@@ -59,18 +75,18 @@ namespace CustomSpawns.Data.Manager
                     bool result;
                     if(!bool.TryParse(node["ForceNoKingdom"].InnerText, out result))
                     {
-                        throw new TechnicalException("ForceNoKingdom must be a boolean value!");
+                        throw new ArgumentException("ForceNoKingdom must be a boolean value!");
                     }
-                    diplomacyData.ForceNoKingdom = result;
+                    diplomacy.ForceNoKingdom = result;
                 }
 
-                data.Add(diplomacyData.clanString, diplomacyData);
+                data.Add(diplomacy.clanString, diplomacy);
             }
 
             return data;
         }
 
-        private void HandleForcedWarPeaceBehaviourData(XmlElement forceNode, DiplomacyData diplomacyData)
+        private void HandleForcedWarPeaceBehaviourData(XmlElement forceNode, Model.Diplomacy diplomacy)
         {
             foreach (XmlNode forceNodeChild in forceNode)
             {
@@ -81,7 +97,7 @@ namespace CustomSpawns.Data.Manager
                     //handle forced war special.
                     if (forceNodeChild.Attributes["flag"] == null)
                     {
-                        throw new TechnicalException("Each forced war special data must have a flag.");
+                        throw new ArgumentException("Each forced war special data must have a flag.");
                     }
                     List<string> exceptionClans = new List<string>();
                     List<string> exceptionKingdoms = new List<string>();
@@ -121,14 +137,13 @@ namespace CustomSpawns.Data.Manager
                             }
                             break;
                         default:
-                            throw new TechnicalException("Invalid forced war special data flag detected");
+                            throw new ArgumentException("Invalid forced war special data flag detected");
                     }
 
-                    diplomacyData.ForcedWarPeaceDataInstance.AtPeaceWithClans = exceptionClans;
-                    diplomacyData.ForcedWarPeaceDataInstance.ExceptionKingdoms = exceptionKingdoms;
+                    diplomacy.ForcedWarPeaceDataInstance.AtPeaceWithClans = exceptionClans;
+                    diplomacy.ForcedWarPeaceDataInstance.ExceptionKingdoms = exceptionKingdoms;
                 }
             }
         }
-
     }
 }

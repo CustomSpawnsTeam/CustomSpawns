@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using CustomSpawns.Data.Adapter;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.CampaignSystem;
@@ -13,7 +14,7 @@ namespace CustomSpawns.Utils
 {
     public class CampaignUtils
     {
-        public static Settlement PickRandomSettlementOfCulture(List<CultureCode> c, Func<Settlement, bool> exceptionPredicate, List<Data.SpawnSettlementType> preferredTypes = null)
+        public static Settlement PickRandomSettlementOfCulture(List<CultureCode> c, Func<Settlement, bool> exceptionPredicate, List<SpawnSettlementType> preferredTypes = null)
         {
             int num = 0;
             List<Settlement> permissible = new();
@@ -62,7 +63,7 @@ namespace CustomSpawns.Utils
             return null;
         }
 
-        public static Settlement PickRandomSettlementAmong(List<Settlement> list, List<Data.SpawnSettlementType> preferredTypes = null, Random rand = null)
+        public static Settlement PickRandomSettlementAmong(List<Settlement> list, List<SpawnSettlementType> preferredTypes = null, Random rand = null)
         {
             if (rand == null)
                 rand = new Random();
@@ -160,7 +161,7 @@ namespace CustomSpawns.Utils
             return min;
         }
 
-        public static Settlement GetClosestNonHostileCityAmong(MobileParty mb, List<Data.SpawnSettlementType> preferredTypes = null, Settlement exception = null)
+        public static Settlement GetClosestNonHostileCityAmong(MobileParty mb, List<SpawnSettlementType> preferredTypes = null, Settlement exception = null)
         {
             List<Settlement> viableSettlements = new List<Settlement>();
             foreach (Settlement s in Settlement.All)
@@ -219,15 +220,15 @@ namespace CustomSpawns.Utils
             return str;
         }
 
-        public static bool SettlementIsOfValidType(Settlement s, Data.SpawnSettlementType t)
+        public static bool SettlementIsOfValidType(Settlement s, SpawnSettlementType t)
         {
             switch (t)
             {
-                case Data.SpawnSettlementType.Castle:
+                case SpawnSettlementType.Castle:
                     return s.IsCastle;
-                case Data.SpawnSettlementType.Town:
+                case SpawnSettlementType.Town:
                     return s.IsTown;
-                case Data.SpawnSettlementType.Village:
+                case SpawnSettlementType.Village:
                     return s.IsVillage;
             }
             return false;

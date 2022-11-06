@@ -1,5 +1,5 @@
-﻿using System;
-using CustomSpawns.Data;
+﻿using CustomSpawns.Data.Model;
+using CustomSpawns.Data.Reader.Impl;
 using CustomSpawns.Dialogues.DialogueAlgebra;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Conversation;
@@ -8,15 +8,20 @@ using TaleWorlds.CampaignSystem.Encounters;
 namespace CustomSpawns.Dialogues
 {
     //TODO Improve upon delegate logic. add more options. 
-    public class CustomSpawnsDialogueBehavior : CampaignBehaviorBase
+    public class CustomSpawnsDialogueBehaviour : CampaignBehaviorBase
     {
+        private readonly DialogueDataReader _dialogueDataReader;
+
+        public CustomSpawnsDialogueBehaviour(DialogueDataReader dialogueDataReader)
+        {
+            _dialogueDataReader = dialogueDataReader;
+        }
+        
         public override void RegisterEvents()
         {
-            CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, new Action<CampaignGameStarter>(this.AddCustomDialogues));
-            DialogueManager.CustomSpawnsDialogueBehavior = this;
+            CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, AddCustomDialogues);
+            DialogueManager.CustomSpawnsDialogueBehaviour = this;
         }
-
-        private DialogueDataManager dataManager;
 
         public override void SyncData(IDataStore dataStore)
         {
@@ -40,20 +45,13 @@ namespace CustomSpawns.Dialogues
 
         public void AddCustomDialogues(CampaignGameStarter starter)
         {
-            if (dataManager == null)
+            foreach (Dialogue d in _dialogueDataReader.Data) // handle the dialogues
             {
-                GetData();
-            }
-
-            foreach (DialogueData d in dataManager.Data) // handle the dialogues
-            {
-
                 AddDialogLine(starter, d, "start");
-
             }
         }
 
-        private void AddDialogLine(CampaignGameStarter starter, DialogueData d, string in_token)
+        private void AddDialogLine(CampaignGameStarter starter, Dialogue d, string in_token)
         {
 
             if (d.InjectedToTaleworlds)
@@ -106,7 +104,7 @@ namespace CustomSpawns.Dialogues
                     );
             }
 
-            foreach(DialogueData child in d.Children)
+            foreach(Dialogue child in d.Children)
             {
                 AddDialogLine(starter, child, d.Dialogue_ID);
             }
@@ -118,7 +116,7 @@ namespace CustomSpawns.Dialogues
         {
             get
             {
-                return new DialogueParams()
+                return new ()
                 {
                     AdversaryParty = PlayerEncounter.EncounteredParty?.MobileParty,
                     PlayerParty = Hero.MainHero?.PartyBelongedTo
@@ -135,12 +133,5 @@ namespace CustomSpawns.Dialogues
         {
             consequence.ConsequenceExecutor(CurrentDialogueParam);
         }
-
-        private void GetData() // the classic
-        {
-            dataManager = DialogueDataManager.Instance;
-        }
-
-        // final version uses no structs, yay!!! no more lazy copouts (well, at least a reduced amount of them)
     }
 }

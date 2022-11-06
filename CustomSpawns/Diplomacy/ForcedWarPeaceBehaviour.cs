@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using CustomSpawns.CampaignData.Implementations;
-using CustomSpawns.Data;
-using CustomSpawns.Data.Manager;
+using CustomSpawns.Data.Reader;
+using CustomSpawns.Data.Reader.Impl;
 using CustomSpawns.Exception;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
@@ -13,16 +13,20 @@ namespace CustomSpawns.Diplomacy
 {
     class ForcedWarPeaceBehaviour : CampaignBehaviorBase
     {
-        private readonly DailyLogger _dailyLogger = new();
+        private readonly DailyLogger _dailyLogger;
         private readonly IDiplomacyActionModel _customSpawnDiplomacyActionModel;
         private readonly TrackClanKingdom _clanKingdomTrackable;
-        private static CustomSpawnsClanDiplomacyModel _customSpawnsClanDiplomacyModel;
+        private readonly DiplomacyDataReader _diplomacyDataReader;
+        private readonly CustomSpawnsClanDiplomacyModel _customSpawnsClanDiplomacyModel;
 
-        public ForcedWarPeaceBehaviour(IDiplomacyActionModel diplomacyActionModel, TrackClanKingdom clanKingdomTrackable, CustomSpawnsClanDiplomacyModel clanDiplomacyModel)
+        public ForcedWarPeaceBehaviour(IDiplomacyActionModel diplomacyActionModel, TrackClanKingdom clanKingdomTrackable,
+            CustomSpawnsClanDiplomacyModel clanDiplomacyModel, DiplomacyDataReader diplomacyDataReader, DailyLogger dailyLogger)
         {
             _customSpawnDiplomacyActionModel = diplomacyActionModel;
             _clanKingdomTrackable = clanKingdomTrackable;
             _customSpawnsClanDiplomacyModel = clanDiplomacyModel;
+            _diplomacyDataReader = diplomacyDataReader;
+            _dailyLogger = dailyLogger;
         }
 
         public override void RegisterEvents()
@@ -63,11 +67,11 @@ namespace CustomSpawns.Diplomacy
             SetWarsDescribedByDiplomacyData();
         }
         
-        private static IList<IFaction> GetDiplomacyFromValidClans(IDataManager<Dictionary<string,DiplomacyData>> diplomacyDataManager, ref List<string> clanIdErrors)
+        private static IList<IFaction> GetDiplomacyFromValidClans(IDataReader<Dictionary<string,Data.Model.Diplomacy>> diplomacyDataReader, ref List<string> clanIdErrors)
         {
             IList<IFaction> clanDiplomacy = new List<IFaction>();
-            IDictionary<string,DiplomacyData> diplomacy = diplomacyDataManager.Data;
-            foreach (KeyValuePair<string,DiplomacyData> clanData in diplomacy)
+            IDictionary<string,Data.Model.Diplomacy> diplomacy = diplomacyDataReader.Data;
+            foreach (KeyValuePair<string,Data.Model.Diplomacy> clanData in diplomacy)
             {
                 if (!Clan.All.Any(clan => clan.StringId == clanData.Key))
                 {
@@ -85,7 +89,7 @@ namespace CustomSpawns.Diplomacy
         {
             List<string> clanIdErrors = new();
             IList<IFaction> customSpawnsClans =
-                GetDiplomacyFromValidClans(DiplomacyDataManager.Instance, ref clanIdErrors);
+                GetDiplomacyFromValidClans(_diplomacyDataReader, ref clanIdErrors);
 
             if (clanIdErrors.Count > 0)
             {

@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 
-namespace CustomSpawns.Data
+namespace CustomSpawns.Data.Model
 {
-    public class DiplomacyData
+    public class Diplomacy
     {
          public string clanString;
 

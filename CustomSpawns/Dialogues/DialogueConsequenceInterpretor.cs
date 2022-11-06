@@ -16,12 +16,14 @@ namespace CustomSpawns.Dialogues
 {
     public class DialogueConsequenceInterpretor
     {
-        private readonly ConstantWarDiplomacyActionModel _diplomacyModel;
+        private readonly IDiplomacyActionModel _diplomacyModel;
+        private static MessageBoxService _messageBoxService;
 
         // TODO properly manage dependencies but all managers are static and are singletons which makes it difficult to manage
-        public DialogueConsequenceInterpretor()
+        public DialogueConsequenceInterpretor(IDiplomacyActionModel model, MessageBoxService messageBoxService)
         {
-            _diplomacyModel = new ConstantWarDiplomacyActionModel();
+            _diplomacyModel = model;
+            _messageBoxService = messageBoxService;
             allMethods = typeof(DialogueConsequenceInterpretor).GetMethods(BindingFlags.Static | BindingFlags.NonPublic).
                 Where((m) => m.GetCustomAttributes(typeof(DialogueConsequenceImplementorAttribute), false).Count() > 0).ToList();
         }
@@ -94,7 +96,7 @@ namespace CustomSpawns.Dialogues
             }
             catch (System.Exception e)
             {
-                ErrorHandler.ShowPureErrorMessage("Could not parse dialogue consequnce: \n" + text + "\n Error Message: \n" + e.Message);
+                _messageBoxService.ShowMessage("Could not parse dialogue consequnce: \n" + text + "\n Error Message: \n" + e.Message);
                 return null;
             }
 
@@ -306,7 +308,7 @@ namespace CustomSpawns.Dialogues
             }
             else
             {
-                ErrorHandler.ShowPureErrorMessage("Can't interpret " + isPlayer.ToString() + " as a bool. Possible typo in the XML consequence 'Surrender'");
+                _messageBoxService.ShowMessage("Can't interpret " + isPlayer.ToString() + " as a bool. Possible typo in the XML consequence 'Surrender'");
             }
             PlayerEncounter.Update();
         }
