@@ -1,4 +1,5 @@
 using CustomSpawns.AI;
+using CustomSpawns.AI.Barterables;
 using CustomSpawns.CampaignData.Config;
 using CustomSpawns.CampaignData.Implementations;
 using CustomSpawns.Config;
@@ -66,7 +67,7 @@ namespace CustomSpawns
         private ForceNoKingdomBehaviour _forceNoKingdomBehaviour;
         private SpawnBehaviour _spawnBehaviour;
         private SaveInitialiser _saveInitialiser;
-
+        private SafePassageBehaviour _safePassageBehaviour;
 
 
         private void InstantiateDependencies()
@@ -109,6 +110,7 @@ namespace CustomSpawns
             _forceNoKingdomBehaviour = new ForceNoKingdomBehaviour(_diplomacyDataReader, _dailyLogger);
             _spawnBehaviour = new SpawnBehaviour(_spawner, _spawnDao, _dynamicSpawnData, _saveInitialiser, _devestationMetricData, _configLoader, _messageBoxService, _dailyLogger, _modDebug);
             _patchManager = new PatchManager(_spawnDao, _partySpeedContext, _configLoader, _messageBoxService);
+            _safePassageBehaviour = new SafePassageBehaviour(_spawnDao);
         }
         #endregion
 
@@ -150,6 +152,7 @@ namespace CustomSpawns
                 starter.AddBehavior(_forceNoKingdomBehaviour);
                 starter.AddBehavior(_spawnBehaviour);
                 starter.AddBehavior(_saveInitialiser);
+                starter.AddBehavior(_safePassageBehaviour);
             }
             else
             {
