@@ -1,5 +1,6 @@
-﻿using CustomSpawns.Data.Model;
-using CustomSpawns.Data.Reader.Impl;
+﻿using System.Collections.Generic;
+using CustomSpawns.Data.Dao;
+using CustomSpawns.Data.Dto;
 using CustomSpawns.Dialogues.DialogueAlgebra;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Conversation;
@@ -10,11 +11,11 @@ namespace CustomSpawns.Dialogues
     //TODO Improve upon delegate logic. add more options. 
     public class CustomSpawnsDialogueBehaviour : CampaignBehaviorBase
     {
-        private readonly DialogueDataReader _dialogueDataReader;
+        private readonly DialogueDao _dialogueDao;
 
-        public CustomSpawnsDialogueBehaviour(DialogueDataReader dialogueDataReader)
+        public CustomSpawnsDialogueBehaviour(DialogueDao dialogueDao)
         {
-            _dialogueDataReader = dialogueDataReader;
+            _dialogueDao = dialogueDao;
         }
         
         public override void RegisterEvents()
@@ -43,15 +44,16 @@ namespace CustomSpawns.Dialogues
         //ConversationManager.[Enable/Disable]Sort(). Sorting seems to be enabled by default in the time of writing (Bannerlord 1.5.8)
         //-Ozan
 
-        public void AddCustomDialogues(CampaignGameStarter starter)
+        private void AddCustomDialogues(CampaignGameStarter starter)
         {
-            foreach (Dialogue d in _dialogueDataReader.Data) // handle the dialogues
+            IList<DialogueDto> dialogues = _dialogueDao.FindAll();
+            foreach (DialogueDto d in dialogues)
             {
                 AddDialogLine(starter, d, "start");
             }
         }
 
-        private void AddDialogLine(CampaignGameStarter starter, Dialogue d, string in_token)
+        private void AddDialogLine(CampaignGameStarter starter, DialogueDto d, string in_token)
         {
 
             if (d.InjectedToTaleworlds)
@@ -83,10 +85,10 @@ namespace CustomSpawns.Dialogues
 
             if (d.IsPlayerDialogue)
             {
-                starter.AddPlayerLine(d.Dialogue_ID,
+                starter.AddPlayerLine(d.Id,
                     in_token,
-                    d.Children.Count == 0? "close_window" : d.Dialogue_ID,
-                    d.DialogueText,
+                    d.Options.Count == 0? "close_window" : d.Id,
+                    d.Text,
                     cond,
                     conseq,
                     int.MaxValue
@@ -94,23 +96,21 @@ namespace CustomSpawns.Dialogues
             }
             else
             {
-                starter.AddDialogLine(d.Dialogue_ID,
+                starter.AddDialogLine(d.Id,
                     in_token,
-                    d.Children.Count == 0 ? "close_window" : d.Dialogue_ID,
-                    d.DialogueText,
+                    d.Options.Count == 0 ? "close_window" : d.Id,
+                    d.Text,
                     cond,
                     conseq,
                     int.MaxValue
                     );
             }
 
-            foreach(Dialogue child in d.Children)
+            foreach(DialogueDto child in d.Options)
             {
-                AddDialogLine(starter, child, d.Dialogue_ID);
+                AddDialogLine(starter, child, d.Id);
             }
         }
-
-
 
         private DialogueParams CurrentDialogueParam //TODO Cache in same frame?
         {

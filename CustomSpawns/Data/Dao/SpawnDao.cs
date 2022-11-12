@@ -1,8 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using CustomSpawns.Data.Adapter;
 using CustomSpawns.Data.Dto;
 using CustomSpawns.Data.Reader.Impl;
+using CustomSpawns.Utils;
 using TaleWorlds.Core;
 
 namespace CustomSpawns.Data.Dao
@@ -11,19 +13,35 @@ namespace CustomSpawns.Data.Dao
     {
         private readonly SpawnDataReader _spawnDataReader;
         private readonly SpawnDtoAdapter _spawnDtoAdapter;
+        private readonly MessageBoxService _messageBoxService;
         private List<SpawnDto>? _spawns;
 
-        public SpawnDao(SpawnDataReader spawnDataReader, SpawnDtoAdapter spawnDtoAdapter)
+        public SpawnDao(SpawnDataReader spawnDataReader, SpawnDtoAdapter spawnDtoAdapter, MessageBoxService messageBoxService)
         {
             _spawnDataReader = spawnDataReader;
             _spawnDtoAdapter = spawnDtoAdapter;
+            _messageBoxService = messageBoxService;
         }
 
         private List<SpawnDto> Spawns()
         {
             if (_spawns == null)
             {
-                _spawns = _spawnDataReader.Data.Select(_spawnDtoAdapter.Adapt).ToList();
+                _spawns = _spawnDataReader.Data
+                    .Select(spawn => 
+                    {
+                        try
+                        {
+                            return _spawnDtoAdapter.Adapt(spawn);
+                        }
+                        catch (ArgumentException e)
+                        {
+                            _messageBoxService.ShowCustomSpawnsErrorMessage(e, "reading spawn data");
+                            return null;
+                        }
+                    })
+                    .Where(spawn => spawn != null)
+                    .ToList()!;
             }
             return _spawns;
         }

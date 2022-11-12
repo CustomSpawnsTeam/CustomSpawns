@@ -51,6 +51,8 @@ namespace CustomSpawns
         private ModDebug _modDebug;
         private RewardDataReader _rewardDataReader;
         private RewardDao _rewardDao;
+        private DialogueDao _dialogueDao;
+        private DialogueDtoAdapter _dialogueDtoAdapter;
 
         private PatchManager _patchManager;
         
@@ -90,14 +92,16 @@ namespace CustomSpawns
             _spawner = new Spawner(_banditPartySpawnFactory, _customPartySpawnFactory, _messageBoxService, _modDebug);
             _campaignDataConfigLoader = new CampaignDataConfigLoader(_subModService, _messageBoxService);
             _spawnDtoAdapter = new SpawnDtoAdapter(_nameSignifierDataReader, Campaign.Current.ObjectManager, Campaign.Current.CampaignObjectManager, _partySpeedContext);
-            _spawnDao = new SpawnDao(_spawnDataReader, _spawnDtoAdapter);
+            _spawnDao = new SpawnDao(_spawnDataReader, _spawnDtoAdapter, _messageBoxService);
             _dialogueConsequenceInterpretor = new DialogueConsequenceInterpretor(_diplomacyActionModel, _messageBoxService);
-            _dialogueConditionInterpretor = new DialogueConditionInterpretor(_spawnDao, _messageBoxService);
+            _dialogueConditionInterpretor = new DialogueConditionInterpretor(_spawnDao);
             _hourlyPatrolAroundSpawnBehaviour = new HourlyPatrolAroundSpawnBehaviour(_messageBoxService, _modDebug);
             _attackClosestIfIdleForADayBehaviour = new AttackClosestIfIdleForADayBehaviour(_modDebug);
             _patrolAroundClosestLestInterruptedAndSwitchBehaviour = new PatrolAroundClosestLestInterruptedAndSwitchBehaviour(_modDebug);
-            _dialogueDataReader = new DialogueDataReader(_subModService, _messageBoxService, _dialogueConsequenceInterpretor, _dialogueConditionInterpretor);
-            _customSpawnsDialogueBehaviour = new CustomSpawnsDialogueBehaviour(_dialogueDataReader);
+            _dialogueDataReader = new DialogueDataReader(_subModService, _messageBoxService);
+            _dialogueDtoAdapter = new DialogueDtoAdapter(_dialogueConsequenceInterpretor, _dialogueConditionInterpretor);
+            _dialogueDao = new DialogueDao(_dialogueDataReader, _dialogueDtoAdapter, _messageBoxService);
+            _customSpawnsDialogueBehaviour = new CustomSpawnsDialogueBehaviour(_dialogueDao);
             _rewardDataReader = new RewardDataReader(_subModService, _messageBoxService);
             _rewardDao = new RewardDao(_rewardDataReader);
             _spawnRewardBehaviour = new SpawnRewardBehaviour(_rewardDao);
@@ -105,7 +109,7 @@ namespace CustomSpawns
             _dynamicSpawnData = new (_spawnDao, _saveInitialiser);
             _devestationMetricData = new DevestationMetricData(_mobilePartyTrackingBehaviour, _campaignDataConfigLoader, _saveInitialiser, _messageBoxService, _modDebug);
             _dailyLogger = new DailyLogger(_devestationMetricData, _dynamicSpawnData, _campaignDataConfigLoader, _messageBoxService, _subModService);
-            _forcedWarPeaceBehaviour = new ForcedWarPeaceBehaviour(_diplomacyActionModel, _clanKingdomTrackable,
+            _forcedWarPeaceBehaviour = new ForcedWarPeaceBehaviour(_diplomacyActionModel, _clanKingdomTrackable, 
                 _customSpawnsClanDiplomacyModel, _diplomacyDataReader, _dailyLogger);
             _forceNoKingdomBehaviour = new ForceNoKingdomBehaviour(_diplomacyDataReader, _dailyLogger);
             _spawnBehaviour = new SpawnBehaviour(_spawner, _spawnDao, _dynamicSpawnData, _saveInitialiser, _devestationMetricData, _configLoader, _messageBoxService, _dailyLogger, _modDebug);

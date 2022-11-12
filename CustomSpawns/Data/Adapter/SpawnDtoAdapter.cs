@@ -7,7 +7,6 @@ using System.Xml;
 using CustomSpawns.Data.Dto;
 using CustomSpawns.Data.Model;
 using CustomSpawns.Data.Reader.Impl;
-using CustomSpawns.Exception;
 using CustomSpawns.PartySpeed;
 using CustomSpawns.Utils;
 using TaleWorlds.CampaignSystem;

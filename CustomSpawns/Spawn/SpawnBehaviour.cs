@@ -156,7 +156,8 @@ namespace CustomSpawns.Spawn
         // TODO check why this is not working
         private void RestoreNumberOfSpawns()
         {
-            foreach (SpawnDto spawn in _spawnDao.FindAll())
+            IList<SpawnDto> spawns = _spawnDao.FindAll();
+            foreach (SpawnDto spawn in spawns)
             {
                 _numberOfSpawns[spawn.PartyTemplate.StringId] = 0;
             }
@@ -195,7 +196,8 @@ namespace CustomSpawns.Spawn
             try
             {
                 Random rand = new();
-                foreach (SpawnDto spawn in _spawnDao.FindAll())
+                IList<SpawnDto> spawns = _spawnDao.FindAll();
+                foreach (SpawnDto spawn in spawns)
                 {
                     for (int i = 0; i < spawn.RepeatSpawnRolls; i++)
                     {

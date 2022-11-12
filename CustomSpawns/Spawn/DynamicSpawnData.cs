@@ -22,11 +22,12 @@ namespace CustomSpawns.Spawn
 
         private void Init()
         {
+            IList<SpawnDto> spawns = _spawnDao.FindAll();
             foreach (MobileParty mb in MobileParty.All)
             {
                 if (mb == null)
                     return;
-                foreach (SpawnDto dat in _spawnDao.FindAll())
+                foreach (SpawnDto dat in spawns)
                 {
                     if (CampaignUtils.IsolateMobilePartyStringID(mb) == dat.PartyTemplate.StringId) //TODO could deal with sub parties in the future as well!
                     {
