@@ -4,6 +4,7 @@ using System.Linq;
 using CustomSpawns.Data.Adapter;
 using CustomSpawns.Data.Dto;
 using CustomSpawns.Data.Reader.Impl;
+using CustomSpawns.Exception;
 using CustomSpawns.Utils;
 using TaleWorlds.Core;
 
@@ -37,6 +38,15 @@ namespace CustomSpawns.Data.Dao
                         catch (ArgumentException e)
                         {
                             _messageBoxService.ShowCustomSpawnsErrorMessage(e, "reading spawn data");
+                            return null;
+                        }
+                        catch (TechnicalException e)
+                        {
+                            _messageBoxService.ShowMessage("Warning: The Custom Spawns API detected that you are trying to load" +
+                                                           " a Custom Spawns sub-mod into an existing saved game." +
+                                                           " This mod requires a fresh start to work correctly.\n" +
+                                                           "If you decide to continue, expect to have very unstable" +
+                                                           " behaviours during your play-through.");
                             return null;
                         }
                     })

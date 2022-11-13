@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Xml;
 using CustomSpawns.Data.Dto;
 using CustomSpawns.Data.Model;
 using CustomSpawns.Data.Reader.Impl;
+using CustomSpawns.Exception;
 using CustomSpawns.PartySpeed;
 using CustomSpawns.Utils;
 using TaleWorlds.CampaignSystem;
@@ -175,23 +175,16 @@ namespace CustomSpawns.Data.Adapter
             return match.Groups["id"].Value;
         }
 
-        private T? FindObject<T>(string objectId) where T : MBObjectBase
+        private T FindObject<T>(string objectId) where T : MBObjectBase
         {
             string parsedId = ParseId(objectId);
             T? obj = _objectManager.GetObject<T>(parsedId) ?? _campaignObjectManager.Find<T>(parsedId);
-            if (obj != null)
+            if (obj == null)
             {
-                return obj;
+                // dirty impl for now to detect if a sub-mod is loaded into an existing save 
+                throw new TechnicalException("Can not find object with Id " + objectId);
             }
-
-            string defaultId = objectId.Equals("id1") ? "id2" : "id1";
-            string defaultName = "Root";
-            XmlDocument doc = new();
-            XmlElement root = doc.CreateElement(defaultName);
-            root.SetAttribute(defaultId, objectId);
-            doc.AppendChild(root);
-            var result = _objectManager.ReadObjectReferenceFromXml<T>(defaultId, root);
-            return result;
+            return obj;
         }
 
         private Clan FindClan(string factionId)
