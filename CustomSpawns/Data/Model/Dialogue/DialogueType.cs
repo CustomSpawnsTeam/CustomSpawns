@@ -2,6 +2,6 @@
 {
     public enum DialogueType
     {
-        MapEncounter, FreedHero, CapturedLord
+        MapEncounter, FreedHero, CapturedLord, LordThanksPlayerAfterBattle
     }
 }

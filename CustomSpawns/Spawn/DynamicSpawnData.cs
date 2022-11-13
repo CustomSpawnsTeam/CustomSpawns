@@ -21,6 +21,8 @@ namespace CustomSpawns.Spawn
         {
             _spawnDao = spawnDao;
             _dynamicSpawnData = new ();
+            _spawnPartyTemplateIds = new HashSet<string>();
+            _spawnSubPartyTemplateIds = new HashSet<string>();
             saveInitialiser.RunCallbackOnFirstCampaignTick(Init);
         }
         

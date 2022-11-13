@@ -106,11 +106,14 @@ namespace CustomSpawns.Data.Adapter
             switch (dialogueType)
             {
                 case DialogueType.MapEncounter:
-                    return "!IsFreedHeroEncounter AND !IsCapturedLordEncounter AND " + condition;
+                    return "!IsFreedHeroEncounter AND !IsCapturedLordEncounter AND" +
+                           " !IsLordThankingPlayerAfterBattleEncounter AND " + condition;
                 case DialogueType.FreedHero:
                     return "IsFreedHeroEncounter AND " + condition;
                 case DialogueType.CapturedLord:
                     return "IsCapturedLordEncounter AND " + condition;
+                case DialogueType.LordThanksPlayerAfterBattle:
+                    return "IsLordThankingPlayerAfterBattleEncounter AND " + condition;
                 default:
                     throw new ArgumentException("Unknown DialogueType for condition \"" + condition
                         + "\". The available DialogueTypes are MapEncounter, FreedHero and CapturedLord");

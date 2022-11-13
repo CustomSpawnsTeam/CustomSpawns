@@ -8,7 +8,10 @@ using CustomSpawns.Dialogues.DialogueAlgebra.Condition;
 using CustomSpawns.Utils;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Encounters;
+using TaleWorlds.CampaignSystem.MapEvents;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.Core;
+using TaleWorlds.Localization;
 
 namespace CustomSpawns.Dialogues
 {
@@ -373,6 +376,19 @@ namespace CustomSpawns.Dialogues
         private static bool IsCapturedLordEncounter(DialogueParams param)
         {
             return Campaign.Current.CurrentConversationContext.Equals(ConversationContext.CapturedLord);
+        }
+
+        [DialogueConditionImplementor("IsLordThankingPlayerAfterBattleEncounter")]
+        private static bool IsLordThankingPlayerAfterBattleEncounter(DialogueParams param)
+        {
+            // Copied straight from Taleworlds. Maybe add a mechanism to use vanilla conditions in the future ?
+            return MapEvent.PlayerMapEvent != null 
+                && Hero.OneToOneConversationHero != null 
+                && !FactionManager.IsAtWarAgainstFaction(Hero.MainHero.MapFaction, Hero.OneToOneConversationHero.MapFaction)
+                && MapEvent.PlayerMapEvent.WinningSide == PartyBase.MainParty.Side
+                && Hero.OneToOneConversationHero.HasMet
+                && MapEvent.PlayerMapEvent.InvolvedParties.
+                    Count(party => party.Side == PartyBase.MainParty.Side && party != PartyBase.MainParty) > 0;
         }
 
         [DialogueConditionImplementor("BarterSuccessful")]
