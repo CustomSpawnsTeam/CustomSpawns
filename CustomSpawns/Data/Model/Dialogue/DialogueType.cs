@@ -1,4 +1,4 @@
-﻿namespace CustomSpawns.Data.Model.Reward
+﻿namespace CustomSpawns.Data.Model.Dialogue
 {
     public enum DialogueType
     {

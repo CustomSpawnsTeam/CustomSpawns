@@ -24,13 +24,12 @@ namespace CustomSpawns.Data.Adapter
         {
             List<DialogueDto> dialogueDtos = new();
             DialogueDto dialogueDto = new();
-            dialogueDto.Type = dialogue.Type;
-
             if (dialogue.Condition != null)
             {
                 try
                 {
-                    dialogueDto.Condition = _conditionInterpretor.ParseCondition(dialogue.Condition);
+                    string dialogueTypedCondition = AddDialogueTypeCondition(dialogue.Type, dialogue.Condition);
+                    dialogueDto.Condition = _conditionInterpretor.ParseCondition(dialogueTypedCondition);
                 }
                 catch (ArgumentException e)
                 {
@@ -99,6 +98,23 @@ namespace CustomSpawns.Data.Adapter
         {
             _currentId++;
             return "CS_Dialogue_" + _currentId;
+        }
+
+        private string AddDialogueTypeCondition(DialogueType dialogueType, string condition)
+        {
+            // TODO use the DialogueBuilder object when implemented instead of relying on hardcoded strings
+            switch (dialogueType)
+            {
+                case DialogueType.MapEncounter:
+                    return "!IsFreedHeroEncounter AND !IsCapturedLordEncounter AND " + condition;
+                case DialogueType.FreedHero:
+                    return "IsFreedHeroEncounter AND " + condition;
+                case DialogueType.CapturedLord:
+                    return "IsCapturedLordEncounter AND " + condition;
+                default:
+                    throw new ArgumentException("Unknown DialogueType for condition \"" + condition
+                        + "\". The available DialogueTypes are MapEncounter, FreedHero and CapturedLord");
+            }
         }
     }
 }
