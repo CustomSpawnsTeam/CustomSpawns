@@ -1,4 +1,15 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.9.1
+Game Versions: v1.0.0,v1.0.1
+* Fixed the wrong dialogues being displayed when the player frees a prisoner from a defeated custom party.
+* Fixed the wrong dialogues being displayed when the player captures a lord after defeating its party.
+* Fixed the wrong dialogues being displayed when the player is being thanked by a lord after defeating a common enemy.
+* Fixed a crash when the player tries to bargain a safe free passage with a custom party.
+* Fixed a crash when encountering vanilla bandits when a sub-mod does have any custom dialogues.
+* Added a cheat named "campaign.spawn" which spawns a party described in the "CustomDailySpawn.xml" file. This will help modders to test their spawns.
+* Reimplemented the custom spawns food consumption behaviour so that big parties are at their full intended strength.
+* Added a warning message when a user tries to add a Custom Spawns sub-mod into an existing save.   
+---------------------------------------------------------------------------------------------------
 Version: 1.9.0
 Game Versions: v1.0.0
 * Adds compatibility against v1.0.0.

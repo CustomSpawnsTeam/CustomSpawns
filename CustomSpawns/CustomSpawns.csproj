@@ -12,7 +12,7 @@
         <ModuleName>CustomSpawns</ModuleName>
         <DisplayName>Custom Spawns API</DisplayName>
         <AssemblyName>$(ModuleName)</AssemblyName>
-        <Version>1.9.0</Version>
+        <Version>1.9.1</Version>
     </PropertyGroup>
 
     <!-- Versions of Major Dependencies (For Package References & SubModule.xml Substitution) -->
