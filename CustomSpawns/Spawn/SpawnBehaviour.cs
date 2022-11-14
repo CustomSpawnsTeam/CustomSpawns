@@ -123,8 +123,8 @@ namespace CustomSpawns.Spawn
             if (mb == null)
                 return;
 
-            CsPartyData partyData = _dynamicSpawnData.GetDynamicSpawnData(mb);
-            if (partyData != null)
+            CsPartyData? partyData = _dynamicSpawnData.GetDynamicSpawnData(mb);
+            if (partyData != null && _numberOfSpawns.ContainsKey(partyData.PartyTemplateId))
             {
                 _numberOfSpawns[partyData.PartyTemplateId]--;
                 //this is a custom spawns party!!
