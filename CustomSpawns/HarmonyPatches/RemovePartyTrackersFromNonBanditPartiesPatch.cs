@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using CustomSpawns.Data;
@@ -18,29 +19,32 @@ namespace CustomSpawns.HarmonyPatches
         private static readonly MethodInfo PostfixMethod = typeof(RemovePartyTrackersFromNonBanditPartiesPatch)!
                 .GetMethod("Postfix", NonPublic | Static | DeclaredOnly)!;
 
-    public RemovePartyTrackersFromNonBanditPartiesPatch(SpawnDao spawnDao)
-    {
-        _spawnDao = spawnDao;
-    }
-
-    public bool IsApplicable()
-    {
-        return CanAddPartyMethod != null;
-    }
-    
-    public void Apply(Harmony instance)
-    {
-        instance.Patch(CanAddPartyMethod, postfix: new HarmonyMethod(PostfixMethod));
-    }
-
-    static void Postfix(MobileParty party, ref bool __result)
-    {
-        if (__result)
+        public RemovePartyTrackersFromNonBanditPartiesPatch(SpawnDao spawnDao)
         {
-            string isolatedPartyStringId = CampaignUtils.IsolateMobilePartyStringID(party);
-            if (_spawnDao.FindAllPartyTemplateId().Any(partyId => isolatedPartyStringId.Equals(partyId)))
-                __result = false;
+            _spawnDao = spawnDao;
         }
-    }
+
+        public bool IsApplicable()
+        {
+            return CanAddPartyMethod != null;
+        }
+        
+        public void Apply(Harmony instance)
+        {
+            instance.Patch(CanAddPartyMethod, postfix: new HarmonyMethod(PostfixMethod));
+        }
+
+        static void Postfix(MobileParty party, ref bool __result)
+        {
+            if (__result)
+            {
+                string isolatedPartyStringId = CampaignUtils.IsolateMobilePartyStringID(party);
+                ISet<string> partySpawns = _spawnDao.FindAllPartyTemplateId();
+                ISet<string> subSpawnParties = _spawnDao.FindAllSubPartyTemplateId();
+                if (partySpawns.Any(spawn => spawn.Equals(isolatedPartyStringId)) 
+                    || subSpawnParties.Any(spawn => spawn.Equals(isolatedPartyStringId)))
+                    __result = false;
+            }
+        }
     }
 }

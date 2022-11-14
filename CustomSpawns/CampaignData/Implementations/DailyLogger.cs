@@ -2,6 +2,8 @@
 using System.IO;
 using CustomSpawns.CampaignData.Config;
 using CustomSpawns.Data;
+using CustomSpawns.Data.Dao;
+using CustomSpawns.Data.Dto;
 using CustomSpawns.ModIntegration;
 using CustomSpawns.Spawn;
 using CustomSpawns.Utils;
@@ -23,15 +25,18 @@ namespace CustomSpawns.CampaignData.Implementations {
         private readonly DailyLoggerConfig _config;
         private readonly MessageBoxService _messageBoxService;
         private readonly SubModService _subModService;
+        private readonly SpawnDao _spawnDao;
 
         public DailyLogger(DevestationMetricData devestationMetricData, DynamicSpawnData dynamicSpawnData,
-            CampaignDataConfigLoader campaignDataConfigLoader, MessageBoxService messageBoxService, SubModService subModService)
+            CampaignDataConfigLoader campaignDataConfigLoader, MessageBoxService messageBoxService, SubModService subModService,
+            SpawnDao spawnDao)
         {
             _devestationMetricData = devestationMetricData;
             _dynamicSpawnData = dynamicSpawnData;
             _config = campaignDataConfigLoader.GetConfig<DailyLoggerConfig>();
             _messageBoxService = messageBoxService;
             _subModService = subModService;
+            _spawnDao = spawnDao;
             Init();
         }
 
@@ -132,15 +137,24 @@ namespace CustomSpawns.CampaignData.Implementations {
                 "\nTotal Strength:" + spawned.Party.TotalStrength +
                 "\nChance of Spawn: " + chanceOfSpawnBeforeSpawn;
 
-            var spawnData = _dynamicSpawnData.GetDynamicSpawnData(spawned).spawnBaseDto;
-
-            if (spawnData.DynamicSpawnChanceEffect > 0)
+            string? partyTemplateId = _dynamicSpawnData.GetDynamicSpawnData(spawned)?.PartyTemplateId;
+            if (partyTemplateId == null)
             {
-                msg += "\nDynamic Spawn Chance Effect: " + spawnData.DynamicSpawnChanceEffect;
-                msg += "\nDynamic Spawn Chance Base Value During Spawn: " + DataUtils.GetCurrentDynamicSpawnCoeff(spawnData.DynamicSpawnChancePeriod);
+                return;
+            }
+            SpawnDto? spawn = _spawnDao.FindByPartyTemplateId(partyTemplateId);
+            if (spawn == null)
+            {
+                return;
+            }
+            
+            if (spawn.DynamicSpawnChanceEffect > 0)
+            {
+                msg += "\nDynamic Spawn Chance Effect: " + spawn.DynamicSpawnChanceEffect;
+                msg += "\nDynamic Spawn Chance Base Value During Spawn: " + DataUtils.GetCurrentDynamicSpawnCoeff(spawn.DynamicSpawnChancePeriod);
             }
 
-            var spawnSettlement = _dynamicSpawnData.GetDynamicSpawnData(spawned).latestClosestSettlement;
+            var spawnSettlement = _dynamicSpawnData.GetDynamicSpawnData(spawned).LatestClosestSettlement;
 
             if (spawnSettlement.IsVillage)
             {

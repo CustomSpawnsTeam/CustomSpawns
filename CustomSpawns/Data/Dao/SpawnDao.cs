@@ -1,8 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using CustomSpawns.Data.Adapter;
 using CustomSpawns.Data.Dto;
 using CustomSpawns.Data.Reader.Impl;
+using CustomSpawns.Exception;
+using CustomSpawns.Utils;
 using TaleWorlds.Core;
 
 namespace CustomSpawns.Data.Dao
@@ -11,19 +14,44 @@ namespace CustomSpawns.Data.Dao
     {
         private readonly SpawnDataReader _spawnDataReader;
         private readonly SpawnDtoAdapter _spawnDtoAdapter;
+        private readonly MessageBoxService _messageBoxService;
         private List<SpawnDto>? _spawns;
 
-        public SpawnDao(SpawnDataReader spawnDataReader, SpawnDtoAdapter spawnDtoAdapter)
+        public SpawnDao(SpawnDataReader spawnDataReader, SpawnDtoAdapter spawnDtoAdapter, MessageBoxService messageBoxService)
         {
             _spawnDataReader = spawnDataReader;
             _spawnDtoAdapter = spawnDtoAdapter;
+            _messageBoxService = messageBoxService;
         }
 
         private List<SpawnDto> Spawns()
         {
             if (_spawns == null)
             {
-                _spawns = _spawnDataReader.Data.Select(_spawnDtoAdapter.Adapt).ToList();
+                _spawns = _spawnDataReader.Data
+                    .Select(spawn => 
+                    {
+                        try
+                        {
+                            return _spawnDtoAdapter.Adapt(spawn);
+                        }
+                        catch (ArgumentException e)
+                        {
+                            _messageBoxService.ShowCustomSpawnsErrorMessage(e, "reading spawn data");
+                            return null;
+                        }
+                        catch (TechnicalException e)
+                        {
+                            _messageBoxService.ShowMessage("Warning: The Custom Spawns API detected that you are trying to load" +
+                                                           " a Custom Spawns sub-mod into an existing saved game." +
+                                                           " This mod requires a fresh start to work correctly.\n" +
+                                                           "If you decide to continue, expect to have very unstable" +
+                                                           " behaviours during your play-through.");
+                            return null;
+                        }
+                    })
+                    .Where(spawn => spawn != null)
+                    .ToList()!;
             }
             return _spawns;
         }
@@ -45,12 +73,15 @@ namespace CustomSpawns.Data.Dao
             return candidates.First();
         }
 
-        public ISet<string> FindAllPartyTemplateId()
+        public ISet<string> FindAllSubPartyTemplateId()
         {
-            ISet<string> mainPartyTemplateIds = Spawns()
-                .Select(spawn => spawn.PartyTemplate.StringId)
-                .ToHashSet();
-            ISet<string> secondaryPartyTemplateIds = Spawns()
+            IList<SpawnDto> spawns = Spawns();
+            if (spawns.All(spawn => spawn.SpawnAlongWith.IsEmpty()))
+            {
+                return new HashSet<string>(0);
+            }
+
+            return spawns
                 .Select(spawn => spawn.SpawnAlongWith.AsEnumerable())
                 .Aggregate((allSupporters, supportingPartyTemplates) =>
                 {
@@ -60,8 +91,13 @@ namespace CustomSpawns.Data.Dao
                 })
                 .Select(partyTemplate => partyTemplate.templateObject.StringId)
                 .ToHashSet();
-            mainPartyTemplateIds.UnionWith(secondaryPartyTemplateIds);
-            return mainPartyTemplateIds;
+        }
+
+        public ISet<string> FindAllPartyTemplateId()
+        {
+            return Spawns()
+                .Select(spawn => spawn.PartyTemplate.StringId)
+                .ToHashSet();
         }
     }
 }

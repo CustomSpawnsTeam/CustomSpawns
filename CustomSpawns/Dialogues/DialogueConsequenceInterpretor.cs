@@ -2,6 +2,7 @@
 using System.Reflection;
 using System.Collections.Generic;
 using System.Linq;
+using CustomSpawns.AI.Barterables;
 using CustomSpawns.Dialogues.DialogueAlgebra;
 using CustomSpawns.Diplomacy;
 using CustomSpawns.Exception;
@@ -329,36 +330,37 @@ namespace CustomSpawns.Dialogues
             Barterable[] array = new Barterable[1];
             int num = 0;
             Hero originalOwner = conversationParty.MapFaction.Leader;
-            Hero mainHero2 = Hero.MainHero;
-            MobileParty conversationParty2 = MobileParty.ConversationParty;
             array[num] = new PeaceBarterable(originalOwner, conversationParty.MapFaction, mainHero.MapFaction, CampaignTime.Years(1f));
             instance.StartBarterOffer(mainHero, oneToOneConversationHero, mainParty, otherParty, beneficiaryOfOtherHero, initContext, persuasionCostReduction, isAIBarter, array);
         }
 
+        private static Barterable SafePassageForPlayerBarterable(Hero? enemyHero, PartyBase? enemyParty)
+        {
+            return new CustomSpawnSafePassageBarterable(enemyHero, Hero.MainHero, enemyParty, PartyBase.MainParty);
+        }
+        
         [DialogueConsequenceImplementorAttribute("BarterNoAttack")]
         private static void conversation_set_up_safe_passage_barter_on_consequence(DialogueParams param)
         {
             BarterManager instance = BarterManager.Instance;
             Hero oneToOneConversationHero = Hero.OneToOneConversationHero;
             PartyBase mainParty = PartyBase.MainParty;
-            PartyBase otherParty = MobileParty.ConversationParty?.Party;
-            BarterManager.BarterContextInitializer initContext = 
-                new BarterManager.BarterContextInitializer(BarterManager.Instance.InitializeSafePassageBarterContext);
+            PartyBase? otherParty = MobileParty.ConversationParty?.Party;
+            BarterManager.BarterContextInitializer initContext = BarterManager.Instance.InitializeSafePassageBarterContext;
             int persuasionCostReduction = 0;
             bool isAIBarter = false;
-
 
             if (Hero.OneToOneConversationHero == null)
             {
                 Barterable[] array = new Barterable[1];
-                array[0] = new SafePassageBarterable(null, Hero.MainHero, otherParty, PartyBase.MainParty);
+                array[0] = SafePassageForPlayerBarterable(null, otherParty);
                 instance.StartBarterOffer(Hero.MainHero, oneToOneConversationHero, mainParty, otherParty, null, initContext,
                     persuasionCostReduction, isAIBarter, array);
             }
             else
             {
                 Barterable[] array = new Barterable[2];
-                array[0] = new SafePassageBarterable(oneToOneConversationHero, Hero.MainHero, otherParty, PartyBase.MainParty);
+                array[0] = SafePassageForPlayerBarterable(oneToOneConversationHero, otherParty);
                 array[1] = new NoAttackBarterable(Hero.MainHero, oneToOneConversationHero, mainParty,
                     otherParty, CampaignTime.Days(5f));
                 instance.StartBarterOffer(Hero.MainHero, oneToOneConversationHero, mainParty, otherParty, null,
@@ -371,7 +373,7 @@ namespace CustomSpawns.Dialogues
         [AttributeUsage(AttributeTargets.Method)]
         private class DialogueConsequenceImplementorAttribute : Attribute
         {
-            public string ExposedName { get; private set; }
+            public string ExposedName { get; }
 
             public DialogueConsequenceImplementorAttribute(string name)
             {

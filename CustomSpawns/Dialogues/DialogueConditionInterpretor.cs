@@ -2,15 +2,16 @@
 using System.Reflection;
 using System.Collections.Generic;
 using System.Linq;
-using CustomSpawns.Data;
 using CustomSpawns.Data.Dao;
 using CustomSpawns.Dialogues.DialogueAlgebra;
 using CustomSpawns.Dialogues.DialogueAlgebra.Condition;
-using CustomSpawns.Exception;
 using CustomSpawns.Utils;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Encounters;
+using TaleWorlds.CampaignSystem.MapEvents;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.Core;
+using TaleWorlds.Localization;
 
 namespace CustomSpawns.Dialogues
 {
@@ -18,12 +19,10 @@ namespace CustomSpawns.Dialogues
     {
 
         private static SpawnDao _spawnDao;
-        private readonly MessageBoxService _messageBoxService;
         
-        public DialogueConditionInterpretor(SpawnDao spawnDao, MessageBoxService messageBoxService)
+        public DialogueConditionInterpretor(SpawnDao spawnDao)
         {
             _spawnDao = spawnDao;
-            _messageBoxService = messageBoxService;
             allMethods = typeof(DialogueConditionInterpretor).GetMethods(BindingFlags.Static | BindingFlags.NonPublic).
                  Where((m) => m.GetCustomAttributes(typeof(DialogueConditionImplementorAttribute), false).Count() > 0).ToList();
         }
@@ -43,74 +42,64 @@ namespace CustomSpawns.Dialogues
                 return null;
             }
 
-            try
+            //Simple as possible for now. No paranthesis support to group
+
+            string[] tokens = text.Split(' ');
+
+            if (tokens.Length == 0)
             {
+                //user has entered empty condition string
+                throw new ArgumentException("Condition can not be empty");
+            }
+            if (tokens.Length == 1)
+            {
+                //just a good old single function.
+                return ParseConditionToken(tokens[0]);
+            }
+            if(tokens.Length % 2 == 0)
+            {
+                throw new ArgumentException("Invalid algebraic expression: " + text);
+            }
 
-                //Simple as possible for now. No paranthesis support to group
+            //tokens.Length is thus at least 3.
 
-                string[] tokens = text.Split(' ');
+            DialogueCondition aggregate = null;
+            DialogueCondition cur = null;
+             
+            aggregate = ParseConditionToken(tokens[0]);
 
-                if(tokens.Length == 0)
+            for (int i = 2; i < tokens.Length; i += 2)
+            {
+                if (i % 2 == 0)
                 {
-                    //user has entered empty condition string
-                    return null;
-                }else if(tokens.Length == 1)
-                {
-                    //just a good old single function.
-                    return ParseConditionToken(tokens[0]);
-                }else if(tokens.Length % 2 == 0)
-                {
-                    throw new TechnicalException("Invalid algebraic expression: " + text);
+
+                    cur = ParseConditionToken(tokens[i]);
+
+                    i -= 3; //we will add 2 to this and so we will get to the logic keyword.
                 }
-
-                //tokens.Length is thus at least 3.
-
-                DialogueCondition aggregate = null;
-                DialogueCondition cur = null;
-                 
-                aggregate = ParseConditionToken(tokens[0]);
-
-                for (int i = 2; i < tokens.Length; i += 2)
+                else
                 {
-                    if (i % 2 == 0)
+                    //logic keyword AND OR 
+
+                    if(tokens[i] == "AND" || tokens[i] == "&" || tokens[i] == "&&")
                     {
-
-                        cur = ParseConditionToken(tokens[i]);
-
-                        i -= 3; //we will add 2 to this and so we will get to the logic keyword.
+                        aggregate = aggregate & cur;
+                    }
+                    else if(tokens[i] == "OR" || tokens[i] == "|" || tokens[i] == "||")
+                    {
+                        aggregate = aggregate | cur;
                     }
                     else
                     {
-                        //logic keyword AND OR 
-
-                        if(tokens[i] == "AND" || tokens[i] == "&" || tokens[i] == "&&")
-                        {
-                            aggregate = aggregate & cur;
-                        }
-                        else if(tokens[i] == "OR" || tokens[i] == "|" || tokens[i] == "||")
-                        {
-                            aggregate = aggregate | cur;
-                        }
-                        else
-                        {
-                            throw new TechnicalException("Unrecognized logic keyword: " + tokens[i]);
-                        }
-
-                        i += 1; // we will add 2 to this and so we will get to next token.
-
+                        throw new ArgumentException("Unrecognized logic keyword: " + tokens[i]);
                     }
+
+                    i += 1; // we will add 2 to this and so we will get to next token.
+
                 }
-
-                return aggregate;
-
-            }
-            catch(System.Exception e)
-            {
-                _messageBoxService.ShowMessage("Could not parse dialogue condition: \n" + text + "\n Error Message: \n" + e.Message);
-                return null;
             }
 
-
+            return aggregate;
         }
 
         private DialogueCondition ParseConditionToken(string token)
@@ -147,7 +136,7 @@ namespace CustomSpawns.Dialogues
             switch (openPSplit.Count)
             {
                 case 0:
-                    throw new TechnicalException("Can't parse " + token + ". It may be empty.");
+                    throw new ArgumentException("Can't parse " + token + ". It may be empty.");
                 case 1:
                     //no params
                     returned = GetDialogueCondition(funcName);
@@ -165,7 +154,7 @@ namespace CustomSpawns.Dialogues
                     returned = GetDialogueCondition(funcName, openPSplit[1], openPSplit[2], openPSplit[3]);
                     break;
                 default:
-                    throw new TechnicalException("Can't parse " + token + ". Possibly too many params.");
+                    throw new ArgumentException("Can't parse " + token + ". Possibly too many params.");
             }
 
             if (negationFlag)
@@ -193,7 +182,7 @@ namespace CustomSpawns.Dialogues
                 }
             }
 
-            throw new TechnicalException("There is no function with name " + implementor + " that takes no parameters.");
+            throw new ArgumentException("There is no function with name " + implementor + " that takes no parameters.");
         }
 
         private DialogueCondition GetDialogueCondition(string implementor, string param)
@@ -213,7 +202,7 @@ namespace CustomSpawns.Dialogues
                 }
             }
 
-            throw new TechnicalException("There is no function with name " + implementor + " that takes one parameter.");
+            throw new ArgumentException("There is no function with name " + implementor + " that takes one parameter.");
         }
 
         private DialogueCondition GetDialogueCondition(string implementor, string param1, string param2)
@@ -233,7 +222,7 @@ namespace CustomSpawns.Dialogues
                 }
             }
 
-            throw new TechnicalException("There is no function with name " + implementor + " that takes two parameters.");
+            throw new ArgumentException("There is no function with name " + implementor + " that takes two parameters.");
         }
 
         private DialogueCondition GetDialogueCondition(string implementor, string param1, string param2, string param3)
@@ -253,7 +242,7 @@ namespace CustomSpawns.Dialogues
                 } 
             }
 
-            throw new TechnicalException("There is no function with name " + implementor + " that takes three parameters.");
+            throw new ArgumentException("There is no function with name " + implementor + " that takes three parameters.");
         }
 
         #endregion
@@ -353,8 +342,14 @@ namespace CustomSpawns.Dialogues
         [DialogueConditionImplementor("IsCustomSpawnParty")]
         private static bool IsCustomSpawnParty(DialogueParams param)
         {
-            return _spawnDao.FindAllPartyTemplateId()
-                .Any(partyId => param?.AdversaryParty?.StringId?.StartsWith(partyId) ?? false);
+            MobileParty? enemyParty = param?.AdversaryParty;
+            if (enemyParty == null)
+                return false;
+            ISet<string> partySpawns = _spawnDao.FindAllPartyTemplateId();
+            ISet<string> subSpawnParties = _spawnDao.FindAllSubPartyTemplateId();
+            
+            return partySpawns.Any(partyId => enemyParty.StringId.StartsWith(partyId))
+                   || subSpawnParties.Any(partyId => enemyParty.StringId.StartsWith(partyId));            
         }
 
         [DialogueConditionImplementor("IsPlayerEncounterInsideSettlement")]
@@ -363,10 +358,55 @@ namespace CustomSpawns.Dialogues
             return PlayerEncounter.InsideSettlement;
         }
 
+        // Quickfix: add conditions to avoid dialogues to be selected during "Freed Hero" and "Capture Lord" encounters
+        // Next step would be to create multiple dialogue types in the API to avoid needing to
+        // use these conditions everywhere as these are mutual exclusive with classic map encounters.
+        // Possible dialogue types:
+        // - map encounter (currently the only available option)
+        // - free prisoner encounter
+        // - capture lord encounter
+        // - Maybe city dialogue ...
+        [DialogueConditionImplementor("IsFreedHeroEncounter")]
+        private static bool IsFreedHeroEncounter(DialogueParams param)
+        {
+            return Campaign.Current.CurrentConversationContext.Equals(ConversationContext.FreedHero);
+        }
+
+        [DialogueConditionImplementor("IsCapturedLordEncounter")]
+        private static bool IsCapturedLordEncounter(DialogueParams param)
+        {
+            return Campaign.Current.CurrentConversationContext.Equals(ConversationContext.CapturedLord);
+        }
+
+        [DialogueConditionImplementor("IsLordThankingPlayerAfterBattleEncounter")]
+        private static bool IsLordThankingPlayerAfterBattleEncounter(DialogueParams param)
+        {
+            // Copied straight from Taleworlds. Maybe add a mechanism to use vanilla conditions in the future ?
+            return MapEvent.PlayerMapEvent != null 
+                && Hero.OneToOneConversationHero != null 
+                && !FactionManager.IsAtWarAgainstFaction(Hero.MainHero.MapFaction, Hero.OneToOneConversationHero.MapFaction)
+                && MapEvent.PlayerMapEvent.WinningSide == PartyBase.MainParty.Side
+                && Hero.OneToOneConversationHero.HasMet
+                && MapEvent.PlayerMapEvent.InvolvedParties.
+                    Count(party => party.Side == PartyBase.MainParty.Side && party != PartyBase.MainParty) > 0;
+        }
+
         [DialogueConditionImplementor("BarterSuccessful")]
         private static bool conversation_barter_successful_on_condition(DialogueParams param)
         {
             return Campaign.Current.BarterManager.LastBarterIsAccepted;
+        }
+
+        [DialogueConditionImplementor("IsBanditParty")]
+        private static bool IsBanditParty(DialogueParams param)
+        {
+            return param.AdversaryParty != null && (param.AdversaryParty.IsBandit || param.AdversaryParty.IsBanditBossParty);
+        }
+
+        [DialogueConditionImplementor("IsLordParty")]
+        private static bool IsLordParty(DialogueParams param)
+        {
+            return param.AdversaryParty?.IsLordParty ?? false;
         }
 
         #endregion

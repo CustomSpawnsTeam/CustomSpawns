@@ -21,15 +21,18 @@ namespace CustomSpawns.Spawn
             _messageBoxService = messageBoxService;
             _modDebug = modDebug;
         }
-        
+
         // TODO use the speed parameter here instead of using the harmony patch  
-        public MobileParty SpawnParty(Settlement spawnedSettlement, Clan clan, PartyTemplateObject templateObject, float speed, TextObject partyName = null)
+        public MobileParty SpawnParty(Settlement spawnedSettlement, Clan clan, PartyTemplateObject templateObject,
+            float speed=0f, TextObject partyName = null)
         {
             try
             {
                 //get name and show message.
                 TextObject name = partyName ?? clan.Name;
-                _modDebug.ShowMessage("CustomSpawns: Spawning " + name + " at " + spawnedSettlement.GatePosition + " in settlement " + spawnedSettlement.Name.ToString(), DebugMessageType.Spawn);
+                _modDebug.ShowMessage(
+                    "CustomSpawns: Spawning " + name + " at " + spawnedSettlement.GatePosition + " in settlement " +
+                    spawnedSettlement.Name, DebugMessageType.Spawn);
 
                 if (clan.IsBanditFaction)
                 {
@@ -37,7 +40,8 @@ namespace CustomSpawns.Spawn
                 }
                 return _customPartySpawnFactory.SpawnParty(spawnedSettlement, name, clan, templateObject);
             }
-            catch (System.Exception e) {
+            catch (System.Exception e)
+            {
                 _messageBoxService.ShowMessage("Possible invalid spawn data. Spawning of party terminated.");
                 _messageBoxService.ShowCustomSpawnsErrorMessage(e, "party spawning");
                 return null;
