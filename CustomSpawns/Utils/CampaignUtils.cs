@@ -244,10 +244,10 @@ namespace CustomSpawns.Utils
 
             if (mapPositions.IsEmpty())
             {
-                return settlements[0]; 
+                return settlements[0];
             }
 
-            Settlement? settlement = mapPositions
+            return mapPositions
                 .Select(mapPosition => GetNearestSettlement(mapPosition, settlements))
                 .GroupBy(h => h)
                 .Select(group => new
@@ -255,15 +255,8 @@ namespace CustomSpawns.Utils
                     Settlement = group.Key,
                     Count = group.Count()
                 })
-                .Aggregate((leftSettlement, rightSettlement) => leftSettlement.Count >= rightSettlement.Count ? leftSettlement : rightSettlement)?
+                .Aggregate((leftSettlement, rightSettlement) => leftSettlement.Count >= rightSettlement.Count ? leftSettlement : rightSettlement)
                 .Settlement;
-
-            if (settlement == null)
-            {
-                return settlements[0];
-            }
-
-            return settlement;
         }
         
         private static Settlement GetNearestSettlement(IMapPoint party, List<Settlement> settlements)

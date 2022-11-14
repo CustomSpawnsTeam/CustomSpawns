@@ -73,7 +73,8 @@ namespace CustomSpawns.Spawn
         {
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, DailyBehaviour);
             CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, HourlyBehaviour);
-            CampaignEvents.HourlyTickPartyEvent.AddNonSerializedListener(this, HourlyPartyBehaviour);
+            CampaignEvents.DailyTickPartyEvent.AddNonSerializedListener(this, ReplenishPartyFood);
+            CampaignEvents.MobilePartyCreated.AddNonSerializedListener(this, OnPartyCreated);
             CampaignEvents.OnPartyRemovedEvent.AddNonSerializedListener(this, OnPartyRemoved);
         }
 
@@ -122,27 +123,20 @@ namespace CustomSpawns.Spawn
             if (mb == null)
                 return;
 
-            CSPartyData partyData = _dynamicSpawnData.GetDynamicSpawnData(mb);
+            CsPartyData partyData = _dynamicSpawnData.GetDynamicSpawnData(mb);
             if (partyData != null)
             {
-                _numberOfSpawns[partyData.spawnBaseDto.PartyTemplate.StringId]--;
+                _numberOfSpawns[partyData.PartyTemplateId]--;
                 //this is a custom spawns party!!
                 OnPartyDeath(mb, partyData);
-                _modDebug.ShowMessage(mb.StringId + " has died at " + partyData.latestClosestSettlement + ", reducing the total number to: " + _numberOfSpawns[partyData.spawnBaseDto.PartyTemplate.StringId], DebugMessageType.DeathTrack);
-                _dynamicSpawnData.RemoveDynamicSpawnData(mb);
+                _modDebug.ShowMessage(mb.StringId + " has died at " + partyData.LatestClosestSettlement + ", reducing the total number to: " + _numberOfSpawns[partyData.PartyTemplateId], DebugMessageType.DeathTrack);
             }
         }
 
-        private void HourlyPartyBehaviour(MobileParty mb)
+        private void ReplenishPartyFood(MobileParty mb)
         {
             if (_dynamicSpawnData.GetDynamicSpawnData(mb) == null) //check if it is a custom spawns party
                 return;
-            _dynamicSpawnData.UpdateDynamicData(mb);
-            if (_lastRedundantDataUpdate >= _configLoader.Config.UpdatePartyRedundantDataPerHour)
-            {
-                _dynamicSpawnData.UpdateRedundantDynamicData(mb);
-            }
-            //for now for all
             PartyEconomicUtils.PartyReplenishFood(mb);
         }
 
@@ -223,8 +217,6 @@ namespace CustomSpawns.Spawn
                                 return;
                             _numberOfSpawns[spawn.PartyTemplate.StringId]++; //increment for can spawn and chance modifications
                                                            //dynamic data registration
-                            //dynamic spawn tracking
-                            _dynamicSpawnData.AddDynamicSpawnData(spawnedParty, new CSPartyData(spawn, spawnSettlement));
                             //AI Checks!
                             HandleAIChecks(spawnedParty, spawn, spawnSettlement);
                             //accompanying spawns
@@ -262,18 +254,24 @@ namespace CustomSpawns.Spawn
             }
         }
 
-        private void OnPartyDeath(MobileParty mb, CSPartyData dynamicData)
+        private void OnPartyDeath(MobileParty mb, CsPartyData dynamicData)
         {
             HandleDeathMessage(mb, dynamicData);
         }
 
+        private void OnPartyCreated(MobileParty mobileParty)
+        {
+            ReplenishPartyFood(mobileParty);
+        }
+
         #region Behaviour Handlers
 
-        private void HandleDeathMessage(MobileParty mb, CSPartyData dynamicData)
+        private void HandleDeathMessage(MobileParty mb, CsPartyData dynamicData)
         {
-            if (dynamicData.spawnBaseDto.DeathMessage != null)
+            SpawnDto? spawn = _spawnDao.FindByPartyTemplateId(dynamicData.PartyTemplateId);
+            if (spawn?.DeathMessage != null)
             {
-                UX.ShowParseDeathMessage(dynamicData.spawnBaseDto.DeathMessage, dynamicData.latestClosestSettlement.ToString());
+                UX.ShowParseDeathMessage(spawn.DeathMessage, dynamicData.LatestClosestSettlement.ToString());
             }
         }
 

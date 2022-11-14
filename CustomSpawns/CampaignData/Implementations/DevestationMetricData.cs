@@ -204,6 +204,10 @@ namespace CustomSpawns.CampaignData.Implementations
 
         public float GetAverageDevestation()
         {
+            if (_settlementToDevestation.Values.Count <= 0)
+            {
+                return 0f;
+            }
             return _settlementToDevestation.Values.Aggregate((c,d) => c+d) / _settlementToDevestation.Count; //TODO make more efficient
         }
 

@@ -55,6 +55,8 @@ namespace CustomSpawns
         private DialogueDtoAdapter _dialogueDtoAdapter;
 
         private PatchManager _patchManager;
+
+        private Cheats _cheats;
         
         // Behaviours
         private HourlyPatrolAroundSpawnBehaviour _hourlyPatrolAroundSpawnBehaviour;
@@ -108,13 +110,14 @@ namespace CustomSpawns
             _mobilePartyTrackingBehaviour = new MobilePartyTrackingBehaviour(_saveInitialiser, _modDebug);
             _dynamicSpawnData = new (_spawnDao, _saveInitialiser);
             _devestationMetricData = new DevestationMetricData(_mobilePartyTrackingBehaviour, _campaignDataConfigLoader, _saveInitialiser, _messageBoxService, _modDebug);
-            _dailyLogger = new DailyLogger(_devestationMetricData, _dynamicSpawnData, _campaignDataConfigLoader, _messageBoxService, _subModService);
+            _dailyLogger = new DailyLogger(_devestationMetricData, _dynamicSpawnData, _campaignDataConfigLoader, _messageBoxService, _subModService, _spawnDao);
             _forcedWarPeaceBehaviour = new ForcedWarPeaceBehaviour(_diplomacyActionModel, _clanKingdomTrackable, 
                 _customSpawnsClanDiplomacyModel, _diplomacyDataReader, _dailyLogger);
             _forceNoKingdomBehaviour = new ForceNoKingdomBehaviour(_diplomacyDataReader, _dailyLogger);
             _spawnBehaviour = new SpawnBehaviour(_spawner, _spawnDao, _dynamicSpawnData, _saveInitialiser, _devestationMetricData, _configLoader, _messageBoxService, _dailyLogger, _modDebug);
             _patchManager = new PatchManager(_spawnDao, _partySpeedContext, _configLoader, _messageBoxService);
             _safePassageBehaviour = new SafePassageBehaviour(_spawnDao);
+            _cheats = new Cheats(_spawner, _spawnDao);
         }
         #endregion
 
@@ -157,6 +160,7 @@ namespace CustomSpawns
                 starter.AddBehavior(_spawnBehaviour);
                 starter.AddBehavior(_saveInitialiser);
                 starter.AddBehavior(_safePassageBehaviour);
+                starter.AddBehavior(_dynamicSpawnData);
             }
             else
             {

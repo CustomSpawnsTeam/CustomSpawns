@@ -73,12 +73,15 @@ namespace CustomSpawns.Data.Dao
             return candidates.First();
         }
 
-        public ISet<string> FindAllPartyTemplateId()
+        public ISet<string> FindAllSubPartyTemplateId()
         {
-            ISet<string> mainPartyTemplateIds = Spawns()
-                .Select(spawn => spawn.PartyTemplate.StringId)
-                .ToHashSet();
-            ISet<string> secondaryPartyTemplateIds = Spawns()
+            IList<SpawnDto> spawns = Spawns();
+            if (spawns.All(spawn => spawn.SpawnAlongWith.IsEmpty()))
+            {
+                return new HashSet<string>(0);
+            }
+
+            return spawns
                 .Select(spawn => spawn.SpawnAlongWith.AsEnumerable())
                 .Aggregate((allSupporters, supportingPartyTemplates) =>
                 {
@@ -88,8 +91,13 @@ namespace CustomSpawns.Data.Dao
                 })
                 .Select(partyTemplate => partyTemplate.templateObject.StringId)
                 .ToHashSet();
-            mainPartyTemplateIds.UnionWith(secondaryPartyTemplateIds);
-            return mainPartyTemplateIds;
+        }
+
+        public ISet<string> FindAllPartyTemplateId()
+        {
+            return Spawns()
+                .Select(spawn => spawn.PartyTemplate.StringId)
+                .ToHashSet();
         }
     }
 }

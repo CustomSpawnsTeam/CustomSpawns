@@ -1,88 +1,117 @@
 using System.Collections.Generic;
-using CustomSpawns.Data;
+using System.Linq;
 using CustomSpawns.Data.Dao;
-using CustomSpawns.Data.Dto;
 using CustomSpawns.UtilityBehaviours;
 using CustomSpawns.Utils;
+using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Map;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 
 namespace CustomSpawns.Spawn
 {
-    public class DynamicSpawnData
+    public class DynamicSpawnData : CampaignBehaviorBase
     {
-        private readonly Dictionary<MobileParty, CSPartyData> _dynamicSpawnData = new ();
         private readonly SpawnDao _spawnDao;
+        private readonly Dictionary<MobileParty, CsPartyData> _dynamicSpawnData;
+        private ISet<string> _spawnPartyTemplateIds;
+        private ISet<string> _spawnSubPartyTemplateIds;
 
         public DynamicSpawnData(SpawnDao spawnDao, SaveInitialiser saveInitialiser)
         {
             _spawnDao = spawnDao;
+            _dynamicSpawnData = new ();
             saveInitialiser.RunCallbackOnFirstCampaignTick(Init);
         }
+        
+        public override void RegisterEvents()
+        {
+            CampaignEvents.MobilePartyCreated.AddNonSerializedListener(this, OnMobilePartyCreated);
+            CampaignEvents.MobilePartyDestroyed.AddNonSerializedListener(this, OnMobilePartyDestroyed);
+            CampaignEvents.HourlyTickPartyEvent.AddNonSerializedListener(this, HourlyMobilePartyUpdate);
+        }
+
+        public override void SyncData(IDataStore dataStore) { }
 
         private void Init()
         {
-            IList<SpawnDto> spawns = _spawnDao.FindAll();
+            _spawnPartyTemplateIds = _spawnDao.FindAllPartyTemplateId();
+            _spawnSubPartyTemplateIds = _spawnDao.FindAllSubPartyTemplateId();
             foreach (MobileParty mb in MobileParty.All)
             {
                 if (mb == null)
                     return;
-                foreach (SpawnDto dat in spawns)
-                {
-                    if (CampaignUtils.IsolateMobilePartyStringID(mb) == dat.PartyTemplate.StringId) //TODO could deal with sub parties in the future as well!
-                    {
-                        //this be a custom spawns party :O
-                        AddDynamicSpawnData(mb, new CSPartyData(dat, null));
-                        UpdateDynamicData(mb);
-                        UpdateRedundantDynamicData(mb);
-                    }
-                }
+                AddCustomSpawn(mb);
             }
         }
 
-        public void AddDynamicSpawnData(MobileParty mb, CSPartyData data)
+        private bool IsCustomSpawnParty(MobileParty? mobileParty)
         {
-            if (_dynamicSpawnData.ContainsKey(mb))
+            if (mobileParty == null)
+                return false;
+            string isolatedPartyStringId = CampaignUtils.IsolateMobilePartyStringID(mobileParty);
+            return _spawnPartyTemplateIds.Any(spawn => spawn.StartsWith(isolatedPartyStringId))
+                || _spawnSubPartyTemplateIds.Any(spawn => spawn.StartsWith(isolatedPartyStringId));
+        }
+
+        private void OnMobilePartyCreated(MobileParty mobileParty)
+        {
+            AddCustomSpawn(mobileParty);
+        }
+
+        private void AddCustomSpawn(MobileParty mobileParty)
+        {
+            if (IsCustomSpawnParty(mobileParty) && !_dynamicSpawnData.ContainsKey(mobileParty))
             {
-                return;
+                string isolatedPartyStringId = CampaignUtils.IsolateMobilePartyStringID(mobileParty);
+                Settlement? settlement = GetNearestSettlement(mobileParty);
+                CsPartyData partyData = new (isolatedPartyStringId, settlement); 
+                _dynamicSpawnData.Add(mobileParty, partyData);
             }
-            _dynamicSpawnData.Add(mb, data);
         }
 
-        public bool RemoveDynamicSpawnData(MobileParty mb)
+        // partyBase is the party which destroyed the mobileParty
+        private void OnMobilePartyDestroyed(MobileParty mobileParty, PartyBase destroyer)
         {
-            return _dynamicSpawnData.Remove(mb);
+            if (IsCustomSpawnParty(mobileParty) && _dynamicSpawnData.ContainsKey(mobileParty))
+            {
+                _dynamicSpawnData.Remove(mobileParty);
+            }
         }
 
-        public CSPartyData GetDynamicSpawnData(MobileParty mb)
+        private void HourlyMobilePartyUpdate(MobileParty mobileParty)
+        {
+            if (_dynamicSpawnData.ContainsKey(mobileParty))
+            {
+                _dynamicSpawnData[mobileParty].LatestClosestSettlement = GetNearestSettlement(mobileParty);
+            }
+        }
+
+        public CsPartyData? GetDynamicSpawnData(MobileParty mb)
         {
             if (!_dynamicSpawnData.ContainsKey(mb))
                 return null;
             return _dynamicSpawnData[mb];
         }
 
-        public void UpdateDynamicData(MobileParty mb)
+        private Settlement? GetNearestSettlement(MobileParty mobileParty)
         {
-
+            return CampaignUtils.GetNearestSettlement(Settlement.All.ToList(), new List<IMapPoint>()
+            {
+                mobileParty
+            });
         }
-
-        public void UpdateRedundantDynamicData(MobileParty mb)
-        {
-            GetDynamicSpawnData(mb).latestClosestSettlement = CampaignUtils.GetClosestHabitedSettlement(mb);
-        }
-
     }
 
-
-    public class CSPartyData
+    public class CsPartyData
     {
-        public SpawnDto spawnBaseDto;
-        public Settlement latestClosestSettlement;
+        public readonly string PartyTemplateId;
+        public Settlement? LatestClosestSettlement;
 
-        public CSPartyData(SpawnDto spawnDto, Settlement latestClosestSettlement)
+        public CsPartyData(string partyTemplateId, Settlement? latestClosestSettlement)
         {
-            spawnBaseDto = spawnDto;
-            this.latestClosestSettlement = latestClosestSettlement;
+            PartyTemplateId = partyTemplateId;
+            LatestClosestSettlement = latestClosestSettlement;
         }
     }
 }

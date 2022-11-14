@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using CustomSpawns.Utils;
 using TaleWorlds.CampaignSystem;
-using TaleWorlds.CampaignSystem.Extensions;
+using TaleWorlds.CampaignSystem.Map;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
-using TaleWorlds.TwoDimension;
 
 namespace CustomSpawns.Economics
 {
@@ -16,21 +15,32 @@ namespace CustomSpawns.Economics
 
         public static void PartyReplenishFood(MobileParty mobileParty)
         {
-            if (mobileParty.MapEvent == null && mobileParty.Food < Mathf.Abs(mobileParty.FoodChange * 2))
+            float remainingDaysBeforeStarving = mobileParty.TotalFoodAtInventory / Math.Max(-mobileParty.FoodChange, 1f);
+            if (remainingDaysBeforeStarving >= 2f)
             {
-                foreach (ItemObject itemObject in Items.All)
-                {
-                    if (itemObject.IsFood)
-                    {
-                        int num = 12;
-                        int num2 = MBRandom.RoundRandomized(mobileParty.MemberRoster.TotalManCount * (1f / itemObject.Value) * num * MBRandom.RandomFloat * MBRandom.RandomFloat * MBRandom.RandomFloat * MBRandom.RandomFloat);
-                        if (num2 > 0)
-                        {
-                            mobileParty.ItemRoster.AddToCounts(itemObject, num2);
-                        }
-                    }
-                }
+                return;
             }
+
+            List<Settlement> villageFoodProducers = Settlement.All
+                .Where(s => s.IsVillage && (s.Village?.VillageType?.PrimaryProduction?.IsFood ?? false))
+                .ToList();
+
+            Settlement? localFoodProducerVillage = CampaignUtils.GetNearestSettlement(villageFoodProducers, new List<IMapPoint>(1)
+            {
+                mobileParty
+            });
+
+            ItemObject localFood;
+            if (localFoodProducerVillage != null)
+            {
+                localFood = localFoodProducerVillage.Village.VillageType.PrimaryProduction;   
+            }
+            else
+            {
+                localFood = DefaultItems.Grain;
+            }
+            int neededFood = (int) Math.Ceiling(2f * Math.Max(-mobileParty.FoodChange, 1f));
+            mobileParty.ItemRoster.AddToCounts(localFood, neededFood);
         }
 
     }

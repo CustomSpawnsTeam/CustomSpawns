@@ -339,8 +339,14 @@ namespace CustomSpawns.Dialogues
         [DialogueConditionImplementor("IsCustomSpawnParty")]
         private static bool IsCustomSpawnParty(DialogueParams param)
         {
-            return _spawnDao.FindAllPartyTemplateId()
-                .Any(partyId => param?.AdversaryParty?.StringId?.StartsWith(partyId) ?? false);
+            MobileParty? enemyParty = param?.AdversaryParty;
+            if (enemyParty == null)
+                return false;
+            ISet<string> partySpawns = _spawnDao.FindAllPartyTemplateId();
+            ISet<string> subSpawnParties = _spawnDao.FindAllSubPartyTemplateId();
+            
+            return partySpawns.Any(partyId => enemyParty.StringId.StartsWith(partyId))
+                   || subSpawnParties.Any(partyId => enemyParty.StringId.StartsWith(partyId));            
         }
 
         [DialogueConditionImplementor("IsPlayerEncounterInsideSettlement")]
