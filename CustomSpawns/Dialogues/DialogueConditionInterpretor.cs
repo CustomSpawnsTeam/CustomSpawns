@@ -382,11 +382,10 @@ namespace CustomSpawns.Dialogues
         private static bool IsLordThankingPlayerAfterBattleEncounter(DialogueParams param)
         {
             // Copied straight from Taleworlds. Maybe add a mechanism to use vanilla conditions in the future ?
-            return MapEvent.PlayerMapEvent != null 
-                && Hero.OneToOneConversationHero != null 
+            return MapEvent.PlayerMapEvent != null
+                && Hero.OneToOneConversationHero != null
                 && !FactionManager.IsAtWarAgainstFaction(Hero.MainHero.MapFaction, Hero.OneToOneConversationHero.MapFaction)
                 && MapEvent.PlayerMapEvent.WinningSide == PartyBase.MainParty.Side
-                && Hero.OneToOneConversationHero.HasMet
                 && MapEvent.PlayerMapEvent.InvolvedParties.
                     Count(party => party.Side == PartyBase.MainParty.Side && party != PartyBase.MainParty) > 0;
         }
