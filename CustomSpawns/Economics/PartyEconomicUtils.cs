@@ -15,6 +15,11 @@ namespace CustomSpawns.Economics
 
         public static void PartyReplenishFood(MobileParty mobileParty)
         {
+            if (mobileParty is null)
+            {
+                return;
+            }
+
             float remainingDaysBeforeStarving = mobileParty.TotalFoodAtInventory / Math.Max(-mobileParty.FoodChange, 1f);
             if (remainingDaysBeforeStarving >= 2f)
             {

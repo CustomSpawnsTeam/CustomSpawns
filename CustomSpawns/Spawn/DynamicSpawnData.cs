@@ -73,31 +73,37 @@ namespace CustomSpawns.Spawn
         }
 
         // partyBase is the party which destroyed the mobileParty
-        private void OnMobilePartyDestroyed(MobileParty mobileParty, PartyBase destroyer)
+        private void OnMobilePartyDestroyed(MobileParty? mobileParty, PartyBase destroyer)
         {
-            if (IsCustomSpawnParty(mobileParty) && _dynamicSpawnData.ContainsKey(mobileParty))
+            if (mobileParty is not null && IsCustomSpawnParty(mobileParty) && _dynamicSpawnData.ContainsKey(mobileParty))
             {
                 _dynamicSpawnData.Remove(mobileParty);
             }
         }
 
-        private void HourlyMobilePartyUpdate(MobileParty mobileParty)
+        private void HourlyMobilePartyUpdate(MobileParty? mobileParty)
         {
-            if (_dynamicSpawnData.ContainsKey(mobileParty))
+            if (mobileParty is not null && _dynamicSpawnData.ContainsKey(mobileParty))
             {
                 _dynamicSpawnData[mobileParty].LatestClosestSettlement = GetNearestSettlement(mobileParty);
             }
         }
 
-        public CsPartyData? GetDynamicSpawnData(MobileParty mb)
+        public CsPartyData? GetDynamicSpawnData(MobileParty? mb)
         {
-            if (!_dynamicSpawnData.ContainsKey(mb))
-                return null;
-            return _dynamicSpawnData[mb];
+            if (mb is not null && _dynamicSpawnData.ContainsKey(mb))
+            {
+                return _dynamicSpawnData[mb];   
+            }
+            return null;
         }
 
-        private Settlement? GetNearestSettlement(MobileParty mobileParty)
+        private Settlement? GetNearestSettlement(MobileParty? mobileParty)
         {
+            if (mobileParty is null)
+            {
+                return null;
+            }
             return CampaignUtils.GetNearestSettlement(Settlement.All.ToList(), new List<IMapPoint>()
             {
                 mobileParty

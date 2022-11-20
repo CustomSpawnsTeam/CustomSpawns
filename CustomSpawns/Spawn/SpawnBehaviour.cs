@@ -117,9 +117,9 @@ namespace CustomSpawns.Spawn
         }
 
         //deal with our parties being removed! Also this is more efficient ;)
-        private void OnPartyRemoved(PartyBase p)
+        private void OnPartyRemoved(PartyBase? partyBase)
         {
-            MobileParty mb = p.MobileParty;
+            MobileParty? mb = partyBase?.MobileParty;
             if (mb == null)
                 return;
 
@@ -158,7 +158,7 @@ namespace CustomSpawns.Spawn
             foreach (MobileParty mb in MobileParty.All)
             {
                 if (mb == null)
-                    return;
+                    continue;
                 SpawnDto? spawn = _spawnDao.FindByPartyTemplateId(CampaignUtils.IsolateMobilePartyStringID(mb));
                 if (spawn == null)
                 {
