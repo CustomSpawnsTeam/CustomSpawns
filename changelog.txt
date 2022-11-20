@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.9.3
+Game Versions: v1.0.0,v1.0.1
+* Fixed the wrong dialogue being displayed when the player is being thanked by a lord which has not been met after defeating a common enemy.
+* Fixed a "NullPointerException" crash when Custom Spawns is paired with other mods adding new troops.
+---------------------------------------------------------------------------------------------------
 Version: 1.9.2
 Game Versions: v1.0.0,v1.0.1
 * Fixed a crash when a party is destroyed.
