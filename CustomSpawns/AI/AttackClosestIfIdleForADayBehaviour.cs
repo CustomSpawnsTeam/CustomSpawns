@@ -4,6 +4,7 @@ using CustomSpawns.Utils;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.ObjectSystem;
 
 namespace CustomSpawns.AI
 {
@@ -34,14 +35,14 @@ namespace CustomSpawns.AI
         {
             if (!registeredParties.Contains(mb))
                 return;
-            if (mb.Ai.AiState == AIState.Undefined || mb.Ai.AiState == AIState.WaitingAtSettlement)
+            if (mb.Ai.DefaultBehavior == AiBehavior.None || mb.Ai.DefaultBehavior == AiBehavior.Hold)
             {
                 if (yesterdayIdleParties.Contains(mb))
                 {
                     Settlement closestHostile = CampaignUtils.GetClosestHostileSettlement(mb);
                     if (closestHostile == null)
                         return;
-                    mb.SetMoveGoToPoint(MobilePartyHelper.FindReachablePointAroundPosition(closestHostile.GatePosition, 10));
+                    mb.Ai.SetMoveGoToPoint(MobilePartyHelper.FindReachablePointAroundPosition(closestHostile.GatePosition, 10));
                     yesterdayIdleParties.Remove(mb);
                 }
                 else

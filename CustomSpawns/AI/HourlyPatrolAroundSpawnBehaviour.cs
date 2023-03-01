@@ -48,7 +48,7 @@ namespace CustomSpawns.AI
                          patroller.patrollerParty.ShortTermBehavior == AiBehavior.JoinParty || patroller.patrollerParty.ShortTermBehavior == AiBehavior.FleeToPoint;
                 if (!isPreOccupied)
                 {
-                    patroller.patrollerParty.SetMovePatrolAroundSettlement(patroller.patrolledSettlement);
+                    patroller.patrollerParty.Ai.SetMovePatrolAroundSettlement(patroller.patrolledSettlement);
                 }
             }
             for (int i = 0; i < toRemove.Count; i++){
