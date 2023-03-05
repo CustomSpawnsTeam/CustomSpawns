@@ -11,18 +11,18 @@ using TaleWorlds.Library;
 
 namespace CustomSpawns.Utils
 {
-    public class Cheats
+    public class SpawnCheats
     {
         private static SpawnDao _spawnDao;
         private static Spawner _spawner;
         
-        public Cheats(Spawner spawner, SpawnDao spawnDao)
+        public SpawnCheats(Spawner spawner, SpawnDao spawnDao)
         {
             _spawner = spawner;
             _spawnDao = spawnDao;
         }
         
-        [CommandLineFunctionality.CommandLineArgumentFunction("spawn", "campaign")]
+        [CommandLineFunctionality.CommandLineArgumentFunction("cs_spawn", "campaign")]
         public static string SpawnCustomSpawnParty(List<string> strings)
         {
             if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType))

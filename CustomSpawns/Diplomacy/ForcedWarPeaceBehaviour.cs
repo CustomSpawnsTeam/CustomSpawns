@@ -40,12 +40,12 @@ namespace CustomSpawns.Diplomacy
 
         public override void SyncData(IDataStore dataStore) { }
         
-        private void OnWarDeclared(IFaction attacker, IFaction warTarget)
+        private void OnWarDeclared(IFaction attacker, IFaction warTarget, DeclareWarAction.DeclareWarDetail reason)
         {
             SetPeaceIfPossible(attacker, warTarget);
         }
 
-        private void OnMakePeace(IFaction attacker, IFaction warTarget)
+        private void OnMakePeace(IFaction attacker, IFaction warTarget, MakePeaceAction.MakePeaceDetail reason)
         {
             SetWarIfPossible(attacker, warTarget);
         }

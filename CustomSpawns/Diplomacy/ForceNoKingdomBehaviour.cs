@@ -29,7 +29,7 @@ namespace CustomSpawns.Diplomacy
 
         }
 
-        private void MakeSureNoClanJoinAKingdom(Clan clan, Kingdom oldKingdom, Kingdom newKingdom, ChangeKingdomAction.ChangeKingdomActionDetail details, Boolean b)
+        private void MakeSureNoClanJoinAKingdom(Clan? clan, Kingdom? oldKingdom, Kingdom? newKingdom, ChangeKingdomAction.ChangeKingdomActionDetail details, Boolean b)
         {
             if (clan == null || details != JoinAsMercenary && details != JoinKingdom && details != CreateKingdom)
             {
@@ -40,7 +40,7 @@ namespace CustomSpawns.Diplomacy
             {
                 if(_dataReader.Data[clan.StringId].ForceNoKingdom && clan.Kingdom != null)
                 {
-                    ChangeKingdomAction.ApplyByLeaveKingdom(clan, true);
+                    ChangeKingdomAction.ApplyByLeaveKingdom(clan);
                     _dailyLogger.Info(clan.StringId + " has forcefully been removed from parent kingdom " + oldKingdom?.Name ?? "");
                 }
             }

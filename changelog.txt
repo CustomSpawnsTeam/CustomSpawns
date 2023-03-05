@@ -1,4 +1,8 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.9.4
+Game Versions: v1.1.0
+* Updated to support Bannerlord v1.1.0
+---------------------------------------------------------------------------------------------------
 Version: 1.9.3
 Game Versions: v1.0.0,v1.0.1
 * Fixed the wrong dialogue being displayed when the player is being thanked by a lord which has not been met after defeating a common enemy.

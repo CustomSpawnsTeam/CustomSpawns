@@ -91,7 +91,7 @@ namespace CustomSpawns.CampaignData.Implementations {
             }
         }
 
-        private void OnWarDeclared(IFaction fac1, IFaction fac2)
+        private void OnWarDeclared(IFaction fac1, IFaction fac2, DeclareWarAction.DeclareWarDetail reason)
         {
             WriteString(fac1.Name + " and " + fac2.Name + " have declared war!\n");
         }
@@ -110,7 +110,7 @@ namespace CustomSpawns.CampaignData.Implementations {
             }
         }
 
-        private void OnPeaceMade(IFaction fac1, IFaction fac2)
+        private void OnPeaceMade(IFaction fac1, IFaction fac2, MakePeaceAction.MakePeaceDetail reason)
         {
             WriteString(fac1.Name + " and " + fac2.Name + " have made peace!\n");
         }
