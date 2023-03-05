@@ -8,16 +8,18 @@ using CustomSpawns.Diplomacy;
 using CustomSpawns.Exception;
 using CustomSpawns.Utils;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.BarterSystem;
 using TaleWorlds.CampaignSystem.BarterSystem.Barterables;
 using TaleWorlds.CampaignSystem.Encounters;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.Library;
 
 namespace CustomSpawns.Dialogues
 {
     public class DialogueConsequenceInterpretor
     {
-        private readonly IDiplomacyActionModel _diplomacyModel;
+        private static IDiplomacyActionModel _diplomacyModel;
         private static MessageBoxService _messageBoxService;
 
         // TODO properly manage dependencies but all managers are static and are singletons which makes it difficult to manage
@@ -267,7 +269,7 @@ namespace CustomSpawns.Dialogues
         }
 
         [DialogueConsequenceImplementorAttribute("War")]
-        private void declare_war_consequence_delegate(DialogueParams param)
+        private static void declare_war_consequence_delegate(DialogueParams param)
         {
             PartyBase encounteredParty = PlayerEncounter.EncounteredParty;
 
@@ -275,11 +277,11 @@ namespace CustomSpawns.Dialogues
             {
                 return;
             }
-            _diplomacyModel.DeclareWar(Hero.MainHero.MapFaction, encounteredParty.MapFaction);
+            DeclareWarAction.ApplyByPlayerHostility(Hero.MainHero.MapFaction, encounteredParty.MapFaction);
         }
 
         [DialogueConsequenceImplementorAttribute("Peace")]
-        private void declare_peace_consequence_delegate()
+        private static void declare_peace_consequence_delegate()
         {
             PartyBase encounteredParty = PlayerEncounter.EncounteredParty;
 
@@ -288,7 +290,7 @@ namespace CustomSpawns.Dialogues
                 return;
             }
 
-            _diplomacyModel.MakePeace(Hero.MainHero.MapFaction, encounteredParty.MapFaction);
+            MakePeaceAction.Apply(Hero.MainHero.MapFaction, encounteredParty.MapFaction);
         }
 
         [DialogueConsequenceImplementorAttribute("Surrender")]

@@ -71,7 +71,7 @@ namespace CustomSpawns.Data.Model.Dialogue
             Dialogue dialogue = new();
             dialogue.IsPlayerDialogue = true;
             dialogue.Text = "I will tear you limb from limb!";
-            dialogue.Consequence = "Battle";
+            dialogue.Consequence = "War";
             dialogue.Options = new();
             return dialogue;
         }

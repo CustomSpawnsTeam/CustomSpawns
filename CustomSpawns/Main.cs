@@ -56,7 +56,7 @@ namespace CustomSpawns
 
         private PatchManager _patchManager;
 
-        private Cheats _cheats;
+        private SpawnCheats _spawnCheats;
         
         // Behaviours
         private HourlyPatrolAroundSpawnBehaviour _hourlyPatrolAroundSpawnBehaviour;
@@ -117,7 +117,7 @@ namespace CustomSpawns
             _spawnBehaviour = new SpawnBehaviour(_spawner, _spawnDao, _dynamicSpawnData, _saveInitialiser, _devestationMetricData, _configLoader, _messageBoxService, _dailyLogger, _modDebug);
             _patchManager = new PatchManager(_spawnDao, _partySpeedContext, _configLoader, _messageBoxService);
             _safePassageBehaviour = new SafePassageBehaviour(_spawnDao);
-            _cheats = new Cheats(_spawner, _spawnDao);
+            _spawnCheats = new SpawnCheats(_spawner, _spawnDao);
         }
         #endregion
 
