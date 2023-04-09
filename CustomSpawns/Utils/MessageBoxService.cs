@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using System.Windows.Forms;
+using BUTR.MessageBoxPInvoke.Helpers;
 using TaleWorlds.Library;
 
 namespace CustomSpawns.Utils
@@ -41,7 +41,7 @@ namespace CustomSpawns.Utils
             }
             else
             {
-                MessageBox.Show(errorMessage);
+                MessageBoxDialog.Show(errorMessage);
             }
         }
 
