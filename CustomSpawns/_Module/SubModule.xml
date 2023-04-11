@@ -1,32 +1,34 @@
- <Module>
-	<Name value="$displayname$"/>
-	<Id value="$modulename$"/>
-	<Version value="v$version$"/>
-	<SingleplayerModule value="true"/>
-	<MultiplayerModule value="false"/>
-	<ModuleType value="Community"/>
-	<ModuleCategory value="Singleplayer" />
-	 <DependedModules>
-		 <DependedModule Id="Native" DependentVersion="v$gameversion$" Optional="false"/>
-		 <DependedModule Id="SandBoxCore" DependentVersion="v$gameversion$" Optional="false"/>
-		 <DependedModule Id="Sandbox" DependentVersion="v$gameversion$" Optional="false"/>
-	 </DependedModules>
-	 <DependedModuleMetadatas>
-		 <DependedModuleMetadata id="Native" order="LoadBeforeThis" version="v$gameversion$.*"/>
-		 <DependedModuleMetadata id="SandBoxCore" order="LoadBeforeThis" version="v$gameversion$.*"/>
-		 <DependedModuleMetadata id="Sandbox" order="LoadBeforeThis" version="v$gameversion$.*"/>
-	 </DependedModuleMetadatas>
-	<SubModules>
-		<SubModule>
-			<Name value="CustomSpawns"/>
-			<DLLName value="CustomSpawns.dll"/>
-			<SubModuleClassType value="CustomSpawns.Main"/>
-			<Tags>
-				<Tag key="DedicatedServerType" value="none"/>
-				<Tag key="IsNoRenderModeElement" value="false"/>
-			</Tags>
-		</SubModule>
-	</SubModules>
-     <Xmls>
-     </Xmls>
- </Module>
+<?xml version="1.0" encoding="UTF-8"?>
+<Module xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+        xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/BUTR/Bannerlord.XmlSchemas/master/SubModule.xsd" >
+  <Id value="$moduleid$" />
+  <Name value="$modulename$"/>
+  <Version value="v$version$" />
+  <DefaultModule value="false" />
+  <ModuleCategory value="Singleplayer" />
+  <ModuleType value="Community" />
+  <Url value="$moduleurl$" />
+  <DependedModules>
+    <DependedModule Id="Native" DependentVersion="$gameversion$" Optional="false"/>
+    <DependedModule Id="SandBoxCore" DependentVersion="$gameversion$" Optional="false"/>
+    <DependedModule Id="Sandbox" DependentVersion="$gameversion$" Optional="false"/>
+  </DependedModules>
+  <DependedModuleMetadatas>
+    <DependedModuleMetadata id="Native" order="LoadBeforeThis" version="$gameversion$.*"/>
+    <DependedModuleMetadata id="SandBoxCore" order="LoadBeforeThis" version="$gameversion$.*"/>
+    <DependedModuleMetadata id="Sandbox" order="LoadBeforeThis" version="$gameversion$.*"/>
+  </DependedModuleMetadatas>
+  <SubModules>
+    <SubModule>
+      <Name value="CustomSpawns"/>
+      <DLLName value="CustomSpawns.dll"/>
+      <SubModuleClassType value="CustomSpawns.Main"/>
+      <Tags>
+        <Tag key="DedicatedServerType" value="none"/>
+        <Tag key="IsNoRenderModeElement" value="false"/>
+      </Tags>
+    </SubModule>
+  </SubModules>
+  <Xmls>
+  </Xmls>
+</Module>

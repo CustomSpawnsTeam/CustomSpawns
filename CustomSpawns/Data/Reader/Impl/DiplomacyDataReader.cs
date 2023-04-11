@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Xml;
-using CustomSpawns.Exception;
 using CustomSpawns.ModIntegration;
 using CustomSpawns.Utils;
 using MonoMod.Utils;
@@ -35,7 +34,10 @@ namespace CustomSpawns.Data.Reader.Impl
                 {
                     try
                     {
-                        diplomacyData.AddRange(ConstructListFromXML(path));       
+                        foreach (var kv in ConstructListFromXML(path))
+                        {
+                            diplomacyData.Add(kv.Key, kv.Value);
+                        }
                     }
                     catch (ArgumentException e)
                     {
