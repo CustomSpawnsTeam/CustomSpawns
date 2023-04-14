@@ -1,6 +1,12 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.9.5
+Game Versions: v1.1.0,v1.1.1,v1.1.2
+* Support for PC Xbox Game Pass.
+* Fixed a crash at launch (Could not load type 'MonoMod.Utils.Extensions' from assembly 0Harmony) when the installed dotnet is not .NET Framework 4.7.2+.
+* API: Fixed the usage of [spawnPlace] and [deathPlace] in the SpawnMessage displaying the wrong location after the first spawn.
+---------------------------------------------------------------------------------------------------
 Version: 1.9.4
-Game Versions: v1.1.0
+Game Versions: v1.1.0,v1.1.1,v1.1.2
 * Updated to support Bannerlord v1.1.0
 ---------------------------------------------------------------------------------------------------
 Version: 1.9.3
