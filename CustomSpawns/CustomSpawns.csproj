@@ -1,47 +1,38 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net472</TargetFramework>
+        <TargetFramework>netstandard2.0</TargetFramework>
         <Platforms>x64</Platforms>
         <LangVersion>9.0</LangVersion>
         <Nullable>enable</Nullable>
-        <Configurations>Debug;Release</Configurations>
     </PropertyGroup>
 
     <PropertyGroup>
-        <ModuleName>CustomSpawns</ModuleName>
-        <DisplayName>Custom Spawns API</DisplayName>
-        <AssemblyName>$(ModuleName)</AssemblyName>
-        <Version>1.9.4</Version>
+        <BuildForWindows>true</BuildForWindows>
+        <BuildForWindowsStore>true</BuildForWindowsStore>
+        <ModuleId>CustomSpawns</ModuleId>
+        <ModuleName>Custom Spawns API</ModuleName>
+        <ModuleUrl>https://www.nexusmods.com/mountandblade2bannerlord/mods/411</ModuleUrl>
+        <AssemblyName>$(ModuleId)</AssemblyName>
+        <OverrideAssemblyName>false</OverrideAssemblyName>
+        <Version>1.9.5</Version>
     </PropertyGroup>
 
     <!-- Versions of Major Dependencies (For Package References & SubModule.xml Substitution) -->
     <PropertyGroup>
-        <BuildResourcesVersion>1.0.0.33</BuildResourcesVersion>
+        <BuildResourcesVersion>1.1.0.100</BuildResourcesVersion>
         <HarmonyVersion>2.2.2</HarmonyVersion>
     </PropertyGroup>
 
     <!-- NuGet Packages -->
     <ItemGroup>
-        <PackageReference Include="Bannerlord.BuildResources" Version="$(BuildResourcesVersion)">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="Lib.Harmony" Version="$(HarmonyVersion)" PrivateAssets="All" />
-
+        <PackageReference Include="Bannerlord.BuildResources" Version="$(BuildResourcesVersion)" PrivateAssets="All" />
+        <PackageReference Include="Bannerlord.Lib.Harmony" Version="$(HarmonyVersion)" PrivateAssets="All" />
         <PackageReference Include="Bannerlord.ReferenceAssemblies.Core" Version="$(GameVersion).*" PrivateAssets="All" />
         <PackageReference Include="Bannerlord.ReferenceAssemblies.Native" Version="$(GameVersion).*" PrivateAssets="All" />
         <PackageReference Include="Bannerlord.ReferenceAssemblies.StoryMode" Version="$(GameVersion).*" PrivateAssets="All" />
         <PackageReference Include="Bannerlord.ReferenceAssemblies.Sandbox" Version="$(GameVersion).*" PrivateAssets="All" />
-        <Reference Include="System.Windows.Forms" />
-    </ItemGroup>
-
-    <!-- Extra Substitution Variables to Use in SubModule.xml -->
-    <ItemGroup>
-        <SubModuleOverrides Include="DisplayName">
-            <Regex>\$displayname\$</Regex>
-            <Replacement>$(DisplayName)</Replacement>
-        </SubModuleOverrides>
+        <PackageReference Include="BUTR.MessageBoxPInvoke" Version="1.0.0.1" />
     </ItemGroup>
 
 </Project>

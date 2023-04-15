@@ -1,118 +1,62 @@
 ﻿using System;
 using System.Collections.Generic;
-using TaleWorlds.Core;
+using System.Text;
 using TaleWorlds.Library;
 
 namespace CustomSpawns.Utils
 {
     public static class UX
     {
-        public static void ShowMessage(string message, Color messageColor)
-        {
-            InformationManager.DisplayMessage(new InformationMessage(message, messageColor));
-        }
+        private static readonly string SpawnPlaceIdentifier = "spawnplace";
 
-        public static void ShowMessage(InformationMessage msg)
-        {
-            InformationManager.DisplayMessage(msg);
-        }
+        private static readonly string DeathPlaceIdentifier = "deathplace";
 
-        public static void DisplayInquiry(InquiryData inqDat, bool pause)
-        {
-            InformationManager.ShowInquiry(inqDat, pause);
-        }
-
-        public static void ShowParseSpawnMessage(InformationMessage msg, string spawnPlaceName)
-        {
-            string s = msg.Information;
-            string[] codes = s.Split(new string[] { "[", "]"}, StringSplitOptions.None);
-            if (codes.Length == 1) {
-                ShowMessage(msg);
-                return;
-            }
-            for(int i = 0; i < codes.Length; i++)
-            {
-                switch (codes[i].ToLower())
-                {
-                    case "spawnplace":
-                        codes[i] = spawnPlaceName;
-                        break;
-                }
-            }
-            msg.Information = string.Join("", codes);
-            ShowMessage(msg);
-        }
-
-        public static void ShowParseSpawnInquiryMessage(InquiryData inqData, string spawnPlaceName, bool pauseInquiry)
-        {
-            string title = inqData.TitleText;
-            string body = inqData.Text;
-            string[] codesTitle = title.Split(new string[] { "[", "]" }, StringSplitOptions.None);
-            string[] codesBody = body.Split(new string[] { "[", "]" }, StringSplitOptions.None);
-            if (codesTitle.Length == 1 && codesBody.Length == 1)
-            {
-                DisplayInquiry(inqData, pauseInquiry);
-                return;
-            }
-            for (int i = 0; i < codesTitle.Length; i++)
-            {
-                switch (codesTitle[i].ToLower())
-                {
-                    case "spawnplace":
-                        codesTitle[i] = spawnPlaceName;
-                        break;
-                }
-            }
-            for (int i = 0; i < codesBody.Length; i++)
-            {
-                switch (codesBody[i].ToLower())
-                {
-                    case "spawnplace":
-                        codesBody[i] = spawnPlaceName;
-                        break;
-                }
-            }
-            inqData.TitleText = string.Join("", codesTitle);
-            inqData.Text = string.Join("", codesBody);
-            DisplayInquiry(inqData, pauseInquiry);
-        }
-
-        public static void ShowParseDeathMessage(InformationMessage msg, string deathClosestPlaceName)
-        {
-            string s = msg.Information;
-            string[] codes = s.Split(new string[] { "[", "]" }, StringSplitOptions.None);
-            if (codes.Length == 1)
-            {
-                ShowMessage(msg);
-                return;
-            }
-            for (int i = 0; i < codes.Length; i++)
-            {
-                switch (codes[i].ToLower())
-                {
-                    case "deathplace":
-                        codes[i] = deathClosestPlaceName;
-                        break;
-                }
-            }
-            msg.Information = string.Join("", codes);
-            ShowMessage(msg);
-        }
-
-        private static Dictionary<string, string> flagToMessageColour = new Dictionary<string, string>()
+        private static readonly Dictionary<string, string> FlagToMessageColour = new ()
         {
             { "danger", "#FF2300FF"},
             {"error", "#FF2300FF" },
             {"relief",  "#65BF22FF" }
         };
 
-        public static string GetMessageColour(string flag)
+        public static void ShowMessage(string message, Color messageColor, string settlementName = "")
         {
-            if (flagToMessageColour.ContainsKey(flag))
-                return flagToMessageColour[flag];
-
-            return "";
+            if (string.IsNullOrEmpty(message))
+            {
+                return;
+            }
+            string resolvedMessage = message;
+            if (!string.IsNullOrWhiteSpace(settlementName))
+            {
+                resolvedMessage = ResolveVariables(message, settlementName);
+            }
+            InformationManager.DisplayMessage(new InformationMessage(resolvedMessage, messageColor));
         }
 
+        public static string GetMessageColour(string flag)
+        {
+            return FlagToMessageColour.ContainsKey(flag) ? FlagToMessageColour[flag] : "";
+        }
+
+        private static string ResolveVariables(string message, string settlementName)
+        {
+            string[] codes = message.Split(new [] { "[", "]"}, StringSplitOptions.None);
+            if (codes.Length == 1) {
+                return message;
+            }
+            StringBuilder spawnMessageBuilder = new();
+            foreach(string code in codes)
+            {
+                string variable = code.ToLower();
+                if (variable.Equals(SpawnPlaceIdentifier) || variable.Equals(DeathPlaceIdentifier))
+                {
+                    spawnMessageBuilder.Append(settlementName);
+                }
+                else
+                {
+                    spawnMessageBuilder.Append(code);
+                }
+            }
+            return spawnMessageBuilder.ToString();
+        }
     }
 }

@@ -230,7 +230,7 @@ namespace CustomSpawns.Spawn
                             //message if available
                             if (spawn.SpawnMessage != null)
                             {
-                                UX.ShowParseSpawnMessage(spawn.SpawnMessage, spawnSettlement.Name.ToString());
+                                UX.ShowMessage(spawn.SpawnMessage.Information, spawn.SpawnMessage.Color, spawnSettlement.Name.ToString());
                                 //if (data.SoundEvent != -1 && !isSpawnSoundPlaying && ConfigLoader.Instance.Config.SpawnSoundEnabled)
                                 //{
                                 //    var sceneEmpty = Scene.CreateNewScene(false);
@@ -271,7 +271,7 @@ namespace CustomSpawns.Spawn
             SpawnDto? spawn = _spawnDao.FindByPartyTemplateId(dynamicData.PartyTemplateId);
             if (spawn?.DeathMessage != null)
             {
-                UX.ShowParseDeathMessage(spawn.DeathMessage, dynamicData.LatestClosestSettlement.ToString());
+                UX.ShowMessage(spawn.DeathMessage.Information, spawn.DeathMessage.Color, dynamicData.LatestClosestSettlement.ToString());
             }
         }
 

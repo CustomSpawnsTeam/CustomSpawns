@@ -38,7 +38,8 @@ namespace CustomSpawns.HarmonyPatches
                 {
                     new RemovePartyTrackersFromNonBanditPartiesPatch(_spawnDao),
                     new PartySpeedModelPatch(_partySpeedContext),
-                    new MapScreenPatch(_configLoader)
+                    new MapScreenPatch(_configLoader),
+                    new GetUnitValueForFactionPatch(_spawnDao)
                 };
 
                 int patched = 0;

@@ -16,9 +16,7 @@ using TaleWorlds.Library;
 namespace CustomSpawns.CampaignData.Implementations { 
     class DailyLogger : CampaignBehaviorBase
     {
-        private string _logDir;
-        private string _filename;
-        private bool _dataWrittenToday = false;
+        private PlatformFilePath _sessionLogFile;
         private int _dayCount;
         private readonly DynamicSpawnData _dynamicSpawnData;
         private readonly DevestationMetricData _devestationMetricData;
@@ -53,17 +51,10 @@ namespace CustomSpawns.CampaignData.Implementations {
 
         private void Init()
         {
-            _filename  = "RudimentaryLastSessionLog_" + DateTime.Now.ToString("yyyy-MM-dd_h-mm_tt") + ".txt";
-            _logDir = Path.Combine(BasePath.Name, _subModService.GetCustomSpawnsModule(), "Logs");
-
-            if (!Directory.Exists(_logDir))
-            {
-                Directory.CreateDirectory(_logDir);
-            }
-
-            var filepath = _logDir + "\\" + _filename;
-            if(!File.Exists(filepath))
-                File.Create(filepath);
+            string filename = "RudimentaryLastSessionLog_" + DateTime.Now.ToString("yyyy-MM-dd_h-mm_tt") + ".txt";
+            PlatformDirectoryPath folderPath = new PlatformDirectoryPath(PlatformFileType.User, Path.Combine("Data", "CustomSpawns", "Logs"));
+            _sessionLogFile = new PlatformFilePath(folderPath, filename);
+            FileHelper.SaveFileString(_sessionLogFile, "");
         }
 
         private void OnAfterDailyTick()
@@ -81,9 +72,9 @@ namespace CustomSpawns.CampaignData.Implementations {
             try
             {
                 var date = DateTime.Now.ToString("yyyy-MM-dd h:mm tt");
-                using StreamWriter w = File.AppendText(_logDir + "\\" + _filename);
-                w.WriteLine("[{0} {1}][Campaign Day {2}] {3}", DateTime.Now.ToLongTimeString(), date, _dayCount, s);
-                w.Close();
+                string line = String.Format("[{0} {1}][Campaign Day {2}] {3}", DateTime.Now.ToLongTimeString(), date,
+                    _dayCount, s);
+                FileHelper.AppendLineToFileString(_sessionLogFile, line);
             }
             catch (System.Exception ex)
             {

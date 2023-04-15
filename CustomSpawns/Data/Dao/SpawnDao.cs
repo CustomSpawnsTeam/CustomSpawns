@@ -78,10 +78,10 @@ namespace CustomSpawns.Data.Dao
             IList<SpawnDto> spawns = Spawns();
             if (spawns.All(spawn => spawn.SpawnAlongWith.IsEmpty()))
             {
-                return new HashSet<string>(0);
+                return new HashSet<string>();
             }
 
-            return spawns
+            return new HashSet<string>(spawns
                 .Select(spawn => spawn.SpawnAlongWith.AsEnumerable())
                 .Aggregate((allSupporters, supportingPartyTemplates) =>
                 {
@@ -89,15 +89,13 @@ namespace CustomSpawns.Data.Dao
                     newSupporters.AddRange(supportingPartyTemplates);
                     return newSupporters;
                 })
-                .Select(partyTemplate => partyTemplate.templateObject.StringId)
-                .ToHashSet();
+                .Select(partyTemplate => partyTemplate.templateObject.StringId));
         }
 
         public ISet<string> FindAllPartyTemplateId()
         {
-            return Spawns()
-                .Select(spawn => spawn.PartyTemplate.StringId)
-                .ToHashSet();
+            return new HashSet<string>(Spawns()
+                .Select(spawn => spawn.PartyTemplate.StringId));
         }
     }
 }
