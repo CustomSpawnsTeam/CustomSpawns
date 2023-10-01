@@ -33,7 +33,7 @@ namespace CustomSpawns.Spawn
             {
                 clan.UpdateHomeSettlement(homeSettlement);
             }
-            mobileParty.Party.Visuals.SetMapIconAsDirty();
+            mobileParty.Party.SetVisualAsDirty();
             mobileParty.SetCustomName(partyName);
             mobileParty.ActualClan = clan;
             mobileParty.SetCustomHomeSettlement(homeSettlement);

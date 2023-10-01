@@ -21,7 +21,7 @@ namespace CustomSpawns.Diplomacy
 
         public override void RegisterEvents()
         {
-            CampaignEvents.ClanChangedKingdom.AddNonSerializedListener(this, MakeSureNoClanJoinAKingdom);
+            CampaignEvents.OnClanChangedKingdomEvent.AddNonSerializedListener(this, MakeSureNoClanJoinAKingdom);
         }
 
         public override void SyncData(IDataStore dataStore)

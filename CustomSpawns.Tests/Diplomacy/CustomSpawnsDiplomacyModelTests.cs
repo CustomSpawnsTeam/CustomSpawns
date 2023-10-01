@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using CustomSpawns.Data.Reader;
 using CustomSpawns.Diplomacy;
@@ -11,9 +10,9 @@ namespace CustomSpawns.Tests.Diplomacy
 {
     public class CustomSpawnsDiplomacyModelTests
     {
-        private readonly String ATTACKER_CLAN_ID = "attackerClanId";
-        private readonly String WAR_TARGET_CLAN_ID = "warTargetClanId";
-        private readonly String PLAYER_FACTION_ID = "player_faction";
+        private readonly string ATTACKER_CLAN_ID = "attackerClanId";
+        private readonly string WAR_TARGET_CLAN_ID = "warTargetClanId";
+        private readonly string PLAYER_FACTION_ID = "player_faction";
 
         private Dictionary<string, Data.Model.Diplomacy> InitAttackerAsCustomSpawnsClan()
         {
@@ -38,7 +37,7 @@ namespace CustomSpawns.Tests.Diplomacy
             return customSpawnData;
         }
         
-        private IFaction ValidClan(String id)
+        private IFaction ValidClan(string id)
         {
             var attacker = new Mock<IFaction>();
             attacker.Setup(faction => faction.IsEliminated).Returns(false);
@@ -48,7 +47,7 @@ namespace CustomSpawns.Tests.Diplomacy
             return attacker.Object;
         }
         
-        private IFaction EliminatedClan(String id)
+        private IFaction EliminatedClan(string id)
         {
             var attacker = new Mock<IFaction>();
             attacker.Setup(faction => faction.IsEliminated).Returns(true);
@@ -68,7 +67,7 @@ namespace CustomSpawns.Tests.Diplomacy
             return attacker.Object;
         }
         
-        private CustomSpawnsClanDiplomacyModel InitModel(Dictionary<String, Data.Model.Diplomacy> data) 
+        private CustomSpawnsClanDiplomacyModel InitModel(Dictionary<string, Data.Model.Diplomacy> data) 
         {
             var clanKingdomTrackable = new Mock<IClanKingdom>();
             var diplomacyModel = new Mock<IDiplomacyActionModel>();
@@ -77,7 +76,7 @@ namespace CustomSpawns.Tests.Diplomacy
             return new CustomSpawnsClanDiplomacyModel(clanKingdomTrackable.Object, diplomacyModel.Object, dataManager.Object);
         }
         
-        private CustomSpawnsClanDiplomacyModel InitModel(IDiplomacyActionModel model, Dictionary<String, Data.Model.Diplomacy> data)
+        private CustomSpawnsClanDiplomacyModel InitModel(IDiplomacyActionModel model, Dictionary<string, Data.Model.Diplomacy> data)
         {
             var clanKingdomTrackable = new Mock<IClanKingdom>();
             var dataManager = new Mock<IDataReader<Dictionary<string,Data.Model.Diplomacy>>>();
@@ -85,21 +84,21 @@ namespace CustomSpawns.Tests.Diplomacy
             return new CustomSpawnsClanDiplomacyModel(clanKingdomTrackable.Object, model, dataManager.Object);
         }
         
-        private CustomSpawnsClanDiplomacyModel InitModel(IClanKingdom clanKingdom, IDiplomacyActionModel diplomacyAction, Dictionary<String, Data.Model.Diplomacy> data)
+        private CustomSpawnsClanDiplomacyModel InitModel(IClanKingdom clanKingdom, IDiplomacyActionModel diplomacyAction, Dictionary<string, Data.Model.Diplomacy> data)
         {
             var dataManager = new Mock<IDataReader<Dictionary<string,Data.Model.Diplomacy>>>();
             dataManager.Setup(manager => manager.Data).Returns(data);
             return new CustomSpawnsClanDiplomacyModel(clanKingdom, diplomacyAction, dataManager.Object);
         }
         
-        private CustomSpawnsClanDiplomacyModel InitModelWithInitialFactionDiplomacy(Dictionary<String, Data.Model.Diplomacy> data, bool atWar)
+        private CustomSpawnsClanDiplomacyModel InitModelWithInitialFactionDiplomacy(Dictionary<string, Data.Model.Diplomacy> data, bool atWar)
         {
             var diplomacyActionModel = new Mock<IDiplomacyActionModel>();
             diplomacyActionModel.Setup(diplomacyModel => diplomacyModel.IsAtWar(It.IsAny<IFaction>(), It.IsAny<IFaction>())).Returns(atWar);
             return InitModel(diplomacyActionModel.Object, data);
         }
 
-        private CustomSpawnsClanDiplomacyModel InitModelWithTogglableWarAndClansNotPartOfAKingdom(Dictionary<String, Data.Model.Diplomacy> data, bool atWar)
+        private CustomSpawnsClanDiplomacyModel InitModelWithTogglableWarAndClansNotPartOfAKingdom(Dictionary<string, Data.Model.Diplomacy> data, bool atWar)
         {
             var diplomacyActionModel = new Mock<IDiplomacyActionModel>();
             diplomacyActionModel.Setup(diplomacyModel => diplomacyModel.IsAtWar(It.IsAny<IFaction>(), It.IsAny<IFaction>())).Returns(atWar);
@@ -108,7 +107,7 @@ namespace CustomSpawns.Tests.Diplomacy
             return InitModel(clanKingdomTrackable.Object, diplomacyActionModel.Object, data);
         }
         
-        private CustomSpawnsClanDiplomacyModel InitModelWithTogglableWarAndAttackerNotInAKingdomAndWarTargetInAKingdom(Dictionary<String, Data.Model.Diplomacy> data, bool atWar)
+        private CustomSpawnsClanDiplomacyModel InitModelWithTogglableWarAndAttackerNotInAKingdomAndWarTargetInAKingdom(Dictionary<string, Data.Model.Diplomacy> data, bool atWar)
         {
             var diplomacyActionModel = new Mock<IDiplomacyActionModel>();
             diplomacyActionModel.Setup(diplomacyModel => diplomacyModel.IsAtWar(It.IsAny<IFaction>(), It.IsAny<IFaction>())).Returns(atWar);
@@ -119,7 +118,7 @@ namespace CustomSpawns.Tests.Diplomacy
             return InitModel(clanKingdomTrackable.Object, diplomacyActionModel.Object, data);
         }
 
-        private CustomSpawnsClanDiplomacyModel InitModelWithTogglableWarAndAttackerAndWarTargetInADifferentKingdom(Dictionary<String, Data.Model.Diplomacy> data, bool atWar)
+        private CustomSpawnsClanDiplomacyModel InitModelWithTogglableWarAndAttackerAndWarTargetInADifferentKingdom(Dictionary<string, Data.Model.Diplomacy> data, bool atWar)
         {
             var diplomacyActionModel = new Mock<IDiplomacyActionModel>();
             diplomacyActionModel.Setup(diplomacyModel => diplomacyModel.IsAtWar(It.IsAny<IFaction>(), It.IsAny<IFaction>())).Returns(atWar);
@@ -131,7 +130,7 @@ namespace CustomSpawns.Tests.Diplomacy
             return InitModel(clanKingdomTrackable.Object, diplomacyActionModel.Object, data);
         }
         
-        private CustomSpawnsClanDiplomacyModel InitModelWithTogglableWarAndAttackerAndWarTargetInSameKingdom(Dictionary<String, Data.Model.Diplomacy> data, bool atWar)
+        private CustomSpawnsClanDiplomacyModel InitModelWithTogglableWarAndAttackerAndWarTargetInSameKingdom(Dictionary<string, Data.Model.Diplomacy> data, bool atWar)
         {
             var diplomacyActionModel = new Mock<IDiplomacyActionModel>();
             diplomacyActionModel.Setup(diplomacyModel => diplomacyModel.IsAtWar(It.IsAny<IFaction>(), It.IsAny<IFaction>())).Returns(atWar);
@@ -143,7 +142,7 @@ namespace CustomSpawns.Tests.Diplomacy
             return InitModel(clanKingdomTrackable.Object, diplomacyActionModel.Object, data);
         }
         
-        private CustomSpawnsClanDiplomacyModel InitModelWithTogglableWarAndAttackerInAKingdomAndWarTargetNotInAKingdom(Dictionary<String, Data.Model.Diplomacy> data, bool atWar)
+        private CustomSpawnsClanDiplomacyModel InitModelWithTogglableWarAndAttackerInAKingdomAndWarTargetNotInAKingdom(Dictionary<string, Data.Model.Diplomacy> data, bool atWar)
         {
             var diplomacyActionModel = new Mock<IDiplomacyActionModel>();
             diplomacyActionModel.Setup(diplomacyModel => diplomacyModel.IsAtWar(It.IsAny<IFaction>(), It.IsAny<IFaction>())).Returns(atWar);

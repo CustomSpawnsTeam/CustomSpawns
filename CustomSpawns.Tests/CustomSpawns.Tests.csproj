@@ -11,6 +11,7 @@
         <IsPackable>false</IsPackable>
         <IsTestProject>true</IsTestProject>
         <RootNamespace>CustomSpawns.Tests</RootNamespace>
+        <Platforms>x64</Platforms>
     </PropertyGroup>
 
     <ItemGroup>
@@ -19,14 +20,13 @@
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.3.2" />
         <PackageReference Include="Moq" Version="4.18.2" />
         <ProjectReference Include="..\CustomSpawns\CustomSpawns.csproj" />
-        <PackageReference Include="Bannerlord.ReferenceAssemblies.Core" Version="$(GameVersion).*" PrivateAssets="All" />
-        <PackageReference Include="Bannerlord.ReferenceAssemblies.Native" Version="$(GameVersion).*" PrivateAssets="All" />
-        <PackageReference Include="Bannerlord.ReferenceAssemblies.StoryMode" Version="$(GameVersion).*" PrivateAssets="All" />
-        <PackageReference Include="Bannerlord.ReferenceAssemblies.Sandbox" Version="$(GameVersion).*" PrivateAssets="All" />
+        <PackageReference Include="Bannerlord.ReferenceAssemblies.Core" Version="$(GameVersion).*-*" PrivateAssets="All" />
+        <PackageReference Include="Bannerlord.ReferenceAssemblies.Native" Version="$(GameVersion).*-*" PrivateAssets="All" />
+        <PackageReference Include="Bannerlord.ReferenceAssemblies.Sandbox" Version="$(GameVersion).*-*" PrivateAssets="All" />
         <TalewordsSources Include="$(GameFolder)\bin\Win64_Shipping_Client\TaleWorlds*.dll" />
     </ItemGroup>
 
-    <Target Name="Setup CustomSpawnCleanAPI in game folder" AfterTargets="Build">
+    <Target Name="Copy TaleWorlds binaries to local cache" AfterTargets="Build">
         <Copy SourceFiles="@(TalewordsSources)" DestinationFolder="$(outputPath)" />
     </Target>
 

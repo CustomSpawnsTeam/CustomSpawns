@@ -35,7 +35,7 @@ namespace CustomSpawns.Diplomacy
             CampaignEvents.WarDeclared.AddNonSerializedListener(this, OnWarDeclared);
             CampaignEvents.OnGameLoadedEvent.AddNonSerializedListener(this, s => { _clanKingdomTrackable.Clear(); _clanKingdomTrackable.Init(); });
             CampaignEvents.OnNewGameCreatedEvent.AddNonSerializedListener(this, OnNewGameCreated);
-            CampaignEvents.ClanChangedKingdom.AddNonSerializedListener(this, ResetDiplomacyDataWhenClanLeavesKingdom);
+            CampaignEvents.OnClanChangedKingdomEvent.AddNonSerializedListener(this, ResetDiplomacyDataWhenClanLeavesKingdom);
         }
 
         public override void SyncData(IDataStore dataStore) { }

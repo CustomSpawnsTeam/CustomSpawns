@@ -28,12 +28,11 @@ namespace CustomSpawns.Spawn
                 {
                     clan.UpdateHomeSettlement(spawnedSettlement);
                 }
-                party.Party.Visuals.SetMapIconAsDirty();
+                party.Party.SetVisualAsDirty();
                 party.SetCustomName(partyName);
                 party.ActualClan = clan;
                 party.SetCustomHomeSettlement(spawnedSettlement);
                 ((CustomPartyComponent) party.PartyComponent).CustomPartyBaseSpeed = speed;
-                ((CustomPartyComponent) party.PartyComponent).AvoidHostileActions = false;
             };
             
             return MobileParty.CreateParty(templateObject.StringId + "_" + 1, new CustomPartyComponent(), initParty);
