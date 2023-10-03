@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<base>
+ <tags>
+  <tag language="English"/>
+ </tags>
+ <strings>
+  <string id="SpawnAPIWarn001" text="Warning: The Custom Spawns API detected that you are trying to load a Custom Spawns sub-mod into an existing saved game. This mod requires a fresh start to work correctly.{newline}If you decide to continue, expect to have very unstable  behaviours during your play-through." />
+  <string id="SpawnAPIWarn002" text="Possible invalid spawn data. Spawning of party terminated." />
+  <string id="SpawnAPIWarn003" text="Could not find Campaign Data config file for type {NAME}" />
+  <string id="SpawnAPIDebug001" text="CustomSpawns: Spawning {NAME} at {POSITION} in settlement {SETTLEMENT}" />
+  <string id="SpawnAPIErr001" text="CustomSpawns error has occured, please report to mod developer:" />
+  <string id="SpawnAPIErr002" text="Could not parse dialogue consequnce:{NEWLINE}{TEXT}{NEWLINE}Error Message:{NEWLINE}{ERROR}" />
+  <string id="SpawnAPIMsg000" text="Custom Spawns API loaded" />
+  <string id="SpawnAPIMsg001" text="You have taken your enemies prisoner." />
+  <string id="SpawnAPIMsg002" text="Can't interpret {PLAYER} as a bool. Possible typo in the XML consequence 'Surrender'" />
+  <string id="SpawnAPIMsg003" text="Fight at {SETTLEMENT}. Increasing devastation by {VALUE1}. New devastation is: {VALUE2}" />
+  <string id="SpawnAPIMsg004" text="Successful Looting at {NAME}. Increasing devastation by {VALUE}" />
+  <string id="SpawnAPIMsg005" text="Calculating hostile presence devastation gain in {NAME}. Increasing devastation gain in {VALUE}" />
+  <string id="SpawnAPIMsg006" text="Calculating daily Devastation Decay in {NAME}. Decreasing devastation by {VALUE}" />
+  <string id="SpawnAPIMsg007" text="Current Devastation at {NAME} is now {VALUE}" />
+  <string id="SpawnAPIMsg010" text="{NAME} is now integrated into the Custom Spawns API." />
+ </strings>
+</base>

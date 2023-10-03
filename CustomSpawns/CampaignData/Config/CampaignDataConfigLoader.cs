@@ -7,6 +7,7 @@ using System.Xml.Linq;
 using System.Xml.Serialization;
 using CustomSpawns.ModIntegration;
 using CustomSpawns.Utils;
+using TaleWorlds.Localization;
 
 namespace CustomSpawns.CampaignData.Config
 {
@@ -50,7 +51,7 @@ namespace CustomSpawns.CampaignData.Config
 
                     if (!processed)
                     {
-                        _messageBoxService.ShowMessage("Could not find Campaign Data config file for type " + t.Name);
+                        _messageBoxService.ShowMessage(new TextObject("{=SpawnAPIWarn003}Could not find Campaign Data config file for type {NAME}").SetTextVariable("NANE", t.Name).ToString());
                     }
                 }
             }

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using BUTR.MessageBoxPInvoke.Helpers;
 using TaleWorlds.Library;
+using TaleWorlds.Localization;
 
 namespace CustomSpawns.Utils
 {
@@ -20,7 +21,7 @@ namespace CustomSpawns.Utils
             {
                 errorMessage = e.Message + " AT " + e.Source + " " + duringMessage + "TRACE: " + e.StackTrace;
             }
-            string shown = "CustomSpawns error has occured, please report to mod developer: " + errorMessage;
+            string shown = new TextObject("{=SpawnAPIErr002}CustomSpawns error has occured, please report to mod developer: ").ToString() + errorMessage;
             ShowMessage(shown);
         }
 

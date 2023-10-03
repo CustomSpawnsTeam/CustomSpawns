@@ -7,6 +7,7 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.MapEvents;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.TwoDimension;
+using TaleWorlds.Localization;
 
 namespace CustomSpawns.CampaignData.Implementations
 {
@@ -84,13 +85,13 @@ namespace CustomSpawns.CampaignData.Implementations
 
             if (!_settlementToDevestation.ContainsKey(closestSettlement))
             {
-                _messageBoxService.ShowCustomSpawnsErrorMessage(new System.Exception("Devestation value for settlement could not be found!"));
+                _messageBoxService.ShowCustomSpawnsErrorMessage(new System.Exception("Devastation value for settlement could not be found!"));
                 return;
             }
 
             ChangeDevestation(closestSettlement, increase);
 
-            _modDebug.ShowMessage("Fight at " + closestSettlement.Name + ". Increasing devestation by " + increase + ". New devestation is: " + _settlementToDevestation[closestSettlement], _config);
+            _modDebug.ShowMessage(new TextObject("{=SpawnAPIMsg003}Fight at {SETTLEMENT}. Increasing devastation by {VALUE1}. New devastation is: {VALUE2}", new Dictionary<string, object>() { { "SETTLEMENT", closestSettlement.Name}, { "VALUE1", increase}, { "VALUE2", _settlementToDevestation[closestSettlement] } }).ToString(), _config);
         }
 
         private void OnVillageLooted(Village v)
@@ -100,7 +101,7 @@ namespace CustomSpawns.CampaignData.Implementations
 
             ChangeDevestation(v.Settlement, _config.DevestationPerTimeLooted);
 
-            _modDebug.ShowMessage("Successful Looting at " + v.Name + ". Increasing devestation by " + _config.DevestationPerTimeLooted, _config);
+            _modDebug.ShowMessage(new TextObject("{=SpawnAPIMsg004}Successful Looting at {NAME}. Increasing devastation by {VALUE}", new Dictionary<string, object>() { { "NAME", v.Name}, { "VALUE", _config.DevestationPerTimeLooted } }).ToString(), _config);
         }
 
         private void OnSettlementDaily(Settlement s)
@@ -136,7 +137,7 @@ namespace CustomSpawns.CampaignData.Implementations
                 }
             }
 
-            if(friendlyGain > 0)
+            if (friendlyGain > 0)
             {
                 //ModDebug.ShowMessage("Calculating friendly presence devestation decay in " + s.Name + ". Decreasing devestation by " + friendlyGain, campaignConfig);
 
@@ -144,21 +145,21 @@ namespace CustomSpawns.CampaignData.Implementations
             }
 
 
-            if(hostileDecay > 0)
+            if (hostileDecay > 0)
             {
-                _modDebug.ShowMessage("Calculating hostile presence devestation gain in " + s.Name + ". Increasing devestation by " + hostileDecay, _config);
+                _modDebug.ShowMessage(new TextObject("{=SpawnAPIMsg005}Calculating hostile presence devastation gain in {NAME}. Increasing devastation gain in {VALUE}", new Dictionary<string, object>() { { "NAME", s.Name }, { "VALUE", hostileDecay } }).ToString(), _config);
 
                 ChangeDevestation(s, hostileDecay);
             }
 
-            if(GetDevestation(s) > 0)
+            if (GetDevestation(s) > 0)
             {
-                _modDebug.ShowMessage("Calculating daily Devestation Decay in " + s.Name + ". Decreasing devestation by " + _config.DailyDevestationDecay, _config);
+                _modDebug.ShowMessage(new TextObject("{=SpawnAPIMsg006}Calculating daily Devastation Decay in {NAME}. Decreasing devastation by {VALUE}", new Dictionary<string, object>() { { "NAME", s.Name }, { "VALUE", _config.DailyDevestationDecay } }).ToString(), _config);
                 ChangeDevestation(s, -_config.DailyDevestationDecay);
             }
 
-            if(GetDevestation(s) != 0)
-                _modDebug.ShowMessage("Current Devestation at " + s.Name + " is now " + _settlementToDevestation[s], _config);
+            if (GetDevestation(s) != 0)
+                _modDebug.ShowMessage(new TextObject("{=SpawnAPIMsg007}Current Devastation at {NAME} is now {VALUE}", new Dictionary<string, object>() {{ "NAME", s.Name }, { "VALUE", _settlementToDevestation[s] }}).ToString(), _config);
         }
 
         #endregion
@@ -169,7 +170,7 @@ namespace CustomSpawns.CampaignData.Implementations
         {
             if (!_settlementToDevestation.ContainsKey(s))
             {
-                _messageBoxService.ShowCustomSpawnsErrorMessage(new System.Exception("Devastation value for settlement could not be found!"));
+                _messageBoxService.ShowCustomSpawnsErrorMessage(new System.Exception("Devestation value for settlement could not be found!"));
                 return;
             }
 
@@ -187,7 +188,7 @@ namespace CustomSpawns.CampaignData.Implementations
             if (_settlementToDevestation.ContainsKey(s))
                 return _settlementToDevestation[s];
 
-            _messageBoxService.ShowCustomSpawnsErrorMessage(new System.Exception("Devestation value for settlement could not be found!"));
+            _messageBoxService.ShowCustomSpawnsErrorMessage(new System.Exception("Devastation value for settlement could not be found!"));
             return 0;
         }
 
