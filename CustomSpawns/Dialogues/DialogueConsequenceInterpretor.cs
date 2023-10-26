@@ -14,6 +14,7 @@ using TaleWorlds.CampaignSystem.BarterSystem.Barterables;
 using TaleWorlds.CampaignSystem.Encounters;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Library;
+using TaleWorlds.Localization;
 
 namespace CustomSpawns.Dialogues
 {
@@ -99,7 +100,7 @@ namespace CustomSpawns.Dialogues
             }
             catch (System.Exception e)
             {
-                _messageBoxService.ShowMessage("Could not parse dialogue consequnce: \n" + text + "\n Error Message: \n" + e.Message);
+                _messageBoxService.ShowMessage(new TextObject("{SpawnAPIErr002}Could not parse dialogue consequnce:\n{TEXT}\nError Message:\n{ERROR}", new Dictionary<string, object>() { { "TEXT", text }, { "EROR", e.Message } }).ToString());
                 return null;
             }
 
@@ -306,12 +307,12 @@ namespace CustomSpawns.Dialogues
             {   //Interestingly, PlayerEncounter.EnemySurrender = true; results in a null reference crash.
                 param.PlayerParty.Party.AddPrisoners(param.AdversaryParty.Party.MemberRoster);
                 param.AdversaryParty.RemoveParty();
-                UX.ShowMessage("You have taken your enemies prisoner.", TaleWorlds.Library.Colors.Green);
+                UX.ShowMessage(new TextObject("{=SpawnAPIMsg001}You have taken your enemies prisoner.").ToString(), TaleWorlds.Library.Colors.Green);
                 end_conversation_consequence_delegate(param);
             }
             else
             {
-                _messageBoxService.ShowMessage("Can't interpret " + isPlayer.ToString() + " as a bool. Possible typo in the XML consequence 'Surrender'");
+                _messageBoxService.ShowMessage(new TextObject("{=SpawnAPIMsg002}Can't interpret {PLAYER} as a bool. Possible typo in the XML consequence 'Surrender'").SetTextVariable("PLAYER", isPlayer.ToString()).ToString());
             }
             PlayerEncounter.Update();
         }

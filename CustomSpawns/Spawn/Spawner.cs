@@ -30,9 +30,7 @@ namespace CustomSpawns.Spawn
             {
                 //get name and show message.
                 TextObject name = partyName ?? clan.Name;
-                _modDebug.ShowMessage(
-                    "CustomSpawns: Spawning " + name + " at " + spawnedSettlement.GatePosition + " in settlement " +
-                    spawnedSettlement.Name, DebugMessageType.Spawn);
+                _modDebug.ShowMessage(new TextObject("{=SpawnAPIDebug001}CustomSpawns: Spawning {NAME} at {POSITION} in settlement {SETTLEMENT}", new System.Collections.Generic.Dictionary<string, object> { { "NAME", name}, { "POSITION", spawnedSettlement.GatePosition}, { "SETTLEMENT", spawnedSettlement.Name} }).ToString(), DebugMessageType.Spawn);
 
                 if (clan.IsBanditFaction)
                 {
@@ -42,7 +40,7 @@ namespace CustomSpawns.Spawn
             }
             catch (System.Exception e)
             {
-                _messageBoxService.ShowMessage("Possible invalid spawn data. Spawning of party terminated.");
+                _messageBoxService.ShowMessage(new TextObject("{=SpawnAPIWarn002}Possible invalid spawn data. Spawning of party terminated.").ToString());
                 _messageBoxService.ShowCustomSpawnsErrorMessage(e, "party spawning");
                 return null;
             }

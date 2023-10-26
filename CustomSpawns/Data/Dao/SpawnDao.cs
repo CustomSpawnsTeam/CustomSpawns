@@ -7,6 +7,7 @@ using CustomSpawns.Data.Reader.Impl;
 using CustomSpawns.Exception;
 using CustomSpawns.Utils;
 using TaleWorlds.Core;
+using TaleWorlds.Localization;
 
 namespace CustomSpawns.Data.Dao
 {
@@ -42,11 +43,11 @@ namespace CustomSpawns.Data.Dao
                         }
                         catch (TechnicalException e)
                         {
-                            _messageBoxService.ShowMessage("Warning: The Custom Spawns API detected that you are trying to load" +
+                            _messageBoxService.ShowMessage(new TextObject("{=SpawnAPIWarn001}Warning: The Custom Spawns API detected that you are trying to load" +
                                                            " a Custom Spawns sub-mod into an existing saved game." +
                                                            " This mod requires a fresh start to work correctly.\n" +
                                                            "If you decide to continue, expect to have very unstable" +
-                                                           " behaviours during your play-through.");
+                                                           " behaviours during your play-through.").ToString());
                             return null;
                         }
                     })
