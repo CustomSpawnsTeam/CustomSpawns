@@ -7,6 +7,7 @@
   <string id="SpawnAPIWarn001" text="警告: Custom Spawn APIは既存のセーブデータでCustom Spawnのサブmodをロードしたことを検出しました。このmodは正常な動作のために新規のセーブデータで開始する必要があります。{newline}このまま続ける場合、プレイ中にゲームが非常に不安定になることが予想されます。" />
   <string id="SpawnAPIWarn002" text="無効なスポーンデータの可能性があります。部隊のスポーン処理を停止しました。" />
   <string id="SpawnAPIWarn003" text="{NAME}に対するキャンペーンデータのコンフィグファイルが見つかりません。" />
+  <string id="SpawnAPIDebug001" text="CustomSpawns: {SETTLEMENT}({POSITION})で{NAME}がスポーン" />
   <string id="SpawnAPIErr001" text="Custom Spawnのエラーが発生しました。Mod開発者に報告してください:" />
   <string id="SpawnAPIErr002" text="ダイアログの結果をパースできませんでした:{NEWLINE}{TEXT}{NEWLINE}エラーメッセージ:{NEWLINE}{ERROR}" />
   <string id="SpawnAPIMsg000" text="Custom Spawns API が読み込まれました" />
