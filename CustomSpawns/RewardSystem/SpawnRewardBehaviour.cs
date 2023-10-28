@@ -1,10 +1,14 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using CustomSpawns.Data.Dao;
 using CustomSpawns.Data.Model.Reward;
+using CustomSpawns.Utils;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Extensions;
 using TaleWorlds.CampaignSystem.MapEvents;
+using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.MountAndBlade;
@@ -14,35 +18,38 @@ namespace CustomSpawns.RewardSystem
     public class SpawnRewardBehaviour : CampaignBehaviorBase
     {
         private const string PlayerPartyId = "player_party";
+        private readonly Random _random;
         private readonly RewardDao _rewardDao;
+        private readonly ModDebug _modDebug;
 
-        public SpawnRewardBehaviour(RewardDao rewardDao)
+        public SpawnRewardBehaviour(RewardDao rewardDao, ModDebug modDebug)
         {
             _rewardDao = rewardDao;
+            _modDebug = modDebug;
+            _random = new Random();
         }
         
         public override void RegisterEvents()
         {
-            CampaignEvents.OnPlayerBattleEndEvent.AddNonSerializedListener(this, new Action<MapEvent>(
-                mapEvent =>
+            CampaignEvents.OnPlayerBattleEndEvent.AddNonSerializedListener(this,
+            mapEvent =>
+            {
+                if (mapEvent.GetLeaderParty(BattleSideEnum.Attacker).Id == PlayerPartyId &&
+                    mapEvent.WinningSide == BattleSideEnum.Attacker)
                 {
-                    if (mapEvent.GetLeaderParty(BattleSideEnum.Attacker).Id == PlayerPartyId &&
-                        mapEvent.WinningSide == BattleSideEnum.Attacker)
-                    {
-                        CalculateReward(mapEvent.DefenderSide.Parties, mapEvent.AttackerSide.Parties.FirstOrDefault(p => p.Party.Id == PlayerPartyId));
-                    }
-                    else if (mapEvent.GetLeaderParty(BattleSideEnum.Defender).Id == PlayerPartyId &&
-                             mapEvent.WinningSide == BattleSideEnum.Defender)
-                    {
-                        CalculateReward(mapEvent.AttackerSide.Parties, mapEvent.DefenderSide.Parties.FirstOrDefault(p => p.Party.Id == PlayerPartyId));
-                    }
-                })
-            );
+                    CalculateReward(mapEvent.DefenderSide.Parties, mapEvent.AttackerSide.Parties.Find(p => p.Party.Id == PlayerPartyId));
+                }
+                else if (mapEvent.GetLeaderParty(BattleSideEnum.Defender).Id == PlayerPartyId &&
+                         mapEvent.WinningSide == BattleSideEnum.Defender)
+                {
+                    CalculateReward(mapEvent.AttackerSide.Parties, mapEvent.DefenderSide.Parties.Find(p => p.Party.Id == PlayerPartyId));
+                }
+            });
         }
 
         public override void SyncData(IDataStore dataStore){}
 
-        private void CalculateReward(MBReadOnlyList<MapEventParty> defeatedParties, MapEventParty mapEventPlayerParty)
+        private void CalculateReward(List<MapEventParty> defeatedParties, MapEventParty mapEventPlayerParty)
         {
             foreach (var party in defeatedParties)
             {
@@ -74,13 +81,11 @@ namespace CustomSpawns.RewardSystem
                             case RewardType.Item:
                                 if (reward.ItemId != null)
                                 {
-                                    var itemToAdd = Items.All.FirstOrDefault(obj => obj.StringId == reward.ItemId);
-                                    if (reward.Chance != null)
+                                    ItemObject? item = Items.All.Find(obj => obj.StringId == reward.ItemId);
+                                    if (item != null && reward.Chance != null && IsItemGiven(Convert.ToDecimal(reward.Chance))) 
                                     {
-                                        if (IsItemGiven(Convert.ToDecimal(reward.Chance)))
-                                        {
-                                            mapEventPlayerParty.RosterToReceiveLootItems.Add(new ItemRosterElement(itemToAdd, 1));
-                                        }
+                                        mapEventPlayerParty.RosterToReceiveLootItems.Add(new ItemRosterElement(item, 1));
+                                        UX.ShowMessage($"You found {item.Name}", Colors.Green);
                                     }
                                 }
                                 break;
@@ -104,10 +109,12 @@ namespace CustomSpawns.RewardSystem
             }
         }
 
-        private bool IsItemGiven(decimal chance)
+        private bool IsItemGiven(decimal probability)
         {
-            var random = new Random();
-            return random.Next(101) <= chance * 100;
+            var chance = Math.Min(Math.Max(0, probability), 1);
+            var pseudoRandomValue = _random.Next() % 100;
+            _modDebug.ShowMessage($"Random value: {pseudoRandomValue} | Chance: {chance}", DebugMessageType.Reward);
+            return pseudoRandomValue <= chance * 100;
         }
     }
 }

@@ -11,6 +11,6 @@ namespace CustomSpawns.Data.Model.Reward
         {
             get;
             set;
-        } = new();
+        } = new ();
     }
 }

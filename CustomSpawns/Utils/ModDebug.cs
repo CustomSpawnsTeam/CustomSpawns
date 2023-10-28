@@ -37,5 +37,5 @@ namespace CustomSpawns.Utils
 
     }
 
-    public enum DebugMessageType { Spawn, AI, Prisoner, Diplomacy, DeathTrack, Dialogue, Development }
+    public enum DebugMessageType { Spawn, AI, Prisoner, Diplomacy, DeathTrack, Dialogue, Development, Reward }
 }

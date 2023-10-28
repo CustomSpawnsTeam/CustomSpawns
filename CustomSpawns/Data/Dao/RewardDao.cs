@@ -8,7 +8,7 @@ namespace CustomSpawns.Data.Dao
     {
         private readonly RewardDataReader _rewardDataReader;
         // TODO create PartyRewardDto with the concrete objects ie PartyTemplate etc.. instead of stringIds  
-        private PartyRewards? _partyRewards = new();
+        private PartyRewards? _partyRewards;
 
         public RewardDao(RewardDataReader rewardDataReader)
         {

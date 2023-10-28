@@ -14,22 +14,19 @@ namespace CustomSpawns.Data.Reader.Impl
     {
         private readonly SubModService _subModService;
         private readonly MessageBoxService _messageBoxService;
-        private PartyRewards _partyRewards; 
 
         public override PartyRewards Data
         {
-            get => _partyRewards;
+            get => LoadRewardDataFromAllSubMods();
         }
 
         public RewardDataReader(SubModService subModService, MessageBoxService messageBoxService)
         {
             _subModService = subModService;
             _messageBoxService = messageBoxService;
-            _partyRewards = new();
-            LoadRewardDataFromAllSubMods();
         }
 
-        private void LoadRewardDataFromAllSubMods()
+        private PartyRewards LoadRewardDataFromAllSubMods()
         {
             string pathToSchema = "";
             pathToSchema = Path.Combine(_subModService.GetCustomSpawnsModule(), "Schema",
@@ -38,14 +35,19 @@ namespace CustomSpawns.Data.Reader.Impl
             {
                 _messageBoxService.ShowMessage("The xsd schema file used for rewards could not be found. " +
                                                    "It is expected to be at " + pathToSchema);
-                return; // Continue with no loaded rewards
+                return new PartyRewards(); // Continue with no loaded rewards
             }
+            var rewards = new PartyRewards();
             foreach (var subMod in _subModService.GetAllLoadedSubMods())
             {
                 string path = Path.Combine(subMod.CustomSpawnsDirectoryPath, "PartyRewards.xml");
                 if (File.Exists(path))
-                    ParseRewardFile(pathToSchema, path);
+                {
+                    List<PartyReward> submodRewards = ParseRewardFile(pathToSchema, path).AllPartyRewards;
+                    rewards.AllPartyRewards.AddRange(submodRewards);   
+                }
             }
+            return rewards;
         }
 
         private void ValidationEventHandler(object sender, ValidationEventArgs e)
@@ -86,13 +88,12 @@ namespace CustomSpawns.Data.Reader.Impl
 
         private PartyRewards Deserialise(string filePath)
         {
-            
             XmlSerializer serialiser = new(typeof(PartyRewards));
             using Stream writer = new FileStream(filePath, FileMode.Open);
             return (PartyRewards) serialiser.Deserialize(writer);
         }
 
-        private void ParseRewardFile(string pathToSchema, string pathToTemplate)
+        private PartyRewards ParseRewardFile(string pathToSchema, string pathToTemplate)
         {
             try
             {
@@ -102,9 +103,9 @@ namespace CustomSpawns.Data.Reader.Impl
             catch (ArgumentException e)
             {
                 _messageBoxService.ShowCustomSpawnsErrorMessage(e.InnerException ?? e, "reading the reward data files");
-                return;
+                return new PartyRewards();
             }
-            _partyRewards = Deserialise(pathToTemplate);
+            return Deserialise(pathToTemplate);
         }
     }
 }

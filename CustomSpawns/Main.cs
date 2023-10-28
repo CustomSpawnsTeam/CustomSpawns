@@ -107,7 +107,7 @@ namespace CustomSpawns
             _customSpawnsDialogueBehaviour = new CustomSpawnsDialogueBehaviour(_dialogueDao);
             _rewardDataReader = new RewardDataReader(_subModService, _messageBoxService);
             _rewardDao = new RewardDao(_rewardDataReader);
-            _spawnRewardBehaviour = new SpawnRewardBehaviour(_rewardDao);
+            _spawnRewardBehaviour = new SpawnRewardBehaviour(_rewardDao, _modDebug);
             _mobilePartyTrackingBehaviour = new MobilePartyTrackingBehaviour(_saveInitialiser, _modDebug);
             _dynamicSpawnData = new (_spawnDao, _saveInitialiser);
             _devestationMetricData = new DevestationMetricData(_mobilePartyTrackingBehaviour, _campaignDataConfigLoader, _saveInitialiser, _messageBoxService, _modDebug);
