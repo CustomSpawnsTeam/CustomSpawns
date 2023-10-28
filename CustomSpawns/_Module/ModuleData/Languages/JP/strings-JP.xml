@@ -19,5 +19,11 @@
   <string id="SpawnAPIMsg006" text="{NAME}の1日の荒廃度減衰を計算中。減衰値が{VALUE}減少" />
   <string id="SpawnAPIMsg007" text="現在の{NAME}の荒廃度は{VALUE}" />
   <string id="SpawnAPIMsg010" text="{NAME} が Custom Spawns API に統合されました" />
+  <!-- default dialogues -->
+  <string id="EVkXWo6S" text="お前の肩の上には立派な首が乗ってるな!" />
+  <string id="C7PgdtDN" text="貴様の頭蓋を盃にしてやる!" />
+  <string id="Z28hBxDM" text="まさに刈り入れ時ですな!" />
+  <string id="J50mnkoo" text="失せろ、下卑た物乞いめ!" />
+  <string id="nJ3uAPZH" text="八つ裂きにしてやろう!" />
  </strings>
 </base>

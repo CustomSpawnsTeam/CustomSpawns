@@ -19,5 +19,11 @@
   <string id="SpawnAPIMsg006" text="Calculating daily Devastation Decay in {NAME}. Decreasing devastation by {VALUE}" />
   <string id="SpawnAPIMsg007" text="Current Devastation at {NAME} is now {VALUE}" />
   <string id="SpawnAPIMsg010" text="{NAME} is now integrated into the Custom Spawns API." />
+  <!-- default dialogues -->
+  <string id="EVkXWo6S" text="That's a nice head on your shoulders!" />
+  <string id="C7PgdtDN" text="I will drink from your skull!" />
+  <string id="Z28hBxDM" text="It's almost harvesting season!" />
+  <string id="J50mnkoo" text="Away with you vile beggar!" />
+  <string id="nJ3uAPZH" text="I will tear you limb from limb!" />
  </strings>
 </base>
