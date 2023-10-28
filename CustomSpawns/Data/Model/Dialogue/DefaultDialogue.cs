@@ -26,7 +26,7 @@ namespace CustomSpawns.Data.Model.Dialogue
         {
             Dialogue dialogue = new();
             dialogue.IsPlayerDialogue = false;
-            dialogue.Text = "That's a nice head on your shoulders!";
+            dialogue.Text = "{=EVkXWo6S}That's a nice head on your shoulders!";
             dialogue.Consequence = "Battle";
             dialogue.Condition = BaseDefaultCondition + " AND IsHostile AND IsAttacking";
             dialogue.Options = new();
@@ -37,7 +37,7 @@ namespace CustomSpawns.Data.Model.Dialogue
         {
             Dialogue dialogue = new();
             dialogue.IsPlayerDialogue = false;
-            dialogue.Text = "I will drink from your skull!";
+            dialogue.Text = "{=C7PgdtDN}I will drink from your skull!";
             dialogue.Consequence = "Battle";
             dialogue.Condition = BaseDefaultCondition + " AND IsHostile AND IsDefending";
             dialogue.Options = new();
@@ -48,7 +48,7 @@ namespace CustomSpawns.Data.Model.Dialogue
         {
             Dialogue dialogue = new();
             dialogue.IsPlayerDialogue = false;
-            dialogue.Text = "It's almost harvesting season!";
+            dialogue.Text = "{=Z28hBxDM}It's almost harvesting season!";
             dialogue.Condition = BaseDefaultCondition + " AND IsFriendly";
             dialogue.Options = new();
             dialogue.Options.Add(AttackFriendlyDialogue());
@@ -60,7 +60,7 @@ namespace CustomSpawns.Data.Model.Dialogue
         {
             Dialogue dialogue = new();
             dialogue.IsPlayerDialogue = true;
-            dialogue.Text = "Away with you vile beggar!";
+            dialogue.Text = "{=J50mnkoo}Away with you vile beggar!";
             dialogue.Consequence = "Leave";
             dialogue.Options = new();
             return dialogue;
@@ -70,7 +70,7 @@ namespace CustomSpawns.Data.Model.Dialogue
         {
             Dialogue dialogue = new();
             dialogue.IsPlayerDialogue = true;
-            dialogue.Text = "I will tear you limb from limb!";
+            dialogue.Text = "{=nJ3uAPZH}I will tear you limb from limb!";
             dialogue.Consequence = "War";
             dialogue.Options = new();
             return dialogue;

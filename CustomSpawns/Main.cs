@@ -19,6 +19,7 @@ using TaleWorlds.Core;
 using TaleWorlds.MountAndBlade;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Library;
+using TaleWorlds.Localization;
 
 namespace CustomSpawns
 {
@@ -123,11 +124,11 @@ namespace CustomSpawns
 
         private void DisplayLoadedModules()
         {
-            UX.ShowMessage("Custom Spawns API loaded", Color.ConvertStringToColor("#001FFFFF"));
+            UX.ShowMessage(new TextObject("{=SpawnAPIMsg000}Custom Spawns API loaded").ToString(), Color.ConvertStringToColor("#001FFFFF"));
             AIManager.FlushRegisteredBehaviours(); //forget old behaviours to allocate space. 
             foreach (var subMod in _subModService.GetAllLoadedSubMods())
             {
-                UX.ShowMessage(subMod.SubModuleName + " is now integrated into the Custom Spawns API.",
+                UX.ShowMessage(new TextObject("{=SpawnAPIMsg010}{NAME} is now integrated into the Custom Spawns API.").SetTextVariable("NAME", subMod.SubModuleName).ToString(),
                     Color.ConvertStringToColor("#001FFFFF"));
             }
         }

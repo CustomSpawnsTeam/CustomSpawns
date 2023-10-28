@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<base>
+ <tags>
+  <tag language="日本語"/>
+ </tags>
+ <strings>
+  <string id="SpawnAPIWarn001" text="警告: Custom Spawn APIは既存のセーブデータでCustom Spawnのサブmodをロードしたことを検出しました。このmodは正常な動作のために新規のセーブデータで開始する必要があります。{newline}このまま続ける場合、プレイ中にゲームが非常に不安定になることが予想されます。" />
+  <string id="SpawnAPIWarn002" text="無効なスポーンデータの可能性があります。部隊のスポーン処理を停止しました。" />
+  <string id="SpawnAPIWarn003" text="{NAME}に対するキャンペーンデータのコンフィグファイルが見つかりません。" />
+  <string id="SpawnAPIDebug001" text="CustomSpawns: {SETTLEMENT}({POSITION})で{NAME}がスポーン" />
+  <string id="SpawnAPIErr001" text="Custom Spawnのエラーが発生しました。Mod開発者に報告してください:" />
+  <string id="SpawnAPIErr002" text="ダイアログの結果をパースできませんでした:{NEWLINE}{TEXT}{NEWLINE}エラーメッセージ:{NEWLINE}{ERROR}" />
+  <string id="SpawnAPIMsg000" text="Custom Spawns API が読み込まれました" />
+  <string id="SpawnAPIMsg001" text="あなたは敵の捕虜となった。" />
+  <string id="SpawnAPIMsg002" text="値 {PLAYER} をboolとして解釈できません。「降伏」選択時の結果に関するXMLのタイプミスの可能性があります" />
+  <string id="SpawnAPIMsg003" text="{SETTLEMENT}で戦う。荒廃値が{VALUE1}増加。増加後の荒廃値: {VALUE2}" />
+  <string id="SpawnAPIMsg004" text="{NAME}で略奪成功。荒廃値が{VALUE}増加" />
+  <string id="SpawnAPIMsg005" text="{NAME}の敵対的な存在感の荒廃値ゲインを計算中。減衰値が{VALUE}増加" />
+  <string id="SpawnAPIMsg006" text="{NAME}の1日の荒廃度減衰を計算中。減衰値が{VALUE}減少" />
+  <string id="SpawnAPIMsg007" text="現在の{NAME}の荒廃度は{VALUE}" />
+  <string id="SpawnAPIMsg010" text="{NAME} が Custom Spawns API に統合されました" />
+  <!-- default dialogues -->
+  <string id="EVkXWo6S" text="お前の肩の上には立派な首が乗ってるな!" />
+  <string id="C7PgdtDN" text="貴様の頭蓋を盃にしてやる!" />
+  <string id="Z28hBxDM" text="まさに刈り入れ時ですな!" />
+  <string id="J50mnkoo" text="失せろ、下卑た物乞いめ!" />
+  <string id="nJ3uAPZH" text="八つ裂きにしてやろう!" />
+ </strings>
+</base>

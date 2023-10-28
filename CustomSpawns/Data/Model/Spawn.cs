@@ -1,9 +1,14 @@
-﻿using System;
+﻿using CustomSpawns.Utils;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Serialization;
+using TaleWorlds.Diamond;
+using TaleWorlds.Library;
+using TaleWorlds.Localization;
 
 namespace CustomSpawns.Data.Model
 {
@@ -39,13 +44,45 @@ namespace CustomSpawns.Data.Model
         public int RepeatSpawnRolls { get; set; } = 1;
 
         [XmlElement(ElementName="SpawnMessage")]
-        public string? SpawnMessage { get; set; }
+        public string? SpawnMessage {
+            get
+            {
+                return this._spawnMessage;
+            }
+            set
+            {
+                if (value == null)
+                {
+                    this._spawnMessage = null;
+                }
+                else
+                {
+                    this._spawnMessage = Regex.Replace(value.ToString(), @"\[" + UX.SpawnPlaceIdentifier + @"\]", $"{{{UX.SpawnPlaceIdentifier}}}", RegexOptions.IgnoreCase);
+                }
+            }
+        }
+        private string? _spawnMessage = null;
 
         [XmlElement(ElementName="SpawnMessageColor")]
         public string? SpawnMessageColor { get; set; }
 
         [XmlElement(ElementName="DeathMessage")]
-        public string? DeathMessage { get; set; }
+        public string? DeathMessage {
+            get
+            { return this._deathMessage; }
+            set
+            {
+                if (value == null)
+                {
+                    this._deathMessage = value;
+                }
+                else
+                {
+                    this._deathMessage = Regex.Replace(value.ToString(), @"\[" + UX.DeathPlaceIdentifier + @"\]", $"{{{UX.DeathPlaceIdentifier}}}", RegexOptions.IgnoreCase);
+                }
+            }
+        }
+        private string? _deathMessage = null;
 
         [XmlElement(ElementName = "DeathMessageColor")]
         public string? DeathMessageColor { get; set; }
