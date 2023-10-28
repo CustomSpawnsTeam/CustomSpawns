@@ -1,15 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using TaleWorlds.Library;
+using TaleWorlds.Localization;
 
 namespace CustomSpawns.Utils
 {
     public static class UX
     {
-        private static readonly string SpawnPlaceIdentifier = "spawnplace";
+        public static readonly string SpawnPlaceIdentifier = "spawnplace";
 
-        private static readonly string DeathPlaceIdentifier = "deathplace";
+        public static readonly string DeathPlaceIdentifier = "deathplace";
 
         private static readonly Dictionary<string, string> FlagToMessageColour = new ()
         {
@@ -39,24 +39,7 @@ namespace CustomSpawns.Utils
 
         private static string ResolveVariables(string message, string settlementName)
         {
-            string[] codes = message.Split(new [] { "[", "]"}, StringSplitOptions.None);
-            if (codes.Length == 1) {
-                return message;
-            }
-            StringBuilder spawnMessageBuilder = new();
-            foreach(string code in codes)
-            {
-                string variable = code.ToLower();
-                if (variable.Equals(SpawnPlaceIdentifier) || variable.Equals(DeathPlaceIdentifier))
-                {
-                    spawnMessageBuilder.Append(settlementName);
-                }
-                else
-                {
-                    spawnMessageBuilder.Append(code);
-                }
-            }
-            return spawnMessageBuilder.ToString();
+            return new TextObject(message, new Dictionary<string, object>() { { SpawnPlaceIdentifier, settlementName }, { DeathPlaceIdentifier, settlementName} }).ToString();
         }
     }
 }
