@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CustomSpawns.Data.Dao;
@@ -80,10 +80,10 @@ namespace CustomSpawns.RewardSystem
                                 if (reward.ItemId != null)
                                 {
                                     ItemObject? item = Items.All.Find(obj => obj.StringId == reward.ItemId);
-                                    if (item != null && reward.Chance != null && IsItemGiven(Convert.ToDecimal(reward.Chance))) 
+                                    if (item != null && IsItemGiven(reward.Chance ?? 1f))
                                     {
                                         mapEventPlayerParty.RosterToReceiveLootItems.Add(new ItemRosterElement(item, 1));
-                                        UX.ShowMessage($"You found {item.Name}", Colors.Green);
+                                        UX.ShowMessage($"You found {item.Name}", Colors.Green);   
                                     }
                                 }
                                 break;
@@ -107,7 +107,7 @@ namespace CustomSpawns.RewardSystem
             }
         }
 
-        private bool IsItemGiven(decimal probability)
+        private bool IsItemGiven(float probability)
         {
             var chance = Math.Min(Math.Max(0, probability), 1);
             var pseudoRandomValue = _random.Next() % 100;
