@@ -266,12 +266,13 @@ namespace CustomSpawns.Spawn
 
         #region Behaviour Handlers
 
-        private void HandleDeathMessage(MobileParty mb, CsPartyData dynamicData)
+        private void HandleDeathMessage(MobileParty mobileParty, CsPartyData partyData)
         {
-            SpawnDto? spawn = _spawnDao.FindByPartyTemplateId(dynamicData.PartyTemplateId);
+            SpawnDto? spawn = _spawnDao.FindByPartyTemplateId(partyData.PartyTemplateId);
             if (spawn?.DeathMessage != null)
             {
-                UX.ShowMessage(spawn.DeathMessage.Information, spawn.DeathMessage.Color, dynamicData.LatestClosestSettlement.ToString());
+                UX.ShowMessage(spawn.DeathMessage.Information, spawn.DeathMessage.Color,
+                    CampaignUtils.GetClosestInhabitedSettlement(mobileParty).Name.ToString());
             }
         }
 

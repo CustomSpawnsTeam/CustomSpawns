@@ -111,7 +111,7 @@ namespace CustomSpawns.Utils
             return min;
         }
 
-        public static Settlement GetClosestHabitedSettlement(MobileParty mb)
+        public static Settlement GetClosestInhabitedSettlement(MobileParty mb)
         {
             Settlement min = null;
             float minDistance = float.MaxValue;
