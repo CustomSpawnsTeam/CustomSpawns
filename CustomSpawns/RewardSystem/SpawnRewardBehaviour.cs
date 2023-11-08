@@ -82,8 +82,9 @@ namespace CustomSpawns.RewardSystem
                                     ItemObject? item = Items.All.Find(obj => obj.StringId == reward.ItemId);
                                     if (item != null && IsItemGiven(reward.Chance ?? 1f))
                                     {
-                                        mapEventPlayerParty.RosterToReceiveLootItems.Add(new ItemRosterElement(item, 1));
-                                        UX.ShowMessage($"You found {item.Name}", Colors.Green);   
+                                        ItemModifier? itemModifier = GetRandomPositiveItemModifier(item);
+                                        mapEventPlayerParty.RosterToReceiveLootItems.Add(new ItemRosterElement(item, 1, itemModifier));
+                                        UX.ShowMessage($"You found {itemModifier?.Name.ToString() ?? ""}{item.Name}", Colors.Green);   
                                     }
                                 }
                                 break;
@@ -113,6 +114,21 @@ namespace CustomSpawns.RewardSystem
             var pseudoRandomValue = _random.Next() % 100;
             _modDebug.ShowMessage($"Random value: {pseudoRandomValue} | Chance: {chance}", DebugMessageType.Reward);
             return pseudoRandomValue <= chance * 100;
+        }
+        
+        private ItemModifier? GetRandomPositiveItemModifier(ItemObject item)
+        {
+            var positiveQualityModifiers = new List<ItemQuality>()
+            {
+                ItemQuality.Fine,
+                ItemQuality.Masterwork,
+                ItemQuality.Legendary,
+            };
+            
+            ItemQuality itemQuality = positiveQualityModifiers[MBRandom.RandomInt(positiveQualityModifiers.Count)];
+
+            return item?.ItemComponent.ItemModifierGroup?.ItemModifiers.Find(itemModifier =>
+                itemModifier.ItemQuality.Equals(itemQuality));
         }
     }
 }
