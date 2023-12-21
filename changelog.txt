@@ -1,7 +1,7 @@
 ---------------------------------------------------------------------------------------------------
 Version: 2.0.0
-Game Versions: v1.2.0,v1.2.1,v1.2.2,v1.2.3,v1.2.4,v1.2.5,v1.2.6,v1.2.7
-* Breaking Change: Bump Bannerlord target version to v1.2.7. Bannerlord versions below v1.2.0 are no longer supported. 
+Game Versions: v1.2.0,v1.2.1,v1.2.2,v1.2.3,v1.2.4,v1.2.5,v1.2.6,v1.2.7,v1.2.8
+* Breaking Change: Bump Bannerlord target version to v1.2.8. Bannerlord versions below v1.2.0 are no longer supported. 
 * Feature: Add a random positive modifier to rewarded items without specified modifiers.
 * Feature: Enable partial module translation (support for English and Japanese language).
 * Fix: The rewards have been fixed and now work as intended.
