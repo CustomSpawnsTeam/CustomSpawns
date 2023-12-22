@@ -13,6 +13,7 @@ Game Versions: v1.2.0,v1.2.1,v1.2.2,v1.2.3,v1.2.4,v1.2.5,v1.2.6,v1.2.7,v1.2.8
 * Improvement: Spawned parties now count in their respective faction's strength. The clan encyclopedia reflects this change.
 * Improvement (Reward API): If the chance value is not set, then the item drop is guaranteed.
 * Fix: The rewards now work as intended.
+* Fix: The spawned parties now correctly reinforce other parties in battles initiated by the player. 
 * Fix: The nearest settlement name is now correctly displayed in the party death message.
 * Fix: Addressed Bannerlord.Harmony dependency warning on startup. No warnings should be displayed anymore.
 ---------------------------------------------------------------------------------------------------

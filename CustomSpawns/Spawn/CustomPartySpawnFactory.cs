@@ -29,6 +29,7 @@ namespace CustomSpawns.Spawn
                 party.SetCustomName(partyName);
                 party.ActualClan = clan;
                 party.SetCustomHomeSettlement(spawnedSettlement);
+                party.ShouldJoinPlayerBattles = true;
             };
 
             var partyComponent = new CustomSpawnsPartyComponent(leader!, partyName, spawnedSettlement);
