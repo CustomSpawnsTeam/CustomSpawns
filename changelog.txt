@@ -1,13 +1,19 @@
 ---------------------------------------------------------------------------------------------------
 Version: 2.0.0
 Game Versions: v1.2.0,v1.2.1,v1.2.2,v1.2.3,v1.2.4,v1.2.5,v1.2.6,v1.2.7,v1.2.8
-* Breaking Change: Bump Bannerlord target version to v1.2.8. Bannerlord versions below v1.2.0 are no longer supported. 
-* Feature: Add a random positive modifier to rewarded items without specified modifiers.
+* Breaking Change: Bump Bannerlord target version to v1.2.8. Bannerlord versions below v1.2.0 are no longer supported.
+* Breaking API Change: The following API speed values are now longer supported in favour of using the game's speed model:
+   - BaseSpeedOverride
+   - ExtraLinearSpeed
+   - MinimumFinalSpeed
+   - MaximumFinalSpeed
+* Feature: Add a random positive modifier to rewarded items.
 * Feature: Enable partial module translation (support for English and Japanese language).
-* Fix: The rewards have been fixed and now work as intended.
-* Fix: Reward API: If the chance value is not set, then the item drop is guaranteed.
+* Improvement: Spawned parties' now use the game's speed model and are therefore affected by all speed modifiers (forest, night, prisoners...)
+* Improvement (Reward API): If the chance value is not set, then the item drop is guaranteed.
+* Fix: The rewards now work as intended.
 * Fix: The nearest settlement name is now correctly displayed in the party death message.
-* Fix: Address Bannerlord.Harmony dependency warning on startup. No warnings should be displayed anymore.
+* Fix: Addressed Bannerlord.Harmony dependency warning on startup. No warnings should be displayed anymore.
 ---------------------------------------------------------------------------------------------------
 Version: 1.9.6
 Game Versions: v1.1.0,v1.1.1,v1.1.2,v1.1.3,v1.1.4,v1.1.5,v1.1.6

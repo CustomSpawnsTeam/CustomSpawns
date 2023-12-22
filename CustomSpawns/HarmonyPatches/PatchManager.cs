@@ -1,7 +1,8 @@
 ﻿using System.Collections.Generic;
 using CustomSpawns.Config;
 using CustomSpawns.Data.Dao;
-using CustomSpawns.PartySpeed;
+using CustomSpawns.HarmonyPatches.PartySizeLimit;
+using CustomSpawns.Spawn.PartySize;
 using CustomSpawns.Utils;
 using HarmonyLib;
 
@@ -10,17 +11,22 @@ namespace CustomSpawns.HarmonyPatches
     public class PatchManager
     {
         private readonly SpawnDao _spawnDao;
-        private readonly PartySpeedContext _partySpeedContext;
         private readonly ConfigLoader _configLoader;
         private readonly MessageBoxService _messageBoxService;
+        private readonly PartySizeCalculatedSubject _partySizeCalculatedSubject;
         private bool IsApplied { get; set; }
 
-        public PatchManager(SpawnDao spawnDao, PartySpeedContext partySpeedContext, ConfigLoader configLoader, MessageBoxService messageBoxService)
+        public PatchManager(
+            SpawnDao spawnDao,
+            ConfigLoader configLoader,
+            MessageBoxService messageBoxService,
+            PartySizeCalculatedSubject partySizeCalculatedSubject
+        )
         {
             _spawnDao = spawnDao;
-            _partySpeedContext = partySpeedContext;
             _configLoader = configLoader;
             _messageBoxService = messageBoxService;
+            _partySizeCalculatedSubject = partySizeCalculatedSubject;
         }
 
         public void ApplyPatches()
@@ -37,7 +43,7 @@ namespace CustomSpawns.HarmonyPatches
                 List<IPatch> patches = new()
                 {
                     new RemovePartyTrackersFromNonBanditPartiesPatch(_spawnDao),
-                    new PartySpeedModelPatch(_partySpeedContext),
+                    new PartySizeModelPatch(_partySizeCalculatedSubject),
                     new MapScreenPatch(_configLoader),
                     new GetUnitValueForFactionPatch(_spawnDao)
                 };

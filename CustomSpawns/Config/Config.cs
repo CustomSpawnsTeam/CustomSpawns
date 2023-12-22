@@ -14,7 +14,6 @@ namespace CustomSpawns.Config
         public bool ShowAIDebug { get; set; }
         public bool ShowDeathTrackDebug { get; set; }
         public bool SpawnAtOneHideout { get; set; }
-        public bool ModifyPartySpeeds { get; set; }
         public bool IsRemovalMode { get; set; }
         public bool IsAllSpawnMode { get; set; }
         public int UpdatePartyRedundantDataPerHour { get; set; }

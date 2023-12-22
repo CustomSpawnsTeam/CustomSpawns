@@ -7,6 +7,6 @@ namespace CustomSpawns.Spawn
 {
     public interface IMobilePartySpawn
     {
-        MobileParty SpawnParty(Settlement homeSettlement, TextObject partyName, Clan clan, PartyTemplateObject partyTemplate, float partySpeed);
+        MobileParty SpawnParty(Settlement homeSettlement, TextObject partyName, Clan clan, PartyTemplateObject partyTemplate);
     }
 }

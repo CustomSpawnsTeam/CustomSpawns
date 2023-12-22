@@ -9,16 +9,15 @@ namespace CustomSpawns.Spawn
 {
     public class BanditPartySpawnFactory : MobilePartySpawnFactory
     {
-        internal override MobileParty CreateParty(Settlement spawnedSettlement, Clan clan,
-            PartyTemplateObject templateObject, TextObject partyName, float speed)
+        protected override MobileParty CreateParty(Settlement spawnedSettlement, Clan clan,
+            PartyTemplateObject templateObject, TextObject partyName)
         {
             MobileParty party = BanditPartyComponent.CreateBanditParty(templateObject.StringId + "_" + 1, clan,
                 spawnedSettlement.Hideout, false);
-            return InitParty(party, partyName ?? clan.Name, spawnedSettlement, clan, speed);
+            return InitParty(party, partyName ?? clan.Name, spawnedSettlement, clan);
         }
 
-        private MobileParty InitParty(MobileParty mobileParty, TextObject partyName, Settlement homeSettlement, Clan clan,
-            float speed = 0)
+        private MobileParty InitParty(MobileParty mobileParty, TextObject partyName, Settlement homeSettlement, Clan clan)
         {
             if (clan.Leader != null)
             {

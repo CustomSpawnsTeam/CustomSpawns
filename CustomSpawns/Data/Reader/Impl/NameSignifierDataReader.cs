@@ -63,9 +63,7 @@ namespace CustomSpawns.Data.Reader.Impl
                 }
                 NameSignifier nameSignifier = new ();
                 nameSignifier.IdToName = PartyName(node);
-                nameSignifier.IdToSpeedModifier = SpeedModifier(node);
                 nameSignifier.IdToFollowMainParty = IsConfiguredToFollowMainParty(node);
-                nameSignifier.IdToBaseSpeedOverride = BaseSpeedOverride(node);
                 _nameSignifiers.Add(id, nameSignifier);
             }
         }
@@ -88,20 +86,6 @@ namespace CustomSpawns.Data.Reader.Impl
             return node.Attributes["value"].InnerText;
         }
 
-        private float SpeedModifier(XmlNode node)
-        {
-            if (node.Attributes["speed_modifier"] != null)
-            {
-                float result;
-                if (!float.TryParse(node.Attributes["speed_modifier"].InnerText, out result))
-                {
-                    throw new ArgumentException("Please enter a valid float for the speed modifier!");
-                }
-                return result;
-            }
-            return 0f;
-        }
-        
         private bool IsConfiguredToFollowMainParty(XmlNode node)
         {
             if (node.Attributes["escort_main_party"] != null)
@@ -114,20 +98,6 @@ namespace CustomSpawns.Data.Reader.Impl
                 return result;
             }
             return true;
-        }
-        
-        private float BaseSpeedOverride(XmlNode node)
-        {
-            if(node.Attributes["base_speed_override"] != null)
-            {
-                float result;
-                if (!float.TryParse(node.Attributes["base_speed_override"].InnerText, out result))
-                {
-                    throw new ArgumentException("Please enter a valid float for the base speed override!");
-                }
-                return result;
-            }
-            return 1f;
         }
     }
 }

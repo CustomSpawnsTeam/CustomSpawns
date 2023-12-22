@@ -7,6 +7,7 @@ using CustomSpawns.Data;
 using CustomSpawns.Data.Dao;
 using CustomSpawns.Data.Dto;
 using CustomSpawns.Economics;
+using CustomSpawns.Spawn.PartySize;
 using CustomSpawns.UtilityBehaviours;
 using CustomSpawns.Utils;
 using TaleWorlds.CampaignSystem;
@@ -33,9 +34,18 @@ namespace CustomSpawns.Spawn
 
         private int _lastRedundantDataUpdate = 0;
 
-        public SpawnBehaviour(Spawner spawner, SpawnDao spawnDao, DynamicSpawnData dynamicSpawnData,
-            SaveInitialiser saveInitialiser, DevestationMetricData devestationMetricData, ConfigLoader configLoader,
-            MessageBoxService messageBoxService, DailyLogger dailyLogger, ModDebug modDebug)
+        public SpawnBehaviour(
+            Spawner spawner,
+            SpawnDao spawnDao,
+            DynamicSpawnData dynamicSpawnData,
+            SaveInitialiser saveInitialiser,
+            DevestationMetricData devestationMetricData,
+            ConfigLoader configLoader,
+            MessageBoxService messageBoxService,
+            DailyLogger dailyLogger,
+            ModDebug modDebug,
+            PartySizeCalculatedSubject partySizeCalculatedSubject
+        )
         {
             _spawner = spawner;
             _spawnDao = spawnDao;
@@ -48,6 +58,9 @@ namespace CustomSpawns.Spawn
             _configLoader = configLoader;
             _dailyLogger = dailyLogger;
             saveInitialiser.RunCallbackOnFirstCampaignTick(OnSaveStart);
+            // Set the party size of a custom party to the size of the actual spawned party
+            // This cancels the speed malus that is applied to non-lordly parties that are too big
+            partySizeCalculatedSubject.Register(new PartySizeResizerOnFirstCalculation(spawnDao));
         }
 
         private void HourlyCheckData()
@@ -212,7 +225,7 @@ namespace CustomSpawns.Spawn
                                 break;
                             }
 
-                            MobileParty spawnedParty = _spawner.SpawnParty(spawnSettlement, spawn.SpawnClan, spawn.PartyTemplate, spawn.BaseSpeedOverride, new TextObject(spawn.Name));
+                            MobileParty spawnedParty = _spawner.SpawnParty(spawnSettlement, spawn.SpawnClan, spawn.PartyTemplate, new TextObject(spawn.Name));
                             if (spawnedParty == null)
                                 return;
                             _numberOfSpawns[spawn.PartyTemplate.StringId]++; //increment for can spawn and chance modifications
@@ -222,7 +235,7 @@ namespace CustomSpawns.Spawn
                             //accompanying spawns
                             foreach (var accomp in spawn.SpawnAlongWith)
                             {
-                                MobileParty juniorParty = _spawner.SpawnParty(spawnSettlement, spawn.SpawnClan, accomp.templateObject, spawn.BaseSpeedOverride, new TextObject(accomp.name));
+                                MobileParty juniorParty = _spawner.SpawnParty(spawnSettlement, spawn.SpawnClan, accomp.templateObject, new TextObject(accomp.name));
                                 if (juniorParty == null)
                                     continue;
                                 HandleAIChecks(juniorParty, spawn, spawnSettlement); //junior party has same AI behaviour as main party. TODO in future add some junior party AI and reconstruction.

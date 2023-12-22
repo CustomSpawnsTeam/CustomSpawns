@@ -50,18 +50,6 @@ namespace CustomSpawns.Data.Model
         [XmlElement(ElementName = "DeathMessageColor")]
         public string? DeathMessageColor { get; set; }
 
-        [XmlElement(ElementName="BaseSpeedOverride")]
-        public float? BaseSpeedOverride { get; set; }
-
-        [DefaultValue(0f), XmlElement(ElementName = "ExtraLinearSpeed")]
-        public float ExtraLinearSpeed { get; set; }
-
-        [DefaultValue(1f), XmlElement(ElementName = "MinimumFinalSpeed")]
-        public float MinimumFinalSpeed { get; set; } = 1f;
-
-        [DefaultValue(10f), XmlElement(ElementName = "MaximumFinalSpeed")]
-        public float MaximumFinalSpeed { get; set; } = 10f;
-
         [DefaultValue(0f), XmlElement(ElementName="DynamicSpawnChancePeriod")]
         public float DynamicSpawnChancePeriod { get; set; }
 

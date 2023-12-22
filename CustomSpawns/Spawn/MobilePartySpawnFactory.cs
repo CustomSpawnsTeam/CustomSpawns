@@ -7,11 +7,11 @@ namespace CustomSpawns.Spawn
 {
     public abstract class MobilePartySpawnFactory : IMobilePartySpawn
     {
-        internal abstract MobileParty CreateParty(Settlement spawnedSettlement, Clan clan, PartyTemplateObject templateObject, TextObject partyName, float speed = 0f);
+        protected abstract MobileParty CreateParty(Settlement spawnedSettlement, Clan clan, PartyTemplateObject templateObject, TextObject partyName);
 
-        public MobileParty SpawnParty(Settlement homeSettlement, TextObject partyName, Clan clan, PartyTemplateObject partyTemplate, float customPartyBaseSpeed = 0f)
+        public MobileParty SpawnParty(Settlement homeSettlement, TextObject partyName, Clan clan, PartyTemplateObject partyTemplate)
         {
-            MobileParty mobileParty = CreateParty(homeSettlement, clan, partyTemplate, partyName ?? clan.Name, customPartyBaseSpeed);
+            MobileParty mobileParty = CreateParty(homeSettlement, clan, partyTemplate, partyName ?? clan.Name);
             mobileParty.InitializeMobilePartyAroundPosition(partyTemplate, homeSettlement.GatePosition, 10f);
             return mobileParty;
         }

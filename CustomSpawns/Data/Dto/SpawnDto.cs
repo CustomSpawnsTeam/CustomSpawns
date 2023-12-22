@@ -33,7 +33,6 @@ namespace CustomSpawns.Data.Dto
         public PartyTemplateObject PartyTemplatePrisoner { get; set; }
         public string Name { get; set; }
         public int RepeatSpawnRolls { get; set; }
-        public float BaseSpeedOverride { get; set; }
         public InformationMessage? SpawnMessage { get; set; }
         public InquiryData inquiryMessage { get; set; }
         public bool inquiryPause { get; set; }

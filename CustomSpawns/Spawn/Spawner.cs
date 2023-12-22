@@ -22,9 +22,7 @@ namespace CustomSpawns.Spawn
             _modDebug = modDebug;
         }
 
-        // TODO use the speed parameter here instead of using the harmony patch  
-        public MobileParty SpawnParty(Settlement spawnedSettlement, Clan clan, PartyTemplateObject templateObject,
-            float speed=0f, TextObject partyName = null)
+        public MobileParty SpawnParty(Settlement spawnedSettlement, Clan clan, PartyTemplateObject templateObject, TextObject? partyName = null)
         {
             try
             {

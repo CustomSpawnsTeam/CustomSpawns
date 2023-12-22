@@ -10,9 +10,9 @@ using CustomSpawns.Dialogues;
 using CustomSpawns.Diplomacy;
 using CustomSpawns.HarmonyPatches;
 using CustomSpawns.ModIntegration;
-using CustomSpawns.PartySpeed;
 using CustomSpawns.RewardSystem;
 using CustomSpawns.Spawn;
+using CustomSpawns.Spawn.PartySize;
 using CustomSpawns.UtilityBehaviours;
 using CustomSpawns.Utils;
 using TaleWorlds.Core;
@@ -43,7 +43,6 @@ namespace CustomSpawns
         private DynamicSpawnData _dynamicSpawnData;
         private SpawnDtoAdapter _spawnDtoAdapter;
         private SpawnDao _spawnDao;
-        private PartySpeedContext _partySpeedContext;
         private CampaignDataConfigLoader _campaignDataConfigLoader;
         private ConfigLoader _configLoader;
         private MessageBoxService _messageBoxService;
@@ -54,6 +53,7 @@ namespace CustomSpawns
         private RewardDao _rewardDao;
         private DialogueDao _dialogueDao;
         private DialogueDtoAdapter _dialogueDtoAdapter;
+        private PartySizeCalculatedSubject _partySizeCalculatedSubject;
 
         private PatchManager _patchManager;
 
@@ -83,7 +83,6 @@ namespace CustomSpawns
             _subModService = new SubModService(_messageBoxService);
             _configLoader = new ConfigLoader(_subModService, _messageBoxService);
             _modDebug = new ModDebug(_configLoader);
-            _partySpeedContext = new PartySpeedContext(_configLoader);
             _diplomacyDataReader = new (_subModService, _messageBoxService);
             _nameSignifierDataReader = new (_subModService, _messageBoxService);
             _spawnDataReader = new (_subModService, _messageBoxService);
@@ -94,7 +93,7 @@ namespace CustomSpawns
             _customPartySpawnFactory = new CustomPartySpawnFactory();
             _spawner = new Spawner(_banditPartySpawnFactory, _customPartySpawnFactory, _messageBoxService, _modDebug);
             _campaignDataConfigLoader = new CampaignDataConfigLoader(_subModService, _messageBoxService);
-            _spawnDtoAdapter = new SpawnDtoAdapter(_nameSignifierDataReader, Campaign.Current.ObjectManager, Campaign.Current.CampaignObjectManager, _partySpeedContext);
+            _spawnDtoAdapter = new SpawnDtoAdapter(_nameSignifierDataReader, Campaign.Current.ObjectManager, Campaign.Current.CampaignObjectManager);
             _spawnDao = new SpawnDao(_spawnDataReader, _spawnDtoAdapter, _messageBoxService);
             _dialogueConsequenceInterpretor = new DialogueConsequenceInterpretor(_diplomacyActionModel, _messageBoxService);
             _dialogueConditionInterpretor = new DialogueConditionInterpretor(_spawnDao);
@@ -115,8 +114,9 @@ namespace CustomSpawns
             _forcedWarPeaceBehaviour = new ForcedWarPeaceBehaviour(_diplomacyActionModel, _clanKingdomTrackable, 
                 _customSpawnsClanDiplomacyModel, _diplomacyDataReader, _dailyLogger);
             _forceNoKingdomBehaviour = new ForceNoKingdomBehaviour(_diplomacyDataReader, _dailyLogger);
-            _spawnBehaviour = new SpawnBehaviour(_spawner, _spawnDao, _dynamicSpawnData, _saveInitialiser, _devestationMetricData, _configLoader, _messageBoxService, _dailyLogger, _modDebug);
-            _patchManager = new PatchManager(_spawnDao, _partySpeedContext, _configLoader, _messageBoxService);
+            _partySizeCalculatedSubject = new PartySizeCalculatedSubject();
+            _spawnBehaviour = new SpawnBehaviour(_spawner, _spawnDao, _dynamicSpawnData, _saveInitialiser, _devestationMetricData, _configLoader, _messageBoxService, _dailyLogger, _modDebug, _partySizeCalculatedSubject);
+            _patchManager = new PatchManager(_spawnDao, _configLoader, _messageBoxService, _partySizeCalculatedSubject);
             _safePassageBehaviour = new SafePassageBehaviour(_spawnDao);
             _spawnCheats = new SpawnCheats(_spawner, _spawnDao);
         }

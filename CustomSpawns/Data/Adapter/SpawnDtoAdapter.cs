@@ -7,7 +7,6 @@ using CustomSpawns.Data.Dto;
 using CustomSpawns.Data.Model;
 using CustomSpawns.Data.Reader.Impl;
 using CustomSpawns.Exception;
-using CustomSpawns.PartySpeed;
 using CustomSpawns.Utils;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
@@ -23,15 +22,13 @@ namespace CustomSpawns.Data.Adapter
         private readonly NameSignifierDataReader _nameSignifierDataReader;
         private readonly MBObjectManager _objectManager;
         private readonly CampaignObjectManager _campaignObjectManager;
-        private readonly PartySpeedContext _partySpeedContext;
 
         public SpawnDtoAdapter(NameSignifierDataReader nameSignifierDataReader, MBObjectManager objectManager,
-            CampaignObjectManager campaignObjectManager, PartySpeedContext partySpeedContext)
+            CampaignObjectManager campaignObjectManager)
         {
             _nameSignifierDataReader = nameSignifierDataReader;
             _objectManager = objectManager;
             _campaignObjectManager = campaignObjectManager;
-            _partySpeedContext = partySpeedContext;
         }
         
         public SpawnDto Adapt(Model.Spawn spawn)
@@ -131,18 +128,6 @@ namespace CustomSpawns.Data.Adapter
                 dat.PatrolAroundClosestLestInterruptedAndSwitch = new (null, patrolAroundConfig.MinStableDays, patrolAroundConfig.MinStableDays, patrolLocationTypes);
             }
 
-            // No ExtraLinearSpeed in DTO ?
-            _partySpeedContext.RegisterPartyExtraBonusSpeed(dat.PartyTemplate.StringId, spawn.ExtraLinearSpeed);
-
-            //handle base speed override
-            if (spawn.BaseSpeedOverride.HasValue)
-            {
-                _partySpeedContext.RegisterPartyBaseSpeed(dat.PartyTemplate.StringId, spawn.BaseSpeedOverride.Value);
-                dat.BaseSpeedOverride = spawn.BaseSpeedOverride.Value;
-            }
-            _partySpeedContext.RegisterPartyMinimumSpeed(dat.PartyTemplate.StringId, spawn.MinimumFinalSpeed);
-            _partySpeedContext.RegisterPartyMaximumSpeed(dat.PartyTemplate.StringId, spawn.MaximumFinalSpeed);
-
             //Spawn along with
             List<AccompanyingParty> supportingParties = new List<AccompanyingParty>(spawn.SupportingPartyTemplates.Count); 
             foreach (string partyTemplateId in spawn.SupportingPartyTemplates)
@@ -150,11 +135,6 @@ namespace CustomSpawns.Data.Adapter
                 PartyTemplateObject pt = FindPartyTemplate(partyTemplateId);
                 supportingParties.Add(new AccompanyingParty(pt, _nameSignifierDataReader.Data[pt.StringId].IdToName,
                     _nameSignifierDataReader.Data[pt.StringId].IdToFollowMainParty));
-                _partySpeedContext.RegisterPartyExtraBonusSpeed(pt.StringId, _nameSignifierDataReader.Data[pt.StringId].IdToSpeedModifier);
-                _partySpeedContext.RegisterPartyBaseSpeed(pt.StringId, _nameSignifierDataReader.Data[pt.StringId].IdToBaseSpeedOverride);
-                _partySpeedContext.RegisterPartyMinimumSpeed(pt.StringId, spawn.MinimumFinalSpeed);
-                _partySpeedContext.RegisterPartyMaximumSpeed(pt.StringId, spawn.MaximumFinalSpeed);
-
             }
             dat.SpawnAlongWith = new ReadOnlyCollection<AccompanyingParty>(supportingParties);
 
