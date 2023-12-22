@@ -13,8 +13,8 @@ namespace CustomSpawns.Utils
 {
     public class SpawnCheats
     {
-        private static SpawnDao _spawnDao;
-        private static Spawner _spawner;
+        private static SpawnDao? _spawnDao;
+        private static Spawner? _spawner;
         
         public SpawnCheats(Spawner spawner, SpawnDao spawnDao)
         {
@@ -25,6 +25,10 @@ namespace CustomSpawns.Utils
         [CommandLineFunctionality.CommandLineArgumentFunction("cs_spawn", "campaign")]
         public static string SpawnCustomSpawnParty(List<string> strings)
         {
+            if (_spawner == null || _spawnDao == null)
+            {
+                return "Error: CustomSpawns' dependencies are not initialised.";
+            }
             if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType))
             {
                 return CampaignCheats.ErrorType;

@@ -13,7 +13,7 @@ namespace CustomSpawns.Economics
     public static class PartyEconomicUtils
     {
 
-        public static void PartyReplenishFood(MobileParty mobileParty)
+        public static void PartyReplenishFood(MobileParty? mobileParty)
         {
             if (mobileParty is null)
             {
@@ -30,21 +30,12 @@ namespace CustomSpawns.Economics
                 .Where(s => s.IsVillage && (s.Village?.VillageType?.PrimaryProduction?.IsFood ?? false))
                 .ToList();
 
-            Settlement? localFoodProducerVillage = CampaignUtils.GetNearestSettlement(villageFoodProducers, new List<IMapPoint>(1)
+            Settlement? closestVillageFoodProducer = CampaignUtils.GetNearestSettlement(villageFoodProducers, new List<IMapPoint>(1)
             {
                 mobileParty
             });
-
-            ItemObject localFood;
-            if (localFoodProducerVillage != null)
-            {
-                localFood = localFoodProducerVillage.Village.VillageType.PrimaryProduction;   
-            }
-            else
-            {
-                localFood = DefaultItems.Grain;
-            }
-            int neededFood = (int) Math.Ceiling(2f * Math.Max(-mobileParty.FoodChange, 1f));
+            ItemObject localFood = closestVillageFoodProducer?.Village.VillageType.PrimaryProduction ?? DefaultItems.Grain;   
+            var neededFood = (int) Math.Ceiling(2f * Math.Max(-mobileParty.FoodChange, 1f));
             mobileParty.ItemRoster.AddToCounts(localFood, neededFood);
         }
 

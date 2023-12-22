@@ -1,4 +1,5 @@
 using System.Linq;
+using CustomSpawns.Spawn.PartyComponents;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Party.PartyComponents;
@@ -11,28 +12,28 @@ namespace CustomSpawns.Spawn
     {
         protected override MobileParty CreateParty(Settlement spawnedSettlement, Clan clan, PartyTemplateObject templateObject, TextObject partyName)
         {
-
+            Hero leader = clan.Leader; 
+            if (leader == null && clan.Heroes.Count > 0)
+            {
+                leader = clan.Heroes.First();
+            }
+            
             PartyComponent.OnPartyComponentCreatedDelegate initParty = party =>
             {
-                if (clan.Leader != null)
+                if (leader?.HomeSettlement == null)
                 {
-                    party.Party.SetCustomOwner(clan.Leader);
-                }
-                else if (clan.Heroes.Count > 0)
-                {
-                    party.Party.SetCustomOwner(clan.Heroes.First());
-                }
-
-                if (clan.Leader?.HomeSettlement == null)
-                {
-                    clan.UpdateHomeSettlement(spawnedSettlement);
+                    clan.UpdateHomeSettlement(spawnedSettlement); 
                 }
                 party.Party.SetVisualAsDirty();
+                party.Party.SetCustomOwner(leader);
                 party.SetCustomName(partyName);
                 party.ActualClan = clan;
                 party.SetCustomHomeSettlement(spawnedSettlement);
             };
-            return MobileParty.CreateParty(templateObject.StringId + "_" + 1, new CustomPartyComponent(), initParty);
+
+            var partyComponent = new CustomSpawnsPartyComponent(leader!, partyName, spawnedSettlement);
+            
+            return MobileParty.CreateParty(templateObject.StringId + "_" + 1, partyComponent, initParty);
         }
     }
 }

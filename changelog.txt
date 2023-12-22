@@ -10,6 +10,7 @@ Game Versions: v1.2.0,v1.2.1,v1.2.2,v1.2.3,v1.2.4,v1.2.5,v1.2.6,v1.2.7,v1.2.8
 * Feature: Add a random positive modifier to rewarded items.
 * Feature: Enable partial module translation (support for English and Japanese language).
 * Improvement: Spawned parties' now use the game's speed model and are therefore affected by all speed modifiers (forest, night, prisoners...)
+* Improvement: Spawned parties now count in their respective faction's strength. The clan encyclopedia reflects this change.
 * Improvement (Reward API): If the chance value is not set, then the item drop is guaranteed.
 * Fix: The rewards now work as intended.
 * Fix: The nearest settlement name is now correctly displayed in the party death message.
