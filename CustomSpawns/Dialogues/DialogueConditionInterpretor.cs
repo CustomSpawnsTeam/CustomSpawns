@@ -314,7 +314,9 @@ namespace CustomSpawns.Dialogues
         [DialogueConditionImplementor("IsHostile")]
         private static bool IsHostile(DialogueParams param)
         {
-            if (param.AdversaryParty == null)
+            // added a null check for the MapFaction to address a crash from npcs that are created by SaS for random events
+            // can also rarely occur with the weaponsmith, nobles
+            if (param.AdversaryParty == null || param.AdversaryParty.MapFaction == null)
                 return false;
 
             return param.AdversaryParty.MapFaction.IsAtWarWith(param.PlayerParty.MapFaction);
