@@ -283,7 +283,7 @@ namespace CustomSpawns.Dialogues
         [DialogueConditionImplementor("PartyIsInFaction")]
         private static bool PartyIsInFaction(DialogueParams param, string factionID)
         {
-            if (param.AdversaryParty == null)
+            if (param.AdversaryParty == null || param.AdversaryParty.MapFaction == null)
                 return false;
 
             return param.AdversaryParty.MapFaction.StringId.ToString() == factionID;
@@ -304,7 +304,7 @@ namespace CustomSpawns.Dialogues
         [DialogueConditionImplementor("IsFriendly")]
         private static bool IsFriendly(DialogueParams param)
         {
-            if (param.AdversaryParty == null)
+            if (param.AdversaryParty == null || param.AdversaryParty.MapFaction == null)
                 return false;
 
             return !param.AdversaryParty.MapFaction.IsAtWarWith(param.PlayerParty.MapFaction);
