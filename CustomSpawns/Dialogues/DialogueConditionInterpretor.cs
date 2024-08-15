@@ -283,7 +283,7 @@ namespace CustomSpawns.Dialogues
         [DialogueConditionImplementor("PartyIsInFaction")]
         private static bool PartyIsInFaction(DialogueParams param, string factionID)
         {
-            if (param.AdversaryParty == null)
+            if (param.AdversaryParty == null || param.AdversaryParty.MapFaction == null)
                 return false;
 
             return param.AdversaryParty.MapFaction.StringId.ToString() == factionID;
@@ -304,7 +304,7 @@ namespace CustomSpawns.Dialogues
         [DialogueConditionImplementor("IsFriendly")]
         private static bool IsFriendly(DialogueParams param)
         {
-            if (param.AdversaryParty == null)
+            if (param.AdversaryParty == null || param.AdversaryParty.MapFaction == null)
                 return false;
 
             return !param.AdversaryParty.MapFaction.IsAtWarWith(param.PlayerParty.MapFaction);
@@ -314,7 +314,9 @@ namespace CustomSpawns.Dialogues
         [DialogueConditionImplementor("IsHostile")]
         private static bool IsHostile(DialogueParams param)
         {
-            if (param.AdversaryParty == null)
+            // added a null check for the MapFaction to address a crash from npcs that are created by SaS for random events
+            // can also rarely occur with the weaponsmith, nobles
+            if (param.AdversaryParty == null || param.AdversaryParty.MapFaction == null)
                 return false;
 
             return param.AdversaryParty.MapFaction.IsAtWarWith(param.PlayerParty.MapFaction);
