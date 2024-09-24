@@ -61,6 +61,7 @@ namespace CustomSpawns.Utils
                 return "Could not find any settlements to spawn " + strings[0] + ".";
             }
             _spawner.SpawnParty(settlement, spawn.SpawnClan, spawn.PartyTemplate);
+            spawn.SpawnAlongWith.ToList().ForEach(subSpawn => _spawner.SpawnParty(settlement, spawn.SpawnClan, subSpawn.templateObject));
             return "Party " + strings[0] + " spawned at " + settlement.Name;
         }
     }
