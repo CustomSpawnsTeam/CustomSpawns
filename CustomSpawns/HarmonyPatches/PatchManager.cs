@@ -44,7 +44,6 @@ namespace CustomSpawns.HarmonyPatches
                 {
                     // new RemovePartyTrackersFromNonBanditPartiesPatch(_spawnDao),
                     new PartySizeModelPatch(_partySizeCalculatedSubject),
-                    new MapScreenPatch(_configLoader),
                     new GetUnitValueForFactionPatch(_spawnDao)
                 };
 
