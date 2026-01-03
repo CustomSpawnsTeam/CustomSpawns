@@ -68,8 +68,8 @@ namespace CustomSpawns.Data.Model
         [DefaultValue(0f), XmlElement(ElementName = "MinimumNumberOfDaysUntilSpawn")]
         public int MinimumNumberOfDaysUntilSpawn { get; set; }
 
-        [DefaultValue(true), XmlElement(ElementName = "AttackClosestIfIdleForADay")]
-        public bool AttackClosestIfIdleForADay { get; set; } = true;
+        [DefaultValue(false), XmlElement(ElementName = "AttackClosestIfIdleForADay")]
+        public bool AttackClosestIfIdleForADay { get; set; }
 
         [DefaultValue(""), XmlElement(ElementName = "TrySpawnAt")]
         public string TrySpawnAt { get; set; } = "";
