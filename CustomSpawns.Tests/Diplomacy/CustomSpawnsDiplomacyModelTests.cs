@@ -67,89 +67,92 @@ namespace CustomSpawns.Tests.Diplomacy
             return attacker.Object;
         }
         
-        private CustomSpawnsClanDiplomacyModel InitModel(Dictionary<string, Data.Model.Diplomacy> data) 
+        private CustomSpawnsClanDiplomacyProvider InitModel(Dictionary<string, Data.Model.Diplomacy> data) 
         {
-            var clanKingdomTrackable = new Mock<IClanKingdom>();
-            var diplomacyModel = new Mock<IDiplomacyActionModel>();
+            var clanKingdomTrackable = new Mock<ISuzerainProvider>();
+            // var diplomacyModel = new Mock<IFactionDiplomacyProvider>();
             var dataManager = new Mock<IDataReader<Dictionary<string,Data.Model.Diplomacy>>>();
             dataManager.Setup(manager => manager.Data).Returns(data);
-            return new CustomSpawnsClanDiplomacyModel(clanKingdomTrackable.Object, diplomacyModel.Object, dataManager.Object);
+            // return new CustomSpawnsClanDiplomacyProvider(clanKingdomTrackable.Object, diplomacyModel.Object, dataManager.Object);
+            return new CustomSpawnsClanDiplomacyProvider(clanKingdomTrackable.Object, dataManager.Object);
         }
         
-        private CustomSpawnsClanDiplomacyModel InitModel(IDiplomacyActionModel model, Dictionary<string, Data.Model.Diplomacy> data)
+        private CustomSpawnsClanDiplomacyProvider InitModel(IFactionDiplomacyProvider model, Dictionary<string, Data.Model.Diplomacy> data)
         {
-            var clanKingdomTrackable = new Mock<IClanKingdom>();
+            var clanKingdomTrackable = new Mock<ISuzerainProvider>();
             var dataManager = new Mock<IDataReader<Dictionary<string,Data.Model.Diplomacy>>>();
             dataManager.Setup(manager => manager.Data).Returns(data);
-            return new CustomSpawnsClanDiplomacyModel(clanKingdomTrackable.Object, model, dataManager.Object);
+            // return new CustomSpawnsClanDiplomacyProvider(clanKingdomTrackable.Object, model, dataManager.Object);
+            return new CustomSpawnsClanDiplomacyProvider(clanKingdomTrackable.Object, dataManager.Object);
         }
         
-        private CustomSpawnsClanDiplomacyModel InitModel(IClanKingdom clanKingdom, IDiplomacyActionModel diplomacyAction, Dictionary<string, Data.Model.Diplomacy> data)
+        private CustomSpawnsClanDiplomacyProvider InitModel(ISuzerainProvider suzerainProvider, IFactionDiplomacyProvider factionDiplomacyAction, Dictionary<string, Data.Model.Diplomacy> data)
         {
             var dataManager = new Mock<IDataReader<Dictionary<string,Data.Model.Diplomacy>>>();
             dataManager.Setup(manager => manager.Data).Returns(data);
-            return new CustomSpawnsClanDiplomacyModel(clanKingdom, diplomacyAction, dataManager.Object);
+            // return new CustomSpawnsClanDiplomacyProvider(suzerainProvider, factionDiplomacyAction, dataManager.Object);
+            return new CustomSpawnsClanDiplomacyProvider(suzerainProvider, dataManager.Object);
         }
         
-        private CustomSpawnsClanDiplomacyModel InitModelWithInitialFactionDiplomacy(Dictionary<string, Data.Model.Diplomacy> data, bool atWar)
+        private CustomSpawnsClanDiplomacyProvider InitModelWithInitialFactionDiplomacy(Dictionary<string, Data.Model.Diplomacy> data, bool atWar)
         {
-            var diplomacyActionModel = new Mock<IDiplomacyActionModel>();
+            var diplomacyActionModel = new Mock<IFactionDiplomacyProvider>();
             diplomacyActionModel.Setup(diplomacyModel => diplomacyModel.IsAtWar(It.IsAny<IFaction>(), It.IsAny<IFaction>())).Returns(atWar);
             return InitModel(diplomacyActionModel.Object, data);
         }
 
-        private CustomSpawnsClanDiplomacyModel InitModelWithTogglableWarAndClansNotPartOfAKingdom(Dictionary<string, Data.Model.Diplomacy> data, bool atWar)
+        private CustomSpawnsClanDiplomacyProvider InitModelWithTogglableWarAndClansNotPartOfAKingdom(Dictionary<string, Data.Model.Diplomacy> data, bool atWar)
         {
-            var diplomacyActionModel = new Mock<IDiplomacyActionModel>();
+            var diplomacyActionModel = new Mock<IFactionDiplomacyProvider>();
             diplomacyActionModel.Setup(diplomacyModel => diplomacyModel.IsAtWar(It.IsAny<IFaction>(), It.IsAny<IFaction>())).Returns(atWar);
-            var clanKingdomTrackable = new Mock<IClanKingdom>();
-            clanKingdomTrackable.Setup(model => model.IsPartOfAKingdom(It.IsAny<IFaction>())).Returns(false);
+            var clanKingdomTrackable = new Mock<ISuzerainProvider>();
+            clanKingdomTrackable.Setup(model => model.IsVassal(It.IsAny<IFaction>())).Returns(false);
             return InitModel(clanKingdomTrackable.Object, diplomacyActionModel.Object, data);
         }
         
-        private CustomSpawnsClanDiplomacyModel InitModelWithTogglableWarAndAttackerNotInAKingdomAndWarTargetInAKingdom(Dictionary<string, Data.Model.Diplomacy> data, bool atWar)
+        private CustomSpawnsClanDiplomacyProvider InitModelWithTogglableWarAndAttackerNotInAKingdomAndWarTargetInAKingdom(Dictionary<string, Data.Model.Diplomacy> data, bool atWar)
         {
-            var diplomacyActionModel = new Mock<IDiplomacyActionModel>();
+            var diplomacyActionModel = new Mock<IFactionDiplomacyProvider>();
             diplomacyActionModel.Setup(diplomacyModel => diplomacyModel.IsAtWar(It.IsAny<IFaction>(), It.IsAny<IFaction>())).Returns(atWar);
-            var clanKingdomTrackable = new Mock<IClanKingdom>();
-            clanKingdomTrackable.Setup(model => model.IsPartOfAKingdom(It.Is<IFaction>(faction => faction.StringId.Equals(ATTACKER_CLAN_ID)))).Returns(false);
-            clanKingdomTrackable.Setup(model => model.IsPartOfAKingdom(It.Is<IFaction>(faction => faction.StringId.Equals(WAR_TARGET_CLAN_ID)))).Returns(true);
-            clanKingdomTrackable.Setup(model => model.Kingdom(It.Is<IFaction>(faction => faction.StringId.Equals(WAR_TARGET_CLAN_ID)))).Returns(ValidKingdom("vlandia"));
+            var clanKingdomTrackable = new Mock<ISuzerainProvider>();
+            clanKingdomTrackable.Setup(model => model.IsVassal(It.Is<IFaction>(faction => faction.StringId.Equals(ATTACKER_CLAN_ID)))).Returns(false);
+            clanKingdomTrackable.Setup(model => model.IsVassal(It.Is<IFaction>(faction => faction.StringId.Equals(WAR_TARGET_CLAN_ID)))).Returns(true);
+            clanKingdomTrackable.Setup(model => model.GetSuzerain(It.Is<IFaction>(faction => faction.StringId.Equals(WAR_TARGET_CLAN_ID)))).Returns(ValidKingdom("vlandia"));
             return InitModel(clanKingdomTrackable.Object, diplomacyActionModel.Object, data);
         }
 
-        private CustomSpawnsClanDiplomacyModel InitModelWithTogglableWarAndAttackerAndWarTargetInADifferentKingdom(Dictionary<string, Data.Model.Diplomacy> data, bool atWar)
+        private CustomSpawnsClanDiplomacyProvider InitModelWithTogglableWarAndAttackerAndWarTargetInADifferentKingdom(Dictionary<string, Data.Model.Diplomacy> data, bool atWar)
         {
-            var diplomacyActionModel = new Mock<IDiplomacyActionModel>();
+            var diplomacyActionModel = new Mock<IFactionDiplomacyProvider>();
             diplomacyActionModel.Setup(diplomacyModel => diplomacyModel.IsAtWar(It.IsAny<IFaction>(), It.IsAny<IFaction>())).Returns(atWar);
-            var clanKingdomTrackable = new Mock<IClanKingdom>();
-            clanKingdomTrackable.Setup(model => model.IsPartOfAKingdom(It.Is<IFaction>(faction => faction.StringId.Equals(ATTACKER_CLAN_ID)))).Returns(true);
-            clanKingdomTrackable.Setup(model => model.IsPartOfAKingdom(It.Is<IFaction>(faction => faction.StringId.Equals(WAR_TARGET_CLAN_ID)))).Returns(true);
-            clanKingdomTrackable.Setup(model => model.Kingdom(It.Is<IFaction>(faction => faction.StringId.Equals(ATTACKER_CLAN_ID)))).Returns(ValidKingdom("aserai"));
-            clanKingdomTrackable.Setup(model => model.Kingdom(It.Is<IFaction>(faction => faction.StringId.Equals(WAR_TARGET_CLAN_ID)))).Returns(ValidKingdom("vlandia"));
+            var clanKingdomTrackable = new Mock<ISuzerainProvider>();
+            clanKingdomTrackable.Setup(model => model.IsVassal(It.Is<IFaction>(faction => faction.StringId.Equals(ATTACKER_CLAN_ID)))).Returns(true);
+            clanKingdomTrackable.Setup(model => model.IsVassal(It.Is<IFaction>(faction => faction.StringId.Equals(WAR_TARGET_CLAN_ID)))).Returns(true);
+            clanKingdomTrackable.Setup(model => model.GetSuzerain(It.Is<IFaction>(faction => faction.StringId.Equals(ATTACKER_CLAN_ID)))).Returns(ValidKingdom("aserai"));
+            clanKingdomTrackable.Setup(model => model.GetSuzerain(It.Is<IFaction>(faction => faction.StringId.Equals(WAR_TARGET_CLAN_ID)))).Returns(ValidKingdom("vlandia"));
             return InitModel(clanKingdomTrackable.Object, diplomacyActionModel.Object, data);
         }
         
-        private CustomSpawnsClanDiplomacyModel InitModelWithTogglableWarAndAttackerAndWarTargetInSameKingdom(Dictionary<string, Data.Model.Diplomacy> data, bool atWar)
+        private CustomSpawnsClanDiplomacyProvider InitModelWithTogglableWarAndAttackerAndWarTargetInSameKingdom(Dictionary<string, Data.Model.Diplomacy> data, bool atWar)
         {
-            var diplomacyActionModel = new Mock<IDiplomacyActionModel>();
+            var diplomacyActionModel = new Mock<IFactionDiplomacyProvider>();
             diplomacyActionModel.Setup(diplomacyModel => diplomacyModel.IsAtWar(It.IsAny<IFaction>(), It.IsAny<IFaction>())).Returns(atWar);
-            var clanKingdomTrackable = new Mock<IClanKingdom>();
-            clanKingdomTrackable.Setup(model => model.IsPartOfAKingdom(It.Is<IFaction>(faction => faction.StringId.Equals(ATTACKER_CLAN_ID)))).Returns(true);
-            clanKingdomTrackable.Setup(model => model.IsPartOfAKingdom(It.Is<IFaction>(faction => faction.StringId.Equals(WAR_TARGET_CLAN_ID)))).Returns(true);
-            clanKingdomTrackable.Setup(model => model.Kingdom(It.Is<IFaction>(faction => faction.StringId.Equals(ATTACKER_CLAN_ID)))).Returns(ValidKingdom("vlandia"));
-            clanKingdomTrackable.Setup(model => model.Kingdom(It.Is<IFaction>(faction => faction.StringId.Equals(WAR_TARGET_CLAN_ID)))).Returns(ValidKingdom("vlandia"));
+            var clanKingdomTrackable = new Mock<ISuzerainProvider>();
+            clanKingdomTrackable.Setup(model => model.IsVassal(It.Is<IFaction>(faction => faction.StringId.Equals(ATTACKER_CLAN_ID)))).Returns(true);
+            clanKingdomTrackable.Setup(model => model.IsVassal(It.Is<IFaction>(faction => faction.StringId.Equals(WAR_TARGET_CLAN_ID)))).Returns(true);
+            clanKingdomTrackable.Setup(model => model.GetSuzerain(It.Is<IFaction>(faction => faction.StringId.Equals(ATTACKER_CLAN_ID)))).Returns(ValidKingdom("vlandia"));
+            clanKingdomTrackable.Setup(model => model.GetSuzerain(It.Is<IFaction>(faction => faction.StringId.Equals(WAR_TARGET_CLAN_ID)))).Returns(ValidKingdom("vlandia"));
             return InitModel(clanKingdomTrackable.Object, diplomacyActionModel.Object, data);
         }
         
-        private CustomSpawnsClanDiplomacyModel InitModelWithTogglableWarAndAttackerInAKingdomAndWarTargetNotInAKingdom(Dictionary<string, Data.Model.Diplomacy> data, bool atWar)
+        private CustomSpawnsClanDiplomacyProvider InitModelWithTogglableWarAndAttackerInAKingdomAndWarTargetNotInAKingdom(Dictionary<string, Data.Model.Diplomacy> data, bool atWar)
         {
-            var diplomacyActionModel = new Mock<IDiplomacyActionModel>();
+            var diplomacyActionModel = new Mock<IFactionDiplomacyProvider>();
             diplomacyActionModel.Setup(diplomacyModel => diplomacyModel.IsAtWar(It.IsAny<IFaction>(), It.IsAny<IFaction>())).Returns(atWar);
-            var clanKingdomTrackable = new Mock<IClanKingdom>();
-            clanKingdomTrackable.Setup(model => model.IsPartOfAKingdom(It.Is<IFaction>(faction => faction.StringId.Equals(ATTACKER_CLAN_ID)))).Returns(true);
-            clanKingdomTrackable.Setup(model => model.IsPartOfAKingdom(It.Is<IFaction>(faction => faction.StringId.Equals(WAR_TARGET_CLAN_ID)))).Returns(false);
-            clanKingdomTrackable.Setup(model => model.Kingdom(It.Is<IFaction>(faction => faction.StringId.Equals(ATTACKER_CLAN_ID)))).Returns(ValidKingdom("vlandia"));
+            var clanKingdomTrackable = new Mock<ISuzerainProvider>();
+            clanKingdomTrackable.Setup(model => model.IsVassal(It.Is<IFaction>(faction => faction.StringId.Equals(ATTACKER_CLAN_ID)))).Returns(true);
+            clanKingdomTrackable.Setup(model => model.IsVassal(It.Is<IFaction>(faction => faction.StringId.Equals(WAR_TARGET_CLAN_ID)))).Returns(false);
+            clanKingdomTrackable.Setup(model => model.GetSuzerain(It.Is<IFaction>(faction => faction.StringId.Equals(ATTACKER_CLAN_ID)))).Returns(ValidKingdom("vlandia"));
             return InitModel(clanKingdomTrackable.Object, diplomacyActionModel.Object, data);
         }
 

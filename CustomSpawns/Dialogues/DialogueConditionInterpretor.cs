@@ -371,7 +371,7 @@ namespace CustomSpawns.Dialogues
         [DialogueConditionImplementor("IsFreedHeroEncounter")]
         private static bool IsFreedHeroEncounter(DialogueParams param)
         {
-            return Campaign.Current.CurrentConversationContext.Equals(ConversationContext.FreedHero);
+            return Campaign.Current.CurrentConversationContext.Equals(ConversationContext.FreeOrCapturePrisonerHero);
         }
 
         [DialogueConditionImplementor("IsCapturedLordEncounter")]

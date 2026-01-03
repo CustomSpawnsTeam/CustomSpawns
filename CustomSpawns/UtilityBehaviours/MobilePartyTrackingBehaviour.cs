@@ -6,7 +6,7 @@ using TaleWorlds.CampaignSystem.Settlements;
 
 namespace CustomSpawns.UtilityBehaviours
 {
-    class MobilePartyTrackingBehaviour: CampaignBehaviorBase
+    public class MobilePartyTrackingBehaviour: CampaignBehaviorBase
     {
         private readonly ModDebug _modDebug;
 

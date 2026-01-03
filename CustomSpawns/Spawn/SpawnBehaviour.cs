@@ -208,7 +208,7 @@ namespace CustomSpawns.Spawn
                 {
                     for (int i = 0; i < spawn.RepeatSpawnRolls; i++)
                     {
-                        if (_numberOfSpawns[spawn.PartyTemplate.StringId] <= spawn.MaximumOnMap && (spawn.MinimumNumberOfDaysUntilSpawn < (int)Math.Ceiling(Campaign.Current.CampaignStartTime.ElapsedDaysUntilNow)))
+                        if (_numberOfSpawns[spawn.PartyTemplate.StringId] <= spawn.MaximumOnMap && (spawn.MinimumNumberOfDaysUntilSpawn < (int)Math.Ceiling(Campaign.Current.Models.CampaignTimeModel.CampaignStartTime.ElapsedDaysUntilNow)))
                         {
                             float currentChanceOfSpawn = ComputeChanceSpawn(spawn);
                             if (!_configLoader.Config.IsAllSpawnMode && 

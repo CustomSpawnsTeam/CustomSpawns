@@ -33,5 +33,15 @@ namespace CustomSpawns.Spawn.PartyComponents
          * This is the settlement the party has spawned at.
          */
         public override Settlement HomeSettlement { get; }
+        
+        protected override void OnMobilePartySetOnCreation()
+        {
+            MobileParty.ActualClan = PartyOwner.Clan;
+            MobileParty.Party.SetCustomOwner(PartyOwner);
+            MobileParty.Party.SetCustomName(Name);
+            MobileParty.SetCustomHomeSettlement(HomeSettlement);
+            MobileParty.ShouldJoinPlayerBattles = true;
+            MobileParty.Party.SetVisualAsDirty();
+        }
     }
 }

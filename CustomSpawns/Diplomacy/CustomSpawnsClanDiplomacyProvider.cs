@@ -4,18 +4,15 @@ using TaleWorlds.CampaignSystem;
 
 namespace CustomSpawns.Diplomacy
 {
-    public class CustomSpawnsClanDiplomacyModel
+    public class CustomSpawnsClanDiplomacyProvider
     {
-        private const string PlayerFactionId = "player_faction";
-        private readonly IClanKingdom _clanKingdom;
+        private readonly ISuzerainProvider _suzerainProvider;
         private readonly IDictionary<string, Data.Model.Diplomacy> _customSpawnsClanData;
-        private readonly IDiplomacyActionModel _diplomacyModel; 
 
-        public CustomSpawnsClanDiplomacyModel(IClanKingdom clanKingdom, IDiplomacyActionModel diplomacyModel, IDataReader<Dictionary<string,Data.Model.Diplomacy>> diplomacyDataReader)
+        public CustomSpawnsClanDiplomacyProvider(ISuzerainProvider suzerainProvider, IDataReader<Dictionary<string,Data.Model.Diplomacy>> diplomacyDataReader)
         {
-            _clanKingdom = clanKingdom;
+            _suzerainProvider = suzerainProvider;
             _customSpawnsClanData = diplomacyDataReader.Data;
-            _diplomacyModel = diplomacyModel;
         }
         
         /// <summary>
@@ -52,11 +49,6 @@ namespace CustomSpawns.Diplomacy
                 return false;
             }
 
-            if (IsPlayerActionAgainstCustomSpawnFaction(attacker, warTarget))
-            {
-                return false;
-            }
-            
             var hasAttackerForcedWarPeaceBehaviour = _customSpawnsClanData.ContainsKey(attacker.StringId) &&
                                                      _customSpawnsClanData[attacker.StringId].ForcedWarPeaceDataInstance != null;
             var hasWarTargetForcedWarPeaceBehaviour = _customSpawnsClanData.ContainsKey(warTarget.StringId) &&
@@ -84,7 +76,7 @@ namespace CustomSpawns.Diplomacy
         private bool IsCustomSpawnClanWarDeclarationPossible(IFaction? attacker, IFaction? warTarget)
         {
             if (attacker == null || warTarget == null || attacker == warTarget || attacker.IsEliminated || warTarget.IsEliminated ||
-                attacker.IsBanditFaction || warTarget.IsBanditFaction || GetHardCodedExceptionClans().Contains(attacker.StringId) || GetHardCodedExceptionClans().Contains(warTarget.StringId) || _diplomacyModel.IsAtWar(attacker, warTarget))
+                attacker.IsBanditFaction || warTarget.IsBanditFaction || GetHardCodedExceptionClans().Contains(attacker.StringId) || GetHardCodedExceptionClans().Contains(warTarget.StringId))
             {
                 return false;
             }
@@ -97,29 +89,29 @@ namespace CustomSpawns.Diplomacy
 
             var forcedWarPeaceInstance = _customSpawnsClanData[attacker.StringId].ForcedWarPeaceDataInstance!;
 
-            if (attacker.IsClan && !_clanKingdom.IsPartOfAKingdom(attacker))
+            if (attacker.IsClan && !_suzerainProvider.IsVassal(attacker))
             {
                 if(warTarget.IsKingdomFaction
                    && !forcedWarPeaceInstance.ExceptionKingdoms.Contains(warTarget.StringId)
                    || (warTarget.IsClan
-                       && _clanKingdom.IsPartOfAKingdom(warTarget)
-                       && !forcedWarPeaceInstance.ExceptionKingdoms.Contains(_clanKingdom.Kingdom(warTarget).StringId))
+                       && _suzerainProvider.IsVassal(warTarget)
+                       && !forcedWarPeaceInstance.ExceptionKingdoms.Contains(_suzerainProvider.GetSuzerain(warTarget).StringId))
                    || (warTarget.IsClan
                        && !forcedWarPeaceInstance.AtPeaceWithClans.Contains(warTarget.StringId))
-                       && !_clanKingdom.IsPartOfAKingdom(warTarget))
+                       && !_suzerainProvider.IsVassal(warTarget))
                 {
                     return true;
                 }   
             } else if (attacker.IsClan
-                       && _clanKingdom.IsPartOfAKingdom(attacker)
+                       && _suzerainProvider.IsVassal(attacker)
                        && warTarget.IsClan
-                       && _clanKingdom.IsPartOfAKingdom(warTarget)
-                       && !_clanKingdom.Kingdom(warTarget).StringId.Equals(_clanKingdom.Kingdom(attacker).StringId)
-                       && !forcedWarPeaceInstance.ExceptionKingdoms.Contains(_clanKingdom.Kingdom(warTarget).StringId)
+                       && _suzerainProvider.IsVassal(warTarget)
+                       && !_suzerainProvider.GetSuzerain(warTarget).StringId.Equals(_suzerainProvider.GetSuzerain(attacker).StringId)
+                       && !forcedWarPeaceInstance.ExceptionKingdoms.Contains(_suzerainProvider.GetSuzerain(warTarget).StringId)
                    || (attacker.IsClan
-                       && _clanKingdom.IsPartOfAKingdom(attacker)
+                       && _suzerainProvider.IsVassal(attacker)
                        && warTarget.IsClan
-                       && !_clanKingdom.IsPartOfAKingdom(warTarget)
+                       && !_suzerainProvider.IsVassal(warTarget)
                        && !forcedWarPeaceInstance.AtPeaceWithClans.Contains(warTarget.StringId)))
             {
                 return true;
@@ -165,11 +157,6 @@ namespace CustomSpawns.Diplomacy
                 return false;
             }
 
-            if (IsPlayerActionAgainstCustomSpawnFaction(attacker, peaceTarget))
-            {
-                return false;
-            }
-            
             var hasAttackerForcedWarPeaceBehaviour = _customSpawnsClanData.ContainsKey(attacker.StringId) &&
                                                      _customSpawnsClanData[attacker.StringId].ForcedWarPeaceDataInstance != null;
             var hasWarTargetForcedWarPeaceBehaviour = _customSpawnsClanData.ContainsKey(peaceTarget.StringId) &&
@@ -194,19 +181,10 @@ namespace CustomSpawns.Diplomacy
             return false;
         }
 
-        private bool IsPlayerActionAgainstCustomSpawnFaction(IFaction attacker, IFaction warTarget)
-        {
-            return _customSpawnsClanData.ContainsKey(warTarget.StringId)
-                && !_clanKingdom.IsPartOfAKingdom(warTarget)
-                && (attacker.StringId.Equals(PlayerFactionId) 
-                || attacker.IsKingdomFaction && attacker.Leader == Hero.MainHero);
-        }
-        
         private bool IsCustomSpawnsClanPeaceDeclarationPossible(IFaction? attacker, IFaction? peaceTarget)
         {
             if (attacker == null || peaceTarget == null || attacker == peaceTarget || attacker.IsEliminated || peaceTarget.IsEliminated ||
-                attacker.IsBanditFaction || peaceTarget.IsBanditFaction || GetHardCodedExceptionClans().Contains(attacker.StringId) || GetHardCodedExceptionClans().Contains(peaceTarget.StringId) ||
-                !_diplomacyModel.IsAtWar(attacker, peaceTarget))
+                attacker.IsBanditFaction || peaceTarget.IsBanditFaction || GetHardCodedExceptionClans().Contains(attacker.StringId) || GetHardCodedExceptionClans().Contains(peaceTarget.StringId))
             {
                 return false;
             }
@@ -219,30 +197,30 @@ namespace CustomSpawns.Diplomacy
             
             var forcedWarPeaceInstance = _customSpawnsClanData[attacker.StringId].ForcedWarPeaceDataInstance!;
 
-            if (attacker.IsClan && !_clanKingdom.IsPartOfAKingdom(attacker))
+            if (attacker.IsClan && !_suzerainProvider.IsVassal(attacker))
             {
                 if(peaceTarget.IsKingdomFaction
                    && forcedWarPeaceInstance.ExceptionKingdoms.Contains(peaceTarget.StringId)
                    || (peaceTarget.IsClan
-                       && _clanKingdom.IsPartOfAKingdom(peaceTarget)
-                       && forcedWarPeaceInstance.ExceptionKingdoms.Contains(_clanKingdom.Kingdom(peaceTarget).StringId))
+                       && _suzerainProvider.IsVassal(peaceTarget)
+                       && forcedWarPeaceInstance.ExceptionKingdoms.Contains(_suzerainProvider.GetSuzerain(peaceTarget).StringId))
                    || (peaceTarget.IsClan
                        && forcedWarPeaceInstance.AtPeaceWithClans.Contains(peaceTarget.StringId)
-                       && !_clanKingdom.IsPartOfAKingdom(peaceTarget)))
+                       && !_suzerainProvider.IsVassal(peaceTarget)))
                 {
                     return true;
                 }   
             } else if (attacker.IsClan
-                       && _clanKingdom.IsPartOfAKingdom(attacker)
+                       && _suzerainProvider.IsVassal(attacker)
                        && peaceTarget.IsClan
-                       && _clanKingdom.IsPartOfAKingdom(peaceTarget)
-                       && (_clanKingdom.Kingdom(peaceTarget).StringId.Equals(_clanKingdom.Kingdom(attacker).StringId)
-                       || !_clanKingdom.Kingdom(peaceTarget).StringId.Equals(_clanKingdom.Kingdom(attacker).StringId)
-                       && forcedWarPeaceInstance.ExceptionKingdoms.Contains(_clanKingdom.Kingdom(peaceTarget).StringId))
+                       && _suzerainProvider.IsVassal(peaceTarget)
+                       && (_suzerainProvider.GetSuzerain(peaceTarget).StringId.Equals(_suzerainProvider.GetSuzerain(attacker).StringId)
+                       || !_suzerainProvider.GetSuzerain(peaceTarget).StringId.Equals(_suzerainProvider.GetSuzerain(attacker).StringId)
+                       && forcedWarPeaceInstance.ExceptionKingdoms.Contains(_suzerainProvider.GetSuzerain(peaceTarget).StringId))
                    || (attacker.IsClan
-                       && _clanKingdom.IsPartOfAKingdom(attacker)
+                       && _suzerainProvider.IsVassal(attacker)
                        && peaceTarget.IsClan
-                       && !_clanKingdom.IsPartOfAKingdom(peaceTarget)
+                       && !_suzerainProvider.IsVassal(peaceTarget)
                        && forcedWarPeaceInstance.AtPeaceWithClans.Contains(peaceTarget.StringId)))
             {
                 return true;

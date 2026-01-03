@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using CustomSpawns.Utils;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
@@ -48,7 +49,7 @@ namespace CustomSpawns.AI
                          patroller.patrollerParty.ShortTermBehavior == AiBehavior.JoinParty || patroller.patrollerParty.ShortTermBehavior == AiBehavior.FleeToPoint;
                 if (!isPreOccupied)
                 {
-                    patroller.patrollerParty.Ai.SetMovePatrolAroundSettlement(patroller.patrolledSettlement);
+                    patroller.patrollerParty.SetMovePatrolAroundSettlement(patroller.patrolledSettlement, MobileParty.NavigationType.Default, isTargetingPort: false);
                 }
             }
             for (int i = 0; i < toRemove.Count; i++){

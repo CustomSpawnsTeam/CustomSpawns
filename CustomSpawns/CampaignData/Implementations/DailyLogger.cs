@@ -14,7 +14,7 @@ using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Library;
 
 namespace CustomSpawns.CampaignData.Implementations { 
-    class DailyLogger : CampaignBehaviorBase
+    public class DailyLogger : CampaignBehaviorBase
     {
         private PlatformFilePath _sessionLogFile;
         private int _dayCount;
@@ -59,7 +59,7 @@ namespace CustomSpawns.CampaignData.Implementations {
 
         private void OnAfterDailyTick()
         {
-            _dayCount = (int)Campaign.Current.CampaignStartTime.ElapsedDaysUntilNow;
+            _dayCount = (int)Campaign.Current.Models.CampaignTimeModel.CampaignStartTime.ElapsedDaysUntilNow;
         }
 
         public void Info(String s)
@@ -121,11 +121,12 @@ namespace CustomSpawns.CampaignData.Implementations {
 
         public void ReportSpawn(MobileParty spawned, float chanceOfSpawnBeforeSpawn)
         {
-            if (spawned.Party.TotalStrength < _config.MinimumSpawnLogValue || chanceOfSpawnBeforeSpawn > _config.MinimumRarityToLog)
+            float spawnedPartyStrength = spawned.Party.CalculateCurrentStrength();
+            if (spawnedPartyStrength < _config.MinimumSpawnLogValue || chanceOfSpawnBeforeSpawn > _config.MinimumRarityToLog)
                 return;
 
             string msg = "New Spawn: " + spawned.StringId +
-                "\nTotal Strength:" + spawned.Party.TotalStrength +
+                "\nTotal Strength:" + spawnedPartyStrength +
                 "\nChance of Spawn: " + chanceOfSpawnBeforeSpawn;
 
             string? partyTemplateId = _dynamicSpawnData.GetDynamicSpawnData(spawned)?.PartyTemplateId;

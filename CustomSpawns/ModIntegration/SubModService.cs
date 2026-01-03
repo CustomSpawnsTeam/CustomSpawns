@@ -2,6 +2,7 @@
 using System.IO;
 using System.Xml;
 using CustomSpawns.Utils;
+using TaleWorlds.ModuleManager;
 
 namespace CustomSpawns.ModIntegration
 {
@@ -24,7 +25,7 @@ namespace CustomSpawns.ModIntegration
             List<SubMod> subMods = new();
             foreach (string path in TaleWorlds.Engine.Utilities.GetModulesNames())
             {
-                string loadedModule = TaleWorlds.Engine.Utilities.GetFullModulePath(path);
+                string loadedModule = ModuleHelper.GetModuleFullPath(path);
                 string subModDefinitionPath = Path.Combine(loadedModule, "CustomSpawns", "CustomSpawnsSubMod.xml");
                 if (!File.Exists(Path.Combine(loadedModule, "Submodule.xml")) || !File.Exists(subModDefinitionPath))
                 {
@@ -49,7 +50,7 @@ namespace CustomSpawns.ModIntegration
 
         public string GetCustomSpawnsModule()
         {
-            return TaleWorlds.Engine.Utilities.GetFullModulePath(Main.ModuleName);
+            return ModuleHelper.GetModuleFullPath(Main.ModuleName);
         }
     }
 }

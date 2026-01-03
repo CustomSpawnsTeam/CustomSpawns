@@ -11,7 +11,7 @@ using TaleWorlds.Localization;
 
 namespace CustomSpawns.CampaignData.Implementations
 {
-    class DevestationMetricData : CampaignBehaviorBase
+    public class DevestationMetricData : CampaignBehaviorBase
     {
 
         private Dictionary<Settlement, float> _settlementToDevestation = new();
@@ -123,17 +123,18 @@ namespace CustomSpawns.CampaignData.Implementations
 
             foreach (var mb in presentInDay)
             {
+                float partyStrength = mb.Party.CalculateCurrentStrength();
                 if (mb.IsBandit)
                 {
-                    hostileDecay += _config.HostilePresencePerPowerDaily * mb.Party.TotalStrength;
+                    hostileDecay += _config.HostilePresencePerPowerDaily * partyStrength;
                 }
                 else if (s.OwnerClan.MapFaction.IsAtWarWith(mb.Party.MapFaction))
                 {
-                    hostileDecay += _config.HostilePresencePerPowerDaily * mb.Party.TotalStrength;
+                    hostileDecay += _config.HostilePresencePerPowerDaily * partyStrength;
                 }
                 else if (s.OwnerClan.MapFaction == mb.Party.MapFaction)
                 {
-                    friendlyGain += _config.FriendlyPresenceDecayPerPowerDaily * mb.Party.TotalStrength;
+                    friendlyGain += _config.FriendlyPresenceDecayPerPowerDaily * partyStrength;
                 }
             }
 

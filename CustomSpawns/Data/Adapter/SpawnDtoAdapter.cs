@@ -62,7 +62,7 @@ namespace CustomSpawns.Data.Adapter
 
             dat.OverridenSpawnCultures = spawn.OverridenCultureSpawns
                 .Where(id => !string.IsNullOrWhiteSpace(id))
-                .Select(id => FindCulture(id).GetCultureCode())
+                .Select(id => FindCulture(id))
                 .ToList();
 
             dat.OverridenSpawnSettlements = spawn.OverridenSettlementSpawns
@@ -180,7 +180,7 @@ namespace CustomSpawns.Data.Adapter
             Kingdom? kingdom = FindObject<Kingdom>(factionId);
             if (kingdom == null)
             {
-                throw new ArgumentException("Kingdom " + factionId + " is not defined. You have to add this kingdom via xml or use an existing kingdom.");
+                throw new ArgumentException("GetSuzerain " + factionId + " is not defined. You have to add this kingdom via xml or use an existing kingdom.");
             }
             return kingdom;
         }

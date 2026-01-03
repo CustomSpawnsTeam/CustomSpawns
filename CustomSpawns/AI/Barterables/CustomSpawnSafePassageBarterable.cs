@@ -20,16 +20,16 @@ namespace CustomSpawns.AI.Barterables
             {
                 OriginalParty.MobileParty
             };
-            PlayerEncounter.Current.FindAllNpcPartiesWhoWillJoinEvent(ref partiesToJoinPlayerSide, ref partiesToJoinEnemySide);
+            PlayerEncounter.Current.FindAllNpcPartiesWhoWillJoinEvent(partiesToJoinPlayerSide, partiesToJoinEnemySide);
             foreach (MobileParty mobileParty in partiesToJoinEnemySide)
             {
                 mobileParty.Ai.SetDoNotAttackMainParty(16);
-                mobileParty.Ai.SetMoveModeHold();
+                mobileParty.SetMoveModeHold();
                 mobileParty.IgnoreForHours(16f);
                 mobileParty.Ai.SetInitiative(0.0f, 0.8f, 8f);
             }
             PlayerEncounter.LeaveEncounter = true;
-            OriginalParty.MobileParty.Ai.SetMoveModeHold();
+            OriginalParty.MobileParty.SetMoveModeHold();
         }
     }
 }

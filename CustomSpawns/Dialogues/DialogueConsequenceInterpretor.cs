@@ -20,13 +20,13 @@ namespace CustomSpawns.Dialogues
 {
     public class DialogueConsequenceInterpretor
     {
-        private static IDiplomacyActionModel _diplomacyModel;
+        private static IFactionDiplomacyProvider _factionDiplomacyModel;
         private static MessageBoxService _messageBoxService;
 
         // TODO properly manage dependencies but all managers are static and are singletons which makes it difficult to manage
-        public DialogueConsequenceInterpretor(IDiplomacyActionModel model, MessageBoxService messageBoxService)
+        public DialogueConsequenceInterpretor(IFactionDiplomacyProvider model, MessageBoxService messageBoxService)
         {
-            _diplomacyModel = model;
+            _factionDiplomacyModel = model;
             _messageBoxService = messageBoxService;
             allMethods = typeof(DialogueConsequenceInterpretor).GetMethods(BindingFlags.Static | BindingFlags.NonPublic).
                 Where((m) => m.GetCustomAttributes(typeof(DialogueConsequenceImplementorAttribute), false).Count() > 0).ToList();
@@ -266,7 +266,7 @@ namespace CustomSpawns.Dialogues
                 return;
             }
 
-            PlayerEncounter.Current.IsEnemy = true;
+            BeHostileAction.ApplyEncounterHostileAction(PartyBase.MainParty, MobileParty.ConversationParty.Party);
         }
 
         [DialogueConsequenceImplementorAttribute("War")]
@@ -306,7 +306,8 @@ namespace CustomSpawns.Dialogues
             else if (isPlayer == "false")
             {   //Interestingly, PlayerEncounter.EnemySurrender = true; results in a null reference crash.
                 param.PlayerParty.Party.AddPrisoners(param.AdversaryParty.Party.MemberRoster);
-                param.AdversaryParty.RemoveParty();
+                
+                DestroyPartyAction.Apply(param.PlayerParty.Party, param.AdversaryParty);
                 UX.ShowMessage(new TextObject("{=SpawnAPIMsg001}You have taken your enemies prisoner.").ToString(), TaleWorlds.Library.Colors.Green);
                 end_conversation_consequence_delegate(param);
             }

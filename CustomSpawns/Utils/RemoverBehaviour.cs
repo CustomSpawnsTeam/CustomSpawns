@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Library;
 
@@ -72,7 +73,7 @@ namespace CustomSpawns.Utils
                     removed = false;
                 }
                 UX.ShowMessage("CustomSpawns: removing " + toBeRemoved[i].StringId, Color.ConvertStringToColor("#001FFFFF"));
-                toBeRemoved[i].RemoveParty();
+                DestroyPartyAction.Apply(MobileParty.MainParty.Party, toBeRemoved[i]);
             }
             if(removed)
                 UX.ShowMessage("CustomSpawns is now safe to remove from your game.", Color.ConvertStringToColor("#001FFFFF"));

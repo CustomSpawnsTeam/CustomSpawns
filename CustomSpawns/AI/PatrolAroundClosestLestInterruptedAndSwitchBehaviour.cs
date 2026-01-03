@@ -60,7 +60,7 @@ namespace CustomSpawns.AI
                     dat.currentDays = 0;
                     dat.currentRolledDays = GetRolledDay(dat);
                 }
-                dat.party.Ai.SetMovePatrolAroundSettlement(dat.currentPatrolledSettlement);
+                dat.party.SetMovePatrolAroundSettlement(dat.currentPatrolledSettlement, MobileParty.NavigationType.Default, isTargetingPort: false);
                 dat.currentDays += (1f / 24f);
                 if(dat.currentDays >= dat.currentRolledDays)
                 {
@@ -71,7 +71,7 @@ namespace CustomSpawns.AI
                         instances[i] = dat;
                         continue;
                     }
-                    dat.party.Ai.SetMovePatrolAroundSettlement(dat.currentPatrolledSettlement);
+                    dat.party.SetMovePatrolAroundSettlement(dat.currentPatrolledSettlement, MobileParty.NavigationType.Default, isTargetingPort: false);
                     dat.currentRolledDays = GetRolledDay(dat);
                 }
                 instances[i] = dat;

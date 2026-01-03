@@ -42,7 +42,7 @@ namespace CustomSpawns.HarmonyPatches
                 // TODO Should create a generic way to implement all patches instead of relying on automatic instantiation
                 List<IPatch> patches = new()
                 {
-                    new RemovePartyTrackersFromNonBanditPartiesPatch(_spawnDao),
+                    // new RemovePartyTrackersFromNonBanditPartiesPatch(_spawnDao),
                     new PartySizeModelPatch(_partySizeCalculatedSubject),
                     new MapScreenPatch(_configLoader),
                     new GetUnitValueForFactionPatch(_spawnDao)

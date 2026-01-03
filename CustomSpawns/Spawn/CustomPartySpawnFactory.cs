@@ -18,23 +18,9 @@ namespace CustomSpawns.Spawn
                 leader = clan.Heroes.First();
             }
             
-            PartyComponent.OnPartyComponentCreatedDelegate initParty = party =>
-            {
-                if (leader?.HomeSettlement == null)
-                {
-                    clan.UpdateHomeSettlement(spawnedSettlement); 
-                }
-                party.Party.SetVisualAsDirty();
-                party.Party.SetCustomOwner(leader);
-                party.SetCustomName(partyName);
-                party.ActualClan = clan;
-                party.SetCustomHomeSettlement(spawnedSettlement);
-                party.ShouldJoinPlayerBattles = true;
-            };
-
             var partyComponent = new CustomSpawnsPartyComponent(leader!, partyName, spawnedSettlement);
             
-            return MobileParty.CreateParty(templateObject.StringId + "_" + 1, partyComponent, initParty);
+            return MobileParty.CreateParty(templateObject.StringId + "_" + 1, partyComponent);
         }
     }
 }

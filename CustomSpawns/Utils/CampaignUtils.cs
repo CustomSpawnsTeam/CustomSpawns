@@ -14,7 +14,7 @@ namespace CustomSpawns.Utils
 {
     public class CampaignUtils
     {
-        public static Settlement PickRandomSettlementOfCulture(List<CultureCode> c, Func<Settlement, bool> exceptionPredicate, List<SpawnSettlementType> preferredTypes = null)
+        public static Settlement PickRandomSettlementOfCulture(List<CultureObject> cultures, Func<Settlement, bool> exceptionPredicate, List<SpawnSettlementType> preferredTypes = null)
         {
             int num = 0;
             List<Settlement> permissible = new();
@@ -35,31 +35,31 @@ namespace CustomSpawns.Utils
             }
             if (permissible.Count == 0)
             {
-                foreach (Settlement s in Settlement.All)
+                foreach (Settlement settlement in Settlement.All)
                 {
-                    if (!exceptionPredicate(s) && (s.IsTown || s.IsVillage) && (c.Contains(s.Culture.GetCultureCode())))
+                    if (!exceptionPredicate(settlement) && (settlement.IsTown || settlement.IsVillage) && (cultures.Contains(settlement.Culture)))
                     {
-                        permissible.Add(s);
+                        permissible.Add(settlement);
                     }
                 }
             }
             permissible.Randomize();
             foreach (Settlement s in permissible)
             {
-                int num2 = CalculateBanditDistanceScore(s.Position2D.DistanceSquared(MobileParty.MainParty.Position2D));
+                int num2 = CalculateBanditDistanceScore(s.Position.DistanceSquared(MobileParty.MainParty.Position));
                 num += num2;
             }
             int num3 = MBRandom.RandomInt(num);
             foreach (Settlement s in permissible)
             {
-                int num4 = CalculateBanditDistanceScore(s.Position2D.DistanceSquared(MobileParty.MainParty.Position2D)); //makes it more likely that the spawn will be further to the player.
+                int num4 = CalculateBanditDistanceScore(s.Position.DistanceSquared(MobileParty.MainParty.Position)); //makes it more likely that the spawn will be further to the player.
                 num3 -= num4;
                 if (num3 <= 0)
                 {
                     return s;
                 }
             }
-            //ModDebug.ShowMessage("Unable to find proper settlement of" + c.ToString() + " for some reason.", DebugMessageType.Spawn);
+            //ModDebug.ShowMessage("Unable to find proper settlement of" + cultures.ToString() + " for some reason.", DebugMessageType.Spawn);
             return null;
         }
 
@@ -101,7 +101,7 @@ namespace CustomSpawns.Utils
             float minDistance = float.MaxValue;
             foreach (Settlement s in Settlement.All)
             {
-                float dist = mb.Position2D.Distance(s.GatePosition);
+                float dist = mb.Position.Distance(s.GatePosition);
                 if (FactionManager.IsAtWarAgainstFaction(mb.MapFaction, s.MapFaction) && dist < minDistance)
                 {
                     minDistance = dist;
@@ -119,7 +119,7 @@ namespace CustomSpawns.Utils
             {
                 if (!(s.IsTown || s.IsCastle || s.IsVillage))
                     continue;
-                float dist = mb.Position2D.Distance(s.GatePosition);
+                float dist = mb.Position.Distance(s.GatePosition);
                 if (dist < minDistance)
                 {
                     minDistance = dist;
@@ -135,7 +135,7 @@ namespace CustomSpawns.Utils
             float minDistance = float.MaxValue;
             foreach (Settlement s in Settlement.All)
             {
-                float dist = mb.Position2D.Distance(s.GatePosition);
+                float dist = mb.Position.Distance(s.GatePosition);
                 if (dist < minDistance)
                 {
                     minDistance = dist;
@@ -145,7 +145,7 @@ namespace CustomSpawns.Utils
             return min;
         }
 
-        public static Settlement GetClosestVillage(Vec2 pos)
+        public static Settlement GetClosestVillage(CampaignVec2 pos)
         {
             Settlement min = null;
             float minDistance = float.MaxValue;
@@ -183,8 +183,8 @@ namespace CustomSpawns.Utils
                 {
                     if (s == exception)
                         continue;
-                    float dist = mb.Position2D.Distance(s.GatePosition);
-                    if ((FactionManager.IsNeutralWithFaction(mb.MapFaction, s.MapFaction) || FactionManager.IsAlliedWithFaction(mb.MapFaction, s.MapFaction)) && dist < minDistance)
+                    float dist = mb.Position.Distance(s.GatePosition);
+                    if (FactionManager.IsNeutralWithFaction(mb.MapFaction, s.MapFaction) && dist < minDistance)
                     {
                         minDistance = dist;
                         min = s;
@@ -197,8 +197,8 @@ namespace CustomSpawns.Utils
                 {
                     if (s == exception)
                         continue;
-                    float dist = mb.Position2D.Distance(s.GatePosition);
-                    if ((FactionManager.IsNeutralWithFaction(mb.MapFaction, s.MapFaction) || FactionManager.IsAlliedWithFaction(mb.MapFaction, s.MapFaction)) && dist < minDistance)
+                    float dist = mb.Position.Distance(s.GatePosition);
+                    if (FactionManager.IsNeutralWithFaction(mb.MapFaction, s.MapFaction) && dist < minDistance)
                     {
                         minDistance = dist;
                         min = s;
@@ -261,7 +261,7 @@ namespace CustomSpawns.Utils
         
         private static Settlement GetNearestSettlement(IMapPoint party, List<Settlement> settlements)
         {
-            return settlements.Select(settlement => new Tuple<Settlement, float>(settlement, party.Position2D.DistanceSquared(settlement.GatePosition)))
+            return settlements.Select(settlement => new Tuple<Settlement, float>(settlement, party.Position.DistanceSquared(settlement.GatePosition)))
                 .Aggregate((closestHideout, hideout) => closestHideout.Item2 < hideout.Item2 ? closestHideout : hideout)
                 .Item1;
         }

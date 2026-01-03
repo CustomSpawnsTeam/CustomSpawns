@@ -13,7 +13,7 @@ namespace CustomSpawns.Spawn
             PartyTemplateObject templateObject, TextObject partyName)
         {
             MobileParty party = BanditPartyComponent.CreateBanditParty(templateObject.StringId + "_" + 1, clan,
-                spawnedSettlement.Hideout, false);
+                spawnedSettlement.Hideout, false, templateObject, spawnedSettlement.Hideout.Settlement.Position);
             return InitParty(party, partyName ?? clan.Name, spawnedSettlement, clan);
         }
 
@@ -30,10 +30,10 @@ namespace CustomSpawns.Spawn
 
             if (clan.Leader?.HomeSettlement == null)
             {
-                clan.UpdateHomeSettlement(homeSettlement);
+                clan.SetInitialHomeSettlement(homeSettlement);
             }
             mobileParty.Party.SetVisualAsDirty();
-            mobileParty.SetCustomName(partyName);
+            mobileParty.Party.SetCustomName(partyName);
             mobileParty.ActualClan = clan;
             mobileParty.SetCustomHomeSettlement(homeSettlement);
 

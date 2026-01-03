@@ -17,7 +17,7 @@ namespace CustomSpawns.Data.Dto
         public List<Clan> OverridenSpawnClan { get; set; } = new();
         public List<Kingdom> OverridenSpawnKingdoms { get; set; } = new();
         public List<Settlement> OverridenSpawnSettlements { get; set; } = new();
-        public List<CultureCode> OverridenSpawnCultures { get; set; } = new();
+        public List<CultureObject> OverridenSpawnCultures { get; set; } = new();
         public ReadOnlyCollection<AccompanyingParty> SpawnAlongWith { get; set; }
         public int MaximumOnMap { get; set; }
         public int MinimumNumberOfDaysUntilSpawn { get; set; }

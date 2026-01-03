@@ -11,7 +11,7 @@ using TaleWorlds.Localization;
 
 namespace CustomSpawns.CampaignData.Config
 {
-    class CampaignDataConfigLoader
+    public class CampaignDataConfigLoader
     {
         private readonly MessageBoxService _messageBoxService;
         private readonly Dictionary<Type, object> _typeToConfig = new();

@@ -18,6 +18,7 @@ using CustomSpawns.Utils;
 using TaleWorlds.Core;
 using TaleWorlds.MountAndBlade;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.ComponentInterfaces;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
 
@@ -29,9 +30,10 @@ namespace CustomSpawns
         public static string ModuleName = "CustomSpawns";
 
         #region Dependencies
-        private IDiplomacyActionModel _diplomacyActionModel;
-        private TrackClanKingdom _clanKingdomTrackable;
-        private CustomSpawnsClanDiplomacyModel _customSpawnsClanDiplomacyModel;
+        private IFactionDiplomacyProvider _constantWarFactionDiplomacyProvider;
+        private CustomSpawnsClanDiplomacyProvider _customSpawnsClanDiplomacyProvider;
+        private CustomSpawnsDiplomacyProvider _customSpawnsDiplomacyProvider;
+        private CustomSpawnsDiplomacyModel _customSpawnsDiplomacyModel;
         private BanditPartySpawnFactory _banditPartySpawnFactory;
         private CustomPartySpawnFactory _customPartySpawnFactory;
         private Spawner _spawner;
@@ -54,6 +56,7 @@ namespace CustomSpawns
         private DialogueDao _dialogueDao;
         private DialogueDtoAdapter _dialogueDtoAdapter;
         private PartySizeCalculatedSubject _partySizeCalculatedSubject;
+        private ISuzerainProvider _suzerainProvider;
 
         private PatchManager _patchManager;
 
@@ -68,14 +71,12 @@ namespace CustomSpawns
         private MobilePartyTrackingBehaviour _mobilePartyTrackingBehaviour;
         private DevestationMetricData _devestationMetricData;
         private DailyLogger _dailyLogger;
-        private ForcedWarPeaceBehaviour _forcedWarPeaceBehaviour;
-        private ForceNoKingdomBehaviour _forceNoKingdomBehaviour;
         private SpawnBehaviour _spawnBehaviour;
         private SaveInitialiser _saveInitialiser;
         private SafePassageBehaviour _safePassageBehaviour;
 
 
-        private void InstantiateDependencies()
+        private void InstantiateDependencies(CampaignGameStarter campaignGameStarter)
         {
             // TODO setup IoC
             _saveInitialiser = new SaveInitialiser();
@@ -86,16 +87,17 @@ namespace CustomSpawns
             _diplomacyDataReader = new (_subModService, _messageBoxService);
             _nameSignifierDataReader = new (_subModService, _messageBoxService);
             _spawnDataReader = new (_subModService, _messageBoxService);
-            _diplomacyActionModel = new ConstantWarDiplomacyActionModel();
-            _clanKingdomTrackable = new TrackClanKingdom();
-            _customSpawnsClanDiplomacyModel = new CustomSpawnsClanDiplomacyModel(_clanKingdomTrackable, _diplomacyActionModel, _diplomacyDataReader);
+            _constantWarFactionDiplomacyProvider = new ConstantWarFactionDiplomacyProvider();
+            _suzerainProvider = new SuzerainProvider();
+            _customSpawnsClanDiplomacyProvider = new CustomSpawnsClanDiplomacyProvider(_suzerainProvider, _diplomacyDataReader);
+            _customSpawnsDiplomacyProvider = new CustomSpawnsDiplomacyProvider(_customSpawnsClanDiplomacyProvider, _suzerainProvider);
             _banditPartySpawnFactory = new BanditPartySpawnFactory();
             _customPartySpawnFactory = new CustomPartySpawnFactory();
             _spawner = new Spawner(_banditPartySpawnFactory, _customPartySpawnFactory, _messageBoxService, _modDebug);
             _campaignDataConfigLoader = new CampaignDataConfigLoader(_subModService, _messageBoxService);
             _spawnDtoAdapter = new SpawnDtoAdapter(_nameSignifierDataReader, Campaign.Current.ObjectManager, Campaign.Current.CampaignObjectManager);
             _spawnDao = new SpawnDao(_spawnDataReader, _spawnDtoAdapter, _messageBoxService);
-            _dialogueConsequenceInterpretor = new DialogueConsequenceInterpretor(_diplomacyActionModel, _messageBoxService);
+            _dialogueConsequenceInterpretor = new DialogueConsequenceInterpretor(_constantWarFactionDiplomacyProvider, _messageBoxService);
             _dialogueConditionInterpretor = new DialogueConditionInterpretor(_spawnDao);
             _hourlyPatrolAroundSpawnBehaviour = new HourlyPatrolAroundSpawnBehaviour(_messageBoxService, _modDebug);
             _attackClosestIfIdleForADayBehaviour = new AttackClosestIfIdleForADayBehaviour(_modDebug);
@@ -111,9 +113,9 @@ namespace CustomSpawns
             _dynamicSpawnData = new (_spawnDao, _saveInitialiser);
             _devestationMetricData = new DevestationMetricData(_mobilePartyTrackingBehaviour, _campaignDataConfigLoader, _saveInitialiser, _messageBoxService, _modDebug);
             _dailyLogger = new DailyLogger(_devestationMetricData, _dynamicSpawnData, _campaignDataConfigLoader, _messageBoxService, _subModService, _spawnDao);
-            _forcedWarPeaceBehaviour = new ForcedWarPeaceBehaviour(_diplomacyActionModel, _clanKingdomTrackable, 
-                _customSpawnsClanDiplomacyModel, _diplomacyDataReader, _dailyLogger);
-            _forceNoKingdomBehaviour = new ForceNoKingdomBehaviour(_diplomacyDataReader, _dailyLogger);
+            NonMercenaryCustomSpawnsFactionsProvider nonMercenaryCustomSpawnsFactionsProvider =
+                new NonMercenaryCustomSpawnsFactionsProvider(_diplomacyDataReader, _dailyLogger);
+            _customSpawnsDiplomacyModel = new CustomSpawnsDiplomacyModel(campaignGameStarter.GetModel<DiplomacyModel>(), _customSpawnsDiplomacyProvider, _dailyLogger, nonMercenaryCustomSpawnsFactionsProvider);
             _partySizeCalculatedSubject = new PartySizeCalculatedSubject();
             _spawnBehaviour = new SpawnBehaviour(_spawner, _spawnDao, _dynamicSpawnData, _saveInitialiser, _devestationMetricData, _configLoader, _messageBoxService, _dailyLogger, _modDebug, _partySizeCalculatedSubject);
             _patchManager = new PatchManager(_spawnDao, _configLoader, _messageBoxService, _partySizeCalculatedSubject);
@@ -135,12 +137,12 @@ namespace CustomSpawns
 
         protected override void InitializeGameStarter(Game game, IGameStarter gameStarterObject)
         {
-            if (!(gameStarterObject is CampaignGameStarter) || !(game.GameType is Campaign))
+            if (!(gameStarterObject is CampaignGameStarter campaignGameStarter) || !(game.GameType is Campaign))
             {
                 return;
             }
-            InstantiateDependencies();
-            AddBehaviours((CampaignGameStarter) gameStarterObject);
+            InstantiateDependencies(campaignGameStarter);
+            AddBehaviours(campaignGameStarter);
             DisplayLoadedModules();
         }
 
@@ -156,12 +158,12 @@ namespace CustomSpawns
                 starter.AddBehavior(_mobilePartyTrackingBehaviour);
                 starter.AddBehavior(_devestationMetricData);
                 starter.AddBehavior(_dailyLogger);
-                starter.AddBehavior(_forcedWarPeaceBehaviour);
-                starter.AddBehavior(_forceNoKingdomBehaviour);
                 starter.AddBehavior(_spawnBehaviour);
                 starter.AddBehavior(_saveInitialiser);
                 starter.AddBehavior(_safePassageBehaviour);
                 starter.AddBehavior(_dynamicSpawnData);
+                
+                starter.AddModel(_customSpawnsDiplomacyModel);
             }
             else
             {

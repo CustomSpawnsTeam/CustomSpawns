@@ -35,14 +35,14 @@ namespace CustomSpawns.AI
         {
             if (!registeredParties.Contains(mb))
                 return;
-            if (mb.Ai.DefaultBehavior == AiBehavior.None || mb.Ai.DefaultBehavior == AiBehavior.Hold)
+            if (mb.DefaultBehavior == AiBehavior.None || mb.DefaultBehavior == AiBehavior.Hold)
             {
                 if (yesterdayIdleParties.Contains(mb))
                 {
                     Settlement closestHostile = CampaignUtils.GetClosestHostileSettlement(mb);
                     if (closestHostile == null)
                         return;
-                    mb.Ai.SetMoveGoToPoint(MobilePartyHelper.FindReachablePointAroundPosition(closestHostile.GatePosition, 10));
+                    mb.SetMoveGoToPoint(NavigationHelper. FindReachablePointAroundPosition(closestHostile.GatePosition, MobileParty.NavigationType.Default, 10), MobileParty.NavigationType.Default);
                     yesterdayIdleParties.Remove(mb);
                 }
                 else
