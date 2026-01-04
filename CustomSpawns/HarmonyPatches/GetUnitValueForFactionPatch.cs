@@ -10,7 +10,6 @@ using static HarmonyLib.AccessTools;
 
 namespace CustomSpawns.HarmonyPatches
 {
-    [HarmonyPatch(typeof(SafePassageBarterable), "GetUnitValueForFaction")]
     public class GetUnitValueForFactionPatch: IPatch
     {
         private static SpawnDao _spawnDao; 

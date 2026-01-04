@@ -4,7 +4,6 @@ using System.IO;
 using System.Xml;
 using CustomSpawns.ModIntegration;
 using CustomSpawns.Utils;
-using MonoMod.Utils;
 
 namespace CustomSpawns.Data.Reader.Impl
 {
