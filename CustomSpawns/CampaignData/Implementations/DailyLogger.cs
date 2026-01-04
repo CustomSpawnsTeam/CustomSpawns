@@ -1,41 +1,67 @@
-﻿using System;
+using System;
 using System.IO;
 using CustomSpawns.CampaignData.Config;
 using CustomSpawns.Data;
 using CustomSpawns.Data.Dao;
 using CustomSpawns.Data.Dto;
-using CustomSpawns.ModIntegration;
 using CustomSpawns.Spawn;
 using CustomSpawns.Utils;
+using NLog;
+using NLog.Config;
+using NLog.Targets;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
-using TaleWorlds.Library;
 
-namespace CustomSpawns.CampaignData.Implementations { 
+namespace CustomSpawns.CampaignData.Implementations
+{
     public class DailyLogger : CampaignBehaviorBase
     {
-        private PlatformFilePath _sessionLogFile;
+        static DailyLogger()
+        {
+            var config = new LoggingConfiguration();
+
+            var assemblyFolder = Path.GetDirectoryName(typeof(DailyLogger).Assembly.Location);
+            var modRootFolder = Path.GetFullPath(Path.Combine(assemblyFolder, "..", ".."));
+            var logFilePath = Path.Combine(modRootFolder, "Logs", "${shortdate}.log");
+
+            var logfile = new FileTarget("logfile")
+            {
+                FileName = logFilePath,
+                Layout = "${longdate}|${level:uppercase=true}|${logger}|${message}",
+                CreateDirs = true,
+                AutoFlush = true
+            };
+
+            var logconsole = new ConsoleTarget("logconsole")
+            {
+                Layout = "${longdate}|${level:uppercase=true}|${logger}|${message}"
+            };
+
+            config.AddRule(LogLevel.Info, LogLevel.Fatal, logfile);
+            config.AddRule(LogLevel.Info, LogLevel.Fatal, logconsole);
+
+            LogManager.Configuration = config;
+        }
+
+        private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         private int _dayCount;
         private readonly DynamicSpawnData _dynamicSpawnData;
         private readonly DevestationMetricData _devestationMetricData;
         private readonly DailyLoggerConfig _config;
         private readonly MessageBoxService _messageBoxService;
-        private readonly SubModService _subModService;
         private readonly SpawnDao _spawnDao;
 
         public DailyLogger(DevestationMetricData devestationMetricData, DynamicSpawnData dynamicSpawnData,
-            CampaignDataConfigLoader campaignDataConfigLoader, MessageBoxService messageBoxService, SubModService subModService,
+            CampaignDataConfigLoader campaignDataConfigLoader, MessageBoxService messageBoxService,
             SpawnDao spawnDao)
         {
             _devestationMetricData = devestationMetricData;
             _dynamicSpawnData = dynamicSpawnData;
             _config = campaignDataConfigLoader.GetConfig<DailyLoggerConfig>();
             _messageBoxService = messageBoxService;
-            _subModService = subModService;
             _spawnDao = spawnDao;
-            Init();
         }
 
         public override void RegisterEvents()
@@ -48,14 +74,6 @@ namespace CustomSpawns.CampaignData.Implementations {
         }
 
         public override void SyncData(IDataStore dataStore) { }
-
-        private void Init()
-        {
-            string filename = "RudimentaryLastSessionLog_" + DateTime.Now.ToString("yyyy-MM-dd_h-mm_tt") + ".txt";
-            PlatformDirectoryPath folderPath = new PlatformDirectoryPath(PlatformFileType.User, Path.Combine("Data", "CustomSpawns", "Logs"));
-            _sessionLogFile = new PlatformFilePath(folderPath, filename);
-            FileHelper.SaveFileString(_sessionLogFile, "");
-        }
 
         private void OnAfterDailyTick()
         {
@@ -71,10 +89,8 @@ namespace CustomSpawns.CampaignData.Implementations {
         {
             try
             {
-                var date = DateTime.Now.ToString("yyyy-MM-dd h:mm tt");
-                string line = String.Format("[{0} {1}][Campaign Day {2}] {3}", DateTime.Now.ToLongTimeString(), date,
-                    _dayCount, s);
-                FileHelper.AppendLineToFileString(_sessionLogFile, line);
+                var line = string.Format("Campaign Day {0}| {1}", _dayCount, s);
+                Logger.Info(line);
             }
             catch (System.Exception ex)
             {

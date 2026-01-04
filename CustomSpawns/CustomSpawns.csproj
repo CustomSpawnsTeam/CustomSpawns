@@ -16,21 +16,27 @@
         <AssemblyName>$(ModuleId)</AssemblyName>
         <OverrideAssemblyName>false</OverrideAssemblyName>
         <Version>2.0.1</Version>
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     </PropertyGroup>
 
     <!-- Versions of Major Dependencies (For Package References & SubModule.xml Substitution) -->
     <PropertyGroup>
         <BuildResourcesVersion>1.1.0.104</BuildResourcesVersion>
         <HarmonyVersion>2.2.2</HarmonyVersion>
+        <NLogVersion>6.0.7</NLogVersion>
     </PropertyGroup>
 
     <!-- NuGet Packages -->
     <ItemGroup>
-        <PackageReference Include="Bannerlord.BuildResources" Version="$(BuildResourcesVersion)" PrivateAssets="All" />
-        <PackageReference Include="Bannerlord.Lib.Harmony" Version="$(HarmonyVersion)" PrivateAssets="All" />
-        <PackageReference Include="Bannerlord.ReferenceAssemblies.Core" Version="$(GameVersion).*-*" PrivateAssets="All" />
-        <PackageReference Include="Bannerlord.ReferenceAssemblies.Sandbox" Version="$(GameVersion).*-*" PrivateAssets="All" />
-        <PackageReference Include="Bannerlord.ReferenceAssemblies.Native" Version="$(GameVersion).*-*" PrivateAssets="All" />
+        <PackageReference Include="Bannerlord.BuildResources" Version="$(BuildResourcesVersion)" PrivateAssets="All"/>
+        <PackageReference Include="Bannerlord.Lib.Harmony" Version="$(HarmonyVersion)" PrivateAssets="All"/>
+        <PackageReference Include="Bannerlord.ReferenceAssemblies.Core" Version="$(GameVersion).*-*" PrivateAssets="All"/>
+        <PackageReference Include="Bannerlord.ReferenceAssemblies.Sandbox" Version="$(GameVersion).*-*" PrivateAssets="All"/>
+        <PackageReference Include="Bannerlord.ReferenceAssemblies.Native" Version="$(GameVersion).*-*" PrivateAssets="All"/>
         <PackageReference Include="BUTR.MessageBoxPInvoke" Version="1.0.0.1" />
+        <PackageReference Include="NLog" Version="$(NLogVersion)"/>
+
+        <PackageReference Include="Fody" Version="6.8.1" PrivateAssets="all"/>
+        <PackageReference Include="Costura.Fody" Version="5.7.0" PrivateAssets="all"/>
     </ItemGroup>
 </Project>
