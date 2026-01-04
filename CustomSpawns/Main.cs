@@ -15,12 +15,12 @@ using CustomSpawns.Spawn;
 using CustomSpawns.Spawn.PartySize;
 using CustomSpawns.UtilityBehaviours;
 using CustomSpawns.Utils;
-using TaleWorlds.Core;
-using TaleWorlds.MountAndBlade;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.ComponentInterfaces;
+using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
+using TaleWorlds.MountAndBlade;
 
 namespace CustomSpawns
 {
@@ -112,9 +112,10 @@ namespace CustomSpawns
             _mobilePartyTrackingBehaviour = new MobilePartyTrackingBehaviour(_saveInitialiser, _modDebug);
             _dynamicSpawnData = new (_spawnDao, _saveInitialiser);
             _devestationMetricData = new DevestationMetricData(_mobilePartyTrackingBehaviour, _campaignDataConfigLoader, _saveInitialiser, _messageBoxService, _modDebug);
-            _dailyLogger = new DailyLogger(_devestationMetricData, _dynamicSpawnData, _campaignDataConfigLoader, _messageBoxService, _subModService, _spawnDao);
+            _dailyLogger = new DailyLogger(_devestationMetricData, _dynamicSpawnData, _campaignDataConfigLoader,
+                _messageBoxService, _spawnDao);
             NonMercenaryCustomSpawnsFactionsProvider nonMercenaryCustomSpawnsFactionsProvider =
-                new NonMercenaryCustomSpawnsFactionsProvider(_diplomacyDataReader, _dailyLogger);
+                new NonMercenaryCustomSpawnsFactionsProvider(_diplomacyDataReader);
             _customSpawnsDiplomacyModel = new CustomSpawnsDiplomacyModel(campaignGameStarter.GetModel<DiplomacyModel>(), _customSpawnsDiplomacyProvider, _dailyLogger, nonMercenaryCustomSpawnsFactionsProvider);
             _partySizeCalculatedSubject = new PartySizeCalculatedSubject();
             _spawnBehaviour = new SpawnBehaviour(_spawner, _spawnDao, _dynamicSpawnData, _saveInitialiser, _devestationMetricData, _configLoader, _messageBoxService, _dailyLogger, _modDebug, _partySizeCalculatedSubject);

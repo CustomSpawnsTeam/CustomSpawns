@@ -315,7 +315,6 @@ namespace CustomSpawns.Diplomacy
         {
             if (_customSpawnsDiplomacyProvider.ShouldBeAtConstantWar(attacker, enemy))
             {
-                // _dailyLogger.Info("Forcing " + attacker.Name + " and " + enemy.Name + " to make war after peace was made due to diplomacy data");
                 return true;
             }
             
