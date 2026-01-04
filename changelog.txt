@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.1.0
+Game Version: v1.3.13
+* Added support for v1.3.13.
+* Use vanilla AI roaming behaviour for spawned parties instead of having them wait at the nearest settlement for enemies to fight.
+---------------------------------------------------------------------------------------------------
 Version: 2.0.1
 Game Versions: v1.2.0,v1.2.1,v1.2.2,v1.2.3,v1.2.4,v1.2.5,v1.2.6,v1.2.7,v1.2.8,v1.2.9,v1.2.10,v1.2.11
 * Bump Bannerlord target version to v1.2.11.
