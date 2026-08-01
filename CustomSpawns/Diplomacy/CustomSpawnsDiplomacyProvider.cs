@@ -24,7 +24,7 @@ namespace CustomSpawns.Diplomacy
         {
             IFaction friend = _suzerainProvider.GetSuzerain(faction2) ?? faction2;
 
-            return _customSpawnsClanDiplomacyProvider.IsWarDeclarationPossible(faction1, friend);
+            return _customSpawnsClanDiplomacyProvider.IsPeaceDeclarationPossible(faction1, friend);
         }
     }
 }

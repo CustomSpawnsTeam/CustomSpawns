@@ -34,6 +34,8 @@ namespace CustomSpawns
         private CustomSpawnsClanDiplomacyProvider _customSpawnsClanDiplomacyProvider;
         private CustomSpawnsDiplomacyProvider _customSpawnsDiplomacyProvider;
         private CustomSpawnsDiplomacyModel _customSpawnsDiplomacyModel;
+        private CustomSpawnsDiplomacyFactionsProvider _customSpawnsDiplomacyFactionsProvider;
+        private CustomSpawnsDiplomacyBehaviour _customSpawnsDiplomacyBehaviour;
         private BanditPartySpawnFactory _banditPartySpawnFactory;
         private CustomPartySpawnFactory _customPartySpawnFactory;
         private Spawner _spawner;
@@ -116,7 +118,10 @@ namespace CustomSpawns
                 _messageBoxService, _spawnDao);
             NonMercenaryCustomSpawnsFactionsProvider nonMercenaryCustomSpawnsFactionsProvider =
                 new NonMercenaryCustomSpawnsFactionsProvider(_diplomacyDataReader);
+            _customSpawnsDiplomacyFactionsProvider = new CustomSpawnsDiplomacyFactionsProvider(_diplomacyDataReader);
             _customSpawnsDiplomacyModel = new CustomSpawnsDiplomacyModel(campaignGameStarter.GetModel<DiplomacyModel>(), _customSpawnsDiplomacyProvider, _dailyLogger, nonMercenaryCustomSpawnsFactionsProvider);
+            _customSpawnsDiplomacyBehaviour = new CustomSpawnsDiplomacyBehaviour(_customSpawnsDiplomacyFactionsProvider,
+                _customSpawnsClanDiplomacyProvider, nonMercenaryCustomSpawnsFactionsProvider, _dailyLogger);
             _partySizeCalculatedSubject = new PartySizeCalculatedSubject();
             _spawnBehaviour = new SpawnBehaviour(_spawner, _spawnDao, _dynamicSpawnData, _saveInitialiser, _devestationMetricData, _configLoader, _messageBoxService, _dailyLogger, _modDebug, _partySizeCalculatedSubject);
             _patchManager = new PatchManager(_spawnDao, _configLoader, _messageBoxService, _partySizeCalculatedSubject);
@@ -163,6 +168,7 @@ namespace CustomSpawns
                 starter.AddBehavior(_saveInitialiser);
                 starter.AddBehavior(_safePassageBehaviour);
                 starter.AddBehavior(_dynamicSpawnData);
+                starter.AddBehavior(_customSpawnsDiplomacyBehaviour);
                 
                 starter.AddModel(_customSpawnsDiplomacyModel);
             }

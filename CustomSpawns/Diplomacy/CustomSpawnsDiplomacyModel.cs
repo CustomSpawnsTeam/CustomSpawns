@@ -15,7 +15,7 @@ namespace CustomSpawns.Diplomacy
     {
         private readonly DiplomacyModel _diplomacyModel;
         private readonly CustomSpawnsDiplomacyProvider _customSpawnsDiplomacyProvider;
-        private readonly NonMercenaryCustomSpawnsFactionsProvider _nonMercenaryCustomSpawnsFactionsProvider;
+        private readonly ForceNoKingdomScoreProvider _forceNoKingdomScoreProvider;
         private readonly DailyLogger _dailyLogger;
 
         public CustomSpawnsDiplomacyModel(DiplomacyModel diplomacyModel, CustomSpawnsDiplomacyProvider customSpawnsDiplomacyProvider, DailyLogger dailyLogger, NonMercenaryCustomSpawnsFactionsProvider nonMercenaryCustomSpawnsFactionsProvider)
@@ -23,7 +23,7 @@ namespace CustomSpawns.Diplomacy
             _diplomacyModel = diplomacyModel;
             _customSpawnsDiplomacyProvider = customSpawnsDiplomacyProvider;
             _dailyLogger = dailyLogger;
-            _nonMercenaryCustomSpawnsFactionsProvider = nonMercenaryCustomSpawnsFactionsProvider;
+            _forceNoKingdomScoreProvider = new ForceNoKingdomScoreProvider(nonMercenaryCustomSpawnsFactionsProvider);
         }
 
         public override float GetStrengthThresholdForNonMutualWarsToBeIgnoredToJoinKingdom(Kingdom kingdomToJoin)
@@ -58,17 +58,20 @@ namespace CustomSpawns.Diplomacy
 
         public override float GetScoreOfClanToJoinKingdom(Clan clan, Kingdom kingdom)
         {
-            return _diplomacyModel.GetScoreOfClanToJoinKingdom(clan, kingdom);
+            return _forceNoKingdomScoreProvider.GetJoinScore(clan.StringId,
+                () => _diplomacyModel.GetScoreOfClanToJoinKingdom(clan, kingdom));
         }
 
         public override float GetScoreOfClanToLeaveKingdom(Clan clan, Kingdom kingdom)
         {
-            return _diplomacyModel.GetScoreOfClanToLeaveKingdom(clan, kingdom);
+            return _forceNoKingdomScoreProvider.GetLeaveScore(clan.StringId,
+                () => _diplomacyModel.GetScoreOfClanToLeaveKingdom(clan, kingdom));
         }
 
         public override float GetScoreOfKingdomToGetClan(Kingdom kingdom, Clan clan)
         {
-            return _diplomacyModel.GetScoreOfKingdomToGetClan(kingdom, clan);
+            return _forceNoKingdomScoreProvider.GetJoinScore(clan.StringId,
+                () => _diplomacyModel.GetScoreOfKingdomToGetClan(kingdom, clan));
         }
 
         public override float GetScoreOfKingdomToSackClan(Kingdom kingdom, Clan clan)
@@ -78,27 +81,20 @@ namespace CustomSpawns.Diplomacy
 
         public override float GetScoreOfMercenaryToJoinKingdom(Clan clan, Kingdom kingdom)
         {
-            if (_nonMercenaryCustomSpawnsFactionsProvider.GetNonMercenaryCustomSpawnsFactions().Contains(clan.StringId))
-            {
-                return 0f;
-            }
-            
-            return _diplomacyModel.GetScoreOfMercenaryToJoinKingdom(clan, kingdom);
+            return _forceNoKingdomScoreProvider.GetJoinScore(clan.StringId,
+                () => _diplomacyModel.GetScoreOfMercenaryToJoinKingdom(clan, kingdom));
         }
 
         public override float GetScoreOfMercenaryToLeaveKingdom(Clan clan, Kingdom kingdom)
         {
-            if (_nonMercenaryCustomSpawnsFactionsProvider.GetNonMercenaryCustomSpawnsFactions().Contains(clan.StringId))
-            {
-                return 1f;
-            }
-            
-            return _diplomacyModel.GetScoreOfMercenaryToJoinKingdom(clan, kingdom);
+            return _forceNoKingdomScoreProvider.GetLeaveScore(clan.StringId,
+                () => _diplomacyModel.GetScoreOfMercenaryToLeaveKingdom(clan, kingdom));
         }
 
         public override float GetScoreOfKingdomToHireMercenary(Kingdom kingdom, Clan mercenaryClan)
         {
-            return _diplomacyModel.GetScoreOfKingdomToHireMercenary(kingdom, mercenaryClan);
+            return _forceNoKingdomScoreProvider.GetJoinScore(mercenaryClan.StringId,
+                () => _diplomacyModel.GetScoreOfKingdomToHireMercenary(kingdom, mercenaryClan));
         }
 
         public override float GetScoreOfKingdomToSackMercenary(Kingdom kingdom, Clan mercenaryClan)
@@ -122,7 +118,7 @@ namespace CustomSpawns.Diplomacy
         {
             if (_customSpawnsDiplomacyProvider.ShouldBeAtPeace(factionDeclaresPeace, factionDeclaredPeace))
             {
-                _dailyLogger.Info("Forcing " + factionDeclaresPeace.Name + " and " + factionDeclaredPeace.Name + " to make war after peace was made due to diplomacy data");
+                _dailyLogger.Info("Forcing " + factionDeclaresPeace.Name + " and " + factionDeclaredPeace.Name + " to make peace due to diplomacy data");
                 return true;
             }
 
