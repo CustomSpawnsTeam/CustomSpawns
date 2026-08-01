@@ -37,7 +37,7 @@ namespace CustomSpawns.Spawn.PartySize
          */
         public ExplainedNumber NotifyObservers(MobileParty mobileParty, ExplainedNumber explainedPartySizeLimit)
         {
-            return _observers.Aggregate(explainedPartySizeLimit, 
+            return _observers.Aggregate(explainedPartySizeLimit,
                     (current, observer) => observer.OnPartySizeLimitCalculated(mobileParty, current));
         }
     }
