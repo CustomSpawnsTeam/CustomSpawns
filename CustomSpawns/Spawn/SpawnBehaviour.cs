@@ -107,9 +107,11 @@ namespace CustomSpawns.Spawn
             {
                 foreach (MobileParty mb in MobileParty.All)
                 {
-                    string id = CampaignUtils.IsolateMobilePartyStringID(mb);
-                    var spawn = _spawnDao.FindParentSpawnByPartyTemplateId(id);
-                    if(!string.IsNullOrEmpty(id) && spawn != null)
+                    CsPartyData? partyData = _dynamicSpawnData.GetDynamicSpawnData(mb);
+                    SpawnDto? spawn = partyData?.OwningSpawnTemplateId == null
+                        ? null
+                        : _spawnDao.FindByPartyTemplateId(partyData.OwningSpawnTemplateId);
+                    if(spawn != null)
                     {
                         HandleAIChecks(mb, spawn, mb.HomeSettlement);
                     }
@@ -149,7 +151,7 @@ namespace CustomSpawns.Spawn
 
             if (TryDecrementPrimarySpawnCount(_numberOfSpawns, partyData))
             {
-                _modDebug.ShowMessage(mobileParty.StringId + " has died at " + partyData.LatestClosestSettlement + ", reducing the total number to: " + _numberOfSpawns[partyData.PartyTemplateId], DebugMessageType.DeathTrack);
+                _modDebug.ShowMessage(mobileParty.StringId + " has died at " + partyData.LatestClosestSettlement + ", reducing the total number to: " + _numberOfSpawns[partyData.OwningSpawnTemplateId!], DebugMessageType.DeathTrack);
             }
 
             OnPartyDeath(mobileParty, partyData);
@@ -181,12 +183,7 @@ namespace CustomSpawns.Spawn
             {
                 if (mb == null)
                     continue;
-                SpawnDto? spawn = _spawnDao.FindByPartyTemplateId(CampaignUtils.IsolateMobilePartyStringID(mb));
-                if (spawn == null)
-                {
-                    continue;
-                }
-                _numberOfSpawns[spawn.PartyTemplate.StringId]++;
+                TryIncrementPrimarySpawnCount(_numberOfSpawns, _dynamicSpawnData.GetDynamicSpawnData(mb));
             }
         }
         
@@ -239,6 +236,7 @@ namespace CustomSpawns.Spawn
                             MobileParty spawnedParty = _spawner.SpawnParty(spawnSettlement, spawnClan, spawn.PartyTemplate, new TextObject(spawn.Name));
                             if (spawnedParty == null)
                                 return;
+                            _dynamicSpawnData.RegisterPrimaryParty(spawnedParty, spawn.PartyTemplate.StringId);
                             _numberOfSpawns[spawn.PartyTemplate.StringId]++; //increment for can spawn and chance modifications
                                                            //dynamic data registration
                             //AI Checks!
@@ -249,6 +247,7 @@ namespace CustomSpawns.Spawn
                                 MobileParty juniorParty = _spawner.SpawnParty(spawnSettlement, spawnClan, accomp.templateObject, new TextObject(accomp.name));
                                 if (juniorParty == null)
                                     continue;
+                                _dynamicSpawnData.RegisterSupportingParty(juniorParty, spawn.PartyTemplate.StringId);
                                 HandleAIChecks(juniorParty, spawn, spawnSettlement); //junior party has same AI behaviour as main party. TODO in future add some junior party AI and reconstruction.
                             }
                             //message if available
@@ -292,7 +291,9 @@ namespace CustomSpawns.Spawn
 
         private void HandleDeathMessage(MobileParty mobileParty, CsPartyData partyData)
         {
-            SpawnDto? spawn = _spawnDao.FindParentSpawnByPartyTemplateId(partyData.PartyTemplateId);
+            SpawnDto? spawn = partyData.OwningSpawnTemplateId == null
+                ? null
+                : _spawnDao.FindByPartyTemplateId(partyData.OwningSpawnTemplateId);
             if (spawn?.DeathMessage != null)
             {
                 UX.ShowMessage(spawn.DeathMessage.Information, spawn.DeathMessage.Color,
@@ -383,12 +384,26 @@ namespace CustomSpawns.Spawn
 
         internal static bool TryDecrementPrimarySpawnCount(IDictionary<string, int> numberOfSpawns, CsPartyData partyData)
         {
-            if (!numberOfSpawns.ContainsKey(partyData.PartyTemplateId))
+            if (!partyData.IsPrimarySpawn || partyData.OwningSpawnTemplateId == null
+                                          || !numberOfSpawns.ContainsKey(partyData.OwningSpawnTemplateId))
             {
                 return false;
             }
 
-            numberOfSpawns[partyData.PartyTemplateId]--;
+            numberOfSpawns[partyData.OwningSpawnTemplateId]--;
+            return true;
+        }
+
+        internal static bool TryIncrementPrimarySpawnCount(IDictionary<string, int> numberOfSpawns,
+            CsPartyData? partyData)
+        {
+            if (partyData == null || !partyData.IsPrimarySpawn || partyData.OwningSpawnTemplateId == null
+                                  || !numberOfSpawns.ContainsKey(partyData.OwningSpawnTemplateId))
+            {
+                return false;
+            }
+
+            numberOfSpawns[partyData.OwningSpawnTemplateId]++;
             return true;
         }
 

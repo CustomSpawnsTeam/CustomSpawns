@@ -26,7 +26,10 @@ namespace CustomSpawns.Spawn.PartySize
         public override ExplainedNumber GetPartyMemberSizeLimit(PartyBase party, bool includeDescriptions = false)
         {
             ExplainedNumber partySizeLimit = _decorated.GetPartyMemberSizeLimit(party, true);
-            return _partySizeCalculatedSubject.NotifyObservers(party.MobileParty, partySizeLimit);
+            MobileParty mobileParty = party.MobileParty;
+            return mobileParty == null
+                ? partySizeLimit
+                : _partySizeCalculatedSubject.NotifyObservers(mobileParty, partySizeLimit);
         }
 
         public override ExplainedNumber GetPartyPrisonerSizeLimit(PartyBase party, bool includeDescriptions = false)

@@ -13,6 +13,7 @@ namespace CustomSpawns.Diplomacy
         private readonly ForceNoKingdomMembershipProvider _membershipProvider;
         private readonly DailyLogger _dailyLogger;
         private readonly ISet<string> _reportedMissingClanIds = new HashSet<string>();
+        private readonly DiplomacyReconciliationScheduler _reconciliationScheduler = new DiplomacyReconciliationScheduler();
         private bool _hasInitialized;
         private bool _isReconciling;
 
@@ -41,14 +42,18 @@ namespace CustomSpawns.Diplomacy
 
         private void OnTick(float deltaTime)
         {
-            if (_hasInitialized)
+            if (!_hasInitialized)
             {
+                _hasInitialized = true;
+                EnforceNoKingdomMembership();
+                Reconcile();
                 return;
             }
 
-            _hasInitialized = true;
-            EnforceNoKingdomMembership();
-            Reconcile();
+            if (_reconciliationScheduler.TakePendingRequest())
+            {
+                Reconcile();
+            }
         }
 
         private void OnKingdomCreated(Kingdom kingdom)
@@ -65,12 +70,12 @@ namespace CustomSpawns.Diplomacy
 
         private void OnWarDeclared(IFaction faction1, IFaction faction2, DeclareWarAction.DeclareWarDetail detail)
         {
-            Reconcile();
+            _reconciliationScheduler.Request();
         }
 
         private void OnPeaceMade(IFaction faction1, IFaction faction2, MakePeaceAction.MakePeaceDetail detail)
         {
-            Reconcile();
+            _reconciliationScheduler.Request();
         }
 
         private void EnforceNoKingdomMembership()
@@ -210,6 +215,23 @@ namespace CustomSpawns.Diplomacy
             {
                 return First.GetHashCode() ^ Second.GetHashCode();
             }
+        }
+    }
+
+    internal sealed class DiplomacyReconciliationScheduler
+    {
+        private bool _isPending;
+
+        public void Request()
+        {
+            _isPending = true;
+        }
+
+        public bool TakePendingRequest()
+        {
+            bool wasPending = _isPending;
+            _isPending = false;
+            return wasPending;
         }
     }
 }

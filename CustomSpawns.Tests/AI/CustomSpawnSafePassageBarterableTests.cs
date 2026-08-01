@@ -25,10 +25,12 @@ namespace CustomSpawns.Tests.AI
         }
 
         [Test]
-        public void ApplyCustomSpawnsPriceAdjustment_OnlyDiscountsCustomSpawnsParties()
+        public void ApplyCustomSpawnsPriceAdjustment_OnlyDiscountsNonBanditCustomSpawnsParties()
         {
-            Assert.AreEqual(100, CustomSpawnSafePassageBarterable.ApplyCustomSpawnsPriceAdjustment(800, true));
-            Assert.AreEqual(800, CustomSpawnSafePassageBarterable.ApplyCustomSpawnsPriceAdjustment(800, false));
+            Assert.AreEqual(100, CustomSpawnSafePassageBarterable.ApplyCustomSpawnsPriceAdjustment(800, true, false));
+            Assert.AreEqual(100, CustomSpawnSafePassageBarterable.ApplyCustomSpawnsPriceAdjustment(100, true, true));
+            Assert.AreEqual(100, CustomSpawnSafePassageBarterable.ApplyCustomSpawnsPriceAdjustment(100, false, true));
+            Assert.AreEqual(800, CustomSpawnSafePassageBarterable.ApplyCustomSpawnsPriceAdjustment(800, false, false));
         }
     }
 }

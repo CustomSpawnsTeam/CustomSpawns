@@ -21,7 +21,7 @@ namespace CustomSpawns.Tests.Spawn
         [Test]
         public void TakeFromRegistry_OnlyReturnsThePartyDataOnce()
         {
-            CsPartyData partyData = new CsPartyData("primary", null);
+            CsPartyData partyData = new CsPartyData("primary", "primary", true, null);
             var registry = new Dictionary<string, CsPartyData> { ["party"] = partyData };
             var spawnCounts = new Dictionary<string, int> { ["primary"] = 1 };
 
@@ -38,13 +38,49 @@ namespace CustomSpawns.Tests.Spawn
         [Test]
         public void RemovalAccounting_DecrementsOnlyPrimaryTemplatesOnce()
         {
-            var spawnCounts = new Dictionary<string, int> { ["primary"] = 2 };
-            CsPartyData primary = new CsPartyData("primary", null);
-            CsPartyData accompanying = new CsPartyData("supporting", null);
+            var spawnCounts = new Dictionary<string, int> { ["primary"] = 2, ["reused"] = 4 };
+            CsPartyData primary = new CsPartyData("primary", "primary", true, null);
+            CsPartyData accompanying = new CsPartyData("reused", "primary", false, null);
 
             Assert.True(SpawnBehaviour.TryDecrementPrimarySpawnCount(spawnCounts, primary));
             Assert.False(SpawnBehaviour.TryDecrementPrimarySpawnCount(spawnCounts, accompanying));
             Assert.AreEqual(1, spawnCounts["primary"]);
+            Assert.AreEqual(4, spawnCounts["reused"]);
+        }
+
+        [Test]
+        public void PrimaryIdentity_RestoresAndRemovesTheOwningSpawnCounter()
+        {
+            var spawnCounts = new Dictionary<string, int> { ["primary"] = 0 };
+            CsPartyData loadedPrimary = new CsPartyData("primary", "primary", true, null);
+            CsPartyData loadedSupporting = new CsPartyData("supporting", "primary", false, null);
+
+            Assert.True(SpawnBehaviour.TryIncrementPrimarySpawnCount(spawnCounts, loadedPrimary));
+            Assert.False(SpawnBehaviour.TryIncrementPrimarySpawnCount(spawnCounts, loadedSupporting));
+            Assert.AreEqual(1, spawnCounts["primary"]);
+            Assert.True(SpawnBehaviour.TryDecrementPrimarySpawnCount(spawnCounts, loadedPrimary));
+            Assert.AreEqual(0, spawnCounts["primary"]);
+        }
+
+        [Test]
+        public void DynamicPartyIdentity_UsesStableDistinctSaveIds()
+        {
+            Assert.AreEqual(1, SaveId<CsPartyData>("_partyTemplateId"));
+            Assert.AreEqual(2, SaveId<CsPartyData>("_owningSpawnTemplateId"));
+            Assert.AreEqual(3, SaveId<CsPartyData>("_isPrimarySpawn"));
+            Assert.AreEqual(4, SaveId<CsPartyData>("_latestClosestSettlement"));
+        }
+
+        [Test]
+        public void LegacyDiscovery_SharedPrimaryAndSupportingTemplateIsNotAssumedPrimary()
+        {
+            CsPartyData partyData = DynamicSpawnData.CreateDiscoveredPartyData("reused", null,
+                isPrimaryTemplate: true, isSupportingTemplate: true, latestClosestSettlement: null);
+            var spawnCounts = new Dictionary<string, int> { ["reused"] = 3 };
+
+            Assert.False(partyData.IsPrimarySpawn);
+            Assert.False(SpawnBehaviour.TryDecrementPrimarySpawnCount(spawnCounts, partyData));
+            Assert.AreEqual(3, spawnCounts["reused"]);
         }
 
         [Test]
@@ -84,7 +120,12 @@ namespace CustomSpawns.Tests.Spawn
 
         private static short SaveId(string fieldName)
         {
-            FieldInfo field = typeof(CustomSpawnsPartyComponent).GetField(fieldName,
+            return SaveId<CustomSpawnsPartyComponent>(fieldName);
+        }
+
+        private static short SaveId<T>(string fieldName)
+        {
+            FieldInfo field = typeof(T).GetField(fieldName,
                 BindingFlags.Instance | BindingFlags.NonPublic)!;
             return field.GetCustomAttribute<SaveableFieldAttribute>()!.LocalSaveId;
         }

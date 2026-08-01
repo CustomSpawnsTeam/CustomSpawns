@@ -61,8 +61,29 @@ namespace CustomSpawns.Tests.Diplomacy
         {
             var scores = ScoreProvider("force_no_kingdom");
 
-            Assert.AreEqual(float.MinValue, scores.GetJoinScore("force_no_kingdom", () => 1f));
-            Assert.AreEqual(float.MaxValue, scores.GetLeaveScore("force_no_kingdom", () => -1f));
+            float joinScore = scores.GetJoinScore("force_no_kingdom", () => 1f);
+            float leaveScore = scores.GetLeaveScore("force_no_kingdom", () => -1f);
+
+            Assert.AreEqual(ForceNoKingdomScoreProvider.ForcedJoinScore, joinScore);
+            Assert.AreEqual(ForceNoKingdomScoreProvider.ForcedLeaveScore, leaveScore);
+            Assert.AreEqual(-1_000_000_000, (int)joinScore);
+            Assert.AreEqual(1_000_000_000, (int)leaveScore);
+            Assert.False(float.IsInfinity(leaveScore - joinScore));
+        }
+
+        [Test]
+        public void ReconciliationScheduler_DefersAndCoalescesRequestsWithoutLosingLaterRequests()
+        {
+            var scheduler = new DiplomacyReconciliationScheduler();
+
+            scheduler.Request();
+            scheduler.Request();
+
+            Assert.True(scheduler.TakePendingRequest());
+            Assert.False(scheduler.TakePendingRequest());
+
+            scheduler.Request();
+            Assert.True(scheduler.TakePendingRequest());
         }
 
         [Test]

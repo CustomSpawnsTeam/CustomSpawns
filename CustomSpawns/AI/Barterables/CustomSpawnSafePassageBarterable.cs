@@ -20,12 +20,14 @@ namespace CustomSpawns.AI.Barterables
 
         public override int GetUnitValueForFaction(IFaction faction)
         {
-            return ApplyCustomSpawnsPriceAdjustment(base.GetUnitValueForFaction(faction), _isCustomSpawnsParty);
+            return ApplyCustomSpawnsPriceAdjustment(base.GetUnitValueForFaction(faction), _isCustomSpawnsParty,
+                OriginalParty.MapFaction.IsBanditFaction);
         }
 
-        internal static int ApplyCustomSpawnsPriceAdjustment(int unitValue, bool isCustomSpawnsParty)
+        internal static int ApplyCustomSpawnsPriceAdjustment(int unitValue, bool isCustomSpawnsParty,
+            bool isBanditFaction)
         {
-            return isCustomSpawnsParty ? unitValue / 8 : unitValue;
+            return isCustomSpawnsParty && !isBanditFaction ? unitValue / 8 : unitValue;
         }
 
         internal static bool IsCustomSpawnsParty(string mobilePartyStringId, ISet<string> partyTemplateIds,
