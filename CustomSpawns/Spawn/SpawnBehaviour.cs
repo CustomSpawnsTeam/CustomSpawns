@@ -88,6 +88,7 @@ namespace CustomSpawns.Spawn
             CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, HourlyBehaviour);
             CampaignEvents.DailyTickPartyEvent.AddNonSerializedListener(this, ReplenishPartyFood);
             CampaignEvents.MobilePartyCreated.AddNonSerializedListener(this, OnPartyCreated);
+            CampaignEvents.MobilePartyDestroyed.AddNonSerializedListener(this, OnMobilePartyDestroyed);
             CampaignEvents.OnPartyRemovedEvent.AddNonSerializedListener(this, OnPartyRemoved);
         }
 
@@ -107,7 +108,7 @@ namespace CustomSpawns.Spawn
                 foreach (MobileParty mb in MobileParty.All)
                 {
                     string id = CampaignUtils.IsolateMobilePartyStringID(mb);
-                    var spawn = _spawnDao.FindByPartyTemplateId(id);
+                    var spawn = _spawnDao.FindParentSpawnByPartyTemplateId(id);
                     if(!string.IsNullOrEmpty(id) && spawn != null)
                     {
                         HandleAIChecks(mb, spawn, mb.HomeSettlement);
@@ -132,18 +133,26 @@ namespace CustomSpawns.Spawn
         //deal with our parties being removed! Also this is more efficient ;)
         private void OnPartyRemoved(PartyBase? partyBase)
         {
-            MobileParty? mb = partyBase?.MobileParty;
-            if (mb == null)
+            HandlePartyRemoval(partyBase?.MobileParty);
+        }
+
+        private void OnMobilePartyDestroyed(MobileParty? mobileParty, PartyBase destroyer)
+        {
+            HandlePartyRemoval(mobileParty);
+        }
+
+        private void HandlePartyRemoval(MobileParty? mobileParty)
+        {
+            CsPartyData? partyData = _dynamicSpawnData.TakeDynamicSpawnData(mobileParty);
+            if (partyData == null || mobileParty == null)
                 return;
 
-            CsPartyData? partyData = _dynamicSpawnData.GetDynamicSpawnData(mb);
-            if (partyData != null && _numberOfSpawns.ContainsKey(partyData.PartyTemplateId))
+            if (TryDecrementPrimarySpawnCount(_numberOfSpawns, partyData))
             {
-                _numberOfSpawns[partyData.PartyTemplateId]--;
-                //this is a custom spawns party!!
-                OnPartyDeath(mb, partyData);
-                _modDebug.ShowMessage(mb.StringId + " has died at " + partyData.LatestClosestSettlement + ", reducing the total number to: " + _numberOfSpawns[partyData.PartyTemplateId], DebugMessageType.DeathTrack);
+                _modDebug.ShowMessage(mobileParty.StringId + " has died at " + partyData.LatestClosestSettlement + ", reducing the total number to: " + _numberOfSpawns[partyData.PartyTemplateId], DebugMessageType.DeathTrack);
             }
+
+            OnPartyDeath(mobileParty, partyData);
         }
 
         private void ReplenishPartyFood(MobileParty mb)
@@ -215,7 +224,8 @@ namespace CustomSpawns.Spawn
                                 (float)rand.NextDouble() >= currentChanceOfSpawn * _configLoader.Config.SpawnChanceFlatMultiplier)
                                 continue;
 
-                            var spawnSettlement = GetSpawnSettlement(spawn, (s => spawn.MinimumDevestationToSpawn > _devestationMetricData.GetDevestation(s)), rand);
+                            Clan configuredSpawnClan = GetConfiguredSpawnClan(spawn, rand);
+                            var spawnSettlement = GetSpawnSettlement(spawn, configuredSpawnClan, (s => spawn.MinimumDevestationToSpawn > _devestationMetricData.GetDevestation(s)), rand);
                             //spawn nao!
 
                             if (spawnSettlement == null)
@@ -225,7 +235,8 @@ namespace CustomSpawns.Spawn
                                 break;
                             }
 
-                            MobileParty spawnedParty = _spawner.SpawnParty(spawnSettlement, spawn.SpawnClan, spawn.PartyTemplate, new TextObject(spawn.Name));
+                            Clan spawnClan = GetSpawnClan(spawn, spawnSettlement, configuredSpawnClan);
+                            MobileParty spawnedParty = _spawner.SpawnParty(spawnSettlement, spawnClan, spawn.PartyTemplate, new TextObject(spawn.Name));
                             if (spawnedParty == null)
                                 return;
                             _numberOfSpawns[spawn.PartyTemplate.StringId]++; //increment for can spawn and chance modifications
@@ -235,7 +246,7 @@ namespace CustomSpawns.Spawn
                             //accompanying spawns
                             foreach (var accomp in spawn.SpawnAlongWith)
                             {
-                                MobileParty juniorParty = _spawner.SpawnParty(spawnSettlement, spawn.SpawnClan, accomp.templateObject, new TextObject(accomp.name));
+                                MobileParty juniorParty = _spawner.SpawnParty(spawnSettlement, spawnClan, accomp.templateObject, new TextObject(accomp.name));
                                 if (juniorParty == null)
                                     continue;
                                 HandleAIChecks(juniorParty, spawn, spawnSettlement); //junior party has same AI behaviour as main party. TODO in future add some junior party AI and reconstruction.
@@ -281,7 +292,7 @@ namespace CustomSpawns.Spawn
 
         private void HandleDeathMessage(MobileParty mobileParty, CsPartyData partyData)
         {
-            SpawnDto? spawn = _spawnDao.FindByPartyTemplateId(partyData.PartyTemplateId);
+            SpawnDto? spawn = _spawnDao.FindParentSpawnByPartyTemplateId(partyData.PartyTemplateId);
             if (spawn?.DeathMessage != null)
             {
                 UX.ShowMessage(spawn.DeathMessage.Information, spawn.DeathMessage.Color,
@@ -327,18 +338,11 @@ namespace CustomSpawns.Spawn
                 _messageBoxService.ShowCustomSpawnsErrorMessage(e);
             }
         }
-        private Settlement GetSpawnSettlement(SpawnDto dto, Func<Settlement , bool> exceptionPredicate, Random rand = null)
+        private Settlement GetSpawnSettlement(SpawnDto dto, Clan spawnClan, Func<Settlement , bool> exceptionPredicate, Random rand = null)
         {
             if (rand == null)
                 rand = new Random();
 
-
-            Clan spawnClan = dto.SpawnClan;
-            //deal with override of spawn clan.
-            if (dto.OverridenSpawnClan.Count != 0)
-            {
-                spawnClan = dto.OverridenSpawnClan[rand.Next(0, dto.OverridenSpawnClan.Count)];
-            }
             //check for one hideout
             Settlement firstHideout = null;
             if (_configLoader.Config.SpawnAtOneHideout)
@@ -375,6 +379,38 @@ namespace CustomSpawns.Spawn
             List<Settlement> hideouts = Settlement.All.Where(settlement => settlement.IsHideout).ToList();
             Settlement spawnSettlement = _configLoader.Config.SpawnAtOneHideout ? firstHideout : (dto.TrySpawnAtList.Count == 0 ? CampaignUtils.GetNearestSettlement(hideouts, parties) : null);
             return spawnSettlement;
+        }
+
+        internal static bool TryDecrementPrimarySpawnCount(IDictionary<string, int> numberOfSpawns, CsPartyData partyData)
+        {
+            if (!numberOfSpawns.ContainsKey(partyData.PartyTemplateId))
+            {
+                return false;
+            }
+
+            numberOfSpawns[partyData.PartyTemplateId]--;
+            return true;
+        }
+
+        internal static T ResolveSpawnClan<T>(bool inheritClanFromSettlement, T configuredSpawnClan, T? settlementOwnerClan)
+            where T : class
+        {
+            return inheritClanFromSettlement && settlementOwnerClan != null ? settlementOwnerClan : configuredSpawnClan;
+        }
+
+        private static Clan GetSpawnClan(SpawnDto dto, Settlement spawnSettlement, Clan configuredSpawnClan)
+        {
+            return ResolveSpawnClan(dto.InheritClanFromSettlement, configuredSpawnClan, spawnSettlement.OwnerClan);
+        }
+
+        private static Clan GetConfiguredSpawnClan(SpawnDto dto, Random rand)
+        {
+            if (dto.OverridenSpawnClan.Count != 0)
+            {
+                return dto.OverridenSpawnClan[rand.Next(0, dto.OverridenSpawnClan.Count)];
+            }
+
+            return dto.SpawnClan;
         }
     }
 }

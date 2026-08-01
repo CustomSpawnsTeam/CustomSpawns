@@ -29,7 +29,6 @@ namespace CustomSpawns.Spawn
         public override void RegisterEvents()
         {
             CampaignEvents.MobilePartyCreated.AddNonSerializedListener(this, OnMobilePartyCreated);
-            CampaignEvents.MobilePartyDestroyed.AddNonSerializedListener(this, OnMobilePartyDestroyed);
             CampaignEvents.HourlyTickPartyEvent.AddNonSerializedListener(this, HourlyMobilePartyUpdate);
         }
 
@@ -72,15 +71,6 @@ namespace CustomSpawns.Spawn
             }
         }
 
-        // partyBase is the party which destroyed the mobileParty
-        private void OnMobilePartyDestroyed(MobileParty? mobileParty, PartyBase destroyer)
-        {
-            if (mobileParty is not null && IsCustomSpawnParty(mobileParty) && _dynamicSpawnData.ContainsKey(mobileParty))
-            {
-                _dynamicSpawnData.Remove(mobileParty);
-            }
-        }
-
         private void HourlyMobilePartyUpdate(MobileParty? mobileParty)
         {
             if (mobileParty is not null && _dynamicSpawnData.ContainsKey(mobileParty))
@@ -96,6 +86,23 @@ namespace CustomSpawns.Spawn
                 return _dynamicSpawnData[mb];   
             }
             return null;
+        }
+
+        public CsPartyData? TakeDynamicSpawnData(MobileParty? mobileParty)
+        {
+            return TakeFromRegistry(_dynamicSpawnData, mobileParty);
+        }
+
+        internal static CsPartyData? TakeFromRegistry<TKey>(IDictionary<TKey, CsPartyData> registry, TKey? key)
+            where TKey : class
+        {
+            if (key is null || !registry.TryGetValue(key, out CsPartyData? partyData))
+            {
+                return null;
+            }
+
+            registry.Remove(key);
+            return partyData;
         }
 
         private Settlement? GetNearestSettlement(MobileParty? mobileParty)

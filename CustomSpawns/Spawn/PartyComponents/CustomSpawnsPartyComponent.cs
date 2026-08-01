@@ -2,6 +2,7 @@
 using TaleWorlds.CampaignSystem.Party.PartyComponents;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Localization;
+using TaleWorlds.SaveSystem;
 
 namespace CustomSpawns.Spawn.PartyComponents
 {
@@ -11,37 +12,132 @@ namespace CustomSpawns.Spawn.PartyComponents
      */
     public class CustomSpawnsPartyComponent : WarPartyComponent
     {
+        [SaveableField(1)]
+        private Hero _partyOwner = null!;
+
+        [SaveableField(2)]
+        private TextObject _name = null!;
+
+        [SaveableField(3)]
+        private Settlement _homeSettlement = null!;
+
+        private bool _isRegisteredWithClan;
+
         public CustomSpawnsPartyComponent(Hero partyOwner, TextObject name, Settlement homeSettlement)
         {
-            PartyOwner = partyOwner;
-            Name = name;
-            HomeSettlement = homeSettlement;
+            _partyOwner = partyOwner;
+            _name = name;
+            _homeSettlement = homeSettlement;
         }
 
         /**
          * This is the clan that owns the party.
          * Generally this would be the clan leader.
          */
-        public override Hero PartyOwner { get; }
+        public override Hero PartyOwner => _partyOwner;
 
         /**
          * This is the name of the party on the campaign map.
          */
-        public override TextObject Name { get; }
+        public override TextObject Name => _name;
 
         /**
          * This is the settlement the party has spawned at.
          */
-        public override Settlement HomeSettlement { get; }
+        public override Settlement HomeSettlement => _homeSettlement;
         
         protected override void OnMobilePartySetOnCreation()
         {
-            MobileParty.ActualClan = PartyOwner.Clan;
-            MobileParty.Party.SetCustomOwner(PartyOwner);
-            MobileParty.Party.SetCustomName(Name);
-            MobileParty.SetCustomHomeSettlement(HomeSettlement);
+            ApplyPartyInvariants();
+        }
+
+        protected override void OnInitialize()
+        {
+            RestoreLegacyState();
+            ApplyPartyInvariants();
+
+            if (!_isRegisteredWithClan && ShouldRegisterWithClan(MobileParty.ActualClan))
+            {
+                base.OnInitialize();
+                _isRegisteredWithClan = true;
+            }
+        }
+
+        protected override void OnFinalize()
+        {
+            if (ShouldFinalizeWithClan(_isRegisteredWithClan))
+            {
+                base.OnFinalize();
+                _isRegisteredWithClan = false;
+            }
+        }
+
+        private void RestoreLegacyState()
+        {
+            LegacyPartyState state = RepairLegacyState(_partyOwner, MobileParty.Party.Owner, MobileParty.ActualClan,
+                _name, MobileParty.Party.CustomName, _homeSettlement, MobileParty.HomeSettlement);
+            _partyOwner = state.PartyOwner!;
+            _name = state.Name!;
+            _homeSettlement = state.HomeSettlement!;
+        }
+
+        internal static LegacyPartyState RepairLegacyState(Hero? savedOwner, Hero? currentOwner, Clan? actualClan,
+            TextObject? savedName, TextObject? currentName, Settlement? savedHomeSettlement, Settlement? currentHomeSettlement)
+        {
+            Hero? partyOwner = savedOwner ?? currentOwner;
+            if (partyOwner?.Clan == null && actualClan?.Leader != null)
+            {
+                partyOwner = actualClan.Leader;
+            }
+
+            return new LegacyPartyState(partyOwner,
+                savedName ?? currentName, savedHomeSettlement ?? currentHomeSettlement);
+        }
+
+        internal static bool ShouldRegisterWithClan(Clan? clan)
+        {
+            return clan != null;
+        }
+
+        internal static bool ShouldFinalizeWithClan(bool isRegisteredWithClan)
+        {
+            return isRegisteredWithClan;
+        }
+
+        private void ApplyPartyInvariants()
+        {
+            if (_partyOwner?.Clan != null)
+            {
+                MobileParty.ActualClan = _partyOwner.Clan;
+                MobileParty.Party.SetCustomOwner(_partyOwner);
+            }
+
+            if (_name != null)
+            {
+                MobileParty.Party.SetCustomName(_name);
+            }
+
+            if (_homeSettlement != null)
+            {
+                MobileParty.SetCustomHomeSettlement(_homeSettlement);
+            }
+
             MobileParty.ShouldJoinPlayerBattles = true;
             MobileParty.Party.SetVisualAsDirty();
+        }
+
+        internal readonly struct LegacyPartyState
+        {
+            public Hero? PartyOwner { get; }
+            public TextObject? Name { get; }
+            public Settlement? HomeSettlement { get; }
+
+            public LegacyPartyState(Hero? partyOwner, TextObject? name, Settlement? homeSettlement)
+            {
+                PartyOwner = partyOwner;
+                Name = name;
+                HomeSettlement = homeSettlement;
+            }
         }
     }
 }

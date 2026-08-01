@@ -17,6 +17,7 @@ namespace CustomSpawns.Data.Dao
         private readonly SpawnDtoAdapter _spawnDtoAdapter;
         private readonly MessageBoxService _messageBoxService;
         private List<SpawnDto>? _spawns;
+        private readonly ISet<string> _reportedAmbiguousParentTemplateIds = new HashSet<string>();
 
         public SpawnDao(SpawnDataReader spawnDataReader, SpawnDtoAdapter spawnDtoAdapter, MessageBoxService messageBoxService)
         {
@@ -72,6 +73,34 @@ namespace CustomSpawns.Data.Dao
                 return null;
             }
             return candidates.First();
+        }
+
+        public SpawnDto? FindParentSpawnByPartyTemplateId(string partyTemplateId)
+        {
+            SpawnDto? spawn = FindUniqueParent(Spawns().Where(spawn =>
+                spawn.PartyTemplate.StringId.Equals(partyTemplateId)
+                || spawn.SpawnAlongWith.Any(accompanyingParty => accompanyingParty.templateObject.StringId.Equals(partyTemplateId))),
+                out bool isAmbiguous);
+            if (isAmbiguous && _reportedAmbiguousParentTemplateIds.Add(partyTemplateId))
+            {
+                _messageBoxService.ShowMessage("Custom Spawns cannot determine the parent spawn for party template '" + partyTemplateId + "' because it is used by multiple spawns.");
+            }
+            return spawn;
+        }
+
+        internal static T? FindUniqueParent<T>(IEnumerable<T> candidates, out bool isAmbiguous)
+            where T : class
+        {
+            using IEnumerator<T> enumerator = candidates.GetEnumerator();
+            if (!enumerator.MoveNext())
+            {
+                isAmbiguous = false;
+                return null;
+            }
+
+            T candidate = enumerator.Current;
+            isAmbiguous = enumerator.MoveNext();
+            return isAmbiguous ? null : candidate;
         }
 
         public ISet<string> FindAllSubPartyTemplateId()
