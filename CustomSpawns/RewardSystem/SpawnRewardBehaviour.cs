@@ -49,6 +49,9 @@ namespace CustomSpawns.RewardSystem
 
         private void CalculateReward(List<MapEventParty> defeatedParties, MapEventParty mapEventPlayerParty)
         {
+            var gainedInfluence = 0f;
+            var gainedRenown = 0f;
+
             foreach (var party in defeatedParties)
             {
                 var moneyAmount = 0;
@@ -66,7 +69,7 @@ namespace CustomSpawns.RewardSystem
                                 if (reward.RenownInfluenceMoneyAmount != null)
                                 {
                                     influenceAmount = Convert.ToInt32(reward.RenownInfluenceMoneyAmount);
-                                    mapEventPlayerParty.GainedInfluence += Convert.ToSingle(reward.RenownInfluenceMoneyAmount);
+                                    gainedInfluence += Convert.ToSingle(reward.RenownInfluenceMoneyAmount);
                                 }
                                 break;
                             case RewardType.Money:
@@ -92,7 +95,7 @@ namespace CustomSpawns.RewardSystem
                                 if (reward.RenownInfluenceMoneyAmount != null)
                                 {
                                     renownAmount = Convert.ToInt32(reward.RenownInfluenceMoneyAmount);
-                                    mapEventPlayerParty.GainedRenown += Convert.ToSingle(reward.RenownInfluenceMoneyAmount);
+                                    gainedRenown += Convert.ToSingle(reward.RenownInfluenceMoneyAmount);
                                 }
                                 break;
                         }
@@ -106,6 +109,15 @@ namespace CustomSpawns.RewardSystem
                         );
                 }
             }
+
+            var renown = mapEventPlayerParty.GainedRenownExplained;
+            renown.Add(gainedRenown);
+            var influence = mapEventPlayerParty.GainedInfluenceExplained;
+            influence.Add(gainedInfluence);
+            mapEventPlayerParty.SetRenownInfluenceAndMoraleOnBattleEnd(
+                renown,
+                influence,
+                mapEventPlayerParty.GainedMoraleExplained);
         }
 
         private bool IsItemGiven(float probability)

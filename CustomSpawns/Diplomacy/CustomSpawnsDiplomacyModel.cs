@@ -324,7 +324,6 @@ namespace CustomSpawns.Diplomacy
         public override int MinimumRelationWithConversationCharacterToJoinKingdom => _diplomacyModel.MinimumRelationWithConversationCharacterToJoinKingdom;
         public override int GiftingTownRelationshipBonus => _diplomacyModel.GiftingTownRelationshipBonus;
         public override int GiftingCastleRelationshipBonus => _diplomacyModel.GiftingCastleRelationshipBonus;
-        public override float WarDeclarationScorePenaltyAgainstAllies => _diplomacyModel.WarDeclarationScorePenaltyAgainstAllies;
-        public override float WarDeclarationScoreBonusAgainstEnemiesOfAllies => _diplomacyModel.WarDeclarationScoreBonusAgainstEnemiesOfAllies;
+        public override float WarDeclarationScorePenaltyAgainstTradePartners => _diplomacyModel.WarDeclarationScorePenaltyAgainstTradePartners;
     }
 }
