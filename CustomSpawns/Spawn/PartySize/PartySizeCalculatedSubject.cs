@@ -10,7 +10,7 @@ namespace CustomSpawns.Spawn.PartySize
      */
     public class PartySizeCalculatedSubject
     {
-        private static readonly List<IPartySizeLimitObserver> Observers = new ();
+        private readonly List<IPartySizeLimitObserver> _observers = new ();
 
         /**
          * Registers an observer to be notified when the party size limit has been calculated.
@@ -18,7 +18,7 @@ namespace CustomSpawns.Spawn.PartySize
          */
         public void Register(IPartySizeLimitObserver observer)
         {
-            Observers.Add(observer);
+            _observers.Add(observer);
         }
 
         /**
@@ -26,7 +26,7 @@ namespace CustomSpawns.Spawn.PartySize
          */
         public void Unregister(IPartySizeLimitObserver observer)
         {
-            Observers.Remove(observer);
+            _observers.Remove(observer);
         }
 
         /**
@@ -37,7 +37,7 @@ namespace CustomSpawns.Spawn.PartySize
          */
         public ExplainedNumber NotifyObservers(MobileParty mobileParty, ExplainedNumber explainedPartySizeLimit)
         {
-            return Observers.Aggregate(explainedPartySizeLimit, 
+            return _observers.Aggregate(explainedPartySizeLimit,
                     (current, observer) => observer.OnPartySizeLimitCalculated(mobileParty, current));
         }
     }

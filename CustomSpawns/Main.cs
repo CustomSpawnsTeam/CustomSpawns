@@ -8,7 +8,6 @@ using CustomSpawns.Data.Dao;
 using CustomSpawns.Data.Reader.Impl;
 using CustomSpawns.Dialogues;
 using CustomSpawns.Diplomacy;
-using CustomSpawns.HarmonyPatches;
 using CustomSpawns.ModIntegration;
 using CustomSpawns.RewardSystem;
 using CustomSpawns.Spawn;
@@ -59,8 +58,6 @@ namespace CustomSpawns
         private DialogueDtoAdapter _dialogueDtoAdapter;
         private PartySizeCalculatedSubject _partySizeCalculatedSubject;
         private ISuzerainProvider _suzerainProvider;
-
-        private PatchManager _patchManager;
 
         private SpawnCheats _spawnCheats;
         
@@ -124,7 +121,6 @@ namespace CustomSpawns
                 _customSpawnsClanDiplomacyProvider, nonMercenaryCustomSpawnsFactionsProvider, _dailyLogger);
             _partySizeCalculatedSubject = new PartySizeCalculatedSubject();
             _spawnBehaviour = new SpawnBehaviour(_spawner, _spawnDao, _dynamicSpawnData, _saveInitialiser, _devestationMetricData, _configLoader, _messageBoxService, _dailyLogger, _modDebug, _partySizeCalculatedSubject);
-            _patchManager = new PatchManager(_spawnDao, _configLoader, _messageBoxService, _partySizeCalculatedSubject);
             _safePassageBehaviour = new SafePassageBehaviour(_spawnDao);
             _spawnCheats = new SpawnCheats(_spawner, _spawnDao);
         }
@@ -171,6 +167,8 @@ namespace CustomSpawns
                 starter.AddBehavior(_customSpawnsDiplomacyBehaviour);
                 
                 starter.AddModel(_customSpawnsDiplomacyModel);
+                starter.AddModel(new CustomSpawnsPartySizeLimitModel(starter.GetModel<PartySizeLimitModel>(),
+                    _partySizeCalculatedSubject));
             }
             else
             {
@@ -178,14 +176,5 @@ namespace CustomSpawns
             }
         }
 
-        public override void OnGameInitializationFinished(Game game)
-        {
-            base.OnGameInitializationFinished(game);
-            if (!(game.GameType is Campaign))
-            {
-                return;
-            }
-            _patchManager.ApplyPatches();
-        }
     }
 }
