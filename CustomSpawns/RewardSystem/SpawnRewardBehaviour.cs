@@ -5,7 +5,6 @@ using CustomSpawns.Data.Dao;
 using CustomSpawns.Data.Model.Reward;
 using CustomSpawns.Utils;
 using TaleWorlds.CampaignSystem;
-using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Extensions;
 using TaleWorlds.CampaignSystem.MapEvents;
 using TaleWorlds.Core;
@@ -111,12 +110,14 @@ namespace CustomSpawns.RewardSystem
                 }
             }
 
-            var playerLeader = mapEventPlayerParty.Party.LeaderHero;
-            if (playerLeader != null)
-            {
-                GainKingdomInfluenceAction.ApplyForBattle(playerLeader, gainedInfluence);
-                GainRenownAction.Apply(playerLeader, gainedRenown, doNotNotify: true);
-            }
+            var renown = mapEventPlayerParty.GainedRenownExplained;
+            renown.Add(gainedRenown);
+            var influence = mapEventPlayerParty.GainedInfluenceExplained;
+            influence.Add(gainedInfluence);
+            mapEventPlayerParty.SetRenownInfluenceAndMoraleOnBattleEnd(
+                renown,
+                influence,
+                mapEventPlayerParty.GainedMoraleExplained);
         }
 
         private bool IsItemGiven(float probability)
