@@ -211,7 +211,12 @@ namespace CustomSpawns.Utils
 
         public static string IsolateMobilePartyStringID(MobileParty mobileParty)
         {
-            var str = mobileParty.StringId;
+            return IsolateMobilePartyStringID(mobileParty.StringId);
+        }
+
+        public static string IsolateMobilePartyStringID(string partyStringId)
+        {
+            var str = partyStringId;
             if (str.Contains('_'))
             {
                 return str.Substring(0, str.LastIndexOf('_'));

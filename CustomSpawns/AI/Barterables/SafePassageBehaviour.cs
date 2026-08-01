@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using CustomSpawns.Data.Dao;
-using CustomSpawns.Data.Dto;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.BarterSystem;
 using TaleWorlds.CampaignSystem.BarterSystem.Barterables;
@@ -32,19 +31,25 @@ namespace CustomSpawns.AI.Barterables
                     continue;
                 }
                 var safePassage = barterables[index];
-                SpawnDto? spawnDto = _spawnDao.FindByPartyTemplateId(barterables[index].OriginalParty.MobileParty.StringId);
+                bool isCustomSpawnsParty = IsCustomSpawnsParty(safePassage.OriginalParty.MobileParty);
                 // If a vanilla minor faction is at war against all kingdoms then bartering for safe passage will also crash 
-                if (spawnDto == null && !safePassage.OriginalParty.MapFaction.IsMinorFaction)
+                if (!isCustomSpawnsParty && !safePassage.OriginalParty.MapFaction.IsMinorFaction)
                 {
                     return;
                 }
                 CustomSpawnSafePassageBarterable customSpawnCustomSpawnSafePassage = new(safePassage.OriginalOwner,
-                    Hero.MainHero, safePassage.OriginalParty, PartyBase.MainParty);
+                    Hero.MainHero, safePassage.OriginalParty, PartyBase.MainParty, isCustomSpawnsParty);
                 customSpawnCustomSpawnSafePassage.Initialize(safePassage.Group, safePassage.IsContextDependent);
                 customSpawnCustomSpawnSafePassage.SetIsOffered(safePassage.IsOffered);
                 barterables[index] = customSpawnCustomSpawnSafePassage;
                 return;
             }
+        }
+
+        private bool IsCustomSpawnsParty(MobileParty mobileParty)
+        {
+            return CustomSpawnSafePassageBarterable.IsCustomSpawnsParty(mobileParty.StringId,
+                _spawnDao.FindAllPartyTemplateId(), _spawnDao.FindAllSubPartyTemplateId());
         }
 
         public override void SyncData(IDataStore dataStore) {}

@@ -56,7 +56,7 @@ namespace CustomSpawns.Spawn.PartySize
         {
             return explainedPartySize
                 .GetLines()
-                .Any(line => line.name.Contains(explainedPartySize.ToString()));
+                .Any(line => line.name.ToString().Equals(ResizeInitialPartySizeText.ToString()));
         }
     }
 }

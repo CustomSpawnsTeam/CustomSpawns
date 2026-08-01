@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using CustomSpawns.Utils;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.BarterSystem.Barterables;
 using TaleWorlds.CampaignSystem.Encounters;
@@ -8,10 +9,31 @@ namespace CustomSpawns.AI.Barterables
 {
     public class CustomSpawnSafePassageBarterable : SafePassageBarterable
     {
+        private readonly bool _isCustomSpawnsParty;
 
         public CustomSpawnSafePassageBarterable(Hero originalOwner, Hero otherHero, PartyBase ownerParty,
-            PartyBase otherParty)
-            : base(originalOwner, otherHero, ownerParty, otherParty) {}
+            PartyBase otherParty, bool isCustomSpawnsParty = true)
+            : base(originalOwner, otherHero, ownerParty, otherParty)
+        {
+            _isCustomSpawnsParty = isCustomSpawnsParty;
+        }
+
+        public override int GetUnitValueForFaction(IFaction faction)
+        {
+            return ApplyCustomSpawnsPriceAdjustment(base.GetUnitValueForFaction(faction), _isCustomSpawnsParty);
+        }
+
+        internal static int ApplyCustomSpawnsPriceAdjustment(int unitValue, bool isCustomSpawnsParty)
+        {
+            return isCustomSpawnsParty ? unitValue / 8 : unitValue;
+        }
+
+        internal static bool IsCustomSpawnsParty(string mobilePartyStringId, ISet<string> partyTemplateIds,
+            ISet<string> subPartyTemplateIds)
+        {
+            string partyTemplateId = CampaignUtils.IsolateMobilePartyStringID(mobilePartyStringId);
+            return partyTemplateIds.Contains(partyTemplateId) || subPartyTemplateIds.Contains(partyTemplateId);
+        }
 
         public override void Apply()
         {
