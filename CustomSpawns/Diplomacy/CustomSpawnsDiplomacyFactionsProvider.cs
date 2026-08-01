@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using CustomSpawns.Data.Reader.Impl;
+using CustomSpawns.Data.Reader;
 using CustomSpawns.Exception;
 using TaleWorlds.CampaignSystem;
 
@@ -9,28 +9,16 @@ namespace CustomSpawns.Diplomacy
 {
     public class CustomSpawnsDiplomacyFactionsProvider
     {
-        private readonly DiplomacyDataReader _diplomacyDataReader;
+        private readonly IDataReader<Dictionary<string, Data.Model.Diplomacy>> _diplomacyDataReader;
 
-        public CustomSpawnsDiplomacyFactionsProvider(DiplomacyDataReader diplomacyDataReader)
+        public CustomSpawnsDiplomacyFactionsProvider(IDataReader<Dictionary<string, Data.Model.Diplomacy>> diplomacyDataReader)
         {
             _diplomacyDataReader = diplomacyDataReader;
         }
 
         public IList<IFaction> GetCustomSpawnDiplomacyFactions()
         {
-            List<string> clanIdErrors = new();
-            IList<IFaction> clanDiplomacy = new List<IFaction>();
-            IDictionary<string,Data.Model.Diplomacy> diplomacy = _diplomacyDataReader.Data;
-            foreach (KeyValuePair<string,Data.Model.Diplomacy> clanData in diplomacy)
-            {
-                if (!Clan.All.Any(clan => clan.StringId == clanData.Key))
-                {
-                    clanIdErrors.Add(clanData.Key);
-                }
-
-                IFaction clan = Clan.All.First(clan1 => clan1.StringId == clanData.Key);
-                clanDiplomacy.Add(clan);
-            }
+            IList<Clan> clans = GetConfiguredClans(out IList<string> clanIdErrors);
 
             if (clanIdErrors.Count > 0)
             {
@@ -39,7 +27,26 @@ namespace CustomSpawns.Diplomacy
                                              "The consequence is that the wars for these clans could not be set.");
             }
             
-            return clanDiplomacy;
+            return clans.Cast<IFaction>().ToList();
+        }
+
+        public IList<Clan> GetConfiguredClans(out IList<string> missingClanIds)
+        {
+            missingClanIds = new List<string>();
+            IList<Clan> clans = new List<Clan>();
+            foreach (KeyValuePair<string, Data.Model.Diplomacy> clanData in _diplomacyDataReader.Data)
+            {
+                Clan clan = Clan.All.FirstOrDefault(candidate => candidate.StringId == clanData.Key);
+                if (clan == null)
+                {
+                    missingClanIds.Add(clanData.Key);
+                    continue;
+                }
+
+                clans.Add(clan);
+            }
+
+            return clans;
         }
     }
 }

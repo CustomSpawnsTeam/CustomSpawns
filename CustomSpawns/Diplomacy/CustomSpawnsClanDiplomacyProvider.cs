@@ -115,11 +115,7 @@ namespace CustomSpawns.Diplomacy
                        && !forcedWarPeaceInstance.AtPeaceWithClans.Contains(warTarget.StringId)))
             {
                 return true;
-            } else if (attacker.IsKingdomFaction)
-            {
-                // Custom Spawn Kingdoms mechanic is not supported yet. Does it even make sense ?
-                return true;
-            } 
+            }
 
             return false;
         }
@@ -224,11 +220,7 @@ namespace CustomSpawns.Diplomacy
                        && forcedWarPeaceInstance.AtPeaceWithClans.Contains(peaceTarget.StringId)))
             {
                 return true;
-            } else if (attacker.IsKingdomFaction)
-            {
-                // Custom Spawn Kingdoms mechanic is not supported yet. Does it even make sense ?
-                return true;
-            } 
+            }
 
             return false;
         }
