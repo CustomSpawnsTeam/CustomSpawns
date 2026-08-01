@@ -7,13 +7,14 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Map;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.SaveSystem;
 
 namespace CustomSpawns.Spawn
 {
     public class DynamicSpawnData : CampaignBehaviorBase
     {
         private readonly SpawnDao _spawnDao;
-        private readonly Dictionary<MobileParty, CsPartyData> _dynamicSpawnData;
+        private Dictionary<MobileParty, CsPartyData> _dynamicSpawnData;
         private ISet<string> _spawnPartyTemplateIds;
         private ISet<string> _spawnSubPartyTemplateIds;
 
@@ -29,11 +30,14 @@ namespace CustomSpawns.Spawn
         public override void RegisterEvents()
         {
             CampaignEvents.MobilePartyCreated.AddNonSerializedListener(this, OnMobilePartyCreated);
-            CampaignEvents.MobilePartyDestroyed.AddNonSerializedListener(this, OnMobilePartyDestroyed);
             CampaignEvents.HourlyTickPartyEvent.AddNonSerializedListener(this, HourlyMobilePartyUpdate);
         }
 
-        public override void SyncData(IDataStore dataStore) { }
+        public override void SyncData(IDataStore dataStore)
+        {
+            dataStore.SyncData("_dynamicSpawnData", ref _dynamicSpawnData);
+            _dynamicSpawnData ??= new Dictionary<MobileParty, CsPartyData>();
+        }
 
         private void Init()
         {
@@ -67,18 +71,42 @@ namespace CustomSpawns.Spawn
             {
                 string isolatedPartyStringId = CampaignUtils.IsolateMobilePartyStringID(mobileParty);
                 Settlement? settlement = GetNearestSettlement(mobileParty);
-                CsPartyData partyData = new (isolatedPartyStringId, settlement); 
+                bool isUnambiguousPrimary = _spawnPartyTemplateIds.Contains(isolatedPartyStringId)
+                                            && !_spawnSubPartyTemplateIds.Contains(isolatedPartyStringId);
+                string? owningSpawnTemplateId = isUnambiguousPrimary
+                    ? isolatedPartyStringId
+                    : _spawnDao.FindParentSpawnByPartyTemplateId(isolatedPartyStringId)?.PartyTemplate.StringId;
+                CsPartyData partyData = CreateDiscoveredPartyData(isolatedPartyStringId, owningSpawnTemplateId,
+                    _spawnPartyTemplateIds.Contains(isolatedPartyStringId),
+                    _spawnSubPartyTemplateIds.Contains(isolatedPartyStringId), settlement);
                 _dynamicSpawnData.Add(mobileParty, partyData);
             }
         }
 
-        // partyBase is the party which destroyed the mobileParty
-        private void OnMobilePartyDestroyed(MobileParty? mobileParty, PartyBase destroyer)
+        internal static CsPartyData CreateDiscoveredPartyData(string partyTemplateId,
+            string? owningSpawnTemplateId, bool isPrimaryTemplate, bool isSupportingTemplate,
+            Settlement? latestClosestSettlement)
         {
-            if (mobileParty is not null && IsCustomSpawnParty(mobileParty) && _dynamicSpawnData.ContainsKey(mobileParty))
-            {
-                _dynamicSpawnData.Remove(mobileParty);
-            }
+            bool isPrimarySpawn = isPrimaryTemplate && !isSupportingTemplate;
+            return new CsPartyData(partyTemplateId, owningSpawnTemplateId, isPrimarySpawn,
+                latestClosestSettlement);
+        }
+
+        public void RegisterPrimaryParty(MobileParty mobileParty, string owningSpawnTemplateId)
+        {
+            RegisterParty(mobileParty, owningSpawnTemplateId, true);
+        }
+
+        public void RegisterSupportingParty(MobileParty mobileParty, string owningSpawnTemplateId)
+        {
+            RegisterParty(mobileParty, owningSpawnTemplateId, false);
+        }
+
+        private void RegisterParty(MobileParty mobileParty, string owningSpawnTemplateId, bool isPrimarySpawn)
+        {
+            string partyTemplateId = CampaignUtils.IsolateMobilePartyStringID(mobileParty);
+            _dynamicSpawnData[mobileParty] = new CsPartyData(partyTemplateId, owningSpawnTemplateId,
+                isPrimarySpawn, GetNearestSettlement(mobileParty));
         }
 
         private void HourlyMobilePartyUpdate(MobileParty? mobileParty)
@@ -98,6 +126,23 @@ namespace CustomSpawns.Spawn
             return null;
         }
 
+        public CsPartyData? TakeDynamicSpawnData(MobileParty? mobileParty)
+        {
+            return TakeFromRegistry(_dynamicSpawnData, mobileParty);
+        }
+
+        internal static CsPartyData? TakeFromRegistry<TKey>(IDictionary<TKey, CsPartyData> registry, TKey? key)
+            where TKey : class
+        {
+            if (key is null || !registry.TryGetValue(key, out CsPartyData? partyData))
+            {
+                return null;
+            }
+
+            registry.Remove(key);
+            return partyData;
+        }
+
         private Settlement? GetNearestSettlement(MobileParty? mobileParty)
         {
             if (mobileParty is null)
@@ -113,13 +158,34 @@ namespace CustomSpawns.Spawn
 
     public class CsPartyData
     {
-        public readonly string PartyTemplateId;
-        public Settlement? LatestClosestSettlement;
+        [SaveableField(1)]
+        private string _partyTemplateId;
 
-        public CsPartyData(string partyTemplateId, Settlement? latestClosestSettlement)
+        [SaveableField(2)]
+        private string? _owningSpawnTemplateId;
+
+        [SaveableField(3)]
+        private bool _isPrimarySpawn;
+
+        [SaveableField(4)]
+        private Settlement? _latestClosestSettlement;
+
+        public string PartyTemplateId => _partyTemplateId;
+        public string? OwningSpawnTemplateId => _owningSpawnTemplateId;
+        public bool IsPrimarySpawn => _isPrimarySpawn;
+        public Settlement? LatestClosestSettlement
         {
-            PartyTemplateId = partyTemplateId;
-            LatestClosestSettlement = latestClosestSettlement;
+            get => _latestClosestSettlement;
+            set => _latestClosestSettlement = value;
+        }
+
+        public CsPartyData(string partyTemplateId, string? owningSpawnTemplateId, bool isPrimarySpawn,
+            Settlement? latestClosestSettlement)
+        {
+            _partyTemplateId = partyTemplateId;
+            _owningSpawnTemplateId = owningSpawnTemplateId;
+            _isPrimarySpawn = isPrimarySpawn;
+            _latestClosestSettlement = latestClosestSettlement;
         }
     }
 }

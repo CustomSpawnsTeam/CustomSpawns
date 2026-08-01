@@ -15,6 +15,7 @@ namespace CustomSpawns.Spawn.PartyComponents
         protected override void DefineClassTypes()
         {
             AddClassDefinition(typeof(CustomSpawnsPartyComponent), 1);
+            AddClassDefinition(typeof(CsPartyData), 2);
         }
     }
 }
