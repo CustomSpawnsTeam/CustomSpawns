@@ -5,6 +5,7 @@ Game Version: v1.4.7
 * Fixed custom-party persistence and cleanup across save loads and party removal.
 * Fixed custom faction diplomacy enforcement, including peace directives being overridden by constant-war rules.
 * Preserved custom-spawn rewards when the game aggregates map-event results.
+* Improvement: Log every successful primary party spawn with its winning roll, effective chance, multiplier, map count, and party context.
 ---------------------------------------------------------------------------------------------------
 Version: 2.1.0
 Game Version: v1.3.13

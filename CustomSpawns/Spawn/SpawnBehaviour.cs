@@ -217,9 +217,13 @@ namespace CustomSpawns.Spawn
                         if (_numberOfSpawns[spawn.PartyTemplate.StringId] <= spawn.MaximumOnMap && (spawn.MinimumNumberOfDaysUntilSpawn < (int)Math.Ceiling(Campaign.Current.Models.CampaignTimeModel.CampaignStartTime.ElapsedDaysUntilNow)))
                         {
                             float currentChanceOfSpawn = ComputeChanceSpawn(spawn);
-                            if (!_configLoader.Config.IsAllSpawnMode && 
-                                (float)rand.NextDouble() >= currentChanceOfSpawn * _configLoader.Config.SpawnChanceFlatMultiplier)
-                                continue;
+                            float spawnChanceFlatMultiplier = _configLoader.Config.SpawnChanceFlatMultiplier;
+                            float chanceRoll = (float)rand.NextDouble();
+                            if (!_configLoader.Config.IsAllSpawnMode)
+                            {
+                                if (chanceRoll >= currentChanceOfSpawn * spawnChanceFlatMultiplier)
+                                    continue;
+                            }
 
                             Clan configuredSpawnClan = GetConfiguredSpawnClan(spawn, rand);
                             var spawnSettlement = GetSpawnSettlement(spawn, configuredSpawnClan, (s => spawn.MinimumDevestationToSpawn > _devestationMetricData.GetDevestation(s)), rand);
@@ -262,7 +266,8 @@ namespace CustomSpawns.Spawn
                                 //    isSpawnSoundPlaying = true;
                                 //}
                             }
-                            _dailyLogger.ReportSpawn(spawnedParty, currentChanceOfSpawn);
+                            _dailyLogger.ReportSpawn(spawnedParty, spawn, spawnSettlement, spawnClan, currentChanceOfSpawn,
+                                spawnChanceFlatMultiplier, chanceRoll, i + 1, _numberOfSpawns[spawn.PartyTemplate.StringId]);
                         }
                         else
                         {
