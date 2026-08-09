@@ -111,8 +111,7 @@ namespace CustomSpawns
             _mobilePartyTrackingBehaviour = new MobilePartyTrackingBehaviour(_saveInitialiser, _modDebug);
             _dynamicSpawnData = new (_spawnDao, _saveInitialiser);
             _devestationMetricData = new DevestationMetricData(_mobilePartyTrackingBehaviour, _campaignDataConfigLoader, _saveInitialiser, _messageBoxService, _modDebug);
-            _dailyLogger = new DailyLogger(_devestationMetricData, _dynamicSpawnData, _campaignDataConfigLoader,
-                _messageBoxService, _spawnDao);
+            _dailyLogger = new DailyLogger(_devestationMetricData, _messageBoxService);
             NonMercenaryCustomSpawnsFactionsProvider nonMercenaryCustomSpawnsFactionsProvider =
                 new NonMercenaryCustomSpawnsFactionsProvider(_diplomacyDataReader);
             _customSpawnsDiplomacyFactionsProvider = new CustomSpawnsDiplomacyFactionsProvider(_diplomacyDataReader);

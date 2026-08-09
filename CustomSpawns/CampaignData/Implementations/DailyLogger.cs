@@ -1,10 +1,7 @@
 using System;
+using System.Globalization;
 using System.IO;
-using CustomSpawns.CampaignData.Config;
-using CustomSpawns.Data;
-using CustomSpawns.Data.Dao;
 using CustomSpawns.Data.Dto;
-using CustomSpawns.Spawn;
 using CustomSpawns.Utils;
 using NLog;
 using NLog.Config;
@@ -47,21 +44,13 @@ namespace CustomSpawns.CampaignData.Implementations
 
         private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         private int _dayCount;
-        private readonly DynamicSpawnData _dynamicSpawnData;
         private readonly DevestationMetricData _devestationMetricData;
-        private readonly DailyLoggerConfig _config;
         private readonly MessageBoxService _messageBoxService;
-        private readonly SpawnDao _spawnDao;
 
-        public DailyLogger(DevestationMetricData devestationMetricData, DynamicSpawnData dynamicSpawnData,
-            CampaignDataConfigLoader campaignDataConfigLoader, MessageBoxService messageBoxService,
-            SpawnDao spawnDao)
+        public DailyLogger(DevestationMetricData devestationMetricData, MessageBoxService messageBoxService)
         {
             _devestationMetricData = devestationMetricData;
-            _dynamicSpawnData = dynamicSpawnData;
-            _config = campaignDataConfigLoader.GetConfig<DailyLoggerConfig>();
             _messageBoxService = messageBoxService;
-            _spawnDao = spawnDao;
         }
 
         public override void RegisterEvents()
@@ -135,45 +124,40 @@ namespace CustomSpawns.CampaignData.Implementations
             }
         }
 
-        public void ReportSpawn(MobileParty spawned, float chanceOfSpawnBeforeSpawn)
+        public void ReportSpawn(MobileParty spawnedParty, SpawnDto spawn, Settlement spawnSettlement, Clan spawnClan,
+            float calculatedChance, float flatMultiplier, float? chanceRoll, int rollNumber, int numberOnMap)
         {
-            float spawnedPartyStrength = spawned.Party.CalculateCurrentStrength();
-            if (spawnedPartyStrength < _config.MinimumSpawnLogValue || chanceOfSpawnBeforeSpawn > _config.MinimumRarityToLog)
-                return;
-
-            string msg = "New Spawn: " + spawned.StringId +
-                "\nTotal Strength:" + spawnedPartyStrength +
-                "\nChance of Spawn: " + chanceOfSpawnBeforeSpawn;
-
-            string? partyTemplateId = _dynamicSpawnData.GetDynamicSpawnData(spawned)?.PartyTemplateId;
-            if (partyTemplateId == null)
-            {
-                return;
-            }
-            SpawnDto? spawn = _spawnDao.FindByPartyTemplateId(partyTemplateId);
-            if (spawn == null)
-            {
-                return;
-            }
-            
-            if (spawn.DynamicSpawnChanceEffect > 0)
-            {
-                msg += "\nDynamic Spawn Chance Effect: " + spawn.DynamicSpawnChanceEffect;
-                msg += "\nDynamic Spawn Chance Base Value During Spawn: " + DataUtils.GetCurrentDynamicSpawnCoeff(spawn.DynamicSpawnChancePeriod);
-            }
-
-            var spawnSettlement = _dynamicSpawnData.GetDynamicSpawnData(spawned).LatestClosestSettlement;
-
-            if (spawnSettlement.IsVillage)
-            {
-                msg += "\nDevestation at spawn settlement: " +
-                       _devestationMetricData.GetDevestation(spawnSettlement);
-            }
-
-
-            msg += "\n";
+            float effectiveChance = calculatedChance * flatMultiplier;
+            string chanceRollText = chanceRoll.HasValue ? FormatPercentage(chanceRoll.Value) : "forced";
+            string msg = "Party spawned" +
+                " | party_id=" + spawnedParty.StringId +
+                " | template_id=" + spawn.PartyTemplate.StringId +
+                " | spawn_name=" + spawn.Name +
+                " | clan_id=" + spawnClan.StringId +
+                " | clan_name=" + spawnClan.Name +
+                " | settlement_id=" + spawnSettlement.StringId +
+                " | settlement_name=" + spawnSettlement.Name +
+                " | roll=" + rollNumber + "/" + spawn.RepeatSpawnRolls +
+                " | random_roll=" + chanceRollText +
+                " | configured_chance=" + FormatPercentage(spawn.ChanceOfSpawn) +
+                " | calculated_chance=" + FormatPercentage(calculatedChance) +
+                " | flat_multiplier=" + FormatNumber(flatMultiplier) +
+                " | effective_chance=" + FormatPercentage(effectiveChance) +
+                " | on_map=" + numberOnMap + "/" + spawn.MaximumOnMap +
+                " | strength=" + FormatNumber(spawnedParty.Party.CalculateCurrentStrength()) +
+                " | devastation=" + FormatNumber(_devestationMetricData.GetDevestation(spawnSettlement));
 
             WriteString(msg);
+        }
+
+        private static string FormatPercentage(float probability)
+        {
+            return FormatNumber(probability * 100) + "%";
+        }
+
+        private static string FormatNumber(float value)
+        {
+            return value.ToString("0.0000", CultureInfo.InvariantCulture);
         }
     }
 }
