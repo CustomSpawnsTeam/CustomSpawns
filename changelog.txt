@@ -1,3 +1,10 @@
+Version: 2.2.0
+Game Version: v1.4.7
+* Breaking Change: Custom Spawns now requires Bannerlord v1.4.7.
+* Replaced legacy Harmony patches with Bannerlord's supported campaign models and event registrations.
+* Fixed custom-party persistence and cleanup across save loads and party removal.
+* Fixed custom faction diplomacy enforcement, including peace directives being overridden by constant-war rules.
+* Preserved custom-spawn rewards when the game aggregates map-event results.
 ---------------------------------------------------------------------------------------------------
 Version: 2.1.0
 Game Version: v1.3.13

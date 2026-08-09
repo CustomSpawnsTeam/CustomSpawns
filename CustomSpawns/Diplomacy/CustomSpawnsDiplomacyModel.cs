@@ -313,7 +313,12 @@ namespace CustomSpawns.Diplomacy
             {
                 return true;
             }
-            
+
+            if (_customSpawnsDiplomacyProvider.ShouldBeAtPeace(attacker, enemy))
+            {
+                return false;
+            }
+
             return _diplomacyModel.IsAtConstantWar(attacker, enemy);
         }
 
