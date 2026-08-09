@@ -1,4 +1,6 @@
-﻿using TaleWorlds.SaveSystem;
+﻿using System.Collections.Generic;
+using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.SaveSystem;
 
 namespace CustomSpawns.Spawn.PartyComponents
 {
@@ -16,6 +18,12 @@ namespace CustomSpawns.Spawn.PartyComponents
         {
             AddClassDefinition(typeof(CustomSpawnsPartyComponent), 1);
             AddClassDefinition(typeof(CsPartyData), 2);
+        }
+
+        protected override void DefineContainerDefinitions()
+        {
+            ConstructContainerDefinition(typeof(Dictionary<
+                MobileParty, CsPartyData>));
         }
     }
 }

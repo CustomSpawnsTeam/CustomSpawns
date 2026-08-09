@@ -62,14 +62,8 @@ namespace CustomSpawns.Data.Model
         [XmlElement(ElementName="PartyType")]
         public string? PartyType { get; set; }
         
-        [DefaultValue(false), XmlElement(ElementName="PatrolAroundSpawn")]
-        public bool IsConfiguredToPatrolAroundSpawn { get; set; }
-
         [DefaultValue(0f), XmlElement(ElementName = "MinimumNumberOfDaysUntilSpawn")]
         public int MinimumNumberOfDaysUntilSpawn { get; set; }
-
-        [DefaultValue(false), XmlElement(ElementName = "AttackClosestIfIdleForADay")]
-        public bool AttackClosestIfIdleForADay { get; set; }
 
         [DefaultValue(""), XmlElement(ElementName = "TrySpawnAt")]
         public string TrySpawnAt { get; set; } = "";
@@ -88,9 +82,6 @@ namespace CustomSpawns.Data.Model
 
         [DefaultValue(false), XmlElement(ElementName="SpawnMessageBoxPause")]
         public bool SpawnMessageBoxPause { get; set; }
-
-        [XmlElement(ElementName="PatrolAroundClosestLestInterruptedAndSwitch")]
-        public PatrolAroundConfig? PatrolAroundConfig { get; set; }
 
         [XmlAttribute(AttributeName="party_template")]
         public string PartyTemplate { get; set; }

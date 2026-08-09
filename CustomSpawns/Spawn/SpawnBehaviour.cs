@@ -12,9 +12,9 @@ using CustomSpawns.UtilityBehaviours;
 using CustomSpawns.Utils;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Map;
-using TaleWorlds.Localization;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.Localization;
 
 namespace CustomSpawns.Spawn
 {
@@ -310,40 +310,9 @@ namespace CustomSpawns.Spawn
         
         private void HandleAIChecks(MobileParty mb, SpawnDto dto, Settlement spawnedSettlement) //TODO handle sub parties being reconstructed!
         {
-            try
-            {
-                bool invalid = false;
-                Dictionary<string, bool> aiRegistrations = new();
-                if (dto.PatrolAroundSpawn)
-                {
-                    bool success = AI.AIManager.HourlyPatrolAroundSpawn.RegisterParty(mb, spawnedSettlement);
-                    aiRegistrations.Add("Patrol around spawn behaviour: ", success);
-                    invalid = invalid ? true : !success;
-                }
-                if (dto.AttackClosestIfIdleForADay)
-                {
-                    bool success = AI.AIManager.AttackClosestIfIdleForADayBehaviour.RegisterParty(mb);
-                    aiRegistrations.Add("Attack Closest Settlement If Idle for A Day Behaviour: ", success);
-                    invalid = invalid ? true : !success;
-                }
-                if (dto.PatrolAroundClosestLestInterruptedAndSwitch.isValidData)
-                {
-                    bool success = AI.AIManager.PatrolAroundClosestLestInterruptedAndSwitchBehaviour.RegisterParty(mb, 
-                        new AI.PatrolAroundClosestLestInterruptedAndSwitchBehaviour.PatrolAroundClosestLestInterruptedAndSwitchBehaviourData(mb, dto.PatrolAroundClosestLestInterruptedAndSwitch));
-                    aiRegistrations.Add("Patrol Around Closest Lest Interrupted And Switch Behaviour: ", success);
-                    invalid = invalid ? true : !success;
-                }
-                if (invalid && _configLoader.Config.IsDebugMode)
-                {
-                    _messageBoxService.ShowMessage("Custom Spawns AI XML registration error has occured. The party being registered was: " + mb.StringId +
-                                                       "\n Here is more info about the behaviours being registered: \n" + String.Join("\n", aiRegistrations.Keys));
-                }
-            }
-            catch (System.Exception e)
-            {
-                _messageBoxService.ShowCustomSpawnsErrorMessage(e);
-            }
+            // mb.SetMovePatrolAroundPoint(mb.Position, mb.NavigationCapability);
         }
+
         private Settlement GetSpawnSettlement(SpawnDto dto, Clan spawnClan, Func<Settlement , bool> exceptionPredicate, Random rand = null)
         {
             if (rand == null)

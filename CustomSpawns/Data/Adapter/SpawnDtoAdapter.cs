@@ -77,9 +77,7 @@ namespace CustomSpawns.Data.Adapter
             dat.Name = spawn.Name;
             dat.ChanceInverseConstant = spawn.ChanceInverseConstant;
             dat.RepeatSpawnRolls = spawn.RepeatSpawnRolls;
-            dat.PatrolAroundSpawn = spawn.IsConfiguredToPatrolAroundSpawn;
             dat.MinimumNumberOfDaysUntilSpawn = spawn.MinimumNumberOfDaysUntilSpawn;
-            dat.AttackClosestIfIdleForADay = spawn.AttackClosestIfIdleForADay;
             dat.DynamicSpawnChancePeriod = spawn.DynamicSpawnChancePeriod;
             // TODO create an xsd schema to force the DynamicSpawnChanceEffect value between 0 and 1
             dat.DynamicSpawnChanceEffect = spawn.DynamicSpawnChanceEffect;
@@ -125,7 +123,6 @@ namespace CustomSpawns.Data.Adapter
                 {
                     patrolLocationTypes = ConstructTrySettlementList(patrolAroundConfig.PatrolLocationType);   
                 }
-                dat.PatrolAroundClosestLestInterruptedAndSwitch = new (null, patrolAroundConfig.MinStableDays, patrolAroundConfig.MinStableDays, patrolLocationTypes);
             }
 
             //Spawn along with
