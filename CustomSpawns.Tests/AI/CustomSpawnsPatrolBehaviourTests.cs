@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using CustomSpawns.AI;
 using NUnit.Framework;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Party;
 
 namespace CustomSpawns.Tests.AI
 {
@@ -14,7 +15,7 @@ namespace CustomSpawns.Tests.AI
         }
 
         [Test]
-        public void ShouldAddPatrolScore_RequiresHomeSettlement()
+        public void ShouldAddPatrolScore_RequiresPatrolTarget()
         {
             Assert.False(CustomSpawnsPatrolBehaviour.ShouldAddPatrolScore(true, false));
         }
@@ -30,6 +31,42 @@ namespace CustomSpawns.Tests.AI
         public void ShouldAddPatrolScore_DoesNotDependOnCurrentDefaultBehavior()
         {
             Assert.True(CustomSpawnsPatrolBehaviour.ShouldAddPatrolScore(true, true));
+        }
+
+        [TestCase(AiBehavior.EngageParty)]
+        [TestCase(AiBehavior.GoAroundParty)]
+        [TestCase(AiBehavior.JoinParty)]
+        [TestCase(AiBehavior.FleeToPoint)]
+        public void IsPatrolInterrupted_RecognizesTemporaryPartyActions(AiBehavior behavior)
+        {
+            Assert.True(CustomSpawnsPatrolBehaviour.IsPatrolInterrupted(behavior, AiBehavior.None));
+            Assert.True(CustomSpawnsPatrolBehaviour.IsPatrolInterrupted(AiBehavior.None, behavior));
+        }
+
+        [Test]
+        public void UpdateUninterruptedPatrolDays_ResetsWhenInterrupted()
+        {
+            Assert.That(CustomSpawnsPatrolBehaviour.UpdateUninterruptedPatrolDays(3f, true), Is.Zero);
+        }
+
+        [Test]
+        public void UpdateUninterruptedPatrolDays_AdvancesOneHourWhenUninterrupted()
+        {
+            Assert.That(CustomSpawnsPatrolBehaviour.UpdateUninterruptedPatrolDays(1f, false),
+                Is.EqualTo(1f + 1f / 24f));
+        }
+
+        [Test]
+        public void ShouldSwitchPatrolTarget_RequiresStablePeriodToElapse()
+        {
+            Assert.False(CustomSpawnsPatrolBehaviour.ShouldSwitchPatrolTarget(1.99f, 2f, false));
+            Assert.True(CustomSpawnsPatrolBehaviour.ShouldSwitchPatrolTarget(2f, 2f, false));
+        }
+
+        [Test]
+        public void ShouldSwitchPatrolTarget_DoesNotSwitchWhileInterrupted()
+        {
+            Assert.False(CustomSpawnsPatrolBehaviour.ShouldSwitchPatrolTarget(0f, 0f, true));
         }
 
         [Test]

@@ -123,6 +123,9 @@ namespace CustomSpawns.Data.Adapter
                 {
                     patrolLocationTypes = ConstructTrySettlementList(patrolAroundConfig.PatrolLocationType);   
                 }
+                dat.PatrolAroundClosestLestInterruptedAndSwitch =
+                    new PatrolAroundClosestLestInterruptedAndSwitchData(patrolAroundConfig.MinStableDays,
+                        patrolAroundConfig.MaxStableDays, patrolLocationTypes);
             }
 
             //Spawn along with

@@ -108,7 +108,7 @@ namespace CustomSpawns
             _dynamicSpawnData = new (_spawnDao, _saveInitialiser);
             _devestationMetricData = new DevestationMetricData(_mobilePartyTrackingBehaviour, _campaignDataConfigLoader, _saveInitialiser, _messageBoxService, _modDebug);
             _dailyLogger = new DailyLogger(_devestationMetricData, _messageBoxService);
-            _customSpawnsPatrolBehaviour = new CustomSpawnsPatrolBehaviour(_dynamicSpawnData);
+            _customSpawnsPatrolBehaviour = new CustomSpawnsPatrolBehaviour(_dynamicSpawnData, _spawnDao);
             _aiDecisionLoggerBehaviour = new AiDecisionLoggerBehaviour(_dailyLogger);
             NonMercenaryCustomSpawnsFactionsProvider nonMercenaryCustomSpawnsFactionsProvider =
                 new NonMercenaryCustomSpawnsFactionsProvider(_diplomacyDataReader);

@@ -25,6 +25,7 @@ namespace CustomSpawns.Data.Dto
         public float DynamicSpawnChanceEffect { get; set; }
         public float MinimumDevestationToSpawn { get; set; }
         public float DevestationLinearMultiplier { get; set; }
+        public PatrolAroundClosestLestInterruptedAndSwitchData? PatrolAroundClosestLestInterruptedAndSwitch { get; set; }
         public float ChanceOfSpawn { get; set; }
         public float ChanceInverseConstant { get; set; }
         public PartyTemplateObject PartyTemplate { get; set; }
@@ -37,6 +38,21 @@ namespace CustomSpawns.Data.Dto
         public InformationMessage? DeathMessage { get; set; }
         public int SoundEvent { get; set; }
         public bool InheritClanFromSettlement { get; set; }
+    }
+
+    public sealed class PatrolAroundClosestLestInterruptedAndSwitchData
+    {
+        public float MinStableDays { get; }
+        public float MaxStableDays { get; }
+        public List<SpawnSettlementType> PreferredSettlementTypes { get; }
+
+        public PatrolAroundClosestLestInterruptedAndSwitchData(float minStableDays, float maxStableDays,
+            List<SpawnSettlementType> preferredSettlementTypes)
+        {
+            MinStableDays = minStableDays;
+            MaxStableDays = maxStableDays;
+            PreferredSettlementTypes = preferredSettlementTypes;
+        }
     }
 
 }

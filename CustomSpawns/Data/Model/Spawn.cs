@@ -83,6 +83,9 @@ namespace CustomSpawns.Data.Model
         [DefaultValue(false), XmlElement(ElementName="SpawnMessageBoxPause")]
         public bool SpawnMessageBoxPause { get; set; }
 
+        [XmlElement(ElementName="PatrolAroundClosestLestInterruptedAndSwitch")]
+        public PatrolAroundConfig? PatrolAroundConfig { get; set; }
+
         [XmlAttribute(AttributeName="party_template")]
         public string PartyTemplate { get; set; }
 
