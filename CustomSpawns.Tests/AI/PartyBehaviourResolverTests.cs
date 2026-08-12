@@ -24,7 +24,7 @@ namespace CustomSpawns.Tests.AI
                 ["patrol-first"] = Spawn(PatrolConfiguration(), RaidConfiguration()),
                 ["raid-first"] = Spawn(RaidConfiguration(), PatrolConfiguration())
             };
-            var resolver = new PartyBehaviourResolver(id => spawns[id],
+            var resolver = new PartyBehaviourResolver(id => spawns[id], spawns.Values,
                 new IPriorityPartyBehaviour[] { patrol, raid }, fallback);
 
             PartyBehaviourResult patrolFirst = resolver.Resolve(null!, PartyData("patrol-first"));
@@ -78,6 +78,7 @@ namespace CustomSpawns.Tests.AI
             var fallback = new FallbackStub();
             SpawnDto? spawn = hasOwner ? Spawn() : null;
             var resolver = new PartyBehaviourResolver(_ => spawn,
+                spawn is null ? Array.Empty<SpawnDto>() : new[] { spawn },
                 Array.Empty<IPriorityPartyBehaviour>(), fallback);
 
             resolver.Resolve(null!, hasOwner ? PartyData() : PartyData(null));
@@ -86,12 +87,13 @@ namespace CustomSpawns.Tests.AI
         }
 
         [Test]
-        public void Resolve_ConfiguredTypeWithoutProviderFailsClearly()
+        public void Constructor_ConfiguredTypeWithoutProviderFailsClearly()
         {
-            var resolver = Resolver(Spawn(RaidConfiguration()), new FallbackStub());
+            SpawnDto spawn = Spawn(RaidConfiguration());
 
             InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>
-                resolver.Resolve(null!, PartyData()))!;
+                new PartyBehaviourResolver(_ => spawn, new[] { spawn },
+                    Array.Empty<IPriorityPartyBehaviour>(), new FallbackStub()))!;
 
             Assert.That(error.Message, Does.Contain(typeof(RaidClosestVillageData).FullName));
         }
@@ -103,7 +105,8 @@ namespace CustomSpawns.Tests.AI
             var duplicate = new ProviderStub<RaidClosestVillageData>(PartyBehaviourResult.NotApplicable);
 
             ArgumentException error = Assert.Throws<ArgumentException>(() => new PartyBehaviourResolver(
-                _ => Spawn(), new IPriorityPartyBehaviour[] { first, duplicate }, new FallbackStub()))!;
+                _ => Spawn(), Array.Empty<SpawnDto>(),
+                new IPriorityPartyBehaviour[] { first, duplicate }, new FallbackStub()))!;
 
             Assert.That(error.Message, Does.Contain(typeof(RaidClosestVillageData).FullName));
         }
@@ -135,7 +138,7 @@ namespace CustomSpawns.Tests.AI
                 ["nested"] = Spawn(PatrolConfiguration()),
                 ["legacy"] = Spawn(PatrolConfiguration())
             };
-            var resolver = new PartyBehaviourResolver(id => spawns[id],
+            var resolver = new PartyBehaviourResolver(id => spawns[id], spawns.Values,
                 new IPriorityPartyBehaviour[] { patrol }, fallback);
 
             resolver.Resolve(null!, PartyData("nested"));
@@ -148,7 +151,7 @@ namespace CustomSpawns.Tests.AI
         private static PartyBehaviourResolver Resolver(SpawnDto spawn, FallbackStub fallback,
             params IPriorityPartyBehaviour[] providers)
         {
-            return new PartyBehaviourResolver(_ => spawn, providers, fallback);
+            return new PartyBehaviourResolver(_ => spawn, new[] { spawn }, providers, fallback);
         }
 
         private static SpawnDto Spawn(params PriorityPartyBehaviourData[] configurations)

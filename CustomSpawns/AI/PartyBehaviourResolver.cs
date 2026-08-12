@@ -17,12 +17,13 @@ namespace CustomSpawns.AI
 
         public PartyBehaviourResolver(SpawnDao spawnDao,
             IEnumerable<IPriorityPartyBehaviour> providers, IFallbackPartyBehaviour fallback)
-            : this(spawnDao.FindByPartyTemplateId, providers, fallback)
+            : this(spawnDao.FindByPartyTemplateId, spawnDao.FindAll(), providers, fallback)
         {
         }
 
         internal PartyBehaviourResolver(Func<string, SpawnDto?> findSpawn,
-            IEnumerable<IPriorityPartyBehaviour> providers, IFallbackPartyBehaviour fallback)
+            IEnumerable<SpawnDto> spawnCatalog, IEnumerable<IPriorityPartyBehaviour> providers,
+            IFallbackPartyBehaviour fallback)
         {
             _findSpawn = findSpawn ?? throw new ArgumentNullException(nameof(findSpawn));
             _fallback = fallback ?? throw new ArgumentNullException(nameof(fallback));
@@ -66,6 +67,18 @@ namespace CustomSpawns.AI
 
             _providers = providerRegistry;
             _syncActions = syncActions;
+
+            foreach (SpawnDto spawn in spawnCatalog ?? throw new ArgumentNullException(nameof(spawnCatalog)))
+            {
+                foreach (PriorityPartyBehaviourData configuration in spawn.PriorityPartyBehaviours ??
+                         Array.Empty<PriorityPartyBehaviourData>())
+                {
+                    if (!providerRegistry.ContainsKey(configuration.GetType()))
+                    {
+                        throw CreateMissingProviderException(configuration.GetType());
+                    }
+                }
+            }
         }
 
         public PartyBehaviourResult Resolve(MobileParty party, CsPartyData partyData)
@@ -79,8 +92,7 @@ namespace CustomSpawns.AI
                 {
                     if (!_providers.TryGetValue(configuration.GetType(), out IPriorityPartyBehaviour? provider))
                     {
-                        throw new InvalidOperationException($"No priority party behaviour provider is registered for " +
-                                                            $"{configuration.GetType().FullName}.");
+                        throw CreateMissingProviderException(configuration.GetType());
                     }
 
                     PartyBehaviourResult result = provider.GetPriorityBehaviour(party, partyData, configuration);
@@ -100,6 +112,12 @@ namespace CustomSpawns.AI
             {
                 syncAction(dataStore);
             }
+        }
+
+        private static InvalidOperationException CreateMissingProviderException(Type configurationType)
+        {
+            return new InvalidOperationException($"No priority party behaviour provider is registered for " +
+                                                 $"{configurationType.FullName}.");
         }
 
         private sealed class ReferenceEqualityComparer : IEqualityComparer<object>
