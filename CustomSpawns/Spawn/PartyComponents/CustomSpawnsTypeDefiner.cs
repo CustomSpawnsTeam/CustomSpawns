@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using CustomSpawns.AI;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.SaveSystem;
 
@@ -18,12 +19,15 @@ namespace CustomSpawns.Spawn.PartyComponents
         {
             AddClassDefinition(typeof(CustomSpawnsPartyComponent), 1);
             AddClassDefinition(typeof(CsPartyData), 2);
+            AddClassDefinition(typeof(PatrolAroundClosestLestInterruptedAndSwitchBehaviour.PatrolState), 3);
         }
 
         protected override void DefineContainerDefinitions()
         {
             ConstructContainerDefinition(typeof(Dictionary<
                 MobileParty, CsPartyData>));
+            ConstructContainerDefinition(typeof(Dictionary<MobileParty,
+                PatrolAroundClosestLestInterruptedAndSwitchBehaviour.PatrolState>));
         }
     }
 }

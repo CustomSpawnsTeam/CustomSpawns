@@ -5,7 +5,7 @@ using TaleWorlds.CampaignSystem.Settlements;
 
 namespace CustomSpawns.AI
 {
-    public sealed class HomeSettlementPatrolBehaviour : IPriorityPartyBehaviour
+    public sealed class HomeSettlementPatrolBehaviour : IFallbackPartyBehaviour
     {
         public PartyBehaviourResult GetPriorityBehaviour(MobileParty party, CsPartyData partyData)
         {
@@ -17,6 +17,10 @@ namespace CustomSpawns.AI
 
             return PartyBehaviourResult.From(new AIBehaviorData(patrolTarget,
                 AiBehavior.PatrolAroundPoint, party.NavigationCapability, false, false, false));
+        }
+
+        public void SyncData(IDataStore dataStore)
+        {
         }
     }
 }

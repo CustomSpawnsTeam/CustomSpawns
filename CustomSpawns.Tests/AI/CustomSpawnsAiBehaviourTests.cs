@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using CustomSpawns.AI;
-using CustomSpawns.Spawn;
 using NUnit.Framework;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
@@ -9,37 +8,6 @@ namespace CustomSpawns.Tests.AI
 {
     public class CustomSpawnsAiBehaviourTests
     {
-        [Test]
-        public void ResolvePriorityBehaviour_UsesFirstApplicableImplementation()
-        {
-            AIBehaviorData expected = default;
-            PriorityPartyBehaviourStub skipped = new(PartyBehaviourResult.NotApplicable);
-            PriorityPartyBehaviourStub selected = new(PartyBehaviourResult.From(expected));
-            PriorityPartyBehaviourStub fallback = new(PartyBehaviourResult.From(expected));
-
-            AIBehaviorData? actual = CustomSpawnsAiBehaviour.ResolvePriorityBehaviour(
-                new IPriorityPartyBehaviour[] { skipped, selected, fallback }, null!, CreatePartyData());
-
-            Assert.That(actual, Is.EqualTo(expected));
-            Assert.That(skipped.CallCount, Is.EqualTo(1));
-            Assert.That(selected.CallCount, Is.EqualTo(1));
-            Assert.That(fallback.CallCount, Is.Zero);
-        }
-
-        [Test]
-        public void ResolvePriorityBehaviour_DoesNotFallBackWhenApplicableImplementationHasNoBehavior()
-        {
-            PriorityPartyBehaviourStub selected = new(PartyBehaviourResult.ApplicableWithoutBehavior);
-            PriorityPartyBehaviourStub fallback = new(PartyBehaviourResult.From(default));
-
-            AIBehaviorData? actual = CustomSpawnsAiBehaviour.ResolvePriorityBehaviour(
-                new IPriorityPartyBehaviour[] { selected, fallback }, null!, CreatePartyData());
-
-            Assert.That(actual, Is.Null);
-            Assert.That(selected.CallCount, Is.EqualTo(1));
-            Assert.That(fallback.CallCount, Is.Zero);
-        }
-
         [Test]
         public void ApplyDominantBehaviorScore_AddsMissingBehaviorScoreCandidate()
         {
@@ -106,27 +74,5 @@ namespace CustomSpawns.Tests.AI
             }
         }
 
-        private sealed class PriorityPartyBehaviourStub : IPriorityPartyBehaviour
-        {
-            private readonly PartyBehaviourResult _result;
-
-            public PriorityPartyBehaviourStub(PartyBehaviourResult result)
-            {
-                _result = result;
-            }
-
-            public int CallCount { get; private set; }
-
-            public PartyBehaviourResult GetPriorityBehaviour(MobileParty party, CsPartyData partyData)
-            {
-                CallCount++;
-                return _result;
-            }
-        }
-
-        private static CsPartyData CreatePartyData()
-        {
-            return new CsPartyData("party", "spawn", true, null);
-        }
     }
 }

@@ -1,6 +1,8 @@
+using System.Reflection;
 using CustomSpawns.AI;
 using NUnit.Framework;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.SaveSystem;
 
 namespace CustomSpawns.Tests.AI
 {
@@ -46,6 +48,43 @@ namespace CustomSpawns.Tests.AI
         {
             Assert.False(PatrolAroundClosestLestInterruptedAndSwitchBehaviour.ShouldSwitchPatrolTarget(
                 0f, 0f, true));
+        }
+
+        [Test]
+        public void StablePatrolDays_AreRetainedAcrossRepeatedTicksAndLoadedState()
+        {
+            int rollCount = 0;
+            float loadedStableDays = 3.75f;
+
+            float firstTick = PatrolAroundClosestLestInterruptedAndSwitchBehaviour.RetainOrRollStablePatrolDays(
+                true, loadedStableDays, Roll);
+            float secondTick = PatrolAroundClosestLestInterruptedAndSwitchBehaviour.RetainOrRollStablePatrolDays(
+                true, firstTick, Roll);
+
+            Assert.That(firstTick, Is.EqualTo(loadedStableDays));
+            Assert.That(secondTick, Is.EqualTo(loadedStableDays));
+            Assert.That(rollCount, Is.Zero);
+
+            float Roll()
+            {
+                rollCount++;
+                return 9f;
+            }
+        }
+
+        [Test]
+        public void PatrolState_UsesStableDistinctSaveIds()
+        {
+            Assert.That(SaveId("_target"), Is.EqualTo(1));
+            Assert.That(SaveId("_uninterruptedPatrolDays"), Is.EqualTo(2));
+            Assert.That(SaveId("_stablePatrolDays"), Is.EqualTo(3));
+        }
+
+        private static short SaveId(string fieldName)
+        {
+            FieldInfo field = typeof(PatrolAroundClosestLestInterruptedAndSwitchBehaviour.PatrolState)
+                .GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic)!;
+            return field.GetCustomAttribute<SaveableFieldAttribute>()!.LocalSaveId;
         }
     }
 }

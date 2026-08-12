@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using CustomSpawns.Data.Dao;
 using CustomSpawns.Data.Dto;
 using CustomSpawns.Spawn;
 using CustomSpawns.Utils;
@@ -7,33 +6,20 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
+using TaleWorlds.SaveSystem;
 
 namespace CustomSpawns.AI
 {
-    public sealed class PatrolAroundClosestLestInterruptedAndSwitchBehaviour : IPriorityPartyBehaviour
+    public sealed class PatrolAroundClosestLestInterruptedAndSwitchBehaviour :
+        PriorityPartyBehaviour<PatrolAroundClosestLestInterruptedAndSwitchData>
     {
         private const float PatrolDaysPerHour = 1f / 24f;
 
-        private readonly SpawnDao _spawnDao;
-        private readonly Dictionary<MobileParty, PatrolState> _patrolStates = new();
+        private Dictionary<MobileParty, PatrolState> _patrolStates = new();
 
-        public PatrolAroundClosestLestInterruptedAndSwitchBehaviour(SpawnDao spawnDao)
+        public override PartyBehaviourResult GetPriorityBehaviour(MobileParty party, CsPartyData partyData,
+            PatrolAroundClosestLestInterruptedAndSwitchData patrolConfig)
         {
-            _spawnDao = spawnDao;
-        }
-
-        public PartyBehaviourResult GetPriorityBehaviour(MobileParty party, CsPartyData partyData)
-        {
-            PatrolAroundClosestLestInterruptedAndSwitchData? patrolConfig =
-                partyData.OwningSpawnTemplateId is null
-                    ? null
-                    : _spawnDao.FindByPartyTemplateId(partyData.OwningSpawnTemplateId)
-                        ?.PatrolAroundClosestLestInterruptedAndSwitch;
-            if (patrolConfig is null)
-            {
-                return PartyBehaviourResult.NotApplicable;
-            }
-
             Settlement? patrolTarget = GetPatrolTarget(party, patrolConfig);
             if (patrolTarget is null)
             {
@@ -42,6 +28,12 @@ namespace CustomSpawns.AI
 
             return PartyBehaviourResult.From(new AIBehaviorData(patrolTarget,
                 AiBehavior.PatrolAroundPoint, party.NavigationCapability, false, false, false));
+        }
+
+        public override void SyncData(IDataStore dataStore)
+        {
+            dataStore.SyncData("_customSpawnsPatrolAroundClosestStates", ref _patrolStates);
+            _patrolStates ??= new Dictionary<MobileParty, PatrolState>();
         }
 
         private Settlement? GetPatrolTarget(MobileParty party,
@@ -53,10 +45,15 @@ namespace CustomSpawns.AI
                 _patrolStates.Add(party, patrolState);
             }
 
-            if (patrolState.Target is null)
+            bool hasExistingTarget = patrolState.Target is not null;
+            if (!hasExistingTarget)
             {
                 patrolState.Target = GetNextPatrolTarget(party, patrolConfig, null);
-                patrolState.StablePatrolDays = RollStablePatrolDays(patrolConfig);
+            }
+            if (patrolState.Target is not null)
+            {
+                patrolState.StablePatrolDays = RetainOrRollStablePatrolDays(hasExistingTarget,
+                    patrolState.StablePatrolDays, () => RollStablePatrolDays(patrolConfig));
             }
 
             bool isInterrupted = IsPatrolInterrupted(party.DefaultBehavior, party.ShortTermBehavior);
@@ -112,11 +109,40 @@ namespace CustomSpawns.AI
             return !isInterrupted && uninterruptedPatrolDays >= stablePatrolDays;
         }
 
-        private sealed class PatrolState
+        internal static float RetainOrRollStablePatrolDays(bool hasExistingTarget, float stablePatrolDays,
+            System.Func<float> rollStablePatrolDays)
         {
-            public Settlement? Target { get; set; }
-            public float UninterruptedPatrolDays { get; set; }
-            public float StablePatrolDays { get; set; }
+            return hasExistingTarget ? stablePatrolDays : rollStablePatrolDays();
+        }
+
+        internal sealed class PatrolState
+        {
+            [SaveableField(1)]
+            private Settlement? _target;
+
+            [SaveableField(2)]
+            private float _uninterruptedPatrolDays;
+
+            [SaveableField(3)]
+            private float _stablePatrolDays;
+
+            public Settlement? Target
+            {
+                get => _target;
+                set => _target = value;
+            }
+
+            public float UninterruptedPatrolDays
+            {
+                get => _uninterruptedPatrolDays;
+                set => _uninterruptedPatrolDays = value;
+            }
+
+            public float StablePatrolDays
+            {
+                get => _stablePatrolDays;
+                set => _stablePatrolDays = value;
+            }
         }
     }
 }

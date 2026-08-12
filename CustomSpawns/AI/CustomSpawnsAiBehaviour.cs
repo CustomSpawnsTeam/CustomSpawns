@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using CustomSpawns.Spawn;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
@@ -10,13 +9,13 @@ namespace CustomSpawns.AI
         internal const float DominantAiBehaviorScore = 1000000f;
 
         private readonly DynamicSpawnData _dynamicSpawnData;
-        private readonly IReadOnlyList<IPriorityPartyBehaviour> _priorityPartyBehaviours;
+        private readonly PartyBehaviourResolver _partyBehaviourResolver;
 
         public CustomSpawnsAiBehaviour(DynamicSpawnData dynamicSpawnData,
-            IReadOnlyList<IPriorityPartyBehaviour> priorityPartyBehaviours)
+            PartyBehaviourResolver partyBehaviourResolver)
         {
             _dynamicSpawnData = dynamicSpawnData;
-            _priorityPartyBehaviours = priorityPartyBehaviours;
+            _partyBehaviourResolver = partyBehaviourResolver;
         }
 
         public override void RegisterEvents()
@@ -26,6 +25,7 @@ namespace CustomSpawns.AI
 
         public override void SyncData(IDataStore dataStore)
         {
+            _partyBehaviourResolver.SyncData(dataStore);
         }
 
         private void AddBehaviorScore(MobileParty party, PartyThinkParams thinkParams)
@@ -36,28 +36,13 @@ namespace CustomSpawns.AI
                 return;
             }
 
-            AIBehaviorData? behavior = ResolvePriorityBehaviour(_priorityPartyBehaviours, party, partyData);
+            AIBehaviorData? behavior = _partyBehaviourResolver.Resolve(party, partyData).AIBehavior;
             if (!behavior.HasValue)
             {
                 return;
             }
 
             ApplyDominantBehaviorScore(new PartyThinkParamsAiBehaviorScoreSink(thinkParams), behavior.Value);
-        }
-
-        internal static AIBehaviorData? ResolvePriorityBehaviour(IEnumerable<IPriorityPartyBehaviour> priorityPartyBehaviours,
-            MobileParty party, CsPartyData partyData)
-        {
-            foreach (IPriorityPartyBehaviour priorityPartyBehaviour in priorityPartyBehaviours)
-            {
-                PartyBehaviourResult result = priorityPartyBehaviour.GetPriorityBehaviour(party, partyData);
-                if (result.IsApplicable)
-                {
-                    return result.AIBehavior;
-                }
-            }
-
-            return null;
         }
 
         internal static void ApplyDominantBehaviorScore(IAiBehaviorScoreSink scoreSink,

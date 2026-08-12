@@ -110,10 +110,11 @@ namespace CustomSpawns
             _dailyLogger = new DailyLogger(_devestationMetricData, _messageBoxService);
             IPriorityPartyBehaviour[] priorityPartyBehaviours =
             {
-                new PatrolAroundClosestLestInterruptedAndSwitchBehaviour(_spawnDao),
-                new HomeSettlementPatrolBehaviour()
+                new PatrolAroundClosestLestInterruptedAndSwitchBehaviour()
             };
-            _customSpawnsAiBehaviour = new CustomSpawnsAiBehaviour(_dynamicSpawnData, priorityPartyBehaviours);
+            var partyBehaviourResolver = new PartyBehaviourResolver(_spawnDao, priorityPartyBehaviours,
+                new HomeSettlementPatrolBehaviour());
+            _customSpawnsAiBehaviour = new CustomSpawnsAiBehaviour(_dynamicSpawnData, partyBehaviourResolver);
             _aiDecisionLoggerBehaviour = new AiDecisionLoggerBehaviour(_dailyLogger);
             NonMercenaryCustomSpawnsFactionsProvider nonMercenaryCustomSpawnsFactionsProvider =
                 new NonMercenaryCustomSpawnsFactionsProvider(_diplomacyDataReader);
