@@ -86,6 +86,13 @@ namespace CustomSpawns.Data.Model
         [XmlElement(ElementName="PatrolAroundClosestLestInterruptedAndSwitch")]
         public PatrolAroundConfig? PatrolAroundConfig { get; set; }
 
+        [XmlArray(ElementName = "PriorityPartyBehaviours")]
+        [XmlArrayItem(ElementName = "BesiegeClosestSettlement", Type = typeof(BesiegeClosestSettlementConfig))]
+        [XmlArrayItem(ElementName = "RaidClosestVillage", Type = typeof(RaidClosestVillageConfig))]
+        [XmlArrayItem(ElementName = "PatrolAroundClosestLestInterruptedAndSwitch",
+            Type = typeof(PatrolAroundClosestLestInterruptedAndSwitchConfig))]
+        public List<PriorityPartyBehaviourConfig>? PriorityPartyBehaviours { get; set; }
+
         [XmlAttribute(AttributeName="party_template")]
         public string PartyTemplate { get; set; }
 

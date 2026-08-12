@@ -114,10 +114,14 @@ namespace CustomSpawns.Data.Adapter
             dat.MinimumDevestationToSpawn = spawn.MinimumDevestationToSpawn;
             dat.DevestationLinearMultiplier = spawn.DevestationLinearMultiplier;
 
+            dat.PriorityPartyBehaviours = AdaptPriorityPartyBehaviours(spawn);
+
             //patrol around closest lest interrupted and switch
             PatrolAroundConfig? patrolAroundConfig = spawn.PatrolAroundConfig;
-            if (patrolAroundConfig != null && patrolAroundConfig.IsEnabled)
+            if (spawn.PriorityPartyBehaviours == null && patrolAroundConfig != null && patrolAroundConfig.IsEnabled)
             {
+                ValidateRange("legacy patrol stable time", patrolAroundConfig.MinStableDays,
+                    patrolAroundConfig.MaxStableDays);
                 List<SpawnSettlementType> patrolLocationTypes = new();
                 if (patrolAroundConfig.PatrolLocationType != null)
                 {
@@ -139,6 +143,143 @@ namespace CustomSpawns.Data.Adapter
             dat.SpawnAlongWith = new ReadOnlyCollection<AccompanyingParty>(supportingParties);
 
             return dat;
+        }
+
+        internal static IReadOnlyList<PriorityPartyBehaviourData> AdaptPriorityPartyBehaviours(Model.Spawn spawn)
+        {
+            List<PriorityPartyBehaviourConfig>? configurations = spawn.PriorityPartyBehaviours;
+            if (configurations != null)
+            {
+                if (configurations.GroupBy(configuration => configuration.GetType()).Any(group => group.Count() > 1))
+                {
+                    throw new ArgumentException("PriorityPartyBehaviours cannot contain duplicate behaviour types.");
+                }
+
+                return configurations.Select(AdaptPriorityPartyBehaviour).ToList();
+            }
+
+            PatrolAroundConfig? legacyPatrol = spawn.PatrolAroundConfig;
+            if (legacyPatrol == null || !legacyPatrol.IsEnabled)
+            {
+                return Array.Empty<PriorityPartyBehaviourData>();
+            }
+
+            ValidateRange("legacy patrol stable time", legacyPatrol.MinStableDays, legacyPatrol.MaxStableDays);
+            List<SpawnSettlementType> targetTypes = legacyPatrol.PatrolLocationType == null
+                ? new List<SpawnSettlementType>()
+                : ConstructTrySettlementList(legacyPatrol.PatrolLocationType);
+            return new PriorityPartyBehaviourData[]
+            {
+                new PatrolAroundClosestLestInterruptedAndSwitchData(legacyPatrol.MinStableDays,
+                    legacyPatrol.MaxStableDays, targetTypes)
+            };
+        }
+
+        private static PriorityPartyBehaviourData AdaptPriorityPartyBehaviour(
+            PriorityPartyBehaviourConfig configuration)
+        {
+            switch (configuration)
+            {
+                case BesiegeClosestSettlementConfig besiege:
+                    return AdaptBesiegeClosestSettlement(besiege);
+                case RaidClosestVillageConfig raid:
+                    return AdaptRaidClosestVillage(raid);
+                case PatrolAroundClosestLestInterruptedAndSwitchConfig patrol:
+                    ValidateRange("patrol stable time", patrol.StableTimeInDays.Minimum,
+                        patrol.StableTimeInDays.Maximum);
+                    List<SpawnSettlementType> targetTypes = patrol.TargetTypes ?? AllSettlementTypes();
+                    return new PatrolAroundClosestLestInterruptedAndSwitchData(
+                        patrol.StableTimeInDays.Minimum, patrol.StableTimeInDays.Maximum, targetTypes);
+                default:
+                    throw new ArgumentException("Unsupported priority party behaviour configuration.");
+            }
+        }
+
+        private static BesiegeClosestSettlementData AdaptBesiegeClosestSettlement(
+            BesiegeClosestSettlementConfig config)
+        {
+            List<SpawnSettlementType> targetTypes = config.TargetTypes ??
+                new List<SpawnSettlementType> { SpawnSettlementType.Town, SpawnSettlementType.Castle };
+            if (targetTypes.Count == 0)
+            {
+                throw new ArgumentException("BesiegeClosestSettlement requires at least one target type.");
+            }
+            if (targetTypes.Any(type => type != SpawnSettlementType.Town && type != SpawnSettlementType.Castle))
+            {
+                throw new ArgumentException("BesiegeClosestSettlement only supports Town and Castle target types.");
+            }
+
+            ValidateOffensiveValues("BesiegeClosestSettlement", config.StrengthAssessment, config.Reconnaissance,
+                config.OperationWindowInDays, config.Recovery, config.CooldownInDays);
+            return new BesiegeClosestSettlementData(targetTypes, config.StrengthAssessment.MinimumAttackerToTargetRatio,
+                config.StrengthAssessment.MinimumAttackerToRoamingHostilesRatio,
+                config.Reconnaissance.RequiredClearTimeInDays.Minimum,
+                config.Reconnaissance.RequiredClearTimeInDays.Maximum,
+                config.Reconnaissance.SkipWhenTargetStrengthRatio, config.OperationWindowInDays.Minimum,
+                config.OperationWindowInDays.Maximum, config.Recovery.GracePeriodInDays,
+                config.Recovery.MaximumFailedAttempts, config.CooldownInDays);
+        }
+
+        private static RaidClosestVillageData AdaptRaidClosestVillage(RaidClosestVillageConfig config)
+        {
+            ValidateOffensiveValues("RaidClosestVillage", config.StrengthAssessment, config.Reconnaissance,
+                config.OperationWindowInDays, config.Recovery, config.CooldownInDays);
+            return new RaidClosestVillageData(config.StrengthAssessment.MinimumAttackerToTargetRatio,
+                config.StrengthAssessment.MinimumAttackerToRoamingHostilesRatio,
+                config.Reconnaissance.RequiredClearTimeInDays.Minimum,
+                config.Reconnaissance.RequiredClearTimeInDays.Maximum,
+                config.Reconnaissance.SkipWhenTargetStrengthRatio, config.OperationWindowInDays.Minimum,
+                config.OperationWindowInDays.Maximum, config.Recovery.GracePeriodInDays,
+                config.Recovery.MaximumFailedAttempts, config.CooldownInDays);
+        }
+
+        private static void ValidateOffensiveValues(string behaviourName, StrengthAssessmentConfig strengthAssessment,
+            ReconnaissanceConfig reconnaissance, FloatRangeConfig operationWindow, RecoveryConfig recovery,
+            float cooldownInDays)
+        {
+            if (strengthAssessment.MinimumAttackerToTargetRatio <= 0f ||
+                strengthAssessment.MinimumAttackerToRoamingHostilesRatio <= 0f ||
+                reconnaissance.SkipWhenTargetStrengthRatio <= 0f)
+            {
+                throw new ArgumentException(behaviourName + " strength ratios must be greater than zero.");
+            }
+            ValidateRange(behaviourName + " reconnaissance clear time",
+                reconnaissance.RequiredClearTimeInDays.Minimum, reconnaissance.RequiredClearTimeInDays.Maximum);
+            ValidateRange(behaviourName + " operation window", operationWindow.Minimum, operationWindow.Maximum);
+            if (recovery.GracePeriodInDays < 0f)
+            {
+                throw new ArgumentException(behaviourName + " grace period cannot be negative.");
+            }
+            if (recovery.MaximumFailedAttempts < 1)
+            {
+                throw new ArgumentException(behaviourName + " maximum failed attempts must be at least one.");
+            }
+            if (cooldownInDays < 0f)
+            {
+                throw new ArgumentException(behaviourName + " cooldown cannot be negative.");
+            }
+        }
+
+        private static void ValidateRange(string name, float minimum, float maximum)
+        {
+            if (minimum < 0f)
+            {
+                throw new ArgumentException(name + " minimum cannot be negative.");
+            }
+            if (maximum < minimum)
+            {
+                throw new ArgumentException(name + " maximum must be greater than or equal to its minimum.");
+            }
+        }
+
+        private static List<SpawnSettlementType> AllSettlementTypes()
+        {
+            return new List<SpawnSettlementType>
+            {
+                SpawnSettlementType.Village,
+                SpawnSettlementType.Town,
+                SpawnSettlementType.Castle
+            };
         }
 
         private string ParseId(string id)
