@@ -99,6 +99,15 @@ namespace CustomSpawns.Tests.AI
         }
 
         [Test]
+        public void Constructor_RaidProviderSatisfiesConfiguredRaidType()
+        {
+            SpawnDto spawn = Spawn(RaidConfiguration());
+
+            Assert.DoesNotThrow(() => new PartyBehaviourResolver(_ => spawn, new[] { spawn },
+                new IPriorityPartyBehaviour[] { new RaidClosestVillageBehaviour() }, new FallbackStub()));
+        }
+
+        [Test]
         public void Constructor_RejectsDuplicateConfigurationProviderRegistration()
         {
             var first = new ProviderStub<RaidClosestVillageData>(PartyBehaviourResult.NotApplicable);

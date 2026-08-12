@@ -110,7 +110,8 @@ namespace CustomSpawns
             _dailyLogger = new DailyLogger(_devestationMetricData, _messageBoxService);
             IPriorityPartyBehaviour[] priorityPartyBehaviours =
             {
-                new PatrolAroundClosestLestInterruptedAndSwitchBehaviour()
+                new PatrolAroundClosestLestInterruptedAndSwitchBehaviour(),
+                new RaidClosestVillageBehaviour()
             };
             var partyBehaviourResolver = new PartyBehaviourResolver(_spawnDao, priorityPartyBehaviours,
                 new HomeSettlementPatrolBehaviour());

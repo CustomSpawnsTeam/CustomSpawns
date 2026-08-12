@@ -20,6 +20,7 @@ namespace CustomSpawns.Spawn.PartyComponents
             AddClassDefinition(typeof(CustomSpawnsPartyComponent), 1);
             AddClassDefinition(typeof(CsPartyData), 2);
             AddClassDefinition(typeof(PatrolAroundClosestLestInterruptedAndSwitchBehaviour.PatrolState), 3);
+            AddClassDefinition(typeof(SettlementOffensiveBehaviourState), 4);
         }
 
         protected override void DefineContainerDefinitions()
@@ -28,6 +29,8 @@ namespace CustomSpawns.Spawn.PartyComponents
                 MobileParty, CsPartyData>));
             ConstructContainerDefinition(typeof(Dictionary<MobileParty,
                 PatrolAroundClosestLestInterruptedAndSwitchBehaviour.PatrolState>));
+            ConstructContainerDefinition(typeof(Dictionary<MobileParty,
+                SettlementOffensiveBehaviourState>));
         }
     }
 }
