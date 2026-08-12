@@ -70,7 +70,7 @@ namespace CustomSpawns
         private SpawnBehaviour _spawnBehaviour;
         private SaveInitialiser _saveInitialiser;
         private SafePassageBehaviour _safePassageBehaviour;
-        private CustomSpawnsPatrolBehaviour _customSpawnsPatrolBehaviour;
+        private CustomSpawnsAiBehaviour _customSpawnsAiBehaviour;
         private AiDecisionLoggerBehaviour _aiDecisionLoggerBehaviour;
 
 
@@ -108,7 +108,12 @@ namespace CustomSpawns
             _dynamicSpawnData = new (_spawnDao, _saveInitialiser);
             _devestationMetricData = new DevestationMetricData(_mobilePartyTrackingBehaviour, _campaignDataConfigLoader, _saveInitialiser, _messageBoxService, _modDebug);
             _dailyLogger = new DailyLogger(_devestationMetricData, _messageBoxService);
-            _customSpawnsPatrolBehaviour = new CustomSpawnsPatrolBehaviour(_dynamicSpawnData, _spawnDao);
+            IPriorityPartyBehaviour[] priorityPartyBehaviours =
+            {
+                new PatrolAroundClosestLestInterruptedAndSwitchBehaviour(_spawnDao),
+                new HomeSettlementPatrolBehaviour()
+            };
+            _customSpawnsAiBehaviour = new CustomSpawnsAiBehaviour(_dynamicSpawnData, priorityPartyBehaviours);
             _aiDecisionLoggerBehaviour = new AiDecisionLoggerBehaviour(_dailyLogger);
             NonMercenaryCustomSpawnsFactionsProvider nonMercenaryCustomSpawnsFactionsProvider =
                 new NonMercenaryCustomSpawnsFactionsProvider(_diplomacyDataReader);
@@ -158,7 +163,7 @@ namespace CustomSpawns
                 starter.AddBehavior(_safePassageBehaviour);
                 starter.AddBehavior(_dynamicSpawnData);
                 starter.AddBehavior(_customSpawnsDiplomacyBehaviour);
-                starter.AddBehavior(_customSpawnsPatrolBehaviour);
+                starter.AddBehavior(_customSpawnsAiBehaviour);
                 starter.AddBehavior(_aiDecisionLoggerBehaviour);
                 
                 starter.AddModel(_customSpawnsDiplomacyModel);
