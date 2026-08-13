@@ -95,13 +95,67 @@ namespace CustomSpawns.Tests.Spawn
         }
 
         [Test]
+        public void Spawn_PartialNestedValuesRetainBehaviourSpecificDefaults()
+        {
+            BesiegeClosestSettlementData siege = (BesiegeClosestSettlementData)AdaptXml(
+                "<BesiegeClosestSettlement>" +
+                "<StrengthAssessment><MinimumAttackerToTargetRatio>2</MinimumAttackerToTargetRatio></StrengthAssessment>" +
+                "<Reconnaissance><RequiredClearTimeInDays><Minimum>0.75</Minimum></RequiredClearTimeInDays></Reconnaissance>" +
+                "<OperationWindowInDays><Minimum>7</Minimum></OperationWindowInDays>" +
+                "<Recovery><MaximumFailedAttempts>3</MaximumFailedAttempts></Recovery>" +
+                "</BesiegeClosestSettlement>")[0];
+            RaidClosestVillageData raid = (RaidClosestVillageData)AdaptXml(
+                "<RaidClosestVillage>" +
+                "<StrengthAssessment><MinimumAttackerToRoamingHostilesRatio>1.4</MinimumAttackerToRoamingHostilesRatio></StrengthAssessment>" +
+                "<Reconnaissance><RequiredClearTimeInDays><Maximum>0.9</Maximum></RequiredClearTimeInDays></Reconnaissance>" +
+                "<OperationWindowInDays><Maximum>5</Maximum></OperationWindowInDays>" +
+                "<Recovery><GracePeriodInDays>1.5</GracePeriodInDays></Recovery>" +
+                "</RaidClosestVillage>")[0];
+            PatrolAroundClosestLestInterruptedAndSwitchData patrolWithMinimum =
+                (PatrolAroundClosestLestInterruptedAndSwitchData)AdaptXml(
+                    "<PatrolAroundClosestLestInterruptedAndSwitch>" +
+                    "<StableTimeInDays><Minimum>4</Minimum></StableTimeInDays>" +
+                    "</PatrolAroundClosestLestInterruptedAndSwitch>")[0];
+            PatrolAroundClosestLestInterruptedAndSwitchData patrolWithMaximum =
+                (PatrolAroundClosestLestInterruptedAndSwitchData)AdaptXml(
+                    "<PatrolAroundClosestLestInterruptedAndSwitch>" +
+                    "<StableTimeInDays><Maximum>6</Maximum></StableTimeInDays>" +
+                    "</PatrolAroundClosestLestInterruptedAndSwitch>")[0];
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(siege.MinimumAttackerToTargetRatio, Is.EqualTo(2f));
+                Assert.That(siege.MinimumAttackerToRoamingHostilesRatio, Is.EqualTo(1.2f));
+                Assert.That(siege.MinimumRequiredClearTimeInDays, Is.EqualTo(0.75f));
+                Assert.That(siege.MaximumRequiredClearTimeInDays, Is.EqualTo(1f));
+                Assert.That(siege.MinimumOperationWindowInDays, Is.EqualTo(7f));
+                Assert.That(siege.MaximumOperationWindowInDays, Is.EqualTo(10f));
+                Assert.That(siege.GracePeriodInDays, Is.EqualTo(2f));
+                Assert.That(siege.MaximumFailedAttempts, Is.EqualTo(3));
+                Assert.That(raid.MinimumAttackerToTargetRatio, Is.EqualTo(1.25f));
+                Assert.That(raid.MinimumAttackerToRoamingHostilesRatio, Is.EqualTo(1.4f));
+                Assert.That(raid.MinimumRequiredClearTimeInDays, Is.EqualTo(0.5f));
+                Assert.That(raid.MaximumRequiredClearTimeInDays, Is.EqualTo(0.9f));
+                Assert.That(raid.MinimumOperationWindowInDays, Is.EqualTo(3f));
+                Assert.That(raid.MaximumOperationWindowInDays, Is.EqualTo(5f));
+                Assert.That(raid.GracePeriodInDays, Is.EqualTo(1.5f));
+                Assert.That(raid.MaximumFailedAttempts, Is.EqualTo(2));
+                Assert.That(patrolWithMinimum.MinStableDays, Is.EqualTo(4f));
+                Assert.That(patrolWithMinimum.MaxStableDays, Is.EqualTo(10f));
+                Assert.That(patrolWithMaximum.MinStableDays, Is.Zero);
+                Assert.That(patrolWithMaximum.MaxStableDays, Is.EqualTo(6f));
+            });
+        }
+
+        [Test]
         public void AdaptPriorityPartyBehaviours_PrefersPresentListOverLegacyPatrol()
         {
-            SpawnModel spawn = new()
-            {
-                PatrolAroundConfig = new PatrolAroundConfig { IsEnabled = true },
-                PriorityPartyBehaviours = new List<PriorityPartyBehaviourConfig>()
-            };
+            SpawnModel spawn = Deserialize(
+                "<RegularBanditDailySpawnData party_template=\"PartyTemplate.test\">" +
+                "<PatrolAroundClosestLestInterruptedAndSwitch>true" +
+                "</PatrolAroundClosestLestInterruptedAndSwitch>" +
+                "<PriorityPartyBehaviours/>" +
+                "</RegularBanditDailySpawnData>");
 
             Assert.That(SpawnDtoAdapter.AdaptPriorityPartyBehaviours(spawn), Is.Empty);
         }
@@ -164,14 +218,53 @@ namespace CustomSpawns.Tests.Spawn
         [Test]
         public void AdaptPriorityPartyBehaviours_RejectsEmptyOrUnsupportedSiegeTargetList()
         {
-            Assert.Throws<ArgumentException>(() => Adapt(new BesiegeClosestSettlementConfig
-            {
-                TargetTypes = new List<SpawnSettlementType>()
-            }));
+            Assert.Throws<ArgumentException>(() => AdaptXml(
+                "<BesiegeClosestSettlement><TargetTypes/></BesiegeClosestSettlement>"));
             Assert.Throws<ArgumentException>(() => Adapt(new BesiegeClosestSettlementConfig
             {
                 TargetTypes = new List<SpawnSettlementType> { SpawnSettlementType.Village }
             }));
+        }
+
+        [TestCase("range", "NaN")]
+        [TestCase("range", "INF")]
+        [TestCase("range", "-INF")]
+        [TestCase("ratio", "NaN")]
+        [TestCase("ratio", "INF")]
+        [TestCase("ratio", "-INF")]
+        [TestCase("cooldown", "NaN")]
+        [TestCase("cooldown", "INF")]
+        [TestCase("cooldown", "-INF")]
+        [TestCase("grace", "NaN")]
+        [TestCase("grace", "INF")]
+        [TestCase("grace", "-INF")]
+        public void Spawn_RejectsNonFiniteNestedNumbers(string valueKind, string literal)
+        {
+            string nestedValue = valueKind switch
+            {
+                "range" => "<OperationWindowInDays><Maximum>" + literal + "</Maximum></OperationWindowInDays>",
+                "ratio" => "<StrengthAssessment><MinimumAttackerToTargetRatio>" + literal +
+                           "</MinimumAttackerToTargetRatio></StrengthAssessment>",
+                "cooldown" => "<CooldownInDays>" + literal + "</CooldownInDays>",
+                _ => "<Recovery><GracePeriodInDays>" + literal + "</GracePeriodInDays></Recovery>"
+            };
+
+            ArgumentException error = Assert.Throws<ArgumentException>(() =>
+                AdaptXml("<RaidClosestVillage>" + nestedValue + "</RaidClosestVillage>"))!;
+
+            Assert.That(error.Message, Does.Contain("finite"));
+        }
+
+        [Test]
+        public void AdaptPriorityPartyBehaviours_CopiesSiegeTargetTypes()
+        {
+            var targetTypes = new List<SpawnSettlementType> { SpawnSettlementType.Town };
+            BesiegeClosestSettlementData siege = (BesiegeClosestSettlementData)Adapt(
+                new BesiegeClosestSettlementConfig { TargetTypes = targetTypes })[0];
+
+            targetTypes[0] = SpawnSettlementType.Village;
+
+            Assert.That(siege.TargetTypes, Is.EqualTo(new[] { SpawnSettlementType.Town }));
         }
 
         private static IReadOnlyList<PriorityPartyBehaviourData> Adapt(PriorityPartyBehaviourConfig configuration)
@@ -187,6 +280,14 @@ namespace CustomSpawns.Tests.Spawn
             XmlSerializer serializer = new(typeof(SpawnModel));
             using StringReader reader = new(xml);
             return (SpawnModel)serializer.Deserialize(reader);
+        }
+
+        private static IReadOnlyList<PriorityPartyBehaviourData> AdaptXml(string behaviourXml)
+        {
+            return SpawnDtoAdapter.AdaptPriorityPartyBehaviours(Deserialize(
+                "<RegularBanditDailySpawnData party_template=\"PartyTemplate.test\">" +
+                "<PriorityPartyBehaviours>" + behaviourXml + "</PriorityPartyBehaviours>" +
+                "</RegularBanditDailySpawnData>"));
         }
     }
 }

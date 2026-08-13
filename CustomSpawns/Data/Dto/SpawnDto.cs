@@ -67,7 +67,8 @@ namespace CustomSpawns.Data.Dto
             float maximumOperationWindowInDays, float gracePeriodInDays, int maximumFailedAttempts,
             float cooldownInDays)
         {
-            TargetTypes = targetTypes;
+            TargetTypes = new ReadOnlyCollection<SpawnSettlementType>(
+                new List<SpawnSettlementType>(targetTypes));
             MinimumAttackerToTargetRatio = minimumAttackerToTargetRatio;
             MinimumAttackerToRoamingHostilesRatio = minimumAttackerToRoamingHostilesRatio;
             MinimumRequiredClearTimeInDays = minimumRequiredClearTimeInDays;

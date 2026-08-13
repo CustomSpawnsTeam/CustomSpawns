@@ -14,8 +14,21 @@ namespace CustomSpawns.AI
         PriorityPartyBehaviour<PatrolAroundClosestLestInterruptedAndSwitchData>
     {
         private const float PatrolDaysPerHour = 1f / 24f;
+        internal const string SaveKey = "_customSpawnsPatrolAroundClosestStates";
 
+        private readonly System.Func<MobileParty, MobileParty.NavigationType> _getNavigationCapability;
         private Dictionary<MobileParty, PatrolState> _patrolStates = new();
+
+        public PatrolAroundClosestLestInterruptedAndSwitchBehaviour()
+            : this(party => party.NavigationCapability)
+        {
+        }
+
+        internal PatrolAroundClosestLestInterruptedAndSwitchBehaviour(
+            System.Func<MobileParty, MobileParty.NavigationType> getNavigationCapability)
+        {
+            _getNavigationCapability = getNavigationCapability;
+        }
 
         public override PartyBehaviourResult GetPriorityBehaviour(MobileParty party, CsPartyData partyData,
             PatrolAroundClosestLestInterruptedAndSwitchData patrolConfig)
@@ -27,12 +40,12 @@ namespace CustomSpawns.AI
             }
 
             return PartyBehaviourResult.From(new AIBehaviorData(patrolTarget,
-                AiBehavior.PatrolAroundPoint, party.NavigationCapability, false, false, false));
+                AiBehavior.PatrolAroundPoint, _getNavigationCapability(party), false, false, false));
         }
 
         public override void SyncData(IDataStore dataStore)
         {
-            dataStore.SyncData("_customSpawnsPatrolAroundClosestStates", ref _patrolStates);
+            dataStore.SyncData(SaveKey, ref _patrolStates);
             _patrolStates ??= new Dictionary<MobileParty, PatrolState>();
         }
 

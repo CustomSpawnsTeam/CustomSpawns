@@ -16,6 +16,7 @@ namespace CustomSpawns.Data.Model
         private List<string>? _overridenKingdomSpawns;
         private List<string>? _overridenCultureSpawns;
         private List<string>? _supportingParties;
+        private List<PriorityPartyBehaviourConfig>? _priorityPartyBehaviours;
 
         [DefaultValue(1), XmlElement(ElementName = "MaximumOnMap")]
         public int MaximumOnMap { get; set; } = 1;
@@ -91,7 +92,21 @@ namespace CustomSpawns.Data.Model
         [XmlArrayItem(ElementName = "RaidClosestVillage", Type = typeof(RaidClosestVillageConfig))]
         [XmlArrayItem(ElementName = "PatrolAroundClosestLestInterruptedAndSwitch",
             Type = typeof(PatrolAroundClosestLestInterruptedAndSwitchConfig))]
-        public List<PriorityPartyBehaviourConfig>? PriorityPartyBehaviours { get; set; }
+        public List<PriorityPartyBehaviourConfig>? PriorityPartyBehaviours
+        {
+            get => _priorityPartyBehaviours;
+            set
+            {
+                _priorityPartyBehaviours = value;
+                if (value?.Count > 0)
+                {
+                    PriorityPartyBehavioursSpecified = true;
+                }
+            }
+        }
+
+        [XmlIgnore]
+        public bool PriorityPartyBehavioursSpecified { get; set; }
 
         [XmlAttribute(AttributeName="party_template")]
         public string PartyTemplate { get; set; }

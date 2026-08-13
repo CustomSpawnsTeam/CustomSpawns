@@ -23,6 +23,11 @@ namespace CustomSpawns.Spawn.PartyComponents
             AddClassDefinition(typeof(SettlementOffensiveBehaviourState), 4);
         }
 
+        protected override void DefineEnumTypes()
+        {
+            AddEnumDefinition(typeof(SettlementOffensivePhase), 5);
+        }
+
         protected override void DefineContainerDefinitions()
         {
             ConstructContainerDefinition(typeof(Dictionary<

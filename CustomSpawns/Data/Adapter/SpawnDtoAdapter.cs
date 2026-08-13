@@ -148,8 +148,9 @@ namespace CustomSpawns.Data.Adapter
         internal static IReadOnlyList<PriorityPartyBehaviourData> AdaptPriorityPartyBehaviours(Model.Spawn spawn)
         {
             List<PriorityPartyBehaviourConfig>? configurations = spawn.PriorityPartyBehaviours;
-            if (configurations != null)
+            if (spawn.PriorityPartyBehavioursSpecified || configurations?.Count > 0)
             {
+                configurations ??= new List<PriorityPartyBehaviourConfig>();
                 if (configurations.GroupBy(configuration => configuration.GetType()).Any(group => group.Count() > 1))
                 {
                     throw new ArgumentException("PriorityPartyBehaviours cannot contain duplicate behaviour types.");
@@ -185,11 +186,13 @@ namespace CustomSpawns.Data.Adapter
                 case RaidClosestVillageConfig raid:
                     return AdaptRaidClosestVillage(raid);
                 case PatrolAroundClosestLestInterruptedAndSwitchConfig patrol:
-                    ValidateRange("patrol stable time", patrol.StableTimeInDays.Minimum,
-                        patrol.StableTimeInDays.Maximum);
-                    List<SpawnSettlementType> targetTypes = patrol.TargetTypes ?? AllSettlementTypes();
+                    FloatRangeConfig stableTime = ApplyRangeDefaults(patrol.StableTimeInDays, 0f, 10f);
+                    ValidateRange("patrol stable time", stableTime.Minimum, stableTime.Maximum);
+                    List<SpawnSettlementType> targetTypes = patrol.TargetTypesSpecified || patrol.TargetTypes?.Count > 0
+                        ? patrol.TargetTypes ?? new List<SpawnSettlementType>()
+                        : AllSettlementTypes();
                     return new PatrolAroundClosestLestInterruptedAndSwitchData(
-                        patrol.StableTimeInDays.Minimum, patrol.StableTimeInDays.Maximum, targetTypes);
+                        stableTime.Minimum, stableTime.Maximum, targetTypes);
                 default:
                     throw new ArgumentException("Unsupported priority party behaviour configuration.");
             }
@@ -198,8 +201,9 @@ namespace CustomSpawns.Data.Adapter
         private static BesiegeClosestSettlementData AdaptBesiegeClosestSettlement(
             BesiegeClosestSettlementConfig config)
         {
-            List<SpawnSettlementType> targetTypes = config.TargetTypes ??
-                new List<SpawnSettlementType> { SpawnSettlementType.Town, SpawnSettlementType.Castle };
+            List<SpawnSettlementType> targetTypes = config.TargetTypesSpecified || config.TargetTypes?.Count > 0
+                ? config.TargetTypes ?? new List<SpawnSettlementType>()
+                : new List<SpawnSettlementType> { SpawnSettlementType.Town, SpawnSettlementType.Castle };
             if (targetTypes.Count == 0)
             {
                 throw new ArgumentException("BesiegeClosestSettlement requires at least one target type.");
@@ -209,34 +213,86 @@ namespace CustomSpawns.Data.Adapter
                 throw new ArgumentException("BesiegeClosestSettlement only supports Town and Castle target types.");
             }
 
-            ValidateOffensiveValues("BesiegeClosestSettlement", config.StrengthAssessment, config.Reconnaissance,
-                config.OperationWindowInDays, config.Recovery, config.CooldownInDays);
-            return new BesiegeClosestSettlementData(targetTypes, config.StrengthAssessment.MinimumAttackerToTargetRatio,
-                config.StrengthAssessment.MinimumAttackerToRoamingHostilesRatio,
-                config.Reconnaissance.RequiredClearTimeInDays.Minimum,
-                config.Reconnaissance.RequiredClearTimeInDays.Maximum,
-                config.Reconnaissance.SkipWhenTargetStrengthRatio, config.OperationWindowInDays.Minimum,
-                config.OperationWindowInDays.Maximum, config.Recovery.GracePeriodInDays,
-                config.Recovery.MaximumFailedAttempts, config.CooldownInDays);
+            StrengthAssessmentConfig strengthAssessment = ApplyStrengthDefaults(config.StrengthAssessment,
+                1.5f, 1.2f);
+            ReconnaissanceConfig reconnaissance = ApplyReconnaissanceDefaults(config.Reconnaissance);
+            FloatRangeConfig operationWindow = ApplyRangeDefaults(config.OperationWindowInDays, 5f, 10f);
+            RecoveryConfig recovery = ApplyRecoveryDefaults(config.Recovery, 2f, 2);
+            ValidateOffensiveValues("BesiegeClosestSettlement", strengthAssessment, reconnaissance,
+                operationWindow, recovery, config.CooldownInDays);
+            return new BesiegeClosestSettlementData(targetTypes, strengthAssessment.MinimumAttackerToTargetRatio,
+                strengthAssessment.MinimumAttackerToRoamingHostilesRatio,
+                reconnaissance.RequiredClearTimeInDays.Minimum,
+                reconnaissance.RequiredClearTimeInDays.Maximum,
+                reconnaissance.SkipWhenTargetStrengthRatio, operationWindow.Minimum,
+                operationWindow.Maximum, recovery.GracePeriodInDays,
+                recovery.MaximumFailedAttempts, config.CooldownInDays);
         }
 
         private static RaidClosestVillageData AdaptRaidClosestVillage(RaidClosestVillageConfig config)
         {
-            ValidateOffensiveValues("RaidClosestVillage", config.StrengthAssessment, config.Reconnaissance,
-                config.OperationWindowInDays, config.Recovery, config.CooldownInDays);
-            return new RaidClosestVillageData(config.StrengthAssessment.MinimumAttackerToTargetRatio,
-                config.StrengthAssessment.MinimumAttackerToRoamingHostilesRatio,
-                config.Reconnaissance.RequiredClearTimeInDays.Minimum,
-                config.Reconnaissance.RequiredClearTimeInDays.Maximum,
-                config.Reconnaissance.SkipWhenTargetStrengthRatio, config.OperationWindowInDays.Minimum,
-                config.OperationWindowInDays.Maximum, config.Recovery.GracePeriodInDays,
-                config.Recovery.MaximumFailedAttempts, config.CooldownInDays);
+            StrengthAssessmentConfig strengthAssessment = ApplyStrengthDefaults(config.StrengthAssessment,
+                1.25f, 1.1f);
+            ReconnaissanceConfig reconnaissance = ApplyReconnaissanceDefaults(config.Reconnaissance);
+            FloatRangeConfig operationWindow = ApplyRangeDefaults(config.OperationWindowInDays, 3f, 6f);
+            RecoveryConfig recovery = ApplyRecoveryDefaults(config.Recovery, 1f, 2);
+            ValidateOffensiveValues("RaidClosestVillage", strengthAssessment, reconnaissance,
+                operationWindow, recovery, config.CooldownInDays);
+            return new RaidClosestVillageData(strengthAssessment.MinimumAttackerToTargetRatio,
+                strengthAssessment.MinimumAttackerToRoamingHostilesRatio,
+                reconnaissance.RequiredClearTimeInDays.Minimum,
+                reconnaissance.RequiredClearTimeInDays.Maximum,
+                reconnaissance.SkipWhenTargetStrengthRatio, operationWindow.Minimum,
+                operationWindow.Maximum, recovery.GracePeriodInDays,
+                recovery.MaximumFailedAttempts, config.CooldownInDays);
+        }
+
+        private static StrengthAssessmentConfig ApplyStrengthDefaults(StrengthAssessmentConfig config,
+            float minimumAttackerToTargetRatio, float minimumAttackerToRoamingHostilesRatio)
+        {
+            return new StrengthAssessmentConfig(
+                config.MinimumAttackerToTargetRatioSpecified
+                    ? config.MinimumAttackerToTargetRatio
+                    : minimumAttackerToTargetRatio,
+                config.MinimumAttackerToRoamingHostilesRatioSpecified
+                    ? config.MinimumAttackerToRoamingHostilesRatio
+                    : minimumAttackerToRoamingHostilesRatio);
+        }
+
+        private static ReconnaissanceConfig ApplyReconnaissanceDefaults(ReconnaissanceConfig config)
+        {
+            return new ReconnaissanceConfig
+            {
+                RequiredClearTimeInDays = ApplyRangeDefaults(config.RequiredClearTimeInDays, 0.5f, 1f),
+                SkipWhenTargetStrengthRatio = config.SkipWhenTargetStrengthRatio
+            };
+        }
+
+        private static RecoveryConfig ApplyRecoveryDefaults(RecoveryConfig config,
+            float gracePeriodInDays, int maximumFailedAttempts)
+        {
+            return new RecoveryConfig(
+                config.GracePeriodInDaysSpecified ? config.GracePeriodInDays : gracePeriodInDays,
+                config.MaximumFailedAttemptsSpecified ? config.MaximumFailedAttempts : maximumFailedAttempts);
+        }
+
+        private static FloatRangeConfig ApplyRangeDefaults(FloatRangeConfig config,
+            float minimum, float maximum)
+        {
+            return new FloatRangeConfig(config.MinimumSpecified ? config.Minimum : minimum,
+                config.MaximumSpecified ? config.Maximum : maximum);
         }
 
         private static void ValidateOffensiveValues(string behaviourName, StrengthAssessmentConfig strengthAssessment,
             ReconnaissanceConfig reconnaissance, FloatRangeConfig operationWindow, RecoveryConfig recovery,
             float cooldownInDays)
         {
+            if (!IsFinite(strengthAssessment.MinimumAttackerToTargetRatio) ||
+                !IsFinite(strengthAssessment.MinimumAttackerToRoamingHostilesRatio) ||
+                !IsFinite(reconnaissance.SkipWhenTargetStrengthRatio))
+            {
+                throw new ArgumentException(behaviourName + " strength ratios must be finite.");
+            }
             if (strengthAssessment.MinimumAttackerToTargetRatio <= 0f ||
                 strengthAssessment.MinimumAttackerToRoamingHostilesRatio <= 0f ||
                 reconnaissance.SkipWhenTargetStrengthRatio <= 0f)
@@ -246,6 +302,10 @@ namespace CustomSpawns.Data.Adapter
             ValidateRange(behaviourName + " reconnaissance clear time",
                 reconnaissance.RequiredClearTimeInDays.Minimum, reconnaissance.RequiredClearTimeInDays.Maximum);
             ValidateRange(behaviourName + " operation window", operationWindow.Minimum, operationWindow.Maximum);
+            if (!IsFinite(recovery.GracePeriodInDays))
+            {
+                throw new ArgumentException(behaviourName + " grace period must be finite.");
+            }
             if (recovery.GracePeriodInDays < 0f)
             {
                 throw new ArgumentException(behaviourName + " grace period cannot be negative.");
@@ -253,6 +313,10 @@ namespace CustomSpawns.Data.Adapter
             if (recovery.MaximumFailedAttempts < 1)
             {
                 throw new ArgumentException(behaviourName + " maximum failed attempts must be at least one.");
+            }
+            if (!IsFinite(cooldownInDays))
+            {
+                throw new ArgumentException(behaviourName + " cooldown must be finite.");
             }
             if (cooldownInDays < 0f)
             {
@@ -262,6 +326,10 @@ namespace CustomSpawns.Data.Adapter
 
         private static void ValidateRange(string name, float minimum, float maximum)
         {
+            if (!IsFinite(minimum) || !IsFinite(maximum))
+            {
+                throw new ArgumentException(name + " values must be finite.");
+            }
             if (minimum < 0f)
             {
                 throw new ArgumentException(name + " minimum cannot be negative.");
@@ -270,6 +338,11 @@ namespace CustomSpawns.Data.Adapter
             {
                 throw new ArgumentException(name + " maximum must be greater than or equal to its minimum.");
             }
+        }
+
+        private static bool IsFinite(float value)
+        {
+            return !float.IsNaN(value) && !float.IsInfinity(value);
         }
 
         private static List<SpawnSettlementType> AllSettlementTypes()

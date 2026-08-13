@@ -1,10 +1,12 @@
 using System.Collections.Generic;
 using System.Reflection;
+using CustomSpawns.AI;
 using CustomSpawns.Data.Dao;
 using CustomSpawns.Spawn;
 using CustomSpawns.Spawn.PartyComponents;
 using NUnit.Framework;
 using TaleWorlds.SaveSystem;
+using TaleWorlds.SaveSystem.Definition;
 
 namespace CustomSpawns.Tests.Spawn
 {
@@ -69,6 +71,28 @@ namespace CustomSpawns.Tests.Spawn
             Assert.AreEqual(2, SaveId<CsPartyData>("_owningSpawnTemplateId"));
             Assert.AreEqual(3, SaveId<CsPartyData>("_isPrimarySpawn"));
             Assert.AreEqual(4, SaveId<CsPartyData>("_latestClosestSettlement"));
+        }
+
+        [Test]
+        public void TypeDefiner_RegistersSettlementOffensivePhaseEnumWithUniqueId()
+        {
+            var context = new DefinitionContext();
+            var definer = new CustomSpawnsTypeDefiner();
+            typeof(SaveableTypeDefiner).GetMethod("Initialize",
+                    BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(definer, new object[] { context });
+            typeof(CustomSpawnsTypeDefiner).GetMethod("DefineEnumTypes",
+                    BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(definer, null);
+
+            object? definition = typeof(DefinitionContext).GetMethod("GetEnumDefinition",
+                    BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(context, new object[] { typeof(SettlementOffensivePhase) });
+
+            Assert.That(definition, Is.InstanceOf<TypeDefinitionBase>());
+            TypeDefinitionBase typeDefinition = (TypeDefinitionBase)definition!;
+            Assert.That(typeDefinition.Type, Is.EqualTo(typeof(SettlementOffensivePhase)));
+            Assert.That(((TypeSaveId)typeDefinition.SaveId).Id, Is.EqualTo(7_955_640));
         }
 
         [Test]

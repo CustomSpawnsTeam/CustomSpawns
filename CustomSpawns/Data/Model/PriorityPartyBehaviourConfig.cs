@@ -13,9 +13,25 @@ namespace CustomSpawns.Data.Model
 
     public sealed class BesiegeClosestSettlementConfig : PriorityPartyBehaviourConfig
     {
+        private List<SpawnSettlementType>? _targetTypes;
+
         [XmlArray("TargetTypes")]
         [XmlArrayItem("TargetType")]
-        public List<SpawnSettlementType>? TargetTypes { get; set; }
+        public List<SpawnSettlementType>? TargetTypes
+        {
+            get => _targetTypes;
+            set
+            {
+                _targetTypes = value;
+                if (value?.Count > 0)
+                {
+                    TargetTypesSpecified = true;
+                }
+            }
+        }
+
+        [XmlIgnore]
+        public bool TargetTypesSpecified { get; set; }
 
         [XmlElement("StrengthAssessment")]
         public StrengthAssessmentConfig StrengthAssessment { get; set; } = new(1.5f, 1.2f);
@@ -53,9 +69,25 @@ namespace CustomSpawns.Data.Model
 
     public sealed class PatrolAroundClosestLestInterruptedAndSwitchConfig : PriorityPartyBehaviourConfig
     {
+        private List<SpawnSettlementType>? _targetTypes;
+
         [XmlArray("TargetTypes")]
         [XmlArrayItem("TargetType")]
-        public List<SpawnSettlementType>? TargetTypes { get; set; }
+        public List<SpawnSettlementType>? TargetTypes
+        {
+            get => _targetTypes;
+            set
+            {
+                _targetTypes = value;
+                if (value?.Count > 0)
+                {
+                    TargetTypesSpecified = true;
+                }
+            }
+        }
+
+        [XmlIgnore]
+        public bool TargetTypesSpecified { get; set; }
 
         [XmlElement("StableTimeInDays")]
         public FloatRangeConfig StableTimeInDays { get; set; } = new(0f, 10f);
@@ -63,6 +95,9 @@ namespace CustomSpawns.Data.Model
 
     public sealed class StrengthAssessmentConfig
     {
+        private float _minimumAttackerToTargetRatio;
+        private float _minimumAttackerToRoamingHostilesRatio;
+
         public StrengthAssessmentConfig()
         {
         }
@@ -75,10 +110,32 @@ namespace CustomSpawns.Data.Model
         }
 
         [XmlElement("MinimumAttackerToTargetRatio")]
-        public float MinimumAttackerToTargetRatio { get; set; }
+        public float MinimumAttackerToTargetRatio
+        {
+            get => _minimumAttackerToTargetRatio;
+            set
+            {
+                _minimumAttackerToTargetRatio = value;
+                MinimumAttackerToTargetRatioSpecified = true;
+            }
+        }
+
+        [XmlIgnore]
+        public bool MinimumAttackerToTargetRatioSpecified { get; set; }
 
         [XmlElement("MinimumAttackerToRoamingHostilesRatio")]
-        public float MinimumAttackerToRoamingHostilesRatio { get; set; }
+        public float MinimumAttackerToRoamingHostilesRatio
+        {
+            get => _minimumAttackerToRoamingHostilesRatio;
+            set
+            {
+                _minimumAttackerToRoamingHostilesRatio = value;
+                MinimumAttackerToRoamingHostilesRatioSpecified = true;
+            }
+        }
+
+        [XmlIgnore]
+        public bool MinimumAttackerToRoamingHostilesRatioSpecified { get; set; }
     }
 
     public sealed class ReconnaissanceConfig
@@ -92,6 +149,9 @@ namespace CustomSpawns.Data.Model
 
     public sealed class RecoveryConfig
     {
+        private float _gracePeriodInDays;
+        private int _maximumFailedAttempts;
+
         public RecoveryConfig()
         {
         }
@@ -103,14 +163,39 @@ namespace CustomSpawns.Data.Model
         }
 
         [XmlElement("GracePeriodInDays")]
-        public float GracePeriodInDays { get; set; }
+        public float GracePeriodInDays
+        {
+            get => _gracePeriodInDays;
+            set
+            {
+                _gracePeriodInDays = value;
+                GracePeriodInDaysSpecified = true;
+            }
+        }
+
+        [XmlIgnore]
+        public bool GracePeriodInDaysSpecified { get; set; }
 
         [XmlElement("MaximumFailedAttempts")]
-        public int MaximumFailedAttempts { get; set; }
+        public int MaximumFailedAttempts
+        {
+            get => _maximumFailedAttempts;
+            set
+            {
+                _maximumFailedAttempts = value;
+                MaximumFailedAttemptsSpecified = true;
+            }
+        }
+
+        [XmlIgnore]
+        public bool MaximumFailedAttemptsSpecified { get; set; }
     }
 
     public sealed class FloatRangeConfig
     {
+        private float _minimum;
+        private float _maximum;
+
         public FloatRangeConfig()
         {
         }
@@ -122,9 +207,31 @@ namespace CustomSpawns.Data.Model
         }
 
         [XmlElement("Minimum")]
-        public float Minimum { get; set; }
+        public float Minimum
+        {
+            get => _minimum;
+            set
+            {
+                _minimum = value;
+                MinimumSpecified = true;
+            }
+        }
+
+        [XmlIgnore]
+        public bool MinimumSpecified { get; set; }
 
         [XmlElement("Maximum")]
-        public float Maximum { get; set; }
+        public float Maximum
+        {
+            get => _maximum;
+            set
+            {
+                _maximum = value;
+                MaximumSpecified = true;
+            }
+        }
+
+        [XmlIgnore]
+        public bool MaximumSpecified { get; set; }
     }
 }

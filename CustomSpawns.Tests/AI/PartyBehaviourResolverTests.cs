@@ -217,8 +217,17 @@ namespace CustomSpawns.Tests.AI
             var fallback = new FallbackStub();
             var spawns = new Dictionary<string, SpawnDto>
             {
-                ["nested"] = Spawn(PatrolConfiguration()),
-                ["legacy"] = Spawn(PatrolConfiguration())
+                ["nested"] = Spawn(XmlConfigurations(
+                    "<PriorityPartyBehaviours>" +
+                    "<PatrolAroundClosestLestInterruptedAndSwitch>" +
+                    "<TargetTypes><TargetType>Town</TargetType></TargetTypes>" +
+                    "<StableTimeInDays><Minimum>2</Minimum><Maximum>4</Maximum></StableTimeInDays>" +
+                    "</PatrolAroundClosestLestInterruptedAndSwitch>" +
+                    "</PriorityPartyBehaviours>")),
+                ["legacy"] = Spawn(XmlConfigurations(
+                    "<PatrolAroundClosestLestInterruptedAndSwitch min_stable_days=\"2\" " +
+                    "max_stable_days=\"4\" try_patrol_around=\"Town\">true" +
+                    "</PatrolAroundClosestLestInterruptedAndSwitch>"))
             };
             var resolver = new PartyBehaviourResolver(id => spawns[id], spawns.Values,
                 new IPriorityPartyBehaviour[] { patrol }, fallback);
@@ -228,6 +237,12 @@ namespace CustomSpawns.Tests.AI
 
             Assert.That(patrol.CallCount, Is.EqualTo(2));
             Assert.That(patrol.SeenConfigurations, Has.All.TypeOf<PatrolAroundClosestLestInterruptedAndSwitchData>());
+            Assert.That(patrol.SeenConfigurations[0].MinStableDays, Is.EqualTo(2f));
+            Assert.That(patrol.SeenConfigurations[1].MinStableDays, Is.EqualTo(2f));
+            Assert.That(patrol.SeenConfigurations[0].PreferredSettlementTypes,
+                Is.EqualTo(new[] { SpawnSettlementType.Town }));
+            Assert.That(patrol.SeenConfigurations[1].PreferredSettlementTypes,
+                Is.EqualTo(new[] { SpawnSettlementType.Town }));
         }
 
         private static PartyBehaviourResolver Resolver(SpawnDto spawn, FallbackStub fallback,
@@ -278,6 +293,23 @@ namespace CustomSpawns.Tests.AI
             using StringReader reader = new(xml);
             SpawnModel spawn = (SpawnModel)serializer.Deserialize(reader);
             var adapted = SpawnDtoAdapter.AdaptPriorityPartyBehaviours(spawn);
+            var result = new PriorityPartyBehaviourData[adapted.Count];
+            for (int i = 0; i < adapted.Count; i++)
+            {
+                result[i] = adapted[i];
+            }
+            return result;
+        }
+
+        private static PriorityPartyBehaviourData[] XmlConfigurations(string spawnBody)
+        {
+            string xml = "<RegularBanditDailySpawnData party_template=\"PartyTemplate.test\">" +
+                         spawnBody + "</RegularBanditDailySpawnData>";
+            XmlSerializer serializer = new(typeof(SpawnModel));
+            using StringReader reader = new(xml);
+            SpawnModel spawn = (SpawnModel)serializer.Deserialize(reader);
+            IReadOnlyList<PriorityPartyBehaviourData> adapted =
+                SpawnDtoAdapter.AdaptPriorityPartyBehaviours(spawn);
             var result = new PriorityPartyBehaviourData[adapted.Count];
             for (int i = 0; i < adapted.Count; i++)
             {
