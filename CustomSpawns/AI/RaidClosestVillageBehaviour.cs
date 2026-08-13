@@ -12,16 +12,20 @@ namespace CustomSpawns.AI
 {
     public sealed class RaidClosestVillageBehaviour : PriorityPartyBehaviour<RaidClosestVillageData>
     {
-        private const string SaveKey = "_customSpawnsRaidClosestVillageStates";
+        internal const string SaveKey = "_customSpawnsRaidClosestVillageStates";
+        private readonly IRaidClosestVillageContext _context;
         private readonly Func<float, float, float> _roll;
         private Dictionary<MobileParty, SettlementOffensiveBehaviourState> _states = new();
 
-        public RaidClosestVillageBehaviour() : this(MBRandom.RandomFloatRanged)
+        public RaidClosestVillageBehaviour() : this(new BannerlordRaidClosestVillageContext(),
+            MBRandom.RandomFloatRanged)
         {
         }
 
-        internal RaidClosestVillageBehaviour(Func<float, float, float> roll)
+        internal RaidClosestVillageBehaviour(IRaidClosestVillageContext context,
+            Func<float, float, float> roll)
         {
+            _context = context ?? throw new ArgumentNullException(nameof(context));
             _roll = roll;
         }
 
@@ -45,18 +49,17 @@ namespace CustomSpawns.AI
                 configuration.MaximumFailedAttempts, configuration.CooldownInDays);
             SettlementOffensiveBehaviour.BeginEpisode(state, settings, _roll);
 
-            float attackerStrength = GetAttackerStrength(party);
-            float visibleHostileStrength = GetVisibleHostileStrength(party);
+            float attackerStrength = _context.GetAttackerStrength(party);
+            float visibleHostileStrength = _context.GetVisibleHostileStrength(party);
             bool safetyPasses = SettlementOffensiveBehaviour.MeetsStrengthRatio(attackerStrength,
                 visibleHostileStrength, configuration.MinimumAttackerToRoamingHostilesRatio);
 
             if (state.Target is not null)
             {
-                bool matchingRaidActive = IsMatchingRaidActive(party, state.Target);
-                bool isValid = IsCurrentTargetValid(party, state.Target, matchingRaidActive);
-                bool isComplete = state.Target.IsRaided;
-                bool hasContinuation = party.DefaultBehavior == AiBehavior.RaidSettlement &&
-                                       party.TargetSettlement == state.Target;
+                bool matchingRaidActive = _context.IsMatchingRaidActive(party, state.Target);
+                bool isValid = _context.IsCurrentTargetValid(party, state.Target, matchingRaidActive);
+                bool isComplete = _context.IsTargetComplete(state.Target);
+                bool hasContinuation = _context.HasNativeContinuation(party, state.Target);
                 ActiveTargetObservation observation = SettlementOffensiveBehaviour.ObserveTarget(state,
                     isValid, isComplete, matchingRaidActive, hasContinuation,
                     configuration.MaximumFailedAttempts, configuration.CooldownInDays);
@@ -76,17 +79,22 @@ namespace CustomSpawns.AI
                 Settlement? recoveryTarget = state.Target;
                 if (!SettlementOffensiveBehaviour.TickRecovery(state))
                 {
+                    if (IsNativeSafetyInterruption(_context.GetShortTermBehavior(party)))
+                    {
+                        return PartyBehaviourResult.ApplicableWithoutBehavior;
+                    }
                     return Raid(recoveryTarget!, party);
                 }
             }
 
             if (state.Target is null)
             {
-                state.Target = FindClosestRaidTarget(party, attackerStrength,
+                state.Target = _context.FindClosestRaidTarget(party, attackerStrength,
                     configuration.MinimumAttackerToTargetRatio);
                 if (state.Target is not null)
                 {
-                    float targetRatio = StrengthRatio(attackerStrength, state.Target.Militia);
+                    float targetRatio = StrengthRatio(attackerStrength,
+                        _context.GetTargetStrength(state.Target));
                     SettlementOffensiveBehaviour.AssignTarget(state,
                         safetyPasses && targetRatio >= configuration.SkipWhenTargetStrengthRatio);
                 }
@@ -102,7 +110,8 @@ namespace CustomSpawns.AI
                 return PatrolOrRemainApplicable(party);
             }
 
-            float currentTargetRatio = StrengthRatio(attackerStrength, state.Target.Militia);
+            float currentTargetRatio = StrengthRatio(attackerStrength,
+                _context.GetTargetStrength(state.Target));
             if (state.Phase == SettlementOffensivePhase.Approach && !safetyPasses)
             {
                 SettlementOffensiveBehaviour.ReturnApproachToRecon(state);
@@ -129,7 +138,74 @@ namespace CustomSpawns.AI
             _states ??= new Dictionary<MobileParty, SettlementOffensiveBehaviourState>();
         }
 
-        private static Settlement? FindClosestRaidTarget(MobileParty party, float attackerStrength,
+        internal SettlementOffensiveBehaviourState GetState(MobileParty party)
+        {
+            return _states[party];
+        }
+
+        internal static bool IsNativeSafetyInterruption(AiBehavior shortTermBehavior)
+        {
+            return shortTermBehavior == AiBehavior.EngageParty ||
+                   shortTermBehavior == AiBehavior.FleeToPoint;
+        }
+
+        private static float StrengthRatio(float attackerStrength, float defenderStrength)
+        {
+            return defenderStrength <= 0f ? float.PositiveInfinity : attackerStrength / defenderStrength;
+        }
+
+        private PartyBehaviourResult PatrolOrRemainApplicable(MobileParty party)
+        {
+            Settlement? patrolTarget = _context.FindClosestNonHostileSettlement(party);
+            return patrolTarget is null
+                ? PartyBehaviourResult.ApplicableWithoutBehavior
+                : PartyBehaviourResult.From(_context.CreatePatrolBehavior(party, patrolTarget));
+        }
+
+        private PartyBehaviourResult Raid(Settlement target, MobileParty party)
+        {
+            return PartyBehaviourResult.From(_context.CreateRaidBehavior(party, target));
+        }
+    }
+
+    internal interface IRaidClosestVillageContext
+    {
+        float GetAttackerStrength(MobileParty party);
+        float GetVisibleHostileStrength(MobileParty party);
+        Settlement? FindClosestRaidTarget(MobileParty party, float attackerStrength,
+            float minimumRatio);
+        Settlement? FindClosestNonHostileSettlement(MobileParty party);
+        float GetTargetStrength(Settlement target);
+        bool IsMatchingRaidActive(MobileParty party, Settlement target);
+        bool IsCurrentTargetValid(MobileParty party, Settlement target, bool matchingRaidActive);
+        bool IsTargetComplete(Settlement target);
+        bool HasNativeContinuation(MobileParty party, Settlement target);
+        AiBehavior GetShortTermBehavior(MobileParty party);
+        AIBehaviorData CreatePatrolBehavior(MobileParty party, Settlement target);
+        AIBehaviorData CreateRaidBehavior(MobileParty party, Settlement target);
+    }
+
+    internal sealed class BannerlordRaidClosestVillageContext : IRaidClosestVillageContext
+    {
+        public float GetAttackerStrength(MobileParty party)
+        {
+            return party.Army is not null && party.Army.LeaderParty == party
+                ? party.Army.CalculateCurrentStrength()
+                : party.Party.CalculateCurrentStrength();
+        }
+
+        public float GetVisibleHostileStrength(MobileParty observer)
+        {
+            IEnumerable<RoamingPartyStrength> observations = MobileParty.All
+                .Where(p => p.CurrentSettlement is null && p.MapEvent is null)
+                .Select(p => new RoamingPartyStrength(p == observer, p.IsActive,
+                    p.MapFaction.IsAtWarWith(observer.MapFaction), p.Army,
+                    observer.Position.Distance(p.Position), p.Party.CalculateCurrentStrength()));
+            return SettlementOffensiveBehaviour.SumVisibleHostileStrength(observations,
+                observer.SeeingRange);
+        }
+
+        public Settlement? FindClosestRaidTarget(MobileParty party, float attackerStrength,
             float minimumRatio)
         {
             IEnumerable<RaidTargetCandidate<Settlement>> candidates = Settlement.All.Select(settlement =>
@@ -138,22 +214,7 @@ namespace CustomSpawns.AI
             return SettlementOffensiveBehaviour.ChooseClosestTarget(candidates, attackerStrength, minimumRatio);
         }
 
-        private static bool IsCandidateValid(MobileParty party, Settlement settlement)
-        {
-            return settlement.IsActive && settlement.IsVillage && !settlement.IsRaided &&
-                   !settlement.IsUnderRaid && settlement.Party.MapEvent is null &&
-                   party.MapFaction.IsAtWarWith(settlement.MapFaction);
-        }
-
-        private static bool IsCurrentTargetValid(MobileParty party, Settlement settlement,
-            bool matchingRaidActive)
-        {
-            return settlement.IsActive && settlement.IsVillage && !settlement.IsRaided &&
-                   (settlement.Party.MapEvent is null || matchingRaidActive) &&
-                   party.MapFaction.IsAtWarWith(settlement.MapFaction);
-        }
-
-        private static Settlement? FindClosestNonHostileSettlement(MobileParty party)
+        public Settlement? FindClosestNonHostileSettlement(MobileParty party)
         {
             return Settlement.All.Where(s => s.IsActive && (s.IsTown || s.IsCastle || s.IsVillage) &&
                                              !party.MapFaction.IsAtWarWith(s.MapFaction))
@@ -161,52 +222,58 @@ namespace CustomSpawns.AI
                 .FirstOrDefault();
         }
 
-        private static float GetAttackerStrength(MobileParty party)
+        public float GetTargetStrength(Settlement target)
         {
-            return party.Army is not null && party.Army.LeaderParty == party
-                ? party.Army.CalculateCurrentStrength()
-                : party.Party.CalculateCurrentStrength();
+            return target.Militia;
         }
 
-        private static float GetVisibleHostileStrength(MobileParty observer)
-        {
-            IEnumerable<RoamingPartyStrength> observations = MobileParty.All
-                .Where(p => p.CurrentSettlement is null && p.MapEvent is null)
-                .Select(p => new RoamingPartyStrength(p == observer, p.IsActive,
-                    p.MapFaction.IsAtWarWith(observer.MapFaction), p.AttachedTo is not null,
-                    observer.Position.Distance(p.Position), p.Party.CalculateCurrentStrength(),
-                    p.Army is not null && p.Army.LeaderParty == p,
-                    p.Army is not null && p.Army.LeaderParty == p
-                        ? p.Army.CalculateCurrentStrength()
-                        : 0f));
-            return SettlementOffensiveBehaviour.SumVisibleHostileStrength(observations,
-                observer.SeeingRange);
-        }
-
-        private static bool IsMatchingRaidActive(MobileParty party, Settlement target)
+        public bool IsMatchingRaidActive(MobileParty party, Settlement target)
         {
             return party.MapEvent is not null && party.MapEvent.IsRaid &&
                    party.MapEvent.MapEventSettlement == target;
         }
 
-        private static float StrengthRatio(float attackerStrength, float defenderStrength)
+        public bool IsCurrentTargetValid(MobileParty party, Settlement target,
+            bool matchingRaidActive)
         {
-            return defenderStrength <= 0f ? float.PositiveInfinity : attackerStrength / defenderStrength;
+            return target.IsActive && target.IsVillage && !target.IsRaided &&
+                   (target.Party.MapEvent is null || matchingRaidActive) &&
+                   party.MapFaction.IsAtWarWith(target.MapFaction);
         }
 
-        private static PartyBehaviourResult PatrolOrRemainApplicable(MobileParty party)
+        public bool IsTargetComplete(Settlement target)
         {
-            Settlement? patrolTarget = FindClosestNonHostileSettlement(party);
-            return patrolTarget is null
-                ? PartyBehaviourResult.ApplicableWithoutBehavior
-                : PartyBehaviourResult.From(new AIBehaviorData(patrolTarget,
-                    AiBehavior.PatrolAroundPoint, party.NavigationCapability, false, false, false));
+            return target.IsRaided;
         }
 
-        private static PartyBehaviourResult Raid(Settlement target, MobileParty party)
+        public bool HasNativeContinuation(MobileParty party, Settlement target)
         {
-            return PartyBehaviourResult.From(new AIBehaviorData(target, AiBehavior.RaidSettlement,
-                party.NavigationCapability, false, false, false));
+            return party.DefaultBehavior == AiBehavior.RaidSettlement &&
+                   party.TargetSettlement == target;
+        }
+
+        public AiBehavior GetShortTermBehavior(MobileParty party)
+        {
+            return party.ShortTermBehavior;
+        }
+
+        public AIBehaviorData CreatePatrolBehavior(MobileParty party, Settlement target)
+        {
+            return new AIBehaviorData(target, AiBehavior.PatrolAroundPoint,
+                party.NavigationCapability, false, false, false);
+        }
+
+        public AIBehaviorData CreateRaidBehavior(MobileParty party, Settlement target)
+        {
+            return new AIBehaviorData(target, AiBehavior.RaidSettlement,
+                party.NavigationCapability, false, false, false);
+        }
+
+        private static bool IsCandidateValid(MobileParty party, Settlement settlement)
+        {
+            return settlement.IsActive && settlement.IsVillage && !settlement.IsRaided &&
+                   !settlement.IsUnderRaid && settlement.Party.MapEvent is null &&
+                   party.MapFaction.IsAtWarWith(settlement.MapFaction);
         }
     }
 }

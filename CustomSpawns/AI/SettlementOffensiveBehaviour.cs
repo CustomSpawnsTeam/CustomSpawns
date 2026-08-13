@@ -98,24 +98,19 @@ namespace CustomSpawns.AI
         public bool IsSelf { get; }
         public bool IsActive { get; }
         public bool IsHostile { get; }
-        public bool IsAttachedArmyParty { get; }
+        public object? ArmyIdentity { get; }
         public float Distance { get; }
         public float PartyStrength { get; }
-        public float ArmyStrength { get; }
-        public bool IsArmyLeader { get; }
 
         public RoamingPartyStrength(bool isSelf, bool isActive, bool isHostile,
-            bool isAttachedArmyParty, float distance, float partyStrength,
-            bool isArmyLeader = false, float armyStrength = 0f)
+            object? armyIdentity, float distance, float partyStrength)
         {
             IsSelf = isSelf;
             IsActive = isActive;
             IsHostile = isHostile;
-            IsAttachedArmyParty = isAttachedArmyParty;
+            ArmyIdentity = armyIdentity;
             Distance = distance;
             PartyStrength = partyStrength;
-            IsArmyLeader = isArmyLeader;
-            ArmyStrength = armyStrength;
         }
     }
 
@@ -311,9 +306,9 @@ namespace CustomSpawns.AI
             float observerSeeingRange)
         {
             return parties.Where(p => !p.IsSelf && p.IsActive && p.IsHostile &&
-                                      !p.IsAttachedArmyParty &&
                                       IsWithinSeeingRange(p.Distance, observerSeeingRange))
-                .Sum(p => p.IsArmyLeader ? p.ArmyStrength : p.PartyStrength);
+                .GroupBy(p => p.ArmyIdentity)
+                .Sum(army => army.Sum(p => p.PartyStrength));
         }
 
         internal static bool MeetsStrengthRatio(float attackerStrength, float defenderStrength,

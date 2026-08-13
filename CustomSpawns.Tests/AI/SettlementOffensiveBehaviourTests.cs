@@ -30,16 +30,46 @@ namespace CustomSpawns.Tests.AI
         }
 
         [Test]
-        public void VisibleHostiles_CountArmyOnceAtLeaderStrength()
+        public void VisibleHostiles_CountOnlyVisibleArmyMembersOnce()
         {
+            object army = new();
             var parties = new[]
             {
-                Strength(1f, 20f, isArmyLeader: true, armyStrength: 50f),
-                Strength(1f, 30f, isAttachedArmyParty: true)
+                Strength(1f, 20f, army),
+                Strength(1f, 30f, army),
+                Strength(5.001f, 100f, army)
             };
 
             Assert.That(SettlementOffensiveBehaviour.SumVisibleHostileStrength(parties, 5f),
                 Is.EqualTo(50f));
+        }
+
+        [Test]
+        public void VisibleHostiles_CountVisibleAttachmentWhenLeaderIsOutsideRange()
+        {
+            object army = new();
+            var parties = new[]
+            {
+                Strength(5.001f, 20f, army),
+                Strength(5f, 30f, army)
+            };
+
+            Assert.That(SettlementOffensiveBehaviour.SumVisibleHostileStrength(parties, 5f),
+                Is.EqualTo(30f));
+        }
+
+        [Test]
+        public void VisibleHostiles_DoNotCountInvisibleAttachmentsThroughVisibleLeader()
+        {
+            object army = new();
+            var parties = new[]
+            {
+                Strength(5f, 20f, army),
+                Strength(5.001f, 30f, army)
+            };
+
+            Assert.That(SettlementOffensiveBehaviour.SumVisibleHostileStrength(parties, 5f),
+                Is.EqualTo(20f));
         }
 
         [Test]
@@ -331,11 +361,11 @@ namespace CustomSpawns.Tests.AI
         }
 
         private static RoamingPartyStrength Strength(float distance, float partyStrength,
-            bool isSelf = false, bool isActive = true, bool isHostile = true,
-            bool isAttachedArmyParty = false, bool isArmyLeader = false, float armyStrength = 0f)
+            object? armyIdentity = null, bool isSelf = false, bool isActive = true,
+            bool isHostile = true)
         {
-            return new RoamingPartyStrength(isSelf, isActive, isHostile, isAttachedArmyParty,
-                distance, partyStrength, isArmyLeader, armyStrength);
+            return new RoamingPartyStrength(isSelf, isActive, isHostile, armyIdentity,
+                distance, partyStrength);
         }
 
         private static Settlement DummySettlement()
