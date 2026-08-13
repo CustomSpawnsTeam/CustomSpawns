@@ -28,3 +28,5 @@ Your ModuleData folder will hold content that Bannerlord code parses through, su
 
 The CustomSpawns folder must be placed directly under your Module folder. Currently, it contains the CustomDailySpawn.xml, CustomSpawnsSubMod.xml, Diplomacy.xml, CustomDialogue.xml, and NameSignifiers.xml files. 
 
+Priority patrol, raid, and siege configuration is documented in [Priority party behaviour XML API](docs/party-behaviour-api.md).
+
