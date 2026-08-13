@@ -187,6 +187,21 @@ namespace CustomSpawns.AI
 
     internal sealed class BannerlordRaidClosestVillageContext : IRaidClosestVillageContext
     {
+        private readonly Func<MobileParty, float> _getSeeingRange;
+        private readonly Func<MobileParty, IEnumerable<RoamingPartyStrength>> _getRoamingParties;
+
+        public BannerlordRaidClosestVillageContext() : this(observer => observer.SeeingRange,
+            ObserveRoamingParties)
+        {
+        }
+
+        internal BannerlordRaidClosestVillageContext(Func<MobileParty, float> getSeeingRange,
+            Func<MobileParty, IEnumerable<RoamingPartyStrength>> getRoamingParties)
+        {
+            _getSeeingRange = getSeeingRange;
+            _getRoamingParties = getRoamingParties;
+        }
+
         public float GetAttackerStrength(MobileParty party)
         {
             return party.Army is not null && party.Army.LeaderParty == party
@@ -196,13 +211,18 @@ namespace CustomSpawns.AI
 
         public float GetVisibleHostileStrength(MobileParty observer)
         {
-            IEnumerable<RoamingPartyStrength> observations = MobileParty.All
+            return SettlementOffensiveBehaviour.SumVisibleHostileStrength(
+                _getRoamingParties(observer), _getSeeingRange(observer));
+        }
+
+        private static IEnumerable<RoamingPartyStrength> ObserveRoamingParties(
+            MobileParty observer)
+        {
+            return MobileParty.All
                 .Where(p => p.CurrentSettlement is null && p.MapEvent is null)
                 .Select(p => new RoamingPartyStrength(p == observer, p.IsActive,
                     p.MapFaction.IsAtWarWith(observer.MapFaction), p.Army,
                     observer.Position.Distance(p.Position), p.Party.CalculateCurrentStrength()));
-            return SettlementOffensiveBehaviour.SumVisibleHostileStrength(observations,
-                observer.SeeingRange);
         }
 
         public Settlement? FindClosestRaidTarget(MobileParty party, float attackerStrength,

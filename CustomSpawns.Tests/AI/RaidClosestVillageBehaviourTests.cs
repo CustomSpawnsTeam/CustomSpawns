@@ -74,6 +74,40 @@ namespace CustomSpawns.Tests.AI
         }
 
         [Test]
+        public void ConcreteContext_UsesEachObserverSeeingRangeAndInclusiveDistanceBoundary()
+        {
+            MobileParty boundaryObserver = DummyParty();
+            MobileParty shortRangeObserver = DummyParty();
+            var observations = new[]
+            {
+                new RoamingPartyStrength(false, true, true, null, 5f, 20f),
+                new RoamingPartyStrength(false, true, true, null, 5.001f, 100f)
+            };
+            int rangeReads = 0;
+            int observationReads = 0;
+            var context = new BannerlordRaidClosestVillageContext(
+                observer =>
+                {
+                    rangeReads++;
+                    return observer == boundaryObserver ? 5f : 4.999f;
+                },
+                observer =>
+                {
+                    observationReads++;
+                    Assert.That(observer, Is.SameAs(boundaryObserver).Or.SameAs(shortRangeObserver));
+                    return observations;
+                });
+
+            float atBoundary = context.GetVisibleHostileStrength(boundaryObserver);
+            float outsideShorterObserverRange = context.GetVisibleHostileStrength(shortRangeObserver);
+
+            Assert.That(atBoundary, Is.EqualTo(20f));
+            Assert.That(outsideShorterObserverRange, Is.Zero);
+            Assert.That(rangeReads, Is.EqualTo(2));
+            Assert.That(observationReads, Is.EqualTo(2));
+        }
+
+        [Test]
         public void ActiveRaid_ReturnsRaidAndFreezesOperationClock()
         {
             MobileParty party = DummyParty();
