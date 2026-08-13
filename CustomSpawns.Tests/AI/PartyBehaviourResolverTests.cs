@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Xml.Serialization;
 using CustomSpawns.AI;
 using CustomSpawns.Data.Adapter;
 using CustomSpawns.Data.Dto;
@@ -7,6 +9,7 @@ using CustomSpawns.Spawn;
 using NUnit.Framework;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
+using SpawnModel = CustomSpawns.Data.Model.Spawn;
 
 namespace CustomSpawns.Tests.AI
 {
@@ -108,6 +111,76 @@ namespace CustomSpawns.Tests.AI
         }
 
         [Test]
+        public void Constructor_SiegeProviderSatisfiesConfiguredSiegeType()
+        {
+            SpawnDto spawn = Spawn(SiegeConfiguration());
+
+            Assert.DoesNotThrow(() => new PartyBehaviourResolver(_ => spawn, new[] { spawn },
+                new IPriorityPartyBehaviour[] { new BesiegeClosestSettlementBehaviour() }, new FallbackStub()));
+        }
+
+        [Test]
+        public void Resolve_DifferingOffensiveOrdersStillReachNestedPatrolAndHomeFallback()
+        {
+            var siege = new ProviderStub<BesiegeClosestSettlementData>(PartyBehaviourResult.NotApplicable);
+            var raid = new ProviderStub<RaidClosestVillageData>(PartyBehaviourResult.NotApplicable);
+            var patrol = new ProviderStub<PatrolAroundClosestLestInterruptedAndSwitchData>(
+                PartyBehaviourResult.ApplicableWithoutBehavior);
+            var fallback = new FallbackStub();
+            var spawns = new Dictionary<string, SpawnDto>
+            {
+                ["siege-first"] = Spawn(SiegeConfiguration(), RaidConfiguration(), PatrolConfiguration()),
+                ["raid-first"] = Spawn(RaidConfiguration(), SiegeConfiguration(), PatrolConfiguration()),
+                ["home"] = Spawn()
+            };
+            var resolver = new PartyBehaviourResolver(id => spawns[id], spawns.Values,
+                new IPriorityPartyBehaviour[] { patrol, raid, siege }, fallback);
+
+            resolver.Resolve(null!, PartyData("siege-first"));
+            resolver.Resolve(null!, PartyData("raid-first"));
+            resolver.Resolve(null!, PartyData("home"));
+
+            Assert.That(siege.CallCount, Is.EqualTo(2));
+            Assert.That(raid.CallCount, Is.EqualTo(2));
+            Assert.That(patrol.CallCount, Is.EqualTo(2));
+            Assert.That(fallback.CallCount, Is.EqualTo(1));
+            Assert.That(siege.SeenConfigurations, Has.All.TypeOf<BesiegeClosestSettlementData>());
+        }
+
+        [Test]
+        public void Resolve_TwoXmlOrdersControlSupportingPartyPriorityBeforePatrolAndHomeFallback()
+        {
+            var calls = new List<string>();
+            var siege = new ProviderStub<BesiegeClosestSettlementData>(PartyBehaviourResult.NotApplicable,
+                calls, "siege");
+            var raid = new ProviderStub<RaidClosestVillageData>(PartyBehaviourResult.NotApplicable,
+                calls, "raid");
+            var patrol = new ProviderStub<PatrolAroundClosestLestInterruptedAndSwitchData>(
+                PartyBehaviourResult.ApplicableWithoutBehavior, calls, "patrol");
+            var fallback = new FallbackStub();
+            var spawns = new Dictionary<string, SpawnDto>
+            {
+                ["siege-owner"] = Spawn(XmlConfigurations("BesiegeClosestSettlement",
+                    "RaidClosestVillage", "PatrolAroundClosestLestInterruptedAndSwitch")),
+                ["raid-owner"] = Spawn(XmlConfigurations("RaidClosestVillage",
+                    "BesiegeClosestSettlement", "PatrolAroundClosestLestInterruptedAndSwitch")),
+                ["home-owner"] = Spawn()
+            };
+            var resolver = new PartyBehaviourResolver(id => spawns[id], spawns.Values,
+                new IPriorityPartyBehaviour[] { patrol, siege, raid }, fallback);
+
+            resolver.Resolve(null!, PartyData("siege-owner"));
+            Assert.That(calls, Is.EqualTo(new[] { "siege", "raid", "patrol" }));
+
+            calls.Clear();
+            resolver.Resolve(null!, PartyData("raid-owner"));
+            Assert.That(calls, Is.EqualTo(new[] { "raid", "siege", "patrol" }));
+
+            resolver.Resolve(null!, PartyData("home-owner"));
+            Assert.That(fallback.CallCount, Is.EqualTo(1));
+        }
+
+        [Test]
         public void Constructor_RejectsDuplicateConfigurationProviderRegistration()
         {
             var first = new ProviderStub<RaidClosestVillageData>(PartyBehaviourResult.NotApplicable);
@@ -184,14 +257,48 @@ namespace CustomSpawns.Tests.AI
             return new RaidClosestVillageData(1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1, 1f);
         }
 
+        private static BesiegeClosestSettlementData SiegeConfiguration()
+        {
+            return new BesiegeClosestSettlementData(
+                new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle },
+                1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1, 1f);
+        }
+
+        private static PriorityPartyBehaviourData[] XmlConfigurations(params string[] elements)
+        {
+            string xml = "<RegularBanditDailySpawnData party_template=\"PartyTemplate.test\">" +
+                         "<PriorityPartyBehaviours>" +
+                         string.Concat(Array.ConvertAll(elements, element =>
+                             element == "BesiegeClosestSettlement"
+                                 ? "<BesiegeClosestSettlement><TargetTypes><TargetType>Town</TargetType>" +
+                                   "<TargetType>Castle</TargetType></TargetTypes></BesiegeClosestSettlement>"
+                                 : "<" + element + "/>")) +
+                         "</PriorityPartyBehaviours></RegularBanditDailySpawnData>";
+            XmlSerializer serializer = new(typeof(SpawnModel));
+            using StringReader reader = new(xml);
+            SpawnModel spawn = (SpawnModel)serializer.Deserialize(reader);
+            var adapted = SpawnDtoAdapter.AdaptPriorityPartyBehaviours(spawn);
+            var result = new PriorityPartyBehaviourData[adapted.Count];
+            for (int i = 0; i < adapted.Count; i++)
+            {
+                result[i] = adapted[i];
+            }
+            return result;
+        }
+
         private sealed class ProviderStub<TConfiguration> : PriorityPartyBehaviour<TConfiguration>
             where TConfiguration : PriorityPartyBehaviourData
         {
             private readonly PartyBehaviourResult _result;
+            private readonly List<string>? _calls;
+            private readonly string? _name;
 
-            public ProviderStub(PartyBehaviourResult result)
+            public ProviderStub(PartyBehaviourResult result, List<string>? calls = null,
+                string? name = null)
             {
                 _result = result;
+                _calls = calls;
+                _name = name;
             }
 
             public int CallCount { get; private set; }
@@ -202,6 +309,10 @@ namespace CustomSpawns.Tests.AI
                 TConfiguration configuration)
             {
                 CallCount++;
+                if (_name is not null)
+                {
+                    _calls!.Add(_name);
+                }
                 SeenConfigurations.Add(configuration);
                 return _result;
             }

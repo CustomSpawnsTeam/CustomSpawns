@@ -111,7 +111,8 @@ namespace CustomSpawns
             IPriorityPartyBehaviour[] priorityPartyBehaviours =
             {
                 new PatrolAroundClosestLestInterruptedAndSwitchBehaviour(),
-                new RaidClosestVillageBehaviour()
+                new RaidClosestVillageBehaviour(),
+                new BesiegeClosestSettlementBehaviour()
             };
             var partyBehaviourResolver = new PartyBehaviourResolver(_spawnDao, priorityPartyBehaviours,
                 new HomeSettlementPatrolBehaviour());

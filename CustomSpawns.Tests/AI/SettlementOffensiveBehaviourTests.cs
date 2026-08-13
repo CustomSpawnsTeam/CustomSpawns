@@ -340,6 +340,7 @@ namespace CustomSpawns.Tests.AI
                 Assert.That(SaveId("_recoveryElapsedDays"), Is.EqualTo(8));
                 Assert.That(SaveId("_failedAttempts"), Is.EqualTo(9));
                 Assert.That(SaveId("_cooldownRemainingDays"), Is.EqualTo(10));
+                Assert.That(SaveId("_targetMapFaction"), Is.EqualTo(11));
             });
         }
 

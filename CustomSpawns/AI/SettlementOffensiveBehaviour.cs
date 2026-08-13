@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.SaveSystem;
 
@@ -49,6 +50,9 @@ namespace CustomSpawns.AI
         [SaveableField(10)]
         private float _cooldownRemainingDays;
 
+        [SaveableField(11)]
+        private IFaction? _targetMapFaction;
+
         public Settlement? Target { get => _target; set => _target = value; }
         public SettlementOffensivePhase Phase { get => _phase; set => _phase = value; }
         public float RequiredClearReconDays { get => _requiredClearReconDays; set => _requiredClearReconDays = value; }
@@ -59,6 +63,7 @@ namespace CustomSpawns.AI
         public float RecoveryElapsedDays { get => _recoveryElapsedDays; set => _recoveryElapsedDays = value; }
         public int FailedAttempts { get => _failedAttempts; set => _failedAttempts = value; }
         public float CooldownRemainingDays { get => _cooldownRemainingDays; set => _cooldownRemainingDays = value; }
+        public IFaction? TargetMapFaction { get => _targetMapFaction; set => _targetMapFaction = value; }
     }
 
     internal readonly struct SettlementOffensiveSettings
@@ -158,6 +163,7 @@ namespace CustomSpawns.AI
             }
 
             state.Target = null;
+            state.TargetMapFaction = null;
             state.Phase = SettlementOffensivePhase.Search;
             state.RequiredClearReconDays = roll(settings.MinimumRequiredClearTimeInDays,
                 settings.MaximumRequiredClearTimeInDays);
@@ -330,6 +336,7 @@ namespace CustomSpawns.AI
         private static void ClearTarget(SettlementOffensiveBehaviourState state)
         {
             state.Target = null;
+            state.TargetMapFaction = null;
             state.Phase = SettlementOffensivePhase.Search;
             state.AccumulatedClearReconDays = 0f;
             state.RecoveryElapsedDays = 0f;
@@ -338,6 +345,7 @@ namespace CustomSpawns.AI
         private static void EnterCooldown(SettlementOffensiveBehaviourState state, float cooldownInDays)
         {
             state.Target = null;
+            state.TargetMapFaction = null;
             state.Phase = SettlementOffensivePhase.Cooldown;
             state.CooldownRemainingDays = cooldownInDays;
             state.RecoveryElapsedDays = 0f;
