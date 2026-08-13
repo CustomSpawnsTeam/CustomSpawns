@@ -44,21 +44,33 @@ namespace CustomSpawns.Data.Reader.Impl
 
         private Spawns ConstructListFromXML(string filePath)
         {
+            using Stream stream = new FileStream(filePath, FileMode.Open);
+            return DeserializeAndResolve(stream,
+                error => _messageBoxService.ShowCustomSpawnsErrorMessage(error, "the parsing of " + filePath));
+        }
+
+        internal static Spawns DeserializeAndResolve(Stream stream, Action<System.Exception> onError)
+        {
             XmlSerializer serialiser = new XmlSerializer(typeof(Spawns));
-            using Stream writer = new FileStream(filePath, FileMode.Open);
             try
             {
-                return (Spawns) serialiser.Deserialize(writer);
+                Spawns document = (Spawns)serialiser.Deserialize(stream);
+                PriorityPartyBehaviourTemplateResolver.Resolve(document);
+                return document;
             }
-            catch (ArgumentException e)
+            catch (ArgumentException error)
             {
-                _messageBoxService.ShowCustomSpawnsErrorMessage(e, "the parsing of " + filePath);
-                return new Spawns
-                {
-                    AllSpawns = new()
-                };
+                onError(error);
+                return EmptySpawns();
+            }
+            catch (InvalidOperationException error)
+            {
+                onError(error);
+                return EmptySpawns();
             }
         }
+
+        private static Spawns EmptySpawns() => new() { AllSpawns = new List<Model.Spawn>() };
         
         private void EnsureWarnIDQUalities(IList<Model.Spawn> data)
         {

@@ -17,6 +17,7 @@ namespace CustomSpawns.Data.Model
         private List<string>? _overridenCultureSpawns;
         private List<string>? _supportingParties;
         private List<PriorityPartyBehaviourConfig>? _priorityPartyBehaviours;
+        private string? _priorityPartyBehaviourTemplateId;
 
         [DefaultValue(1), XmlElement(ElementName = "MaximumOnMap")]
         public int MaximumOnMap { get; set; } = 1;
@@ -107,6 +108,20 @@ namespace CustomSpawns.Data.Model
 
         [XmlIgnore]
         public bool PriorityPartyBehavioursSpecified { get; set; }
+
+        [XmlElement(ElementName = "PriorityPartyBehaviourTemplateId")]
+        public string? PriorityPartyBehaviourTemplateId
+        {
+            get => _priorityPartyBehaviourTemplateId;
+            set
+            {
+                _priorityPartyBehaviourTemplateId = value;
+                PriorityPartyBehaviourTemplateIdSpecified = true;
+            }
+        }
+
+        [XmlIgnore]
+        public bool PriorityPartyBehaviourTemplateIdSpecified { get; set; }
 
         [XmlAttribute(AttributeName="party_template")]
         public string PartyTemplate { get; set; }
