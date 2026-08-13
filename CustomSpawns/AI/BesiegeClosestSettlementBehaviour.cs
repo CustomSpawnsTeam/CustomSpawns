@@ -4,7 +4,6 @@ using System.Linq;
 using CustomSpawns.Data.Adapter;
 using CustomSpawns.Data.Dto;
 using CustomSpawns.Spawn;
-using Helpers;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -99,7 +98,8 @@ namespace CustomSpawns.AI
                 if (state.Target is not null)
                 {
                     state.TargetMapFaction = _context.GetTargetMapFaction(state.Target);
-                    float targetRatio = StrengthRatio(attackerStrength, _context.GetTargetStrength(state.Target));
+                    float targetRatio = StrengthRatio(attackerStrength,
+                        _context.GetTargetStrength(party, state.Target));
                     SettlementOffensiveBehaviour.AssignTarget(state,
                         safetyPasses && targetRatio >= configuration.SkipWhenTargetStrengthRatio);
                 }
@@ -115,7 +115,8 @@ namespace CustomSpawns.AI
                 return PatrolOrRemainApplicable(party);
             }
 
-            float currentTargetRatio = StrengthRatio(attackerStrength, _context.GetTargetStrength(state.Target));
+            float currentTargetRatio = StrengthRatio(attackerStrength,
+                _context.GetTargetStrength(party, state.Target));
             if (state.Phase == SettlementOffensivePhase.Approach && !safetyPasses)
             {
                 SettlementOffensiveBehaviour.ReturnApproachToRecon(state);
@@ -170,7 +171,7 @@ namespace CustomSpawns.AI
         Settlement? FindClosestSiegeTarget(MobileParty party, float attackerStrength,
             float minimumRatio, IReadOnlyList<SpawnSettlementType> targetTypes);
         Settlement? FindClosestNonHostileSettlement(MobileParty party);
-        float GetTargetStrength(Settlement target);
+        float GetTargetStrength(MobileParty party, Settlement target);
         IFaction GetTargetMapFaction(Settlement target);
         bool IsMatchingSiegeActive(MobileParty party, Settlement target);
         bool IsMatchingAssaultActive(MobileParty party, Settlement target);
@@ -203,6 +204,35 @@ namespace CustomSpawns.AI
             HasCompatibleSiege = hasCompatibleSiege;
             Distance = distance;
             DefenderStrength = defenderStrength;
+        }
+    }
+
+    internal readonly struct SettlementDefenderPartyStrength
+    {
+        public float Strength { get; }
+        public bool IsActive { get; }
+        public bool IsHostileToAttacker { get; }
+        public bool IsVillager { get; }
+        public bool IsCaravan { get; }
+        public bool IsGarrison { get; }
+        public bool IsMilitia { get; }
+        public bool IsLordParty { get; }
+        public bool IsSettlementFaction { get; }
+
+        public SettlementDefenderPartyStrength(float strength, bool isActive = true,
+            bool isHostileToAttacker = true, bool isVillager = false, bool isCaravan = false,
+            bool isGarrison = false, bool isMilitia = false, bool isLordParty = true,
+            bool isSettlementFaction = true)
+        {
+            Strength = strength;
+            IsActive = isActive;
+            IsHostileToAttacker = isHostileToAttacker;
+            IsVillager = isVillager;
+            IsCaravan = isCaravan;
+            IsGarrison = isGarrison;
+            IsMilitia = isMilitia;
+            IsLordParty = isLordParty;
+            IsSettlementFaction = isSettlementFaction;
         }
     }
 
@@ -260,7 +290,8 @@ namespace CustomSpawns.AI
                 .FirstOrDefault();
         }
 
-        public float GetTargetStrength(Settlement target) => GetDefenderStrength(target);
+        public float GetTargetStrength(MobileParty party, Settlement target) =>
+            GetDefenderStrength(party, target);
 
         public IFaction GetTargetMapFaction(Settlement target) => target.MapFaction;
 
@@ -320,10 +351,13 @@ namespace CustomSpawns.AI
                 party.NavigationCapability, false, false, false);
         }
 
-        internal static float SumDefenderStrength(float militiaStrength, float garrisonStrength,
-            IEnumerable<float> lordPartyStrengths)
+        internal static float CalculateDefenderStrength(float militiaStrength, float garrisonStrength,
+            IEnumerable<SettlementDefenderPartyStrength> occupants)
         {
-            return militiaStrength + garrisonStrength + lordPartyStrengths.Sum();
+            return militiaStrength + garrisonStrength + occupants
+                .Where(p => p.IsActive && p.IsHostileToAttacker && !p.IsVillager && !p.IsCaravan &&
+                            !p.IsGarrison && !p.IsMilitia)
+                .Sum(p => p.Strength);
         }
 
         private static IEnumerable<RoamingPartyStrength> ObserveRoamingParties(MobileParty observer)
@@ -342,7 +376,7 @@ namespace CustomSpawns.AI
                     party.MapFaction.IsAtWarWith(settlement.MapFaction),
                     settlement.IsTown ? SpawnSettlementType.Town : SpawnSettlementType.Castle,
                     settlement.SiegeEvent is null || IsMatchingCamp(party, settlement),
-                    party.Position.Distance(settlement.GatePosition), GetDefenderStrength(settlement)));
+                    party.Position.Distance(settlement.GatePosition), GetDefenderStrength(party, settlement)));
         }
 
         private static bool IsMatchingCamp(MobileParty party, Settlement settlement)
@@ -353,14 +387,14 @@ namespace CustomSpawns.AI
                     camp.HasInvolvedPartyForEventType(party.Party));
         }
 
-        private static float GetDefenderStrength(Settlement settlement)
+        private static float GetDefenderStrength(MobileParty attacker, Settlement settlement)
         {
             float garrisonStrength = settlement.Town.GarrisonParty?.Party.CalculateCurrentStrength() ?? 0f;
-            IEnumerable<float> lordStrengths = settlement.Parties
-                .Where(p => p.IsLordParty &&
-                            DiplomacyHelper.IsSameFactionAndNotEliminated(p.MapFaction, settlement.MapFaction))
-                .Select(p => p.Party.CalculateCurrentStrength());
-            return SumDefenderStrength(settlement.Militia, garrisonStrength, lordStrengths);
+            IEnumerable<SettlementDefenderPartyStrength> occupants = settlement.Parties.Select(p =>
+                new SettlementDefenderPartyStrength(p.Party.CalculateCurrentStrength(), p.IsActive,
+                    p.MapFaction.IsAtWarWith(attacker.MapFaction), p.IsVillager, p.IsCaravan,
+                    p.IsGarrison, p.IsMilitia, p.IsLordParty, p.MapFaction == settlement.MapFaction));
+            return CalculateDefenderStrength(settlement.Militia, garrisonStrength, occupants);
         }
     }
 }

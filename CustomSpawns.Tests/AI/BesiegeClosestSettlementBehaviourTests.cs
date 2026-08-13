@@ -64,10 +64,51 @@ namespace CustomSpawns.Tests.AI
         }
 
         [Test]
-        public void DefenderStrength_SumsMilitiaGarrisonAndLordPartiesOnce()
+        public void DefenderStrength_IncludesEligibleNonLordOccupant()
         {
-            Assert.That(BannerlordBesiegeClosestSettlementContext.SumDefenderStrength(20f, 30f,
-                new[] { 40f, 10f }), Is.EqualTo(100f));
+            var occupant = new SettlementDefenderPartyStrength(25f, isLordParty: false);
+
+            Assert.That(BannerlordBesiegeClosestSettlementContext.CalculateDefenderStrength(
+                0f, 0f, new[] { occupant }), Is.EqualTo(25f));
+        }
+
+        [Test]
+        public void DefenderStrength_IncludesAttackerHostileThirdPartyOccupant()
+        {
+            var occupant = new SettlementDefenderPartyStrength(25f,
+                isHostileToAttacker: true, isSettlementFaction: false);
+
+            Assert.That(BannerlordBesiegeClosestSettlementContext.CalculateDefenderStrength(
+                0f, 0f, new[] { occupant }), Is.EqualTo(25f));
+        }
+
+        [Test]
+        public void DefenderStrength_ExcludesVillagerCaravanInactiveAndNonHostileOccupants()
+        {
+            var occupants = new[]
+            {
+                new SettlementDefenderPartyStrength(10f, isVillager: true),
+                new SettlementDefenderPartyStrength(20f, isCaravan: true),
+                new SettlementDefenderPartyStrength(30f, isActive: false),
+                new SettlementDefenderPartyStrength(40f, isHostileToAttacker: false)
+            };
+
+            Assert.That(BannerlordBesiegeClosestSettlementContext.CalculateDefenderStrength(
+                0f, 0f, occupants), Is.Zero);
+        }
+
+        [Test]
+        public void DefenderStrength_CountsGarrisonAndMilitiaExactlyOnce()
+        {
+            var occupants = new[]
+            {
+                new SettlementDefenderPartyStrength(30f, isGarrison: true),
+                new SettlementDefenderPartyStrength(20f, isMilitia: true),
+                new SettlementDefenderPartyStrength(10f)
+            };
+
+            Assert.That(BannerlordBesiegeClosestSettlementContext.CalculateDefenderStrength(
+                20f, 30f, occupants), Is.EqualTo(60f));
         }
 
         [Test]
@@ -365,7 +406,7 @@ namespace CustomSpawns.Tests.AI
             public Settlement? FindClosestSiegeTarget(MobileParty party, float attackerStrength,
                 float minimumRatio, IReadOnlyList<SpawnSettlementType> targetTypes) => SiegeTarget;
             public Settlement? FindClosestNonHostileSettlement(MobileParty party) => PatrolTarget;
-            public float GetTargetStrength(Settlement target) => TargetStrength;
+            public float GetTargetStrength(MobileParty party, Settlement target) => TargetStrength;
             public IFaction GetTargetMapFaction(Settlement target) => null!;
             public bool IsMatchingSiegeActive(MobileParty party, Settlement target) => MatchingSiegeActive;
             public bool IsMatchingAssaultActive(MobileParty party, Settlement target) => MatchingAssaultActive;
