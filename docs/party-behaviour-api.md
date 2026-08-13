@@ -100,7 +100,7 @@ Strength ratios use attacker strength (the party, or its army when it is army le
 
 `SkipWhenTargetStrengthRatio` is attacker/target defenders. When it and the roaming-hostile safety ratio pass, recon is skipped; otherwise clear reconnaissance must accumulate. Safety loss resets recon, and safety loss during approach returns to recon.
 
-Raid/siege runs search, recon, approach, then actual native raid or siege/assault. Search/recon/approach consume the rolled operation clock; an active matching raid/siege/assault freezes it. Interrupted active operations get the recovery grace period and retry; failed attempts reach `MaximumFailedAttempts`, then clear the target. Invalid targets clear immediately. Completion or an expired operation window enters cooldown and falls through to later behaviour/fallback while cooling down.
+Raid/siege runs search, recon, approach, then actual native raid or siege/assault. Search, recon, and approach consume the rolled operation window; Active and Recovery freeze that clock. Recovery has its own bounded `GracePeriodInDays` clock for retrying an interrupted active operation; failed attempts reaching `MaximumFailedAttempts` clear the target. Invalid targets clear immediately. Completion or an expired operation window enters Cooldown, which is outside and freezes the completed episode's operation clock. During the configured `CooldownInDays`, this behaviour is not applicable, so resolution falls through to a later behaviour or fallback; a new episode can start after cooldown ends.
 
 A successful siege uses native Bannerlord ownership handling: the settlement goes to the capturing clan/map faction. CustomSpawns does not create or promote a kingdom; kingdom progression is not part of this API.
 
