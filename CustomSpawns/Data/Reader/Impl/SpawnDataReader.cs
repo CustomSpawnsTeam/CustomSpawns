@@ -54,7 +54,12 @@ namespace CustomSpawns.Data.Reader.Impl
             XmlSerializer serialiser = new XmlSerializer(typeof(Spawns));
             try
             {
-                Spawns document = (Spawns)serialiser.Deserialize(stream);
+                Spawns? document = serialiser.Deserialize(stream) as Spawns;
+                if (document == null)
+                {
+                    throw new InvalidOperationException("Spawn data XML root deserialized to null.");
+                }
+
                 PriorityPartyBehaviourTemplateResolver.Resolve(document);
                 return document;
             }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CustomSpawns.Data.Adapter;
 using CustomSpawns.Data.Model;
 
 namespace CustomSpawns.Data.Reader.Impl
@@ -70,10 +71,105 @@ namespace CustomSpawns.Data.Reader.Impl
 
             foreach ((Model.Spawn spawn, PriorityPartyBehaviourTemplate template) in references)
             {
-                spawn.PriorityPartyBehaviours = new List<PriorityPartyBehaviourConfig>(template.PriorityPartyBehaviours ??
-                    new List<PriorityPartyBehaviourConfig>());
+                spawn.PriorityPartyBehaviours = CloneBehaviours(template.PriorityPartyBehaviours);
                 spawn.PriorityPartyBehavioursSpecified = true;
             }
+        }
+
+        private static List<PriorityPartyBehaviourConfig> CloneBehaviours(
+            List<PriorityPartyBehaviourConfig>? behaviours)
+        {
+            List<PriorityPartyBehaviourConfig> clones = new();
+            foreach (PriorityPartyBehaviourConfig behaviour in behaviours ?? new List<PriorityPartyBehaviourConfig>())
+            {
+                clones.Add(CloneBehaviour(behaviour));
+            }
+
+            return clones;
+        }
+
+        private static PriorityPartyBehaviourConfig CloneBehaviour(PriorityPartyBehaviourConfig behaviour)
+        {
+            switch (behaviour)
+            {
+                case BesiegeClosestSettlementConfig besiege:
+                    return new BesiegeClosestSettlementConfig
+                    {
+                        TargetTypes = CloneTargetTypes(besiege.TargetTypes),
+                        TargetTypesSpecified = besiege.TargetTypesSpecified,
+                        StrengthAssessment = CloneStrengthAssessment(besiege.StrengthAssessment),
+                        Reconnaissance = CloneReconnaissance(besiege.Reconnaissance),
+                        OperationWindowInDays = CloneRange(besiege.OperationWindowInDays),
+                        Recovery = CloneRecovery(besiege.Recovery),
+                        CooldownInDays = besiege.CooldownInDays
+                    };
+                case RaidClosestVillageConfig raid:
+                    return new RaidClosestVillageConfig
+                    {
+                        StrengthAssessment = CloneStrengthAssessment(raid.StrengthAssessment),
+                        Reconnaissance = CloneReconnaissance(raid.Reconnaissance),
+                        OperationWindowInDays = CloneRange(raid.OperationWindowInDays),
+                        Recovery = CloneRecovery(raid.Recovery),
+                        CooldownInDays = raid.CooldownInDays
+                    };
+                case PatrolAroundClosestLestInterruptedAndSwitchConfig patrol:
+                    return new PatrolAroundClosestLestInterruptedAndSwitchConfig
+                    {
+                        TargetTypes = CloneTargetTypes(patrol.TargetTypes),
+                        TargetTypesSpecified = patrol.TargetTypesSpecified,
+                        StableTimeInDays = CloneRange(patrol.StableTimeInDays)
+                    };
+                default:
+                    return behaviour;
+            }
+        }
+
+        private static List<SpawnSettlementType>? CloneTargetTypes(List<SpawnSettlementType>? targetTypes)
+        {
+            return targetTypes == null ? null : new List<SpawnSettlementType>(targetTypes);
+        }
+
+        private static StrengthAssessmentConfig CloneStrengthAssessment(StrengthAssessmentConfig source)
+        {
+            return new StrengthAssessmentConfig
+            {
+                MinimumAttackerToTargetRatio = source.MinimumAttackerToTargetRatio,
+                MinimumAttackerToTargetRatioSpecified = source.MinimumAttackerToTargetRatioSpecified,
+                MinimumAttackerToRoamingHostilesRatio = source.MinimumAttackerToRoamingHostilesRatio,
+                MinimumAttackerToRoamingHostilesRatioSpecified =
+                    source.MinimumAttackerToRoamingHostilesRatioSpecified
+            };
+        }
+
+        private static ReconnaissanceConfig CloneReconnaissance(ReconnaissanceConfig source)
+        {
+            return new ReconnaissanceConfig
+            {
+                RequiredClearTimeInDays = CloneRange(source.RequiredClearTimeInDays),
+                SkipWhenTargetStrengthRatio = source.SkipWhenTargetStrengthRatio
+            };
+        }
+
+        private static RecoveryConfig CloneRecovery(RecoveryConfig source)
+        {
+            return new RecoveryConfig
+            {
+                GracePeriodInDays = source.GracePeriodInDays,
+                GracePeriodInDaysSpecified = source.GracePeriodInDaysSpecified,
+                MaximumFailedAttempts = source.MaximumFailedAttempts,
+                MaximumFailedAttemptsSpecified = source.MaximumFailedAttemptsSpecified
+            };
+        }
+
+        private static FloatRangeConfig CloneRange(FloatRangeConfig source)
+        {
+            return new FloatRangeConfig
+            {
+                Minimum = source.Minimum,
+                MinimumSpecified = source.MinimumSpecified,
+                Maximum = source.Maximum,
+                MaximumSpecified = source.MaximumSpecified
+            };
         }
     }
 }
