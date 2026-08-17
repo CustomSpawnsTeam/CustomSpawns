@@ -14,37 +14,33 @@ namespace CustomSpawns.Tests.Spawn
     public class PriorityPartyBehaviourConfigTests
     {
         [Test]
-        public void Spawn_DeserializesPreferredNestedPriorityBehaviourShapeInOrder()
+        public void Template_DeserializesPreferredNestedPriorityBehaviourShapeInOrder()
         {
-            const string xml = "<RegularBanditDailySpawnData party_template=\"PartyTemplate.test\">" +
-                               "<PriorityPartyBehaviours>" +
-                               "<BesiegeClosestSettlement>" +
-                               "<TargetTypes><TargetType>Town</TargetType><TargetType>Castle</TargetType></TargetTypes>" +
-                               "<StrengthAssessment><MinimumAttackerToTargetRatio>1.50</MinimumAttackerToTargetRatio>" +
-                               "<MinimumAttackerToRoamingHostilesRatio>1.20</MinimumAttackerToRoamingHostilesRatio>" +
-                               "</StrengthAssessment>" +
-                               "<Reconnaissance><RequiredClearTimeInDays><Minimum>0.5</Minimum><Maximum>1.0</Maximum>" +
-                               "</RequiredClearTimeInDays><SkipWhenTargetStrengthRatio>3.0</SkipWhenTargetStrengthRatio>" +
-                               "</Reconnaissance><OperationWindowInDays><Minimum>5</Minimum><Maximum>10</Maximum>" +
-                               "</OperationWindowInDays><Recovery><GracePeriodInDays>2</GracePeriodInDays>" +
-                               "<MaximumFailedAttempts>2</MaximumFailedAttempts></Recovery><CooldownInDays>2</CooldownInDays>" +
-                               "</BesiegeClosestSettlement>" +
-                               "<RaidClosestVillage><StrengthAssessment><MinimumAttackerToTargetRatio>1.25" +
-                               "</MinimumAttackerToTargetRatio><MinimumAttackerToRoamingHostilesRatio>1.10" +
-                               "</MinimumAttackerToRoamingHostilesRatio></StrengthAssessment>" +
-                               "<Reconnaissance><RequiredClearTimeInDays><Minimum>0.5</Minimum><Maximum>1</Maximum>" +
-                               "</RequiredClearTimeInDays><SkipWhenTargetStrengthRatio>3</SkipWhenTargetStrengthRatio>" +
-                               "</Reconnaissance><OperationWindowInDays><Minimum>3</Minimum><Maximum>6</Maximum>" +
-                               "</OperationWindowInDays><Recovery><GracePeriodInDays>1</GracePeriodInDays>" +
-                               "<MaximumFailedAttempts>2</MaximumFailedAttempts></Recovery><CooldownInDays>2</CooldownInDays>" +
-                               "</RaidClosestVillage>" +
-                               "<PatrolAroundClosestLestInterruptedAndSwitch><TargetTypes><TargetType>Village</TargetType>" +
-                               "<TargetType>Town</TargetType></TargetTypes><StableTimeInDays><Minimum>2</Minimum>" +
-                               "<Maximum>2</Maximum></StableTimeInDays></PatrolAroundClosestLestInterruptedAndSwitch>" +
-                               "</PriorityPartyBehaviours></RegularBanditDailySpawnData>";
+            const string behaviours = "<BesiegeClosestSettlement>" +
+                                      "<TargetTypes><TargetType>Town</TargetType><TargetType>Castle</TargetType></TargetTypes>" +
+                                      "<StrengthAssessment><MinimumAttackerToTargetRatio>1.50</MinimumAttackerToTargetRatio>" +
+                                      "<MinimumAttackerToRoamingHostilesRatio>1.20</MinimumAttackerToRoamingHostilesRatio>" +
+                                      "</StrengthAssessment>" +
+                                      "<Reconnaissance><RequiredClearTimeInDays><Minimum>0.5</Minimum><Maximum>1.0</Maximum>" +
+                                      "</RequiredClearTimeInDays><SkipWhenTargetStrengthRatio>3.0</SkipWhenTargetStrengthRatio>" +
+                                      "</Reconnaissance><OperationWindowInDays><Minimum>5</Minimum><Maximum>10</Maximum>" +
+                                      "</OperationWindowInDays><Recovery><GracePeriodInDays>2</GracePeriodInDays>" +
+                                      "<MaximumFailedAttempts>2</MaximumFailedAttempts></Recovery><CooldownInDays>2</CooldownInDays>" +
+                                      "</BesiegeClosestSettlement>" +
+                                      "<RaidClosestVillage><StrengthAssessment><MinimumAttackerToTargetRatio>1.25" +
+                                      "</MinimumAttackerToTargetRatio><MinimumAttackerToRoamingHostilesRatio>1.10" +
+                                      "</MinimumAttackerToRoamingHostilesRatio></StrengthAssessment>" +
+                                      "<Reconnaissance><RequiredClearTimeInDays><Minimum>0.5</Minimum><Maximum>1</Maximum>" +
+                                      "</RequiredClearTimeInDays><SkipWhenTargetStrengthRatio>3</SkipWhenTargetStrengthRatio>" +
+                                      "</Reconnaissance><OperationWindowInDays><Minimum>3</Minimum><Maximum>6</Maximum>" +
+                                      "</OperationWindowInDays><Recovery><GracePeriodInDays>1</GracePeriodInDays>" +
+                                      "<MaximumFailedAttempts>2</MaximumFailedAttempts></Recovery><CooldownInDays>2</CooldownInDays>" +
+                                      "</RaidClosestVillage>" +
+                                      "<PatrolAroundClosestLestInterruptedAndSwitch><TargetTypes><TargetType>Village</TargetType>" +
+                                      "<TargetType>Town</TargetType></TargetTypes><StableTimeInDays><Minimum>2</Minimum>" +
+                                      "<Maximum>2</Maximum></StableTimeInDays></PatrolAroundClosestLestInterruptedAndSwitch>";
 
-            SpawnModel spawn = Deserialize(xml);
-            IReadOnlyList<PriorityPartyBehaviourData> configurations = SpawnDtoAdapter.AdaptPriorityPartyBehaviours(spawn);
+            IReadOnlyList<PriorityPartyBehaviourData> configurations = AdaptXml(behaviours);
 
             Assert.That(configurations.Select(configuration => configuration.GetType()), Is.EqualTo(new[]
             {
@@ -67,17 +63,13 @@ namespace CustomSpawns.Tests.Spawn
         [Test]
         public void AdaptPriorityPartyBehaviours_AppliesOmittedDefaults()
         {
-            SpawnModel spawn = new()
-            {
-                PriorityPartyBehaviours = new List<PriorityPartyBehaviourConfig>
+            IReadOnlyList<PriorityPartyBehaviourData> configurations =
+                PartyBehaviourDtoAdapter.AdaptPriorityPartyBehaviours(new List<PriorityPartyBehaviourConfig>
                 {
                     new BesiegeClosestSettlementConfig(),
                     new RaidClosestVillageConfig(),
                     new PatrolAroundClosestLestInterruptedAndSwitchConfig()
-                }
-            };
-
-            IReadOnlyList<PriorityPartyBehaviourData> configurations = SpawnDtoAdapter.AdaptPriorityPartyBehaviours(spawn);
+                });
 
             BesiegeClosestSettlementData siege = (BesiegeClosestSettlementData)configurations[0];
             Assert.That(siege.TargetTypes, Is.EqualTo(new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle }));
@@ -95,7 +87,7 @@ namespace CustomSpawns.Tests.Spawn
         }
 
         [Test]
-        public void Spawn_PartialNestedValuesRetainBehaviourSpecificDefaults()
+        public void Template_PartialNestedValuesRetainBehaviourSpecificDefaults()
         {
             BesiegeClosestSettlementData siege = (BesiegeClosestSettlementData)AdaptXml(
                 "<BesiegeClosestSettlement>" +
@@ -148,20 +140,20 @@ namespace CustomSpawns.Tests.Spawn
         }
 
         [Test]
-        public void AdaptPriorityPartyBehaviours_PrefersPresentListOverLegacyPatrol()
+        public void AdaptLegacyPatrol_IsSuppressedByATemplateReference()
         {
-            SpawnModel spawn = Deserialize(
+            SpawnModel spawn = DeserializeSpawn(
                 "<RegularBanditDailySpawnData party_template=\"PartyTemplate.test\">" +
                 "<PatrolAroundClosestLestInterruptedAndSwitch>true" +
                 "</PatrolAroundClosestLestInterruptedAndSwitch>" +
-                "<PriorityPartyBehaviours/>" +
+                "<PriorityPartyBehaviourTemplateId>raider</PriorityPartyBehaviourTemplateId>" +
                 "</RegularBanditDailySpawnData>");
 
-            Assert.That(SpawnDtoAdapter.AdaptPriorityPartyBehaviours(spawn), Is.Empty);
+            Assert.That(SpawnDtoAdapter.AdaptLegacyPatrol(spawn), Is.Null);
         }
 
         [Test]
-        public void AdaptPriorityPartyBehaviours_AdaptsEnabledLegacyPatrolWhenListIsAbsent()
+        public void AdaptLegacyPatrol_AdaptsEnabledLegacyPatrolWhenNoTemplateIsReferenced()
         {
             SpawnModel spawn = new()
             {
@@ -174,12 +166,10 @@ namespace CustomSpawns.Tests.Spawn
                 }
             };
 
-            IReadOnlyList<PriorityPartyBehaviourData> configurations = SpawnDtoAdapter.AdaptPriorityPartyBehaviours(spawn);
+            PatrolAroundClosestLestInterruptedAndSwitchData? patrol = SpawnDtoAdapter.AdaptLegacyPatrol(spawn);
 
-            Assert.That(configurations, Has.Count.EqualTo(1));
-            PatrolAroundClosestLestInterruptedAndSwitchData patrol =
-                (PatrolAroundClosestLestInterruptedAndSwitchData)configurations[0];
-            Assert.That(patrol.PreferredSettlementTypes, Is.EqualTo(
+            Assert.That(patrol, Is.Not.Null);
+            Assert.That(patrol!.PreferredSettlementTypes, Is.EqualTo(
                 new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle }));
         }
 
@@ -205,14 +195,12 @@ namespace CustomSpawns.Tests.Spawn
         [Test]
         public void AdaptPriorityPartyBehaviours_RejectsDuplicateBehaviourTypes()
         {
-            Assert.Throws<ArgumentException>(() => SpawnDtoAdapter.AdaptPriorityPartyBehaviours(new SpawnModel
-            {
-                PriorityPartyBehaviours = new List<PriorityPartyBehaviourConfig>
+            Assert.Throws<ArgumentException>(() =>
+                PartyBehaviourDtoAdapter.AdaptPriorityPartyBehaviours(new List<PriorityPartyBehaviourConfig>
                 {
                     new RaidClosestVillageConfig(),
                     new RaidClosestVillageConfig()
-                }
-            }));
+                }));
         }
 
         [Test]
@@ -238,7 +226,7 @@ namespace CustomSpawns.Tests.Spawn
         [TestCase("grace", "NaN")]
         [TestCase("grace", "INF")]
         [TestCase("grace", "-INF")]
-        public void Spawn_RejectsNonFiniteNestedNumbers(string valueKind, string literal)
+        public void Template_RejectsNonFiniteNestedNumbers(string valueKind, string literal)
         {
             string nestedValue = valueKind switch
             {
@@ -267,15 +255,26 @@ namespace CustomSpawns.Tests.Spawn
             Assert.That(siege.TargetTypes, Is.EqualTo(new[] { SpawnSettlementType.Town }));
         }
 
-        private static IReadOnlyList<PriorityPartyBehaviourData> Adapt(PriorityPartyBehaviourConfig configuration)
+        [Test]
+        public void AdaptPriorityPartyBehaviours_CopiesPatrolTargetTypes()
         {
-            return SpawnDtoAdapter.AdaptPriorityPartyBehaviours(new SpawnModel
-            {
-                PriorityPartyBehaviours = new List<PriorityPartyBehaviourConfig> { configuration }
-            });
+            var targetTypes = new List<SpawnSettlementType> { SpawnSettlementType.Town };
+            PatrolAroundClosestLestInterruptedAndSwitchData patrol =
+                (PatrolAroundClosestLestInterruptedAndSwitchData)Adapt(
+                    new PatrolAroundClosestLestInterruptedAndSwitchConfig { TargetTypes = targetTypes })[0];
+
+            targetTypes[0] = SpawnSettlementType.Village;
+
+            Assert.That(patrol.PreferredSettlementTypes, Is.EqualTo(new[] { SpawnSettlementType.Town }));
         }
 
-        private static SpawnModel Deserialize(string xml)
+        private static IReadOnlyList<PriorityPartyBehaviourData> Adapt(PriorityPartyBehaviourConfig configuration)
+        {
+            return PartyBehaviourDtoAdapter.AdaptPriorityPartyBehaviours(
+                new List<PriorityPartyBehaviourConfig> { configuration });
+        }
+
+        private static SpawnModel DeserializeSpawn(string xml)
         {
             XmlSerializer serializer = new(typeof(SpawnModel));
             using StringReader reader = new(xml);
@@ -284,10 +283,12 @@ namespace CustomSpawns.Tests.Spawn
 
         private static IReadOnlyList<PriorityPartyBehaviourData> AdaptXml(string behaviourXml)
         {
-            return SpawnDtoAdapter.AdaptPriorityPartyBehaviours(Deserialize(
-                "<RegularBanditDailySpawnData party_template=\"PartyTemplate.test\">" +
-                "<PriorityPartyBehaviours>" + behaviourXml + "</PriorityPartyBehaviours>" +
-                "</RegularBanditDailySpawnData>"));
+            XmlSerializer serializer = new(typeof(PriorityPartyBehaviourTemplate));
+            using StringReader reader = new("<PriorityPartyBehaviourTemplate><Id>test</Id>" +
+                                            "<PriorityPartyBehaviours>" + behaviourXml + "</PriorityPartyBehaviours>" +
+                                            "</PriorityPartyBehaviourTemplate>");
+            PriorityPartyBehaviourTemplate template = (PriorityPartyBehaviourTemplate)serializer.Deserialize(reader);
+            return new PartyBehaviourDtoAdapter().Adapt(template).PriorityPartyBehaviours;
         }
     }
 }

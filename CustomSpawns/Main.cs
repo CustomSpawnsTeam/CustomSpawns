@@ -42,6 +42,9 @@ namespace CustomSpawns
         private DiplomacyDataReader _diplomacyDataReader;
         private DialogueDataReader _dialogueDataReader;
         private SpawnDataReader _spawnDataReader;
+        private PartyBehaviourDataReader _partyBehaviourDataReader;
+        private PartyBehaviourDtoAdapter _partyBehaviourDtoAdapter;
+        private PartyBehaviourDao _partyBehaviourDao;
         private NameSignifierDataReader _nameSignifierDataReader;
         private DynamicSpawnData _dynamicSpawnData;
         private SpawnDtoAdapter _spawnDtoAdapter;
@@ -85,6 +88,7 @@ namespace CustomSpawns
             _diplomacyDataReader = new (_subModService, _messageBoxService);
             _nameSignifierDataReader = new (_subModService, _messageBoxService);
             _spawnDataReader = new (_subModService, _messageBoxService);
+            _partyBehaviourDataReader = new (_subModService, _messageBoxService);
             _constantWarFactionDiplomacyProvider = new ConstantWarFactionDiplomacyProvider();
             _suzerainProvider = new SuzerainProvider();
             _customSpawnsClanDiplomacyProvider = new CustomSpawnsClanDiplomacyProvider(_suzerainProvider, _diplomacyDataReader);
@@ -95,6 +99,8 @@ namespace CustomSpawns
             _campaignDataConfigLoader = new CampaignDataConfigLoader(_subModService, _messageBoxService);
             _spawnDtoAdapter = new SpawnDtoAdapter(_nameSignifierDataReader, Campaign.Current.ObjectManager, Campaign.Current.CampaignObjectManager);
             _spawnDao = new SpawnDao(_spawnDataReader, _spawnDtoAdapter, _messageBoxService);
+            _partyBehaviourDtoAdapter = new PartyBehaviourDtoAdapter();
+            _partyBehaviourDao = new PartyBehaviourDao(_partyBehaviourDataReader, _partyBehaviourDtoAdapter, _messageBoxService);
             _dialogueConsequenceInterpretor = new DialogueConsequenceInterpretor(_constantWarFactionDiplomacyProvider, _messageBoxService);
             _dialogueConditionInterpretor = new DialogueConditionInterpretor(_spawnDao);
             _dialogueDataReader = new DialogueDataReader(_subModService, _messageBoxService);
@@ -114,8 +120,8 @@ namespace CustomSpawns
                 new RaidClosestVillageBehaviour(),
                 new BesiegeClosestSettlementBehaviour()
             };
-            var partyBehaviourResolver = new PartyBehaviourResolver(_spawnDao, priorityPartyBehaviours,
-                new HomeSettlementPatrolBehaviour());
+            var partyBehaviourResolver = new PartyBehaviourResolver(_spawnDao, _partyBehaviourDao,
+                priorityPartyBehaviours, new HomeSettlementPatrolBehaviour(), _messageBoxService);
             _customSpawnsAiBehaviour = new CustomSpawnsAiBehaviour(_dynamicSpawnData, partyBehaviourResolver);
             _aiDecisionLoggerBehaviour = new AiDecisionLoggerBehaviour(_dailyLogger);
             NonMercenaryCustomSpawnsFactionsProvider nonMercenaryCustomSpawnsFactionsProvider =

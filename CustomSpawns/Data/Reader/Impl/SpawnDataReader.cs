@@ -60,7 +60,6 @@ namespace CustomSpawns.Data.Reader.Impl
                     throw new InvalidOperationException("Spawn data XML root deserialized to null.");
                 }
 
-                PriorityPartyBehaviourTemplateResolver.Resolve(document);
                 return document;
             }
             catch (ArgumentException error)

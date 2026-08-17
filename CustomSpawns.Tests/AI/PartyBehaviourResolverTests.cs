@@ -7,7 +7,9 @@ using CustomSpawns.AI;
 using CustomSpawns.Data.Adapter;
 using CustomSpawns.Data.Dao;
 using CustomSpawns.Data.Dto;
+using CustomSpawns.Data.Model;
 using CustomSpawns.Spawn;
+using CustomSpawns.Utils;
 using Moq;
 using NUnit.Framework;
 using TaleWorlds.CampaignSystem;
@@ -25,15 +27,11 @@ namespace CustomSpawns.Tests.AI
                 PartyBehaviourResult.ApplicableWithoutBehavior);
             var raid = new ProviderStub<RaidClosestVillageData>(PartyBehaviourResult.From(default));
             var fallback = new FallbackStub();
-            var spawns = new Dictionary<string, SpawnDto>
-            {
-                ["patrol-first"] = Spawn(PatrolConfiguration(), RaidConfiguration()),
-                ["raid-first"] = Spawn(RaidConfiguration(), PatrolConfiguration())
-            };
-            Mock<ISpawnDao> spawnDao = new();
-            spawnDao.Setup(x => x.FindAll()).Returns(spawns.Values.ToList());
-            var resolver = new PartyBehaviourResolver(id => spawns[id], spawnDao.Object,
-                new IPriorityPartyBehaviour[] { patrol, raid }, fallback);
+            var spawns = Spawns(("patrol-first", "patrol-first"), ("raid-first", "raid-first"));
+            var behaviourDao = BehaviourDao(
+                Template("patrol-first", PatrolConfiguration(), RaidConfiguration()),
+                Template("raid-first", RaidConfiguration(), PatrolConfiguration()));
+            var resolver = Resolver(SpawnDao(spawns), behaviourDao, fallback, patrol, raid);
 
             PartyBehaviourResult patrolFirst = resolver.Resolve(null!, PartyData("patrol-first"));
             PartyBehaviourResult raidFirst = resolver.Resolve(null!, PartyData("raid-first"));
@@ -52,10 +50,9 @@ namespace CustomSpawns.Tests.AI
                 PartyBehaviourResult.NotApplicable);
             var raid = new ProviderStub<RaidClosestVillageData>(PartyBehaviourResult.From(default));
             var fallback = new FallbackStub();
-            var spawn = Spawn(PatrolConfiguration(), RaidConfiguration());
-            Mock<ISpawnDao> spawnDao = new();
-            spawnDao.Setup(x => x.FindAll()).Returns(new List<SpawnDto> { spawn });
-            var resolver = Resolver(spawn, spawnDao.Object, fallback, patrol, raid);
+            var spawns = Spawns(("spawn", "template"));
+            var behaviourDao = BehaviourDao(Template("template", PatrolConfiguration(), RaidConfiguration()));
+            var resolver = Resolver(SpawnDao(spawns), behaviourDao, fallback, patrol, raid);
 
             PartyBehaviourResult result = resolver.Resolve(null!, PartyData());
 
@@ -72,10 +69,9 @@ namespace CustomSpawns.Tests.AI
                 PartyBehaviourResult.ApplicableWithoutBehavior);
             var raid = new ProviderStub<RaidClosestVillageData>(PartyBehaviourResult.From(default));
             var fallback = new FallbackStub();
-            var spawn = Spawn(PatrolConfiguration(), RaidConfiguration());
-            Mock<ISpawnDao> spawnDao = new();
-            spawnDao.Setup(x => x.FindAll()).Returns(new List<SpawnDto> { spawn });
-            var resolver = Resolver(spawn, spawnDao.Object, fallback, patrol, raid);
+            var spawns = Spawns(("spawn", "template"));
+            var behaviourDao = BehaviourDao(Template("template", PatrolConfiguration(), RaidConfiguration()));
+            var resolver = Resolver(SpawnDao(spawns), behaviourDao, fallback, patrol, raid);
 
             PartyBehaviourResult result = resolver.Resolve(null!, PartyData());
 
@@ -90,13 +86,10 @@ namespace CustomSpawns.Tests.AI
         public void Resolve_MissingOwnerOrEmptyConfigurationUsesHomeFallback(bool hasOwner)
         {
             var fallback = new FallbackStub();
-            SpawnDto? spawn = hasOwner ? Spawn() : null;
-
-            Mock<ISpawnDao> spawnDao = new();
-            spawnDao.Setup(x => x.FindAll()).Returns(spawn is null ? Array.Empty<SpawnDto>() : new[] { spawn });
-
-            var resolver = new PartyBehaviourResolver(_ => spawn, spawnDao.Object,
-                Array.Empty<IPriorityPartyBehaviour>(), fallback);
+            var spawns = hasOwner
+                ? new Dictionary<string, SpawnDto> { ["spawn"] = new() }
+                : new Dictionary<string, SpawnDto>();
+            var resolver = Resolver(SpawnDao(spawns), BehaviourDao(), fallback);
 
             resolver.Resolve(null!, hasOwner ? PartyData() : PartyData(null));
 
@@ -106,13 +99,10 @@ namespace CustomSpawns.Tests.AI
         [Test]
         public void Constructor_ConfiguredTypeWithoutProviderFailsClearly()
         {
-            SpawnDto spawn = Spawn(RaidConfiguration());
-            Mock<ISpawnDao> spawnDao = new();
-            spawnDao.Setup(x => x.FindAll()).Returns(new List<SpawnDto> { spawn });
+            var behaviourDao = BehaviourDao(Template("template", RaidConfiguration()));
 
             InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>
-                new PartyBehaviourResolver(_ => spawn, spawnDao.Object,
-                    Array.Empty<IPriorityPartyBehaviour>(), new FallbackStub()))!;
+                Resolver(SpawnDao(new Dictionary<string, SpawnDto>()), behaviourDao, new FallbackStub()))!;
 
             Assert.That(error.Message, Does.Contain(typeof(RaidClosestVillageData).FullName));
         }
@@ -120,23 +110,31 @@ namespace CustomSpawns.Tests.AI
         [Test]
         public void Constructor_RaidProviderSatisfiesConfiguredRaidType()
         {
-            SpawnDto spawn = Spawn(RaidConfiguration());
-            Mock<ISpawnDao> spawnDao = new();
-            spawnDao.Setup(x => x.FindAll()).Returns(new List<SpawnDto> { spawn });
+            var behaviourDao = BehaviourDao(Template("template", RaidConfiguration()));
 
-            Assert.DoesNotThrow(() => new PartyBehaviourResolver(_ => spawn, spawnDao.Object,
-                new IPriorityPartyBehaviour[] { new RaidClosestVillageBehaviour() }, new FallbackStub()));
+            Assert.DoesNotThrow(() => Resolver(SpawnDao(new Dictionary<string, SpawnDto>()), behaviourDao,
+                new FallbackStub(), new RaidClosestVillageBehaviour()));
         }
 
         [Test]
         public void Constructor_SiegeProviderSatisfiesConfiguredSiegeType()
         {
-            SpawnDto spawn = Spawn(SiegeConfiguration());
-            Mock<ISpawnDao> spawnDao = new();
-            spawnDao.Setup(x => x.FindAll()).Returns(new List<SpawnDto> { spawn });
+            var behaviourDao = BehaviourDao(Template("template", SiegeConfiguration()));
 
-            Assert.DoesNotThrow(() => new PartyBehaviourResolver(_ => spawn, spawnDao.Object,
-                new IPriorityPartyBehaviour[] { new BesiegeClosestSettlementBehaviour() }, new FallbackStub()));
+            Assert.DoesNotThrow(() => Resolver(SpawnDao(new Dictionary<string, SpawnDto>()), behaviourDao,
+                new FallbackStub(), new BesiegeClosestSettlementBehaviour()));
+        }
+
+        [Test]
+        public void Constructor_PerformsNoSpawnLookup()
+        {
+            Mock<ISpawnDao> spawnDao = new(MockBehavior.Strict);
+            var behaviourDao = BehaviourDao(Template("template", RaidConfiguration()));
+
+            Resolver(spawnDao, behaviourDao, new FallbackStub(), new RaidClosestVillageBehaviour());
+
+            spawnDao.Verify(dao => dao.FindAll(), Times.Never);
+            spawnDao.Verify(dao => dao.FindByPartyTemplateId(It.IsAny<string>()), Times.Never);
         }
 
         [Test]
@@ -147,16 +145,12 @@ namespace CustomSpawns.Tests.AI
             var patrol = new ProviderStub<PatrolAroundClosestLestInterruptedAndSwitchData>(
                 PartyBehaviourResult.ApplicableWithoutBehavior);
             var fallback = new FallbackStub();
-            var spawns = new Dictionary<string, SpawnDto>
-            {
-                ["siege-first"] = Spawn(SiegeConfiguration(), RaidConfiguration(), PatrolConfiguration()),
-                ["raid-first"] = Spawn(RaidConfiguration(), SiegeConfiguration(), PatrolConfiguration()),
-                ["home"] = Spawn()
-            };
-            Mock<ISpawnDao> spawnDao = new();
-            spawnDao.Setup(x => x.FindAll()).Returns(spawns.Values.ToList());
-            var resolver = new PartyBehaviourResolver(id => spawns[id], spawnDao.Object,
-                new IPriorityPartyBehaviour[] { patrol, raid, siege }, fallback);
+            var spawns = Spawns(("siege-first", "siege-first"), ("raid-first", "raid-first"));
+            spawns["home"] = new SpawnDto();
+            var behaviourDao = BehaviourDao(
+                Template("siege-first", SiegeConfiguration(), RaidConfiguration(), PatrolConfiguration()),
+                Template("raid-first", RaidConfiguration(), SiegeConfiguration(), PatrolConfiguration()));
+            var resolver = Resolver(SpawnDao(spawns), behaviourDao, fallback, patrol, raid, siege);
 
             resolver.Resolve(null!, PartyData("siege-first"));
             resolver.Resolve(null!, PartyData("raid-first"));
@@ -180,18 +174,14 @@ namespace CustomSpawns.Tests.AI
             var patrol = new ProviderStub<PatrolAroundClosestLestInterruptedAndSwitchData>(
                 PartyBehaviourResult.ApplicableWithoutBehavior, calls, "patrol");
             var fallback = new FallbackStub();
-            var spawns = new Dictionary<string, SpawnDto>
-            {
-                ["siege-owner"] = Spawn(XmlConfigurations("BesiegeClosestSettlement",
-                    "RaidClosestVillage", "PatrolAroundClosestLestInterruptedAndSwitch")),
-                ["raid-owner"] = Spawn(XmlConfigurations("RaidClosestVillage",
-                    "BesiegeClosestSettlement", "PatrolAroundClosestLestInterruptedAndSwitch")),
-                ["home-owner"] = Spawn()
-            };
-            Mock<ISpawnDao> spawnDao = new();
-            spawnDao.Setup(x => x.FindAll()).Returns(spawns.Values.ToList());
-            var resolver = new PartyBehaviourResolver(id => spawns[id], spawnDao.Object,
-                new IPriorityPartyBehaviour[] { patrol, siege, raid }, fallback);
+            var spawns = Spawns(("siege-owner", "siege-owner"), ("raid-owner", "raid-owner"));
+            spawns["home-owner"] = new SpawnDto();
+            var behaviourDao = BehaviourDao(
+                XmlTemplate("siege-owner", "BesiegeClosestSettlement", "RaidClosestVillage",
+                    "PatrolAroundClosestLestInterruptedAndSwitch"),
+                XmlTemplate("raid-owner", "RaidClosestVillage", "BesiegeClosestSettlement",
+                    "PatrolAroundClosestLestInterruptedAndSwitch"));
+            var resolver = Resolver(SpawnDao(spawns), behaviourDao, fallback, patrol, siege, raid);
 
             resolver.Resolve(null!, PartyData("siege-owner"));
             Assert.That(calls, Is.EqualTo(new[] { "siege", "raid", "patrol" }));
@@ -209,12 +199,10 @@ namespace CustomSpawns.Tests.AI
         {
             var first = new ProviderStub<RaidClosestVillageData>(PartyBehaviourResult.NotApplicable);
             var duplicate = new ProviderStub<RaidClosestVillageData>(PartyBehaviourResult.NotApplicable);
-            Mock<ISpawnDao> spawnDao = new();
-            spawnDao.Setup(x => x.FindAll()).Returns(new List<SpawnDto>());
 
-            ArgumentException error = Assert.Throws<ArgumentException>(() => new PartyBehaviourResolver(
-                _ => Spawn(), spawnDao.Object,
-                new IPriorityPartyBehaviour[] { first, duplicate }, new FallbackStub()))!;
+            ArgumentException error = Assert.Throws<ArgumentException>(() =>
+                Resolver(SpawnDao(new Dictionary<string, SpawnDto>()), BehaviourDao(), new FallbackStub(),
+                    first, duplicate))!;
 
             Assert.That(error.Message, Does.Contain(typeof(RaidClosestVillageData).FullName));
         }
@@ -226,9 +214,8 @@ namespace CustomSpawns.Tests.AI
                 PartyBehaviourResult.NotApplicable);
             var raid = new ProviderStub<RaidClosestVillageData>(PartyBehaviourResult.NotApplicable);
             var fallback = new FallbackStub();
-            Mock<ISpawnDao> spawnDao = new();
-            spawnDao.Setup(x => x.FindAll()).Returns(new List<SpawnDto> { Spawn() });
-            var resolver = Resolver(Spawn(), spawnDao.Object, fallback, patrol, raid);
+            var resolver = Resolver(SpawnDao(new Dictionary<string, SpawnDto>()), BehaviourDao(), fallback,
+                patrol, raid);
 
             resolver.SyncData(null!);
 
@@ -243,24 +230,20 @@ namespace CustomSpawns.Tests.AI
             var patrol = new ProviderStub<PatrolAroundClosestLestInterruptedAndSwitchData>(
                 PartyBehaviourResult.ApplicableWithoutBehavior);
             var fallback = new FallbackStub();
-            var spawns = new Dictionary<string, SpawnDto>
+            var spawns = Spawns(("nested", "nested"));
+            spawns["legacy"] = new SpawnDto
             {
-                ["nested"] = Spawn(XmlConfigurations(
-                    "<PriorityPartyBehaviours>" +
-                    "<PatrolAroundClosestLestInterruptedAndSwitch>" +
-                    "<TargetTypes><TargetType>Town</TargetType></TargetTypes>" +
-                    "<StableTimeInDays><Minimum>2</Minimum><Maximum>4</Maximum></StableTimeInDays>" +
-                    "</PatrolAroundClosestLestInterruptedAndSwitch>" +
-                    "</PriorityPartyBehaviours>")),
-                ["legacy"] = Spawn(XmlConfigurations(
+                PatrolAroundClosestLestInterruptedAndSwitch = LegacyPatrol(
                     "<PatrolAroundClosestLestInterruptedAndSwitch min_stable_days=\"2\" " +
                     "max_stable_days=\"4\" try_patrol_around=\"Town\">true" +
-                    "</PatrolAroundClosestLestInterruptedAndSwitch>"))
+                    "</PatrolAroundClosestLestInterruptedAndSwitch>")
             };
-            Mock<ISpawnDao> spawnDao = new();
-            spawnDao.Setup(x => x.FindAll()).Returns(spawns.Values.ToList());
-            var resolver = new PartyBehaviourResolver(id => spawns[id], spawnDao.Object,
-                new IPriorityPartyBehaviour[] { patrol }, fallback);
+            var behaviourDao = BehaviourDao(XmlTemplate("nested",
+                "<PatrolAroundClosestLestInterruptedAndSwitch>" +
+                "<TargetTypes><TargetType>Town</TargetType></TargetTypes>" +
+                "<StableTimeInDays><Minimum>2</Minimum><Maximum>4</Maximum></StableTimeInDays>" +
+                "</PatrolAroundClosestLestInterruptedAndSwitch>"));
+            var resolver = Resolver(SpawnDao(spawns), behaviourDao, fallback, patrol);
 
             resolver.Resolve(null!, PartyData("nested"));
             resolver.Resolve(null!, PartyData("legacy"));
@@ -275,15 +258,93 @@ namespace CustomSpawns.Tests.AI
                 Is.EqualTo(new[] { SpawnSettlementType.Town }));
         }
 
-        private static PartyBehaviourResolver Resolver(SpawnDto spawn, ISpawnDao spawnDao, FallbackStub fallback,
-            params IPriorityPartyBehaviour[] providers)
+        [Test]
+        public void Resolve_SpawnsSharingATemplateCannotContaminateEachOther()
         {
-            return new PartyBehaviourResolver(_ => spawn, spawnDao, providers, fallback);
+            var patrol = new ProviderStub<PatrolAroundClosestLestInterruptedAndSwitchData>(
+                PartyBehaviourResult.NotApplicable);
+            var spawns = Spawns(("first", "shared"), ("second", "shared"));
+            var behaviourDao = BehaviourDao(XmlTemplate("shared",
+                "<PatrolAroundClosestLestInterruptedAndSwitch>" +
+                "<TargetTypes><TargetType>Town</TargetType></TargetTypes>" +
+                "</PatrolAroundClosestLestInterruptedAndSwitch>"));
+            var resolver = Resolver(SpawnDao(spawns), behaviourDao, new FallbackStub(), patrol);
+
+            resolver.Resolve(null!, PartyData("first"));
+            resolver.Resolve(null!, PartyData("second"));
+
+            Assert.That(patrol.SeenConfigurations[0].PreferredSettlementTypes,
+                Is.EqualTo(patrol.SeenConfigurations[1].PreferredSettlementTypes));
+            IList<SpawnSettlementType> shared =
+                (IList<SpawnSettlementType>)patrol.SeenConfigurations[0].PreferredSettlementTypes;
+            Assert.That(shared.IsReadOnly, Is.True);
+            Assert.Throws<NotSupportedException>(() => shared.Add(SpawnSettlementType.Village));
+            Assert.That(patrol.SeenConfigurations[1].PreferredSettlementTypes,
+                Is.EqualTo(new[] { SpawnSettlementType.Town }));
         }
 
-        private static SpawnDto Spawn(params PriorityPartyBehaviourData[] configurations)
+        [Test]
+        public void Constructor_CopiesPatrolSettlementTypesFromItsCaller()
         {
-            return new SpawnDto { PriorityPartyBehaviours = configurations };
+            List<SpawnSettlementType> source = new() { SpawnSettlementType.Town };
+            PatrolAroundClosestLestInterruptedAndSwitchData patrol = new(1f, 2f, source);
+
+            source.Add(SpawnSettlementType.Village);
+
+            Assert.That(patrol.PreferredSettlementTypes, Is.EqualTo(new[] { SpawnSettlementType.Town }));
+        }
+
+        [Test]
+        public void Resolve_UnknownTemplateIdIsReportedOnceAndFallsBack()
+        {
+            var fallback = new FallbackStub();
+            var spawns = Spawns(("first", "missing"), ("second", "missing"));
+            Mock<MessageBoxService> messageBoxService = new();
+            var resolver = new PartyBehaviourResolver(SpawnDao(spawns).Object, BehaviourDao().Object,
+                Array.Empty<IPriorityPartyBehaviour>(), fallback, messageBoxService.Object);
+
+            resolver.Resolve(null!, PartyData("first"));
+            resolver.Resolve(null!, PartyData("second"));
+
+            Assert.That(fallback.CallCount, Is.EqualTo(2));
+            messageBoxService.Verify(service => service.ShowMessage(It.Is<string>(message =>
+                message.Contains("missing"))), Times.Once);
+        }
+
+        private static PartyBehaviourResolver Resolver(Mock<ISpawnDao> spawnDao,
+            Mock<IPartyBehaviourDao> partyBehaviourDao, IFallbackPartyBehaviour fallback,
+            params IPriorityPartyBehaviour[] providers)
+        {
+            return new PartyBehaviourResolver(spawnDao.Object, partyBehaviourDao.Object, providers, fallback,
+                new Mock<MessageBoxService>().Object);
+        }
+
+        private static Dictionary<string, SpawnDto> Spawns(params (string PartyTemplate, string TemplateId)[] spawns)
+        {
+            return spawns.ToDictionary(spawn => spawn.PartyTemplate,
+                spawn => new SpawnDto { PriorityPartyBehaviourTemplateId = spawn.TemplateId });
+        }
+
+        private static Mock<ISpawnDao> SpawnDao(IDictionary<string, SpawnDto> spawns)
+        {
+            Mock<ISpawnDao> spawnDao = new();
+            spawnDao.Setup(dao => dao.FindByPartyTemplateId(It.IsAny<string>()))
+                .Returns((string id) => spawns.TryGetValue(id, out SpawnDto spawn) ? spawn : null);
+            return spawnDao;
+        }
+
+        private static Mock<IPartyBehaviourDao> BehaviourDao(params PartyBehaviourDto[] partyBehaviours)
+        {
+            Mock<IPartyBehaviourDao> partyBehaviourDao = new();
+            partyBehaviourDao.Setup(dao => dao.FindAll()).Returns(partyBehaviours.ToList());
+            partyBehaviourDao.Setup(dao => dao.FindById(It.IsAny<string>()))
+                .Returns((string id) => partyBehaviours.FirstOrDefault(partyBehaviour => partyBehaviour.Id == id));
+            return partyBehaviourDao;
+        }
+
+        private static PartyBehaviourDto Template(string id, params PriorityPartyBehaviourData[] behaviours)
+        {
+            return new PartyBehaviourDto { Id = id, PriorityPartyBehaviours = behaviours };
         }
 
         private static CsPartyData PartyData(string? owner = "spawn")
@@ -309,43 +370,34 @@ namespace CustomSpawns.Tests.AI
                 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1, 1f);
         }
 
-        private static PriorityPartyBehaviourData[] XmlConfigurations(params string[] elements)
+        private static PartyBehaviourDto XmlTemplate(string id, params string[] elements)
         {
-            string xml = "<RegularBanditDailySpawnData party_template=\"PartyTemplate.test\">" +
-                         "<PriorityPartyBehaviours>" +
-                         string.Concat(Array.ConvertAll(elements, element =>
-                             element == "BesiegeClosestSettlement"
-                                 ? "<BesiegeClosestSettlement><TargetTypes><TargetType>Town</TargetType>" +
-                                   "<TargetType>Castle</TargetType></TargetTypes></BesiegeClosestSettlement>"
-                                 : "<" + element + "/>")) +
-                         "</PriorityPartyBehaviours></RegularBanditDailySpawnData>";
-            XmlSerializer serializer = new(typeof(SpawnModel));
-            using StringReader reader = new(xml);
-            SpawnModel spawn = (SpawnModel)serializer.Deserialize(reader);
-            var adapted = SpawnDtoAdapter.AdaptPriorityPartyBehaviours(spawn);
-            var result = new PriorityPartyBehaviourData[adapted.Count];
-            for (int i = 0; i < adapted.Count; i++)
-            {
-                result[i] = adapted[i];
-            }
-            return result;
+            return XmlTemplateFromBody(id, string.Concat(Array.ConvertAll(elements, element =>
+                element == "BesiegeClosestSettlement"
+                    ? "<BesiegeClosestSettlement><TargetTypes><TargetType>Town</TargetType>" +
+                      "<TargetType>Castle</TargetType></TargetTypes></BesiegeClosestSettlement>"
+                    : element.StartsWith("<") ? element : "<" + element + "/>")));
         }
 
-        private static PriorityPartyBehaviourData[] XmlConfigurations(string spawnBody)
+        private static PartyBehaviourDto XmlTemplateFromBody(string id, string behaviours)
+        {
+            string xml = "<PriorityPartyBehaviourTemplate><Id>" + id + "</Id>" +
+                         "<PriorityPartyBehaviours>" + behaviours + "</PriorityPartyBehaviours>" +
+                         "</PriorityPartyBehaviourTemplate>";
+            XmlSerializer serializer = new(typeof(PriorityPartyBehaviourTemplate));
+            using StringReader reader = new(xml);
+            PriorityPartyBehaviourTemplate template = (PriorityPartyBehaviourTemplate)serializer.Deserialize(reader);
+            return new PartyBehaviourDtoAdapter().Adapt(template);
+        }
+
+        private static PatrolAroundClosestLestInterruptedAndSwitchData LegacyPatrol(string patrolElement)
         {
             string xml = "<RegularBanditDailySpawnData party_template=\"PartyTemplate.test\">" +
-                         spawnBody + "</RegularBanditDailySpawnData>";
+                         patrolElement + "</RegularBanditDailySpawnData>";
             XmlSerializer serializer = new(typeof(SpawnModel));
             using StringReader reader = new(xml);
             SpawnModel spawn = (SpawnModel)serializer.Deserialize(reader);
-            IReadOnlyList<PriorityPartyBehaviourData> adapted =
-                SpawnDtoAdapter.AdaptPriorityPartyBehaviours(spawn);
-            var result = new PriorityPartyBehaviourData[adapted.Count];
-            for (int i = 0; i < adapted.Count; i++)
-            {
-                result[i] = adapted[i];
-            }
-            return result;
+            return SpawnDtoAdapter.AdaptLegacyPatrol(spawn)!;
         }
 
         private sealed class ProviderStub<TConfiguration> : PriorityPartyBehaviour<TConfiguration>

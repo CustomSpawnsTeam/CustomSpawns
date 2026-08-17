@@ -16,7 +16,6 @@ namespace CustomSpawns.Data.Model
         private List<string>? _overridenKingdomSpawns;
         private List<string>? _overridenCultureSpawns;
         private List<string>? _supportingParties;
-        private List<PriorityPartyBehaviourConfig>? _priorityPartyBehaviours;
         private string? _priorityPartyBehaviourTemplateId;
 
         [DefaultValue(1), XmlElement(ElementName = "MaximumOnMap")]
@@ -87,27 +86,6 @@ namespace CustomSpawns.Data.Model
 
         [XmlElement(ElementName="PatrolAroundClosestLestInterruptedAndSwitch")]
         public PatrolAroundConfig? PatrolAroundConfig { get; set; }
-
-        [XmlArray(ElementName = "PriorityPartyBehaviours")]
-        [XmlArrayItem(ElementName = "BesiegeClosestSettlement", Type = typeof(BesiegeClosestSettlementConfig))]
-        [XmlArrayItem(ElementName = "RaidClosestVillage", Type = typeof(RaidClosestVillageConfig))]
-        [XmlArrayItem(ElementName = "PatrolAroundClosestLestInterruptedAndSwitch",
-            Type = typeof(PatrolAroundClosestLestInterruptedAndSwitchConfig))]
-        public List<PriorityPartyBehaviourConfig>? PriorityPartyBehaviours
-        {
-            get => _priorityPartyBehaviours;
-            set
-            {
-                _priorityPartyBehaviours = value;
-                if (value?.Count > 0)
-                {
-                    PriorityPartyBehavioursSpecified = true;
-                }
-            }
-        }
-
-        [XmlIgnore]
-        public bool PriorityPartyBehavioursSpecified { get; set; }
 
         [XmlElement(ElementName = "PriorityPartyBehaviourTemplateId")]
         public string? PriorityPartyBehaviourTemplateId

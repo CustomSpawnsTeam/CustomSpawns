@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using CustomSpawns.Data.Dao;
 using CustomSpawns.Data.Dto;
 using CustomSpawns.Spawn;
+using CustomSpawns.Utils;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 
@@ -11,23 +12,21 @@ namespace CustomSpawns.AI
 {
     public sealed class PartyBehaviourResolver
     {
-        private readonly Func<string, SpawnDto?> _findSpawn;
+        private readonly ISpawnDao _spawnDao;
+        private readonly IPartyBehaviourDao _partyBehaviourDao;
+        private readonly MessageBoxService _messageBoxService;
         private readonly IReadOnlyDictionary<Type, IPriorityPartyBehaviour> _providers;
         private readonly IFallbackPartyBehaviour _fallback;
         private readonly IReadOnlyList<Action<IDataStore>> _syncActions;
-        private readonly IEnumerable<SpawnDto> _spawnCatalog;
+        private readonly ISet<string> _reportedUnknownTemplateIds = new HashSet<string>();
 
-        public PartyBehaviourResolver(SpawnDao spawnDao,
-            IEnumerable<IPriorityPartyBehaviour> providers, IFallbackPartyBehaviour fallback)
-            : this(spawnDao.FindByPartyTemplateId, spawnDao, providers, fallback)
+        public PartyBehaviourResolver(ISpawnDao spawnDao, IPartyBehaviourDao partyBehaviourDao,
+            IEnumerable<IPriorityPartyBehaviour> providers, IFallbackPartyBehaviour fallback,
+            MessageBoxService messageBoxService)
         {
-        }
-
-        internal PartyBehaviourResolver(Func<string, SpawnDto?> findSpawn,
-            ISpawnDao spawnDao, IEnumerable<IPriorityPartyBehaviour> providers,
-            IFallbackPartyBehaviour fallback)
-        {
-            _findSpawn = findSpawn ?? throw new ArgumentNullException(nameof(findSpawn));
+            _spawnDao = spawnDao ?? throw new ArgumentNullException(nameof(spawnDao));
+            _partyBehaviourDao = partyBehaviourDao ?? throw new ArgumentNullException(nameof(partyBehaviourDao));
+            _messageBoxService = messageBoxService ?? throw new ArgumentNullException(nameof(messageBoxService));
             _fallback = fallback ?? throw new ArgumentNullException(nameof(fallback));
 
             var providerRegistry = new Dictionary<Type, IPriorityPartyBehaviour>();
@@ -69,11 +68,10 @@ namespace CustomSpawns.AI
 
             _providers = providerRegistry;
             _syncActions = syncActions;
-            _spawnCatalog ??= spawnDao.FindAll();
 
-            foreach (var spawn in _spawnCatalog)
+            foreach (PartyBehaviourDto partyBehaviour in partyBehaviourDao.FindAll())
             {
-                foreach (PriorityPartyBehaviourData configuration in spawn.PriorityPartyBehaviours ??
+                foreach (PriorityPartyBehaviourData configuration in partyBehaviour.PriorityPartyBehaviours ??
                          Array.Empty<PriorityPartyBehaviourData>())
                 {
                     if (!providerRegistry.ContainsKey(configuration.GetType()))
@@ -88,10 +86,10 @@ namespace CustomSpawns.AI
         {
             SpawnDto? spawn = partyData.OwningSpawnTemplateId is null
                 ? null
-                : _findSpawn(partyData.OwningSpawnTemplateId);
-            if (spawn?.PriorityPartyBehaviours is not null)
+                : _spawnDao.FindByPartyTemplateId(partyData.OwningSpawnTemplateId);
+            if (spawn is not null)
             {
-                foreach (PriorityPartyBehaviourData configuration in spawn.PriorityPartyBehaviours)
+                foreach (PriorityPartyBehaviourData configuration in FindBehaviours(spawn))
                 {
                     if (!_providers.TryGetValue(configuration.GetType(), out IPriorityPartyBehaviour? provider))
                     {
@@ -115,6 +113,31 @@ namespace CustomSpawns.AI
             {
                 syncAction(dataStore);
             }
+        }
+
+        private IReadOnlyList<PriorityPartyBehaviourData> FindBehaviours(SpawnDto spawn)
+        {
+            string? templateId = spawn.PriorityPartyBehaviourTemplateId;
+            if (templateId is null)
+            {
+                return spawn.PatrolAroundClosestLestInterruptedAndSwitch is null
+                    ? Array.Empty<PriorityPartyBehaviourData>()
+                    : new PriorityPartyBehaviourData[] { spawn.PatrolAroundClosestLestInterruptedAndSwitch };
+            }
+
+            PartyBehaviourDto? partyBehaviour = _partyBehaviourDao.FindById(templateId);
+            if (partyBehaviour is null)
+            {
+                if (_reportedUnknownTemplateIds.Add(templateId))
+                {
+                    _messageBoxService.ShowMessage("Custom Spawns cannot find the priority party behaviour template '" +
+                                                   templateId + "' referenced by a spawn.");
+                }
+
+                return Array.Empty<PriorityPartyBehaviourData>();
+            }
+
+            return partyBehaviour.PriorityPartyBehaviours ?? Array.Empty<PriorityPartyBehaviourData>();
         }
 
         private static InvalidOperationException CreateMissingProviderException(Type configurationType)

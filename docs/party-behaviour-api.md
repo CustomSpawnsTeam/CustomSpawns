@@ -1,6 +1,6 @@
 # Priority party behaviour XML API
 
-`PriorityPartyBehaviours` is an ordered, per-spawn behaviour list. The resolver evaluates entries first to last and returns the first applicable result; if none applies, normal CustomSpawns fallback behaviour runs. An entry can be applicable without an AI behaviour, reserving its priority while Bannerlord's active, flee, or engage state proceeds.
+`PriorityPartyBehaviours` is an ordered behaviour list. The resolver evaluates entries first to last and returns the first applicable result; if none applies, normal CustomSpawns fallback behaviour runs. An entry can be applicable without an AI behaviour, reserving its priority while Bannerlord's active, flee, or engage state proceeds.
 
 | Element | Purpose |
 | --- | --- |
@@ -8,13 +8,15 @@
 | `RaidClosestVillage` | Find, reconnoitre, approach, and raid an eligible hostile village. |
 | `BesiegeClosestSettlement` | Find, reconnoitre, approach, and besiege an eligible hostile town or castle. |
 
-## Inline ordered list
+## Behaviour templates
 
-Place this list in a `RegularBanditDailySpawnData`. Order matters: it tries siege, then raid, then patrol. Behaviour configuration is element-only.
+Definitions live in `<submod>/CustomSpawns/PartyBehaviours.xml`, whose root is `PriorityPartyBehaviourTemplates`. A template needs an `Id` and a `PriorityPartyBehaviours` wrapper. Order matters inside the wrapper: this one tries siege, then raid, then patrol. Behaviour configuration is element-only.
 
 ```xml
-<root>
-  <RegularBanditDailySpawnData party_template="example_priority_party">
+<?xml version="1.0" encoding="utf-8"?>
+<PriorityPartyBehaviourTemplates>
+  <PriorityPartyBehaviourTemplate>
+    <Id>siege-raid-and-patrol</Id>
     <PriorityPartyBehaviours>
       <BesiegeClosestSettlement>
         <TargetTypes><TargetType>Town</TargetType><TargetType>Castle</TargetType></TargetTypes>
@@ -36,37 +38,25 @@ Place this list in a `RegularBanditDailySpawnData`. Order matters: it tries sieg
         <StableTimeInDays><Minimum>2</Minimum><Maximum>2</Maximum></StableTimeInDays>
       </PatrolAroundClosestLestInterruptedAndSwitch>
     </PriorityPartyBehaviours>
-  </RegularBanditDailySpawnData>
-</root>
+  </PriorityPartyBehaviourTemplate>
+</PriorityPartyBehaviourTemplates>
 ```
 
-## Reusable file-local templates
+IDs are global across every loaded submod and case-sensitive, so prefix them with your submod's short name (CalradiaAtWar uses `caw-`) to avoid collisions. A duplicate ID is reported and the duplicate template dropped. Spawns referencing the same ID share one immutable configuration, so they cannot affect each other. There are no merges or overrides.
 
-`PriorityPartyBehaviourTemplates` is a child of the same XML `root` and is local to its `CustomDailySpawn.xml` file. The identifier is the `Id` element, and the reference is `PriorityPartyBehaviourTemplateId` (both element-only). Forward references are valid.
+## Referencing a template
+
+A spawn opts in with `PriorityPartyBehaviourTemplateId` (element-only) in its `CustomDailySpawn.xml` or `RegularBanditDailySpawn.xml`. Behaviours are never declared inline on a spawn.
 
 ```xml
 <root>
   <RegularBanditDailySpawnData party_template="example_template_party">
-    <PriorityPartyBehaviourTemplateId>raider-patrol</PriorityPartyBehaviourTemplateId>
+    <PriorityPartyBehaviourTemplateId>siege-raid-and-patrol</PriorityPartyBehaviourTemplateId>
   </RegularBanditDailySpawnData>
-  <PriorityPartyBehaviourTemplates>
-    <PriorityPartyBehaviourTemplate>
-      <Id>raider-patrol</Id>
-      <PriorityPartyBehaviours>
-        <RaidClosestVillage />
-        <PatrolAroundClosestLestInterruptedAndSwitch>
-          <TargetTypes><TargetType>Village</TargetType></TargetTypes>
-          <StableTimeInDays><Minimum>3</Minimum><Maximum>6</Maximum></StableTimeInDays>
-        </PatrolAroundClosestLestInterruptedAndSwitch>
-      </PriorityPartyBehaviours>
-    </PriorityPartyBehaviourTemplate>
-  </PriorityPartyBehaviourTemplates>
 </root>
 ```
 
-IDs are file-local and case-sensitive. Referenced lists are deep-copied. A template requires both `Id` and a `PriorityPartyBehaviours` wrapper; blank, missing, duplicate, or unknown IDs are invalid. Inline and reference forms cannot coexist. There are no merges or overrides.
-
-The new ordered list/reference is authoritative. An explicit empty `<PriorityPartyBehaviours />` disables priority behaviour and legacy patrol. The older top-level `PatrolAroundClosestLestInterruptedAndSwitch` is retained only when neither new form exists. The reviewed `CalradiaAtWar/CustomSpawns/CustomDailySpawn.xml` is a real example.
+The two files are read independently, so a blank or unknown ID cannot be caught at parse time: it is reported once at runtime and the party falls through to normal fallback behaviour. A referenced template whose `PriorityPartyBehaviours` is explicitly empty disables priority behaviour and legacy patrol. The older top-level `PatrolAroundClosestLestInterruptedAndSwitch` on a spawn is retained only when that spawn has no `PriorityPartyBehaviourTemplateId`. The reviewed `CalradiaAtWar/CustomSpawns/` pair of files is a real example.
 
 ## Fields and defaults
 

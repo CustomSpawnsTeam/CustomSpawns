@@ -25,7 +25,7 @@ namespace CustomSpawns.Utils
             ShowMessage(shown);
         }
 
-        public void ShowMessage(string errorMessage)
+        public virtual void ShowMessage(string errorMessage)
         {
             if (!_numberOfTimesShown.ContainsKey(errorMessage))
             {
