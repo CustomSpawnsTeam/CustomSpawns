@@ -21,6 +21,8 @@ ProjectSection(SolutionItems) = preProject
 	.github\workflows\publish.yml = .github\workflows\publish.yml
 EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CalradiaAtWar", "..\CalradiaAtWar\CalradiaAtWar\CalradiaAtWar.csproj", "{A0CB321B-3489-4290-ACE7-D6EF57D4F728}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -37,6 +39,10 @@ Global
 		{17F43D01-48C7-43DC-A6E6-28C303AAC8DB}.Release|x64.ActiveCfg = Release|x64
 		{17F43D01-48C7-43DC-A6E6-28C303AAC8DB}.Release|x64.Build.0 = Release|x64
 
+		{A0CB321B-3489-4290-ACE7-D6EF57D4F728}.Debug|x64.ActiveCfg = Debug|x64
+		{A0CB321B-3489-4290-ACE7-D6EF57D4F728}.Debug|x64.Build.0 = Debug|x64
+		{A0CB321B-3489-4290-ACE7-D6EF57D4F728}.Release|x64.ActiveCfg = Release|x64
+		{A0CB321B-3489-4290-ACE7-D6EF57D4F728}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -11,7 +11,7 @@ using TaleWorlds.Localization;
 
 namespace CustomSpawns.Data.Dao
 {
-    public class SpawnDao
+    public class SpawnDao : ISpawnDao
     {
         private readonly SpawnDataReader _spawnDataReader;
         private readonly SpawnDtoAdapter _spawnDtoAdapter;

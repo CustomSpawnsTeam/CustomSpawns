@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using CustomSpawns.Data.Dao;
 using CustomSpawns.Data.Dto;
 using CustomSpawns.Spawn;
@@ -14,15 +15,16 @@ namespace CustomSpawns.AI
         private readonly IReadOnlyDictionary<Type, IPriorityPartyBehaviour> _providers;
         private readonly IFallbackPartyBehaviour _fallback;
         private readonly IReadOnlyList<Action<IDataStore>> _syncActions;
+        private readonly IEnumerable<SpawnDto> _spawnCatalog;
 
         public PartyBehaviourResolver(SpawnDao spawnDao,
             IEnumerable<IPriorityPartyBehaviour> providers, IFallbackPartyBehaviour fallback)
-            : this(spawnDao.FindByPartyTemplateId, spawnDao.FindAll(), providers, fallback)
+            : this(spawnDao.FindByPartyTemplateId, spawnDao, providers, fallback)
         {
         }
 
         internal PartyBehaviourResolver(Func<string, SpawnDto?> findSpawn,
-            IEnumerable<SpawnDto> spawnCatalog, IEnumerable<IPriorityPartyBehaviour> providers,
+            ISpawnDao spawnDao, IEnumerable<IPriorityPartyBehaviour> providers,
             IFallbackPartyBehaviour fallback)
         {
             _findSpawn = findSpawn ?? throw new ArgumentNullException(nameof(findSpawn));
@@ -67,8 +69,9 @@ namespace CustomSpawns.AI
 
             _providers = providerRegistry;
             _syncActions = syncActions;
+            _spawnCatalog ??= spawnDao.FindAll();
 
-            foreach (SpawnDto spawn in spawnCatalog ?? throw new ArgumentNullException(nameof(spawnCatalog)))
+            foreach (var spawn in _spawnCatalog)
             {
                 foreach (PriorityPartyBehaviourData configuration in spawn.PriorityPartyBehaviours ??
                          Array.Empty<PriorityPartyBehaviourData>())
@@ -131,7 +134,7 @@ namespace CustomSpawns.AI
 
             public int GetHashCode(object obj)
             {
-                return System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
+                return RuntimeHelpers.GetHashCode(obj);
             }
         }
     }

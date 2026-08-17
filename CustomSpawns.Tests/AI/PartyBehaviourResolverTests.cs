@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Xml.Serialization;
 using CustomSpawns.AI;
 using CustomSpawns.Data.Adapter;
+using CustomSpawns.Data.Dao;
 using CustomSpawns.Data.Dto;
 using CustomSpawns.Spawn;
+using Moq;
 using NUnit.Framework;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
@@ -27,7 +30,9 @@ namespace CustomSpawns.Tests.AI
                 ["patrol-first"] = Spawn(PatrolConfiguration(), RaidConfiguration()),
                 ["raid-first"] = Spawn(RaidConfiguration(), PatrolConfiguration())
             };
-            var resolver = new PartyBehaviourResolver(id => spawns[id], spawns.Values,
+            Mock<ISpawnDao> spawnDao = new();
+            spawnDao.Setup(x => x.FindAll()).Returns(spawns.Values.ToList());
+            var resolver = new PartyBehaviourResolver(id => spawns[id], spawnDao.Object,
                 new IPriorityPartyBehaviour[] { patrol, raid }, fallback);
 
             PartyBehaviourResult patrolFirst = resolver.Resolve(null!, PartyData("patrol-first"));
@@ -47,7 +52,10 @@ namespace CustomSpawns.Tests.AI
                 PartyBehaviourResult.NotApplicable);
             var raid = new ProviderStub<RaidClosestVillageData>(PartyBehaviourResult.From(default));
             var fallback = new FallbackStub();
-            var resolver = Resolver(Spawn(PatrolConfiguration(), RaidConfiguration()), fallback, patrol, raid);
+            var spawn = Spawn(PatrolConfiguration(), RaidConfiguration());
+            Mock<ISpawnDao> spawnDao = new();
+            spawnDao.Setup(x => x.FindAll()).Returns(new List<SpawnDto> { spawn });
+            var resolver = Resolver(spawn, spawnDao.Object, fallback, patrol, raid);
 
             PartyBehaviourResult result = resolver.Resolve(null!, PartyData());
 
@@ -64,7 +72,10 @@ namespace CustomSpawns.Tests.AI
                 PartyBehaviourResult.ApplicableWithoutBehavior);
             var raid = new ProviderStub<RaidClosestVillageData>(PartyBehaviourResult.From(default));
             var fallback = new FallbackStub();
-            var resolver = Resolver(Spawn(PatrolConfiguration(), RaidConfiguration()), fallback, patrol, raid);
+            var spawn = Spawn(PatrolConfiguration(), RaidConfiguration());
+            Mock<ISpawnDao> spawnDao = new();
+            spawnDao.Setup(x => x.FindAll()).Returns(new List<SpawnDto> { spawn });
+            var resolver = Resolver(spawn, spawnDao.Object, fallback, patrol, raid);
 
             PartyBehaviourResult result = resolver.Resolve(null!, PartyData());
 
@@ -80,8 +91,11 @@ namespace CustomSpawns.Tests.AI
         {
             var fallback = new FallbackStub();
             SpawnDto? spawn = hasOwner ? Spawn() : null;
-            var resolver = new PartyBehaviourResolver(_ => spawn,
-                spawn is null ? Array.Empty<SpawnDto>() : new[] { spawn },
+
+            Mock<ISpawnDao> spawnDao = new();
+            spawnDao.Setup(x => x.FindAll()).Returns(spawn is null ? Array.Empty<SpawnDto>() : new[] { spawn });
+
+            var resolver = new PartyBehaviourResolver(_ => spawn, spawnDao.Object,
                 Array.Empty<IPriorityPartyBehaviour>(), fallback);
 
             resolver.Resolve(null!, hasOwner ? PartyData() : PartyData(null));
@@ -93,9 +107,11 @@ namespace CustomSpawns.Tests.AI
         public void Constructor_ConfiguredTypeWithoutProviderFailsClearly()
         {
             SpawnDto spawn = Spawn(RaidConfiguration());
+            Mock<ISpawnDao> spawnDao = new();
+            spawnDao.Setup(x => x.FindAll()).Returns(new List<SpawnDto> { spawn });
 
             InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>
-                new PartyBehaviourResolver(_ => spawn, new[] { spawn },
+                new PartyBehaviourResolver(_ => spawn, spawnDao.Object,
                     Array.Empty<IPriorityPartyBehaviour>(), new FallbackStub()))!;
 
             Assert.That(error.Message, Does.Contain(typeof(RaidClosestVillageData).FullName));
@@ -105,8 +121,10 @@ namespace CustomSpawns.Tests.AI
         public void Constructor_RaidProviderSatisfiesConfiguredRaidType()
         {
             SpawnDto spawn = Spawn(RaidConfiguration());
+            Mock<ISpawnDao> spawnDao = new();
+            spawnDao.Setup(x => x.FindAll()).Returns(new List<SpawnDto> { spawn });
 
-            Assert.DoesNotThrow(() => new PartyBehaviourResolver(_ => spawn, new[] { spawn },
+            Assert.DoesNotThrow(() => new PartyBehaviourResolver(_ => spawn, spawnDao.Object,
                 new IPriorityPartyBehaviour[] { new RaidClosestVillageBehaviour() }, new FallbackStub()));
         }
 
@@ -114,8 +132,10 @@ namespace CustomSpawns.Tests.AI
         public void Constructor_SiegeProviderSatisfiesConfiguredSiegeType()
         {
             SpawnDto spawn = Spawn(SiegeConfiguration());
+            Mock<ISpawnDao> spawnDao = new();
+            spawnDao.Setup(x => x.FindAll()).Returns(new List<SpawnDto> { spawn });
 
-            Assert.DoesNotThrow(() => new PartyBehaviourResolver(_ => spawn, new[] { spawn },
+            Assert.DoesNotThrow(() => new PartyBehaviourResolver(_ => spawn, spawnDao.Object,
                 new IPriorityPartyBehaviour[] { new BesiegeClosestSettlementBehaviour() }, new FallbackStub()));
         }
 
@@ -133,7 +153,9 @@ namespace CustomSpawns.Tests.AI
                 ["raid-first"] = Spawn(RaidConfiguration(), SiegeConfiguration(), PatrolConfiguration()),
                 ["home"] = Spawn()
             };
-            var resolver = new PartyBehaviourResolver(id => spawns[id], spawns.Values,
+            Mock<ISpawnDao> spawnDao = new();
+            spawnDao.Setup(x => x.FindAll()).Returns(spawns.Values.ToList());
+            var resolver = new PartyBehaviourResolver(id => spawns[id], spawnDao.Object,
                 new IPriorityPartyBehaviour[] { patrol, raid, siege }, fallback);
 
             resolver.Resolve(null!, PartyData("siege-first"));
@@ -166,7 +188,9 @@ namespace CustomSpawns.Tests.AI
                     "BesiegeClosestSettlement", "PatrolAroundClosestLestInterruptedAndSwitch")),
                 ["home-owner"] = Spawn()
             };
-            var resolver = new PartyBehaviourResolver(id => spawns[id], spawns.Values,
+            Mock<ISpawnDao> spawnDao = new();
+            spawnDao.Setup(x => x.FindAll()).Returns(spawns.Values.ToList());
+            var resolver = new PartyBehaviourResolver(id => spawns[id], spawnDao.Object,
                 new IPriorityPartyBehaviour[] { patrol, siege, raid }, fallback);
 
             resolver.Resolve(null!, PartyData("siege-owner"));
@@ -185,9 +209,11 @@ namespace CustomSpawns.Tests.AI
         {
             var first = new ProviderStub<RaidClosestVillageData>(PartyBehaviourResult.NotApplicable);
             var duplicate = new ProviderStub<RaidClosestVillageData>(PartyBehaviourResult.NotApplicable);
+            Mock<ISpawnDao> spawnDao = new();
+            spawnDao.Setup(x => x.FindAll()).Returns(new List<SpawnDto>());
 
             ArgumentException error = Assert.Throws<ArgumentException>(() => new PartyBehaviourResolver(
-                _ => Spawn(), Array.Empty<SpawnDto>(),
+                _ => Spawn(), spawnDao.Object,
                 new IPriorityPartyBehaviour[] { first, duplicate }, new FallbackStub()))!;
 
             Assert.That(error.Message, Does.Contain(typeof(RaidClosestVillageData).FullName));
@@ -200,7 +226,9 @@ namespace CustomSpawns.Tests.AI
                 PartyBehaviourResult.NotApplicable);
             var raid = new ProviderStub<RaidClosestVillageData>(PartyBehaviourResult.NotApplicable);
             var fallback = new FallbackStub();
-            var resolver = Resolver(Spawn(), fallback, patrol, raid);
+            Mock<ISpawnDao> spawnDao = new();
+            spawnDao.Setup(x => x.FindAll()).Returns(new List<SpawnDto> { Spawn() });
+            var resolver = Resolver(Spawn(), spawnDao.Object, fallback, patrol, raid);
 
             resolver.SyncData(null!);
 
@@ -229,7 +257,9 @@ namespace CustomSpawns.Tests.AI
                     "max_stable_days=\"4\" try_patrol_around=\"Town\">true" +
                     "</PatrolAroundClosestLestInterruptedAndSwitch>"))
             };
-            var resolver = new PartyBehaviourResolver(id => spawns[id], spawns.Values,
+            Mock<ISpawnDao> spawnDao = new();
+            spawnDao.Setup(x => x.FindAll()).Returns(spawns.Values.ToList());
+            var resolver = new PartyBehaviourResolver(id => spawns[id], spawnDao.Object,
                 new IPriorityPartyBehaviour[] { patrol }, fallback);
 
             resolver.Resolve(null!, PartyData("nested"));
@@ -245,10 +275,10 @@ namespace CustomSpawns.Tests.AI
                 Is.EqualTo(new[] { SpawnSettlementType.Town }));
         }
 
-        private static PartyBehaviourResolver Resolver(SpawnDto spawn, FallbackStub fallback,
+        private static PartyBehaviourResolver Resolver(SpawnDto spawn, ISpawnDao spawnDao, FallbackStub fallback,
             params IPriorityPartyBehaviour[] providers)
         {
-            return new PartyBehaviourResolver(_ => spawn, new[] { spawn }, providers, fallback);
+            return new PartyBehaviourResolver(_ => spawn, spawnDao, providers, fallback);
         }
 
         private static SpawnDto Spawn(params PriorityPartyBehaviourData[] configurations)
