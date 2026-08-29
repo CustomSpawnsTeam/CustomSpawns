@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Xml.Serialization;
 using CustomSpawns.AI;
 using CustomSpawns.Data.Adapter;
@@ -122,7 +123,8 @@ namespace CustomSpawns.Tests.AI
             var behaviourDao = BehaviourDao(Template("template", SiegeConfiguration()));
 
             Assert.DoesNotThrow(() => Resolver(SpawnDao(new Dictionary<string, SpawnDto>()), behaviourDao,
-                new FallbackStub(), new BesiegeClosestSettlementBehaviour()));
+                new FallbackStub(), new BesiegeClosestSettlementBehaviour(
+                    (DynamicSpawnData)FormatterServices.GetUninitializedObject(typeof(DynamicSpawnData)))));
         }
 
         [Test]
@@ -301,7 +303,7 @@ namespace CustomSpawns.Tests.AI
             var spawns = Spawns(("first", "missing"), ("second", "missing"));
             Mock<MessageBoxService> messageBoxService = new();
             var resolver = new PartyBehaviourResolver(SpawnDao(spawns).Object, BehaviourDao().Object,
-                Array.Empty<IPriorityPartyBehaviour>(), fallback, messageBoxService.Object);
+                Array.Empty<IPriorityPartyBehaviour>(), fallback, new SupportingStub(), messageBoxService.Object);
 
             resolver.Resolve(null!, PartyData("first"));
             resolver.Resolve(null!, PartyData("second"));
@@ -311,12 +313,56 @@ namespace CustomSpawns.Tests.AI
                 message.Contains("missing"))), Times.Once);
         }
 
+        [Test]
+        public void Resolve_SupportingPartyEscortsInsteadOfUsingItsSpawnsBehaviours()
+        {
+            var patrol = new ProviderStub<PatrolAroundClosestLestInterruptedAndSwitchData>(
+                PartyBehaviourResult.From(default));
+            var fallback = new FallbackStub();
+            var supporting = new SupportingStub(PartyBehaviourResult.From(default));
+            var spawns = Spawns(("spawn", "template"));
+            var behaviourDao = BehaviourDao(Template("template", PatrolConfiguration()));
+            var resolver = Resolver(SpawnDao(spawns), behaviourDao, fallback, supporting, patrol);
+
+            PartyBehaviourResult result = resolver.Resolve(null!, SupportingPartyData());
+
+            Assert.That(result.AIBehavior.HasValue, Is.True);
+            Assert.That(supporting.CallCount, Is.EqualTo(1));
+            Assert.That(patrol.CallCount, Is.Zero);
+            Assert.That(fallback.CallCount, Is.Zero);
+        }
+
+        [Test]
+        public void Resolve_SupportingPartyWithoutMainPartyFallsBackWithoutItsSpawnsBehaviours()
+        {
+            var patrol = new ProviderStub<PatrolAroundClosestLestInterruptedAndSwitchData>(
+                PartyBehaviourResult.From(default));
+            var fallback = new FallbackStub();
+            var supporting = new SupportingStub(PartyBehaviourResult.NotApplicable);
+            var spawns = Spawns(("spawn", "template"));
+            var behaviourDao = BehaviourDao(Template("template", PatrolConfiguration()));
+            var resolver = Resolver(SpawnDao(spawns), behaviourDao, fallback, supporting, patrol);
+
+            resolver.Resolve(null!, SupportingPartyData());
+
+            Assert.That(supporting.CallCount, Is.EqualTo(1));
+            Assert.That(patrol.CallCount, Is.Zero);
+            Assert.That(fallback.CallCount, Is.EqualTo(1));
+        }
+
         private static PartyBehaviourResolver Resolver(Mock<ISpawnDao> spawnDao,
             Mock<IPartyBehaviourDao> partyBehaviourDao, IFallbackPartyBehaviour fallback,
             params IPriorityPartyBehaviour[] providers)
         {
+            return Resolver(spawnDao, partyBehaviourDao, fallback, new SupportingStub(), providers);
+        }
+
+        private static PartyBehaviourResolver Resolver(Mock<ISpawnDao> spawnDao,
+            Mock<IPartyBehaviourDao> partyBehaviourDao, IFallbackPartyBehaviour fallback,
+            ISupportingPartyBehaviour supporting, params IPriorityPartyBehaviour[] providers)
+        {
             return new PartyBehaviourResolver(spawnDao.Object, partyBehaviourDao.Object, providers, fallback,
-                new Mock<MessageBoxService>().Object);
+                supporting, new Mock<MessageBoxService>().Object);
         }
 
         private static Dictionary<string, SpawnDto> Spawns(params (string PartyTemplate, string TemplateId)[] spawns)
@@ -350,6 +396,11 @@ namespace CustomSpawns.Tests.AI
         private static CsPartyData PartyData(string? owner = "spawn")
         {
             return new CsPartyData("party", owner, true, null);
+        }
+
+        private static CsPartyData SupportingPartyData(string? owner = "spawn")
+        {
+            return new CsPartyData("party", owner, false, null);
         }
 
         private static PatrolAroundClosestLestInterruptedAndSwitchData PatrolConfiguration()
@@ -434,6 +485,24 @@ namespace CustomSpawns.Tests.AI
             public override void SyncData(IDataStore dataStore)
             {
                 SyncCount++;
+            }
+        }
+
+        private sealed class SupportingStub : ISupportingPartyBehaviour
+        {
+            private readonly PartyBehaviourResult _result;
+
+            public SupportingStub(PartyBehaviourResult result = default)
+            {
+                _result = result;
+            }
+
+            public int CallCount { get; private set; }
+
+            public PartyBehaviourResult GetPriorityBehaviour(MobileParty party, CsPartyData partyData)
+            {
+                CallCount++;
+                return _result;
             }
         }
 

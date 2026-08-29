@@ -17,17 +17,20 @@ namespace CustomSpawns.AI
         private readonly MessageBoxService _messageBoxService;
         private readonly IReadOnlyDictionary<Type, IPriorityPartyBehaviour> _providers;
         private readonly IFallbackPartyBehaviour _fallback;
+        private readonly ISupportingPartyBehaviour _supportingPartyBehaviour;
         private readonly IReadOnlyList<Action<IDataStore>> _syncActions;
         private readonly ISet<string> _reportedUnknownTemplateIds = new HashSet<string>();
 
         public PartyBehaviourResolver(ISpawnDao spawnDao, IPartyBehaviourDao partyBehaviourDao,
             IEnumerable<IPriorityPartyBehaviour> providers, IFallbackPartyBehaviour fallback,
-            MessageBoxService messageBoxService)
+            ISupportingPartyBehaviour supportingPartyBehaviour, MessageBoxService messageBoxService)
         {
             _spawnDao = spawnDao ?? throw new ArgumentNullException(nameof(spawnDao));
             _partyBehaviourDao = partyBehaviourDao ?? throw new ArgumentNullException(nameof(partyBehaviourDao));
             _messageBoxService = messageBoxService ?? throw new ArgumentNullException(nameof(messageBoxService));
             _fallback = fallback ?? throw new ArgumentNullException(nameof(fallback));
+            _supportingPartyBehaviour = supportingPartyBehaviour ??
+                                        throw new ArgumentNullException(nameof(supportingPartyBehaviour));
 
             var providerRegistry = new Dictionary<Type, IPriorityPartyBehaviour>();
             var syncActions = new List<Action<IDataStore>>();
@@ -84,6 +87,12 @@ namespace CustomSpawns.AI
 
         public PartyBehaviourResult Resolve(MobileParty party, CsPartyData partyData)
         {
+            if (!partyData.IsPrimarySpawn)
+            {
+                PartyBehaviourResult supportingResult = _supportingPartyBehaviour.GetPriorityBehaviour(party, partyData);
+                return supportingResult.IsApplicable ? supportingResult : _fallback.GetPriorityBehaviour(party, partyData);
+            }
+
             SpawnDto? spawn = partyData.OwningSpawnTemplateId is null
                 ? null
                 : _spawnDao.FindByPartyTemplateId(partyData.OwningSpawnTemplateId);

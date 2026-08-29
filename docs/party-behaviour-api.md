@@ -56,6 +56,8 @@ A spawn opts in with `PriorityPartyBehaviourTemplateId` (element-only) in its `C
 </root>
 ```
 
+A template applies to the main spawned party only. The parties spawned by that spawn's `SpawnAlongWith` escort their main party for as long as it lives, so they never run the template's behaviours; this escort is internal to CustomSpawns and cannot be selected from XML. Once their main party is gone, they fall back to normal fallback behaviour.
+
 The two files are read independently, so a blank or unknown ID cannot be caught at parse time: it is reported once at runtime and the party falls through to normal fallback behaviour. A referenced template whose `PriorityPartyBehaviours` is explicitly empty disables priority behaviour and legacy patrol. The older top-level `PatrolAroundClosestLestInterruptedAndSwitch` on a spawn is retained only when that spawn has no `PriorityPartyBehaviourTemplateId`. The reviewed `CalradiaAtWar/CustomSpawns/` pair of files is a real example.
 
 ## Fields and defaults
@@ -91,6 +93,8 @@ Strength ratios use attacker strength (the party, or its army when it is army le
 `SkipWhenTargetStrengthRatio` is attacker/target defenders. When it and the roaming-hostile safety ratio pass, recon is skipped; otherwise clear reconnaissance must accumulate. Safety loss resets recon, and safety loss during approach returns to recon.
 
 Raid/siege runs search, recon, approach, then actual native raid or siege/assault. Search, recon, and approach consume the rolled operation window; Active and Recovery freeze that clock. Recovery has its own bounded `GracePeriodInDays` clock for retrying an interrupted active operation; failed attempts reaching `MaximumFailedAttempts` clear the target. Invalid targets clear immediately. Completion or an expired operation window enters Cooldown, which is outside and freezes the completed episode's operation clock. During the configured `CooldownInDays`, this behaviour is not applicable, so resolution falls through to a later behaviour or fallback; a new episode can start after cooldown ends.
+
+Bannerlord only lets a party besiege a settlement when a hero leads it, so a party spawned against a template containing `BesiegeClosestSettlement` is given a lord generated on the fly from its clan culture's lord template, enrolled at the front of its member roster and persisted with the party. Only the main spawn is given a lord; its `SpawnAlongWith` companions stay leaderless, since they escort it rather than besiege on their own. A clan culture with no lord template is reported once per clan and the party is left leaderless. A bandit-faction spawn never gets a lord, because its party component cannot carry a leader, so do not give bandit spawns a siege template.
 
 A successful siege uses native Bannerlord ownership handling: the settlement goes to the capturing clan/map faction. CustomSpawns does not create or promote a kingdom; kingdom progression is not part of this API.
 

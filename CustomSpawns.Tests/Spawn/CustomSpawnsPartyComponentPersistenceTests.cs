@@ -18,6 +18,7 @@ namespace CustomSpawns.Tests.Spawn
             Assert.AreEqual(1, SaveId("_partyOwner"));
             Assert.AreEqual(2, SaveId("_name"));
             Assert.AreEqual(3, SaveId("_homeSettlement"));
+            Assert.AreEqual(4, SaveId("_leader"));
         }
 
         [Test]
@@ -71,6 +72,7 @@ namespace CustomSpawns.Tests.Spawn
             Assert.AreEqual(2, SaveId<CsPartyData>("_owningSpawnTemplateId"));
             Assert.AreEqual(3, SaveId<CsPartyData>("_isPrimarySpawn"));
             Assert.AreEqual(4, SaveId<CsPartyData>("_latestClosestSettlement"));
+            Assert.AreEqual(5, SaveId<CsPartyData>("_supportedParty"));
         }
 
         [Test]

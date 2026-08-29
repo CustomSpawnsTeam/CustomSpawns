@@ -333,7 +333,7 @@ namespace CustomSpawns.AI
                 .FirstOrDefault();
         }
 
-        private static void ClearTarget(SettlementOffensiveBehaviourState state)
+        internal static void ClearTarget(SettlementOffensiveBehaviourState state)
         {
             state.Target = null;
             state.TargetMapFaction = null;

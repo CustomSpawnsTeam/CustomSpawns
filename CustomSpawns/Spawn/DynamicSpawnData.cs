@@ -94,19 +94,21 @@ namespace CustomSpawns.Spawn
 
         public void RegisterPrimaryParty(MobileParty mobileParty, string owningSpawnTemplateId)
         {
-            RegisterParty(mobileParty, owningSpawnTemplateId, true);
+            RegisterParty(mobileParty, owningSpawnTemplateId, true, null);
         }
 
-        public void RegisterSupportingParty(MobileParty mobileParty, string owningSpawnTemplateId)
+        public void RegisterSupportingParty(MobileParty mobileParty, string owningSpawnTemplateId,
+            MobileParty supportedParty)
         {
-            RegisterParty(mobileParty, owningSpawnTemplateId, false);
+            RegisterParty(mobileParty, owningSpawnTemplateId, false, supportedParty);
         }
 
-        private void RegisterParty(MobileParty mobileParty, string owningSpawnTemplateId, bool isPrimarySpawn)
+        private void RegisterParty(MobileParty mobileParty, string owningSpawnTemplateId, bool isPrimarySpawn,
+            MobileParty? supportedParty)
         {
             string partyTemplateId = CampaignUtils.IsolateMobilePartyStringID(mobileParty);
             _dynamicSpawnData[mobileParty] = new CsPartyData(partyTemplateId, owningSpawnTemplateId,
-                isPrimarySpawn, GetNearestSettlement(mobileParty));
+                isPrimarySpawn, GetNearestSettlement(mobileParty), supportedParty);
         }
 
         private void HourlyMobilePartyUpdate(MobileParty? mobileParty)
@@ -124,6 +126,18 @@ namespace CustomSpawns.Spawn
                 return _dynamicSpawnData[mb];   
             }
             return null;
+        }
+
+        /**
+         * The still active parties that spawned along with the given main party and escort it.
+         * It is empty for a supporting party, and for a main party whose escorts were discovered
+         * outside of a spawn, since those do not know which party they support.
+         */
+        public IEnumerable<MobileParty> FindAccompanyingParties(MobileParty mainParty)
+        {
+            return _dynamicSpawnData
+                .Where(entry => entry.Value.SupportedParty == mainParty && entry.Key.IsActive)
+                .Select(entry => entry.Key);
         }
 
         public CsPartyData? TakeDynamicSpawnData(MobileParty? mobileParty)
@@ -170,6 +184,9 @@ namespace CustomSpawns.Spawn
         [SaveableField(4)]
         private Settlement? _latestClosestSettlement;
 
+        [SaveableField(5)]
+        private MobileParty? _supportedParty;
+
         public string PartyTemplateId => _partyTemplateId;
         public string? OwningSpawnTemplateId => _owningSpawnTemplateId;
         public bool IsPrimarySpawn => _isPrimarySpawn;
@@ -179,13 +196,20 @@ namespace CustomSpawns.Spawn
             set => _latestClosestSettlement = value;
         }
 
+        /**
+         * The main party this supporting party spawned with and escorts.
+         * It is null for a main party, and for a supporting party discovered outside of a spawn.
+         */
+        public MobileParty? SupportedParty => _supportedParty;
+
         public CsPartyData(string partyTemplateId, string? owningSpawnTemplateId, bool isPrimarySpawn,
-            Settlement? latestClosestSettlement)
+            Settlement? latestClosestSettlement, MobileParty? supportedParty = null)
         {
             _partyTemplateId = partyTemplateId;
             _owningSpawnTemplateId = owningSpawnTemplateId;
             _isPrimarySpawn = isPrimarySpawn;
             _latestClosestSettlement = latestClosestSettlement;
+            _supportedParty = supportedParty;
         }
     }
 }

@@ -14,14 +14,13 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Map;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
-using TaleWorlds.Localization;
 
 namespace CustomSpawns.Spawn
 {
     class SpawnBehaviour : CampaignBehaviorBase
     {
         private readonly Dictionary<string, int> _numberOfSpawns;
-        private readonly Spawner _spawner;
+        private readonly SpawnGroupService _spawnGroupService;
         private readonly SpawnDao _spawnDao;
         private readonly DynamicSpawnData _dynamicSpawnData;
         private readonly DevestationMetricData _devestationMetricData;
@@ -35,7 +34,7 @@ namespace CustomSpawns.Spawn
         private int _lastRedundantDataUpdate = 0;
 
         public SpawnBehaviour(
-            Spawner spawner,
+            SpawnGroupService spawnGroupService,
             SpawnDao spawnDao,
             DynamicSpawnData dynamicSpawnData,
             SaveInitialiser saveInitialiser,
@@ -47,7 +46,7 @@ namespace CustomSpawns.Spawn
             PartySizeCalculatedSubject partySizeCalculatedSubject
         )
         {
-            _spawner = spawner;
+            _spawnGroupService = spawnGroupService;
             _spawnDao = spawnDao;
             _dynamicSpawnData = dynamicSpawnData;
             _devestationMetricData = devestationMetricData;
@@ -237,23 +236,10 @@ namespace CustomSpawns.Spawn
                             }
 
                             Clan spawnClan = GetSpawnClan(spawn, spawnSettlement, configuredSpawnClan);
-                            MobileParty spawnedParty = _spawner.SpawnParty(spawnSettlement, spawnClan, spawn.PartyTemplate, new TextObject(spawn.Name));
+                            MobileParty spawnedParty = _spawnGroupService.Spawn(spawn, spawnSettlement, spawnClan);
                             if (spawnedParty == null)
                                 return;
-                            _dynamicSpawnData.RegisterPrimaryParty(spawnedParty, spawn.PartyTemplate.StringId);
                             _numberOfSpawns[spawn.PartyTemplate.StringId]++; //increment for can spawn and chance modifications
-                                                           //dynamic data registration
-                            //AI Checks!
-                            HandleAIChecks(spawnedParty, spawn, spawnSettlement);
-                            //accompanying spawns
-                            foreach (var accomp in spawn.SpawnAlongWith)
-                            {
-                                MobileParty juniorParty = _spawner.SpawnParty(spawnSettlement, spawnClan, accomp.templateObject, new TextObject(accomp.name));
-                                if (juniorParty == null)
-                                    continue;
-                                _dynamicSpawnData.RegisterSupportingParty(juniorParty, spawn.PartyTemplate.StringId);
-                                HandleAIChecks(juniorParty, spawn, spawnSettlement); //junior party has same AI behaviour as main party. TODO in future add some junior party AI and reconstruction.
-                            }
                             //message if available
                             if (spawn.SpawnMessage != null)
                             {

@@ -18,8 +18,8 @@ namespace CustomSpawns.AI
         private readonly Func<float, float, float> _roll;
         private Dictionary<MobileParty, SettlementOffensiveBehaviourState> _states = new();
 
-        public BesiegeClosestSettlementBehaviour() : this(new BannerlordBesiegeClosestSettlementContext(),
-            MBRandom.RandomFloatRanged)
+        public BesiegeClosestSettlementBehaviour(DynamicSpawnData dynamicSpawnData) : this(
+            new BannerlordBesiegeClosestSettlementContext(dynamicSpawnData), MBRandom.RandomFloatRanged)
         {
         }
 
@@ -70,6 +70,17 @@ namespace CustomSpawns.AI
                 {
                     return PartyBehaviourResult.NotApplicable;
                 }
+            }
+
+            /**
+             * The strength requirement that qualified the target when it was selected is re-checked every tick,
+             * so a force weakened by losses or facing reinforced defenders abandons a target it can no longer take.
+             * Re-selection filters on the same ratio, hence the dropped target cannot be picked again while too strong.
+             */
+            if (state.Target is not null && !SettlementOffensiveBehaviour.MeetsStrengthRatio(attackerStrength,
+                    _context.GetTargetStrength(party, state.Target), configuration.MinimumAttackerToTargetRatio))
+            {
+                SettlementOffensiveBehaviour.ClearTarget(state);
             }
 
             if (state.Phase == SettlementOffensivePhase.Active)
@@ -241,26 +252,34 @@ namespace CustomSpawns.AI
         private readonly Func<MobileParty, float> _getSeeingRange;
         private readonly Func<MobileParty, IEnumerable<RoamingPartyStrength>> _getRoamingParties;
         private readonly Func<MobileParty, IEnumerable<SiegeTargetCandidate>> _getCandidates;
+        private readonly Func<MobileParty, IEnumerable<MobileParty>> _getAccompanyingParties;
 
-        public BannerlordBesiegeClosestSettlementContext() : this(observer => observer.SeeingRange,
-            ObserveRoamingParties, ObserveCandidates)
+        public BannerlordBesiegeClosestSettlementContext(DynamicSpawnData dynamicSpawnData) : this(
+            observer => observer.SeeingRange, ObserveRoamingParties, ObserveCandidates,
+            dynamicSpawnData.FindAccompanyingParties)
         {
         }
 
         internal BannerlordBesiegeClosestSettlementContext(Func<MobileParty, float> getSeeingRange,
             Func<MobileParty, IEnumerable<RoamingPartyStrength>> getRoamingParties,
-            Func<MobileParty, IEnumerable<SiegeTargetCandidate>> getCandidates)
+            Func<MobileParty, IEnumerable<SiegeTargetCandidate>> getCandidates,
+            Func<MobileParty, IEnumerable<MobileParty>> getAccompanyingParties)
         {
             _getSeeingRange = getSeeingRange;
             _getRoamingParties = getRoamingParties;
             _getCandidates = getCandidates;
+            _getAccompanyingParties = getAccompanyingParties;
         }
 
         public float GetAttackerStrength(MobileParty party)
         {
-            return party.Army is not null && party.Army.LeaderParty == party
-                ? party.Army.CalculateCurrentStrength()
-                : party.Party.CalculateCurrentStrength();
+            if (party.Army is not null && party.Army.LeaderParty == party)
+            {
+                return party.Army.CalculateCurrentStrength();
+            }
+
+            return party.Party.CalculateCurrentStrength()
+                   + _getAccompanyingParties(party).Sum(p => p.Party.CalculateCurrentStrength());
         }
 
         public float GetVisibleHostileStrength(MobileParty observer)

@@ -38,6 +38,7 @@ namespace CustomSpawns
         private BanditPartySpawnFactory _banditPartySpawnFactory;
         private CustomPartySpawnFactory _customPartySpawnFactory;
         private Spawner _spawner;
+        private SpawnGroupService _spawnGroupService;
         private SubModService _subModService;
         private DiplomacyDataReader _diplomacyDataReader;
         private DialogueDataReader _dialogueDataReader;
@@ -74,6 +75,7 @@ namespace CustomSpawns
         private SaveInitialiser _saveInitialiser;
         private SafePassageBehaviour _safePassageBehaviour;
         private CustomSpawnsAiBehaviour _customSpawnsAiBehaviour;
+        private AccompanyingPartySiegeBehaviour _accompanyingPartySiegeBehaviour;
         private AiDecisionLoggerBehaviour _aiDecisionLoggerBehaviour;
 
 
@@ -95,12 +97,12 @@ namespace CustomSpawns
             _customSpawnsDiplomacyProvider = new CustomSpawnsDiplomacyProvider(_customSpawnsClanDiplomacyProvider, _suzerainProvider);
             _banditPartySpawnFactory = new BanditPartySpawnFactory();
             _customPartySpawnFactory = new CustomPartySpawnFactory();
-            _spawner = new Spawner(_banditPartySpawnFactory, _customPartySpawnFactory, _messageBoxService, _modDebug);
+            _partyBehaviourDtoAdapter = new PartyBehaviourDtoAdapter();
+            _partyBehaviourDao = new PartyBehaviourDao(_partyBehaviourDataReader, _partyBehaviourDtoAdapter, _messageBoxService);
+            _spawner = new Spawner(_banditPartySpawnFactory, _customPartySpawnFactory, _partyBehaviourDao, _messageBoxService, _modDebug);
             _campaignDataConfigLoader = new CampaignDataConfigLoader(_subModService, _messageBoxService);
             _spawnDtoAdapter = new SpawnDtoAdapter(_nameSignifierDataReader, Campaign.Current.ObjectManager, Campaign.Current.CampaignObjectManager);
             _spawnDao = new SpawnDao(_spawnDataReader, _spawnDtoAdapter, _messageBoxService);
-            _partyBehaviourDtoAdapter = new PartyBehaviourDtoAdapter();
-            _partyBehaviourDao = new PartyBehaviourDao(_partyBehaviourDataReader, _partyBehaviourDtoAdapter, _messageBoxService);
             _dialogueConsequenceInterpretor = new DialogueConsequenceInterpretor(_constantWarFactionDiplomacyProvider, _messageBoxService);
             _dialogueConditionInterpretor = new DialogueConditionInterpretor(_spawnDao);
             _dialogueDataReader = new DialogueDataReader(_subModService, _messageBoxService);
@@ -112,17 +114,20 @@ namespace CustomSpawns
             _spawnRewardBehaviour = new SpawnRewardBehaviour(_rewardDao, _modDebug);
             _mobilePartyTrackingBehaviour = new MobilePartyTrackingBehaviour(_saveInitialiser, _modDebug);
             _dynamicSpawnData = new (_spawnDao, _saveInitialiser);
+            _spawnGroupService = new SpawnGroupService(_spawner, _dynamicSpawnData);
             _devestationMetricData = new DevestationMetricData(_mobilePartyTrackingBehaviour, _campaignDataConfigLoader, _saveInitialiser, _messageBoxService, _modDebug);
             _dailyLogger = new DailyLogger(_devestationMetricData, _messageBoxService);
             IPriorityPartyBehaviour[] priorityPartyBehaviours =
             {
                 new PatrolAroundClosestLestInterruptedAndSwitchBehaviour(),
                 new RaidClosestVillageBehaviour(),
-                new BesiegeClosestSettlementBehaviour()
+                new BesiegeClosestSettlementBehaviour(_dynamicSpawnData)
             };
             var partyBehaviourResolver = new PartyBehaviourResolver(_spawnDao, _partyBehaviourDao,
-                priorityPartyBehaviours, new HomeSettlementPatrolBehaviour(), _messageBoxService);
+                priorityPartyBehaviours, new HomeSettlementPatrolBehaviour(), new FollowSupportedPartyBehaviour(),
+                _messageBoxService);
             _customSpawnsAiBehaviour = new CustomSpawnsAiBehaviour(_dynamicSpawnData, partyBehaviourResolver);
+            _accompanyingPartySiegeBehaviour = new AccompanyingPartySiegeBehaviour(_dynamicSpawnData);
             _aiDecisionLoggerBehaviour = new AiDecisionLoggerBehaviour(_dailyLogger);
             NonMercenaryCustomSpawnsFactionsProvider nonMercenaryCustomSpawnsFactionsProvider =
                 new NonMercenaryCustomSpawnsFactionsProvider(_diplomacyDataReader);
@@ -131,9 +136,9 @@ namespace CustomSpawns
             _customSpawnsDiplomacyBehaviour = new CustomSpawnsDiplomacyBehaviour(_customSpawnsDiplomacyFactionsProvider,
                 _customSpawnsClanDiplomacyProvider, nonMercenaryCustomSpawnsFactionsProvider, _dailyLogger);
             _partySizeCalculatedSubject = new PartySizeCalculatedSubject();
-            _spawnBehaviour = new SpawnBehaviour(_spawner, _spawnDao, _dynamicSpawnData, _saveInitialiser, _devestationMetricData, _configLoader, _messageBoxService, _dailyLogger, _modDebug, _partySizeCalculatedSubject);
+            _spawnBehaviour = new SpawnBehaviour(_spawnGroupService, _spawnDao, _dynamicSpawnData, _saveInitialiser, _devestationMetricData, _configLoader, _messageBoxService, _dailyLogger, _modDebug, _partySizeCalculatedSubject);
             _safePassageBehaviour = new SafePassageBehaviour(_spawnDao);
-            _spawnCheats = new SpawnCheats(_spawner, _spawnDao);
+            _spawnCheats = new SpawnCheats(_spawnGroupService, _spawnDao);
         }
         #endregion
 
@@ -173,6 +178,7 @@ namespace CustomSpawns
                 starter.AddBehavior(_dynamicSpawnData);
                 starter.AddBehavior(_customSpawnsDiplomacyBehaviour);
                 starter.AddBehavior(_customSpawnsAiBehaviour);
+                starter.AddBehavior(_accompanyingPartySiegeBehaviour);
                 starter.AddBehavior(_aiDecisionLoggerBehaviour);
                 
                 starter.AddModel(_customSpawnsDiplomacyModel);
