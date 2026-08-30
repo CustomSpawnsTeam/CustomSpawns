@@ -1,4 +1,4 @@
-namespace CustomSpawns.AI.Model
+﻿namespace CustomSpawns.AI.Model
 {
     internal readonly struct SettlementDefenderPartyStrength
     {
@@ -9,13 +9,10 @@ namespace CustomSpawns.AI.Model
         public bool IsCaravan { get; }
         public bool IsGarrison { get; }
         public bool IsMilitia { get; }
-        public bool IsLordParty { get; }
-        public bool IsSettlementFaction { get; }
 
         public SettlementDefenderPartyStrength(float strength, bool isActive = true,
             bool isHostileToAttacker = true, bool isVillager = false, bool isCaravan = false,
-            bool isGarrison = false, bool isMilitia = false, bool isLordParty = true,
-            bool isSettlementFaction = true)
+            bool isGarrison = false, bool isMilitia = false)
         {
             Strength = strength;
             IsActive = isActive;
@@ -24,8 +21,6 @@ namespace CustomSpawns.AI.Model
             IsCaravan = isCaravan;
             IsGarrison = isGarrison;
             IsMilitia = isMilitia;
-            IsLordParty = isLordParty;
-            IsSettlementFaction = isSettlementFaction;
         }
     }
 }

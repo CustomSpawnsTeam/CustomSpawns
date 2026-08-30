@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.Serialization;
 using CustomSpawns.AI;
@@ -72,7 +72,7 @@ namespace CustomSpawns.Tests.AI
         [Test]
         public void DefenderStrength_IncludesEligibleNonLordOccupant()
         {
-            var occupant = new SettlementDefenderPartyStrength(25f, isLordParty: false);
+            var occupant = new SettlementDefenderPartyStrength(25f);
 
             Assert.That(BannerlordBesiegeClosestSettlementAdapter.CalculateDefenderStrength(
                 0f, 0f, new[] { occupant }), Is.EqualTo(25f));
@@ -81,8 +81,7 @@ namespace CustomSpawns.Tests.AI
         [Test]
         public void DefenderStrength_IncludesAttackerHostileThirdPartyOccupant()
         {
-            var occupant = new SettlementDefenderPartyStrength(25f,
-                isHostileToAttacker: true, isSettlementFaction: false);
+            var occupant = new SettlementDefenderPartyStrength(25f, isHostileToAttacker: true);
 
             Assert.That(BannerlordBesiegeClosestSettlementAdapter.CalculateDefenderStrength(
                 0f, 0f, new[] { occupant }), Is.EqualTo(25f));

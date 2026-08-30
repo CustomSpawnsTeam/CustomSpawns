@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using CustomSpawns.AI.Model;
@@ -50,10 +50,7 @@ namespace CustomSpawns.AI
 
         public bool IsMatchingSiegeActive(MobileParty party, Settlement target)
         {
-            var camp = target.SiegeEvent?.BesiegerCamp;
-            return camp is not null && camp.SiegeEvent.BesiegedSettlement == target &&
-                   (party.BesiegerCamp == camp || camp.IsBesiegerSideParty(party) ||
-                    camp.HasInvolvedPartyForEventType(party.Party));
+            return IsMatchingCamp(party, target);
         }
 
         public bool IsMatchingAssaultActive(MobileParty party, Settlement target)
@@ -129,7 +126,7 @@ namespace CustomSpawns.AI
             IEnumerable<SettlementDefenderPartyStrength> occupants = settlement.Parties.Select(p =>
                 new SettlementDefenderPartyStrength(p.Party.CalculateCurrentStrength(), p.IsActive,
                     p.MapFaction.IsAtWarWith(attacker.MapFaction), p.IsVillager, p.IsCaravan,
-                    p.IsGarrison, p.IsMilitia, p.IsLordParty, p.MapFaction == settlement.MapFaction));
+                    p.IsGarrison, p.IsMilitia));
             return CalculateDefenderStrength(settlement.Militia, garrisonStrength, occupants);
         }
     }
