@@ -293,17 +293,30 @@ namespace CustomSpawns.Tests.AI
         [Test]
         public void TargetRatio_EscortStrengthAdmitsAVillageTheLeaderPartyAloneWouldSkip()
         {
-            MobileParty party = DummyParty();
             Settlement village = DummySettlement();
-            var candidates = new[] { new RaidTargetCandidate<Settlement>(village, true, 1f, 60f) };
-            var context = new ContextStub { AttackerStrength = 150f };
+            ContextStub withEscorts = StrengthRuledContext(village, 150f);
+            ContextStub alone = StrengthRuledContext(village, 50f);
 
-            Evaluate(Provider(context), party);
+            PartyBehaviourResult escortedResult = Evaluate(Provider(withEscorts), DummyParty());
+            PartyBehaviourResult loneResult = Evaluate(Provider(alone), DummyParty());
 
-            Assert.That(context.FindRaidTargetStrength, Is.EqualTo(150f));
-            Assert.That(SettlementOffensiveBehaviour.ChooseClosestTarget(candidates, 50f, 1f), Is.Null);
-            Assert.That(SettlementOffensiveBehaviour.ChooseClosestTarget(candidates,
-                context.FindRaidTargetStrength, 1f), Is.SameAs(village));
+            Assert.That(withEscorts.FindRaidTargetStrength, Is.EqualTo(150f));
+            Assert.That(escortedResult.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.RaidSettlement));
+            Assert.That(escortedResult.AIBehavior?.Party, Is.SameAs(village));
+            Assert.That(alone.FindRaidTargetStrength, Is.EqualTo(50f));
+            Assert.That(loneResult.AIBehavior, Is.Null);
+        }
+
+        private static ContextStub StrengthRuledContext(Settlement village, float attackerStrength)
+        {
+            const float villageStrength = 60f;
+            return new ContextStub
+            {
+                AttackerStrength = attackerStrength,
+                RaidTarget = village,
+                TargetStrength = villageStrength,
+                RaidTargetDefenderStrength = villageStrength
+            };
         }
 
         private static RaidClosestVillageBehaviour Provider(ContextStub context)
@@ -373,6 +386,12 @@ namespace CustomSpawns.Tests.AI
             public Settlement? PatrolTarget { get; set; }
             public float TargetStrength { get; set; } = 10f;
             public bool MatchingRaidActive { get; set; }
+
+            /**
+             * Opt-in: when set, FindClosestRaidTarget only hands the target back when the real strength
+             * rule admits it against this defender strength, instead of returning it unconditionally.
+             */
+            public float? RaidTargetDefenderStrength { get; set; }
             public bool CurrentTargetValid { get; set; } = true;
             public bool TargetComplete { get; set; }
             public bool NativeContinuation { get; set; }
@@ -400,6 +419,12 @@ namespace CustomSpawns.Tests.AI
             {
                 FindRaidTargetCalls++;
                 FindRaidTargetStrength = attackerStrength;
+                if (RaidTargetDefenderStrength.HasValue &&
+                    !SettlementOffensiveBehaviour.MeetsStrengthRatio(attackerStrength,
+                        RaidTargetDefenderStrength.Value, minimumRatio))
+                {
+                    return null;
+                }
                 return RaidTarget;
             }
 

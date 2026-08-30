@@ -15,6 +15,13 @@ namespace CustomSpawns.Spawn
     {
         private readonly SpawnDao _spawnDao;
         private Dictionary<MobileParty, CsPartyData> _dynamicSpawnData;
+
+        /**
+         * Derived state, never saved: the registry grouped by the main party each entry supports.
+         * Parties are registered a spawn at a time but their escorts are looked up every tick, so the
+         * grouping is rebuilt on the next lookup after a registration rather than on every lookup.
+         */
+        private ILookup<MobileParty, MobileParty>? _accompanyingParties;
         private ISet<string> _spawnPartyTemplateIds;
         private ISet<string> _spawnSubPartyTemplateIds;
 
@@ -37,6 +44,7 @@ namespace CustomSpawns.Spawn
         {
             dataStore.SyncData("_dynamicSpawnData", ref _dynamicSpawnData);
             _dynamicSpawnData ??= new Dictionary<MobileParty, CsPartyData>();
+            InvalidateAccompanyingParties();
         }
 
         private void Init()
@@ -80,6 +88,7 @@ namespace CustomSpawns.Spawn
                     _spawnPartyTemplateIds.Contains(isolatedPartyStringId),
                     _spawnSubPartyTemplateIds.Contains(isolatedPartyStringId), settlement);
                 _dynamicSpawnData.Add(mobileParty, partyData);
+                InvalidateAccompanyingParties();
             }
         }
 
@@ -109,6 +118,7 @@ namespace CustomSpawns.Spawn
             string partyTemplateId = CampaignUtils.IsolateMobilePartyStringID(mobileParty);
             _dynamicSpawnData[mobileParty] = new CsPartyData(partyTemplateId, owningSpawnTemplateId,
                 isPrimarySpawn, GetNearestSettlement(mobileParty), supportedParty);
+            InvalidateAccompanyingParties();
         }
 
         private void HourlyMobilePartyUpdate(MobileParty? mobileParty)
@@ -135,13 +145,33 @@ namespace CustomSpawns.Spawn
          */
         public IEnumerable<MobileParty> FindAccompanyingParties(MobileParty mainParty)
         {
-            return _dynamicSpawnData
-                .Where(entry => entry.Value.SupportedParty == mainParty && entry.Key.IsActive)
-                .Select(entry => entry.Key);
+            _accompanyingParties ??= BuildAccompanyingIndex(_dynamicSpawnData);
+            return _accompanyingParties[mainParty].Where(accompanyingParty => accompanyingParty.IsActive);
+        }
+
+        /**
+         * Drops the grouping so the next lookup rebuilds it. Every change to the registry must call
+         * this, since the grouping is only as current as the registry it was built from.
+         */
+        private void InvalidateAccompanyingParties()
+        {
+            _accompanyingParties = null;
+        }
+
+        /**
+         * Groups the registered supporting parties under the main party each one supports.
+         * Entries without a supported party contribute nothing, since they escort no one.
+         */
+        internal static ILookup<MobileParty, MobileParty> BuildAccompanyingIndex(
+            IDictionary<MobileParty, CsPartyData> registry)
+        {
+            return registry.Where(entry => entry.Value.SupportedParty is not null)
+                .ToLookup(entry => entry.Value.SupportedParty!, entry => entry.Key);
         }
 
         public CsPartyData? TakeDynamicSpawnData(MobileParty? mobileParty)
         {
+            InvalidateAccompanyingParties();
             return TakeFromRegistry(_dynamicSpawnData, mobileParty);
         }
 

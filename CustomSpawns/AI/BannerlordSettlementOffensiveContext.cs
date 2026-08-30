@@ -32,6 +32,10 @@ namespace CustomSpawns.AI
         /**
          * Escorts spawned alongside the party fight for it, so they count towards what it can take on.
          * Once the force has become an army the army total already includes them.
+         * A party inside an army it does not lead is knowingly assessed on its own strength plus its
+         * escorts: the rest of the army is left out, and an escort that is itself an army member is
+         * counted here even though the army leader counts it too. That is the long-standing besiege
+         * assessment, kept as it is so raid inherits it rather than besiege targeting changing.
          */
         public float GetAttackerStrength(MobileParty party)
         {

@@ -8,6 +8,12 @@ namespace CustomSpawns.Data.Adapter
 {
     public class PartyBehaviourDtoAdapter
     {
+        /**
+         * Keyed on the exact configuration type and looked up with configuration.GetType(), which only
+         * resolves because every concrete PriorityPartyBehaviourConfig is sealed. A configuration whose
+         * type is not registered here is rejected as unsupported, derived or not, so every concrete
+         * PriorityPartyBehaviourConfig must register its adapter in this list.
+         */
         private static readonly IReadOnlyDictionary<Type, IPriorityPartyBehaviourConfigAdapter> Adapters =
             new IPriorityPartyBehaviourConfigAdapter[]
             {
@@ -15,6 +21,11 @@ namespace CustomSpawns.Data.Adapter
                 new RaidClosestVillageConfigAdapter(),
                 new PatrolAroundClosestLestInterruptedAndSwitchConfigAdapter()
             }.ToDictionary(adapter => adapter.ConfigurationType);
+
+        internal static bool HasAdapter(Type configurationType)
+        {
+            return Adapters.ContainsKey(configurationType);
+        }
 
         public PartyBehaviourDto Adapt(PriorityPartyBehaviourTemplate template)
         {
