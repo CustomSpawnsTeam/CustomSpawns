@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.Serialization;
 using CustomSpawns.AI;
+using CustomSpawns.AI.Model;
 using CustomSpawns.Data.Adapter;
 using CustomSpawns.Data.Dto;
 using CustomSpawns.Spawn;

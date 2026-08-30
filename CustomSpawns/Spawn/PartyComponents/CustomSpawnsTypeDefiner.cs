@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using CustomSpawns.AI;
+using CustomSpawns.AI.Model;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.SaveSystem;
 

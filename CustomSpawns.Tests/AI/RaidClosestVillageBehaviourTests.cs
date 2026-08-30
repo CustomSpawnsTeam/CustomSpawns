@@ -1,12 +1,15 @@
 using System.Collections.Generic;
+using System.Reflection;
 using System.Runtime.Serialization;
 using CustomSpawns.AI;
+using CustomSpawns.AI.Model;
 using CustomSpawns.Data.Dto;
 using CustomSpawns.Spawn;
 using NUnit.Framework;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.Library;
 
 namespace CustomSpawns.Tests.AI
 {
@@ -15,7 +18,7 @@ namespace CustomSpawns.Tests.AI
         [Test]
         public void Provider_HandlesTypedRaidConfiguration()
         {
-            Assert.That(new RaidClosestVillageBehaviour().ConfigurationType,
+            Assert.That(new RaidClosestVillageBehaviour(DummyDynamicSpawnData()).ConfigurationType,
                 Is.EqualTo(typeof(RaidClosestVillageData)));
         }
 
@@ -96,7 +99,8 @@ namespace CustomSpawns.Tests.AI
                     observationReads++;
                     Assert.That(observer, Is.SameAs(boundaryObserver).Or.SameAs(shortRangeObserver));
                     return observations;
-                });
+                },
+                _ => new List<MobileParty>());
 
             float atBoundary = context.GetVisibleHostileStrength(boundaryObserver);
             float outsideShorterObserverRange = context.GetVisibleHostileStrength(shortRangeObserver);
@@ -249,6 +253,59 @@ namespace CustomSpawns.Tests.AI
                 Is.True);
         }
 
+        [Test]
+        public void ConcreteContext_AddsTheAccompanyingPartiesOfTheAssessedPartyToItsOwnStrength()
+        {
+            MobileParty party = DummyPartyWithPartyBase();
+            MobileParty accompanyingParty = DummyPartyWithPartyBase();
+            MobileParty? assessedParty = null;
+            var counted = new List<MobileParty>();
+            var context = new BannerlordRaidClosestVillageContext(_ => 5f,
+                _ => new RoamingPartyStrength[0], observed =>
+                {
+                    assessedParty = observed;
+                    return Counted(accompanyingParty, counted);
+                });
+
+            context.GetAttackerStrength(party);
+
+            Assert.That(assessedParty, Is.SameAs(party));
+            Assert.That(counted, Is.EqualTo(new[] { accompanyingParty }));
+        }
+
+        [Test]
+        public void ConcreteContext_ArmyLeaderTakesTheArmyTotalWithoutCountingAccompanyingPartiesAgain()
+        {
+            MobileParty party = ArmyLeadingParty();
+            bool accompanyingPartiesConsulted = false;
+            var context = new BannerlordRaidClosestVillageContext(_ => 5f,
+                _ => new RoamingPartyStrength[0], _ =>
+                {
+                    accompanyingPartiesConsulted = true;
+                    return new List<MobileParty>();
+                });
+
+            context.GetAttackerStrength(party);
+
+            Assert.That(accompanyingPartiesConsulted, Is.False);
+        }
+
+        [Test]
+        public void TargetRatio_EscortStrengthAdmitsAVillageTheLeaderPartyAloneWouldSkip()
+        {
+            MobileParty party = DummyParty();
+            Settlement village = DummySettlement();
+            var candidates = new[] { new RaidTargetCandidate<Settlement>(village, true, 1f, 60f) };
+            var context = new ContextStub { AttackerStrength = 150f };
+
+            Evaluate(Provider(context), party);
+
+            Assert.That(context.FindRaidTargetStrength, Is.EqualTo(150f));
+            Assert.That(SettlementOffensiveBehaviour.ChooseClosestTarget(candidates, 50f, 1f), Is.Null);
+            Assert.That(SettlementOffensiveBehaviour.ChooseClosestTarget(candidates,
+                context.FindRaidTargetStrength, 1f), Is.SameAs(village));
+        }
+
         private static RaidClosestVillageBehaviour Provider(ContextStub context)
         {
             return new RaidClosestVillageBehaviour(context, (minimum, _) => minimum);
@@ -266,9 +323,41 @@ namespace CustomSpawns.Tests.AI
                 10f, 10f, 1f, 2, 3f);
         }
 
+        private static IEnumerable<MobileParty> Counted(MobileParty party, ICollection<MobileParty> counted)
+        {
+            counted.Add(party);
+            yield return party;
+        }
+
         private static MobileParty DummyParty()
         {
             return (MobileParty)FormatterServices.GetUninitializedObject(typeof(MobileParty));
+        }
+
+        private static MobileParty DummyPartyWithPartyBase()
+        {
+            MobileParty party = DummyParty();
+            typeof(MobileParty).GetField("<Party>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance)
+                .SetValue(party, FormatterServices.GetUninitializedObject(typeof(PartyBase)));
+            return party;
+        }
+
+        private static MobileParty ArmyLeadingParty()
+        {
+            MobileParty party = DummyPartyWithPartyBase();
+            var army = (Army)FormatterServices.GetUninitializedObject(typeof(Army));
+            typeof(Army).GetField("<LeaderParty>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance)
+                .SetValue(army, party);
+            typeof(MobileParty).GetField("_army", BindingFlags.NonPublic | BindingFlags.Instance)
+                .SetValue(party, army);
+            typeof(MobileParty).GetField("_attachedParties", BindingFlags.NonPublic | BindingFlags.Instance)
+                .SetValue(party, new MBList<MobileParty>());
+            return party;
+        }
+
+        private static DynamicSpawnData DummyDynamicSpawnData()
+        {
+            return (DynamicSpawnData)FormatterServices.GetUninitializedObject(typeof(DynamicSpawnData));
         }
 
         private static Settlement DummySettlement()
@@ -291,6 +380,7 @@ namespace CustomSpawns.Tests.AI
             public int AttackerStrengthCalls { get; private set; }
             public int VisibleHostileStrengthCalls { get; private set; }
             public int FindRaidTargetCalls { get; private set; }
+            public float FindRaidTargetStrength { get; private set; }
             public int FindPatrolTargetCalls { get; private set; }
 
             public float GetAttackerStrength(MobileParty party)
@@ -309,6 +399,7 @@ namespace CustomSpawns.Tests.AI
                 float minimumRatio)
             {
                 FindRaidTargetCalls++;
+                FindRaidTargetStrength = attackerStrength;
                 return RaidTarget;
             }
 

@@ -25,7 +25,7 @@ namespace CustomSpawns.Spawn
 
         public MobileParty? Spawn(SpawnDto spawn, Settlement spawnSettlement, Clan spawnClan)
         {
-            MobileParty mainParty = _spawner.SpawnParty(spawnSettlement, spawnClan, spawn.PartyTemplate,
+            MobileParty? mainParty = _spawner.SpawnParty(spawnSettlement, spawnClan, spawn.PartyTemplate,
                 new TextObject(spawn.Name), spawn.PriorityPartyBehaviourTemplateId);
             if (mainParty == null)
             {
@@ -35,7 +35,7 @@ namespace CustomSpawns.Spawn
             _dynamicSpawnData.RegisterPrimaryParty(mainParty, spawn.PartyTemplate.StringId);
             foreach (AccompanyingParty accompanyingParty in spawn.SpawnAlongWith)
             {
-                MobileParty supportingParty = _spawner.SpawnParty(spawnSettlement, spawnClan,
+                MobileParty? supportingParty = _spawner.SpawnParty(spawnSettlement, spawnClan,
                     accompanyingParty.templateObject, new TextObject(accompanyingParty.name));
                 if (supportingParty != null)
                 {

@@ -143,8 +143,8 @@ namespace CustomSpawns.Data.Adapter
                 return null;
             }
 
-            PartyBehaviourDtoAdapter.ValidateRange("legacy patrol stable time", patrolAroundConfig.MinStableDays,
-                patrolAroundConfig.MaxStableDays);
+            PriorityPartyBehaviourConfigValidator.ValidateRange("legacy patrol stable time",
+                patrolAroundConfig.MinStableDays, patrolAroundConfig.MaxStableDays);
             List<SpawnSettlementType> patrolLocationTypes = new();
             if (patrolAroundConfig.PatrolLocationType != null)
             {

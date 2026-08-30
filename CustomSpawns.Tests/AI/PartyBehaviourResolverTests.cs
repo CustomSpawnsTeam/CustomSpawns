@@ -114,7 +114,8 @@ namespace CustomSpawns.Tests.AI
             var behaviourDao = BehaviourDao(Template("template", RaidConfiguration()));
 
             Assert.DoesNotThrow(() => Resolver(SpawnDao(new Dictionary<string, SpawnDto>()), behaviourDao,
-                new FallbackStub(), new RaidClosestVillageBehaviour()));
+                new FallbackStub(), new RaidClosestVillageBehaviour(
+                    (DynamicSpawnData)FormatterServices.GetUninitializedObject(typeof(DynamicSpawnData)))));
         }
 
         [Test]
@@ -133,7 +134,8 @@ namespace CustomSpawns.Tests.AI
             Mock<ISpawnDao> spawnDao = new(MockBehavior.Strict);
             var behaviourDao = BehaviourDao(Template("template", RaidConfiguration()));
 
-            Resolver(spawnDao, behaviourDao, new FallbackStub(), new RaidClosestVillageBehaviour());
+            Resolver(spawnDao, behaviourDao, new FallbackStub(), new RaidClosestVillageBehaviour(
+                    (DynamicSpawnData)FormatterServices.GetUninitializedObject(typeof(DynamicSpawnData))));
 
             spawnDao.Verify(dao => dao.FindAll(), Times.Never);
             spawnDao.Verify(dao => dao.FindByPartyTemplateId(It.IsAny<string>()), Times.Never);
