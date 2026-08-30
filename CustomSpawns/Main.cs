@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using CustomSpawns.AI;
 using CustomSpawns.AI.Barterables;
 using CustomSpawns.CampaignData.Config;
@@ -98,7 +98,7 @@ namespace CustomSpawns
             _customSpawnsDiplomacyProvider = new CustomSpawnsDiplomacyProvider(_customSpawnsClanDiplomacyProvider, _suzerainProvider);
             _banditPartySpawnFactory = new BanditPartySpawnFactory();
             _customPartySpawnFactory = new CustomPartySpawnFactory();
-            _partyBehaviourDtoAdapter = new PartyBehaviourDtoAdapter();
+            _partyBehaviourDtoAdapter = new PartyBehaviourDtoAdapter(PartyBehaviourRegistrations.ConfigAdapters);
             _partyBehaviourDao = new PartyBehaviourDao(_partyBehaviourDataReader, _partyBehaviourDtoAdapter, _messageBoxService);
             var besiegingPartyLordResolver = new BesiegingPartyLordResolver(_partyBehaviourDao, _messageBoxService, _modDebug);
             _spawner = new Spawner(_banditPartySpawnFactory, _customPartySpawnFactory, besiegingPartyLordResolver, _messageBoxService, _modDebug);
@@ -120,13 +120,7 @@ namespace CustomSpawns
             _devestationMetricData = new DevestationMetricData(_mobilePartyTrackingBehaviour, _campaignDataConfigLoader, _saveInitialiser, _messageBoxService, _modDebug);
             _dailyLogger = new DailyLogger(_devestationMetricData, _messageBoxService);
             IPriorityPartyBehaviour[] priorityPartyBehaviours =
-            {
-                new PatrolAroundClosestLestInterruptedAndSwitchBehaviour(),
-                new RaidClosestVillageBehaviour(
-                    new BannerlordRaidClosestVillageAdapter(_dynamicSpawnData), MBRandom.RandomFloatRanged),
-                new BesiegeClosestSettlementBehaviour(
-                    new BannerlordBesiegeClosestSettlementAdapter(_dynamicSpawnData), MBRandom.RandomFloatRanged)
-            };
+                PartyBehaviourRegistrations.CreateBehaviours(_dynamicSpawnData);
             var homeSettlementPatrolBehaviour = new HomeSettlementPatrolBehaviour();
             var partyBehaviourResolver = new PartyBehaviourResolver(
                 new SpawnPartyBehaviourLookup(_spawnDao, _partyBehaviourDao, _messageBoxService),

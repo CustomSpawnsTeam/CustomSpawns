@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -64,7 +64,7 @@ namespace CustomSpawns.Tests.Spawn
         public void AdaptPriorityPartyBehaviours_AppliesOmittedDefaults()
         {
             IReadOnlyList<PriorityPartyBehaviourData> configurations =
-                PartyBehaviourDtoAdapter.AdaptPriorityPartyBehaviours(new List<PriorityPartyBehaviourConfig>
+                new PartyBehaviourDtoAdapter(PartyBehaviourRegistrations.ConfigAdapters).AdaptPriorityPartyBehaviours(new List<PriorityPartyBehaviourConfig>
                 {
                     new BesiegeClosestSettlementConfig(),
                     new RaidClosestVillageConfig(),
@@ -196,7 +196,7 @@ namespace CustomSpawns.Tests.Spawn
         public void AdaptPriorityPartyBehaviours_RejectsDuplicateBehaviourTypes()
         {
             Assert.Throws<ArgumentException>(() =>
-                PartyBehaviourDtoAdapter.AdaptPriorityPartyBehaviours(new List<PriorityPartyBehaviourConfig>
+                new PartyBehaviourDtoAdapter(PartyBehaviourRegistrations.ConfigAdapters).AdaptPriorityPartyBehaviours(new List<PriorityPartyBehaviourConfig>
                 {
                     new RaidClosestVillageConfig(),
                     new RaidClosestVillageConfig()
@@ -270,7 +270,7 @@ namespace CustomSpawns.Tests.Spawn
 
         private static IReadOnlyList<PriorityPartyBehaviourData> Adapt(PriorityPartyBehaviourConfig configuration)
         {
-            return PartyBehaviourDtoAdapter.AdaptPriorityPartyBehaviours(
+            return new PartyBehaviourDtoAdapter(PartyBehaviourRegistrations.ConfigAdapters).AdaptPriorityPartyBehaviours(
                 new List<PriorityPartyBehaviourConfig> { configuration });
         }
 
@@ -288,7 +288,7 @@ namespace CustomSpawns.Tests.Spawn
                                             "<PriorityPartyBehaviours>" + behaviourXml + "</PriorityPartyBehaviours>" +
                                             "</PriorityPartyBehaviourTemplate>");
             PriorityPartyBehaviourTemplate template = (PriorityPartyBehaviourTemplate)serializer.Deserialize(reader);
-            return new PartyBehaviourDtoAdapter().Adapt(template).PriorityPartyBehaviours;
+            return new PartyBehaviourDtoAdapter(PartyBehaviourRegistrations.ConfigAdapters).Adapt(template).PriorityPartyBehaviours;
         }
     }
 }

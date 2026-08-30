@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using CustomSpawns.Data.Dto;
 using CustomSpawns.Spawn;
 using TaleWorlds.CampaignSystem;
@@ -18,16 +18,14 @@ namespace CustomSpawns.AI
     {
         public Type ConfigurationType => typeof(TConfiguration);
 
+        /**
+         * The registry dispatches on the exact configuration type a behaviour declares, so the cast cannot
+         * fail for anything the resolver hands over.
+         */
         public PartyBehaviourResult GetPriorityBehaviour(MobileParty party, CsPartyData partyData,
             PriorityPartyBehaviourData configuration)
         {
-            if (!(configuration is TConfiguration typedConfiguration))
-            {
-                throw new ArgumentException($"{GetType().Name} cannot handle {configuration.GetType().Name}.",
-                    nameof(configuration));
-            }
-
-            return GetPriorityBehaviour(party, partyData, typedConfiguration);
+            return GetPriorityBehaviour(party, partyData, (TConfiguration)configuration);
         }
 
         public abstract PartyBehaviourResult GetPriorityBehaviour(MobileParty party, CsPartyData partyData,

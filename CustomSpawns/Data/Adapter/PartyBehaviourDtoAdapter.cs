@@ -11,20 +11,19 @@ namespace CustomSpawns.Data.Adapter
         /**
          * Keyed on the exact configuration type and looked up with configuration.GetType(), which only
          * resolves because every concrete PriorityPartyBehaviourConfig is sealed. A configuration whose
-         * type is not registered here is rejected as unsupported, derived or not, so every concrete
-         * PriorityPartyBehaviourConfig must register its adapter in this list.
+         * type is not registered is rejected as unsupported, derived or not.
          */
-        private static readonly IReadOnlyDictionary<Type, IPriorityPartyBehaviourConfigAdapter> Adapters =
-            new IPriorityPartyBehaviourConfigAdapter[]
-            {
-                new BesiegeClosestSettlementConfigAdapter(),
-                new RaidClosestVillageConfigAdapter(),
-                new PatrolAroundClosestLestInterruptedAndSwitchConfigAdapter()
-            }.ToDictionary(adapter => adapter.ConfigurationType);
+        private readonly IReadOnlyDictionary<Type, IPriorityPartyBehaviourConfigAdapter> _adapters;
 
-        internal static bool HasAdapter(Type configurationType)
+        internal PartyBehaviourDtoAdapter(IEnumerable<IPriorityPartyBehaviourConfigAdapter> adapters)
         {
-            return Adapters.ContainsKey(configurationType);
+            _adapters = (adapters ?? throw new ArgumentNullException(nameof(adapters)))
+                .ToDictionary(adapter => adapter.ConfigurationType);
+        }
+
+        internal bool HasAdapter(Type configurationType)
+        {
+            return _adapters.ContainsKey(configurationType);
         }
 
         public PartyBehaviourDto Adapt(PriorityPartyBehaviourTemplate template)
@@ -36,7 +35,7 @@ namespace CustomSpawns.Data.Adapter
             };
         }
 
-        internal static IReadOnlyList<PriorityPartyBehaviourData> AdaptPriorityPartyBehaviours(
+        internal IReadOnlyList<PriorityPartyBehaviourData> AdaptPriorityPartyBehaviours(
             List<PriorityPartyBehaviourConfig>? configurations)
         {
             configurations ??= new List<PriorityPartyBehaviourConfig>();
@@ -48,10 +47,9 @@ namespace CustomSpawns.Data.Adapter
             return configurations.Select(AdaptPriorityPartyBehaviour).ToList();
         }
 
-        private static PriorityPartyBehaviourData AdaptPriorityPartyBehaviour(
-            PriorityPartyBehaviourConfig configuration)
+        private PriorityPartyBehaviourData AdaptPriorityPartyBehaviour(PriorityPartyBehaviourConfig configuration)
         {
-            if (!Adapters.TryGetValue(configuration.GetType(), out IPriorityPartyBehaviourConfigAdapter adapter))
+            if (!_adapters.TryGetValue(configuration.GetType(), out IPriorityPartyBehaviourConfigAdapter adapter))
             {
                 throw new ArgumentException("Unsupported priority party behaviour configuration.");
             }

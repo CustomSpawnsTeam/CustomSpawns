@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -145,7 +145,7 @@ namespace CustomSpawns.Tests.Spawn
 
         private static PartyBehaviourDto Adapt(PriorityPartyBehaviourTemplate template)
         {
-            return new PartyBehaviourDtoAdapter().Adapt(template);
+            return new PartyBehaviourDtoAdapter(PartyBehaviourRegistrations.ConfigAdapters).Adapt(template);
         }
 
         private static string Document(string templates)

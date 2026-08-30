@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -486,7 +486,7 @@ namespace CustomSpawns.Tests.AI
             XmlSerializer serializer = new(typeof(PriorityPartyBehaviourTemplate));
             using StringReader reader = new(xml);
             PriorityPartyBehaviourTemplate template = (PriorityPartyBehaviourTemplate)serializer.Deserialize(reader);
-            return new PartyBehaviourDtoAdapter().Adapt(template);
+            return new PartyBehaviourDtoAdapter(PartyBehaviourRegistrations.ConfigAdapters).Adapt(template);
         }
 
         private static PatrolAroundClosestLestInterruptedAndSwitchData LegacyPatrol(string patrolElement)
