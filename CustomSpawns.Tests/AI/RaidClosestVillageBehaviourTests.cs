@@ -15,7 +15,7 @@ namespace CustomSpawns.Tests.AI
 {
     public class RaidClosestVillageBehaviourTests
     {
-        private SettlementOffensiveStateStore _states = null!;
+        private PartyStateStore<SettlementOffensiveBehaviourState> _states = null!;
 
         [Test]
         public void Provider_HandlesTypedRaidConfiguration()
@@ -325,7 +325,8 @@ namespace CustomSpawns.Tests.AI
 
         private RaidClosestVillageBehaviour Provider(OperationsStub operations)
         {
-            _states = new SettlementOffensiveStateStore(RaidClosestVillageBehaviour.SaveKey);
+            _states = new PartyStateStore<SettlementOffensiveBehaviourState>(RaidClosestVillageBehaviour.SaveKey,
+                _ => true);
             return new RaidClosestVillageBehaviour(operations, (minimum, _) => minimum, _states);
         }
 

@@ -17,17 +17,19 @@ namespace CustomSpawns.AI
         internal const string SaveKey = "_customSpawnsPatrolAroundClosestStates";
 
         private readonly System.Func<MobileParty, MobileParty.NavigationType> _getNavigationCapability;
-        private Dictionary<MobileParty, PatrolState> _patrolStates = new();
+        private readonly PartyStateStore<PatrolState> _patrolStates;
 
         public PatrolAroundClosestLestInterruptedAndSwitchBehaviour()
-            : this(party => party.NavigationCapability)
+            : this(party => party.NavigationCapability, new PartyStateStore<PatrolState>(SaveKey))
         {
         }
 
         internal PatrolAroundClosestLestInterruptedAndSwitchBehaviour(
-            System.Func<MobileParty, MobileParty.NavigationType> getNavigationCapability)
+            System.Func<MobileParty, MobileParty.NavigationType> getNavigationCapability,
+            PartyStateStore<PatrolState> patrolStates)
         {
             _getNavigationCapability = getNavigationCapability;
+            _patrolStates = patrolStates;
         }
 
         public override PartyBehaviourResult GetPriorityBehaviour(MobileParty party, CsPartyData partyData,
@@ -45,18 +47,13 @@ namespace CustomSpawns.AI
 
         public override void SyncData(IDataStore dataStore)
         {
-            dataStore.SyncData(SaveKey, ref _patrolStates);
-            _patrolStates ??= new Dictionary<MobileParty, PatrolState>();
+            _patrolStates.SyncData(dataStore);
         }
 
         private Settlement? GetPatrolTarget(MobileParty party,
             PatrolAroundClosestLestInterruptedAndSwitchData patrolConfig)
         {
-            if (!_patrolStates.TryGetValue(party, out PatrolState? patrolState))
-            {
-                patrolState = new PatrolState();
-                _patrolStates.Add(party, patrolState);
-            }
+            PatrolState patrolState = _patrolStates.GetOrAdd(party);
 
             bool hasExistingTarget = patrolState.Target is not null;
             if (!hasExistingTarget)

@@ -14,12 +14,14 @@ namespace CustomSpawns.AI
         private readonly IRaidOperations _raid;
 
         internal RaidClosestVillageBehaviour(IRaidOperations raid,
-            Func<float, float, float> roll) : this(raid, roll, new SettlementOffensiveStateStore(SaveKey))
+            Func<float, float, float> roll)
+            : this(raid, roll, new PartyStateStore<SettlementOffensiveBehaviourState>(SaveKey))
         {
         }
 
         internal RaidClosestVillageBehaviour(IRaidOperations raid,
-            Func<float, float, float> roll, SettlementOffensiveStateStore states) : base(roll, states)
+            Func<float, float, float> roll,
+            PartyStateStore<SettlementOffensiveBehaviourState> states) : base(roll, states)
         {
             _raid = raid ?? throw new ArgumentNullException(nameof(raid));
         }

@@ -95,7 +95,9 @@ namespace CustomSpawns.Tests.AI
                 [party] = loadedState
             });
             var provider = new PatrolAroundClosestLestInterruptedAndSwitchBehaviour(
-                _ => MobileParty.NavigationType.Default);
+                _ => MobileParty.NavigationType.Default,
+                new PartyStateStore<PatrolAroundClosestLestInterruptedAndSwitchBehaviour.PatrolState>(
+                    PatrolAroundClosestLestInterruptedAndSwitchBehaviour.SaveKey, _ => true));
 
             provider.SyncData(store);
             PartyBehaviourResult result = provider.GetPriorityBehaviour(party, null!,

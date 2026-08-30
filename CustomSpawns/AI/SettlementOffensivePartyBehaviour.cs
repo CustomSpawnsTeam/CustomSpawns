@@ -17,10 +17,10 @@ namespace CustomSpawns.AI
         : PriorityPartyBehaviour<TConfiguration> where TConfiguration : SettlementOffensiveData
     {
         private readonly Func<float, float, float> _roll;
-        private readonly SettlementOffensiveStateStore _states;
+        private readonly PartyStateStore<SettlementOffensiveBehaviourState> _states;
 
         private protected SettlementOffensivePartyBehaviour(Func<float, float, float> roll,
-            SettlementOffensiveStateStore states)
+            PartyStateStore<SettlementOffensiveBehaviourState> states)
         {
             _roll = roll;
             _states = states;

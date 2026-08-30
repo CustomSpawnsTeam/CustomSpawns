@@ -15,7 +15,7 @@ namespace CustomSpawns.Tests.AI
 {
     public class BesiegeClosestSettlementBehaviourTests
     {
-        private SettlementOffensiveStateStore _states = null!;
+        private PartyStateStore<SettlementOffensiveBehaviourState> _states = null!;
 
         [Test]
         public void Provider_HandlesTypedSiegeConfiguration()
@@ -445,7 +445,8 @@ namespace CustomSpawns.Tests.AI
 
         private BesiegeClosestSettlementBehaviour Provider(OperationsStub operations)
         {
-            _states = new SettlementOffensiveStateStore(BesiegeClosestSettlementBehaviour.SaveKey);
+            _states = new PartyStateStore<SettlementOffensiveBehaviourState>(BesiegeClosestSettlementBehaviour.SaveKey,
+                _ => true);
             return new BesiegeClosestSettlementBehaviour(operations, (minimum, _) => minimum, _states);
         }
 

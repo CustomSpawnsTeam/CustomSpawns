@@ -14,12 +14,14 @@ namespace CustomSpawns.AI
         private readonly ISiegeOperations _siege;
 
         internal BesiegeClosestSettlementBehaviour(ISiegeOperations siege,
-            Func<float, float, float> roll) : this(siege, roll, new SettlementOffensiveStateStore(SaveKey))
+            Func<float, float, float> roll)
+            : this(siege, roll, new PartyStateStore<SettlementOffensiveBehaviourState>(SaveKey))
         {
         }
 
         internal BesiegeClosestSettlementBehaviour(ISiegeOperations siege,
-            Func<float, float, float> roll, SettlementOffensiveStateStore states) : base(roll, states)
+            Func<float, float, float> roll,
+            PartyStateStore<SettlementOffensiveBehaviourState> states) : base(roll, states)
         {
             _siege = siege ?? throw new ArgumentNullException(nameof(siege));
         }
