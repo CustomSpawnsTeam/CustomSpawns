@@ -6,12 +6,11 @@ using TaleWorlds.CampaignSystem.Party;
 
 namespace CustomSpawns.AI
 {
-    public interface IPriorityPartyBehaviour
+    public interface IPriorityPartyBehaviour : ISyncsCampaignData
     {
         Type ConfigurationType { get; }
         PartyBehaviourResult GetPriorityBehaviour(MobileParty party, CsPartyData partyData,
             PriorityPartyBehaviourData configuration);
-        void SyncData(IDataStore dataStore);
     }
 
     public abstract class PriorityPartyBehaviour<TConfiguration> : IPriorityPartyBehaviour
@@ -39,10 +38,9 @@ namespace CustomSpawns.AI
         }
     }
 
-    public interface IFallbackPartyBehaviour
+    public interface IFallbackPartyBehaviour : ISyncsCampaignData
     {
         PartyBehaviourResult GetPriorityBehaviour(MobileParty party, CsPartyData partyData);
-        void SyncData(IDataStore dataStore);
     }
 
     public readonly struct PartyBehaviourResult

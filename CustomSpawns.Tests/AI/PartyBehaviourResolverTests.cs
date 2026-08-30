@@ -205,33 +205,64 @@ namespace CustomSpawns.Tests.AI
         }
 
         [Test]
-        public void Constructor_RejectsDuplicateConfigurationProviderRegistration()
+        public void Registry_RejectsDuplicateConfigurationProviderRegistration()
         {
             var first = new ProviderStub<RaidClosestVillageData>(PartyBehaviourResult.NotApplicable);
             var duplicate = new ProviderStub<RaidClosestVillageData>(PartyBehaviourResult.NotApplicable);
 
             ArgumentException error = Assert.Throws<ArgumentException>(() =>
-                Resolver(SpawnDao(new Dictionary<string, SpawnDto>()), BehaviourDao(), new FallbackStub(),
-                    first, duplicate))!;
+                new PriorityPartyBehaviourRegistry(new IPriorityPartyBehaviour[] { first, duplicate }))!;
 
             Assert.That(error.Message, Does.Contain(typeof(RaidClosestVillageData).FullName));
         }
 
         [Test]
-        public void SyncData_DelegatesExactlyOnceToEveryProviderGenerically()
+        public void Registry_ResolvesARegisteredBehaviourByItsConfigurationType()
         {
-            var patrol = new ProviderStub<PatrolAroundClosestLestInterruptedAndSwitchData>(
-                PartyBehaviourResult.NotApplicable);
             var raid = new ProviderStub<RaidClosestVillageData>(PartyBehaviourResult.NotApplicable);
-            var fallback = new FallbackStub();
-            var resolver = Resolver(SpawnDao(new Dictionary<string, SpawnDto>()), BehaviourDao(), fallback,
-                patrol, raid);
+            PriorityPartyBehaviourRegistry registry = new(new IPriorityPartyBehaviour[] { raid });
 
-            resolver.SyncData(null!);
+            Assert.That(registry.TryGet(typeof(RaidClosestVillageData), out IPriorityPartyBehaviour behaviour),
+                Is.True);
+            Assert.That(behaviour, Is.SameAs(raid));
+            Assert.That(registry.TryGet(typeof(BesiegeClosestSettlementData), out _), Is.False);
+        }
 
-            Assert.That(patrol.SyncCount, Is.EqualTo(1));
-            Assert.That(raid.SyncCount, Is.EqualTo(1));
-            Assert.That(fallback.SyncCount, Is.EqualTo(1));
+        [Test]
+        public void Lookup_ReportsAnUnknownTemplateIdOnceAndYieldsNoBehaviours()
+        {
+            var spawns = Spawns(("first", "missing"), ("second", "missing"));
+            Mock<MessageBoxService> messageBoxService = new();
+            SpawnPartyBehaviourLookup lookup = Lookup(SpawnDao(spawns), BehaviourDao(), messageBoxService.Object);
+
+            Assert.That(lookup.FindBehaviours("first"), Is.Empty);
+            Assert.That(lookup.FindBehaviours("second"), Is.Empty);
+
+            messageBoxService.Verify(service => service.ShowMessage(It.Is<string>(message =>
+                message.Contains("missing"))), Times.Once);
+        }
+
+        [Test]
+        public void Lookup_MissingOwnerOrUnknownSpawnYieldsNoBehaviours()
+        {
+            SpawnPartyBehaviourLookup lookup = Lookup(SpawnDao(new Dictionary<string, SpawnDto>()), BehaviourDao(),
+                new Mock<MessageBoxService>().Object);
+
+            Assert.That(lookup.FindBehaviours(null), Is.Empty);
+            Assert.That(lookup.FindBehaviours("spawn"), Is.Empty);
+        }
+
+        [Test]
+        public void Lookup_ListsEveryConfiguredBehaviourType()
+        {
+            SpawnPartyBehaviourLookup lookup = Lookup(SpawnDao(new Dictionary<string, SpawnDto>()),
+                BehaviourDao(Template("template", RaidConfiguration(), PatrolConfiguration())),
+                new Mock<MessageBoxService>().Object);
+
+            Assert.That(lookup.FindAllConfiguredBehaviourTypes(), Is.EqualTo(new[]
+            {
+                typeof(RaidClosestVillageData), typeof(PatrolAroundClosestLestInterruptedAndSwitchData)
+            }));
         }
 
         [Test]
@@ -310,8 +341,10 @@ namespace CustomSpawns.Tests.AI
             var fallback = new FallbackStub();
             var spawns = Spawns(("first", "missing"), ("second", "missing"));
             Mock<MessageBoxService> messageBoxService = new();
-            var resolver = new PartyBehaviourResolver(SpawnDao(spawns).Object, BehaviourDao().Object,
-                Array.Empty<IPriorityPartyBehaviour>(), fallback, new SupportingStub(), messageBoxService.Object);
+            var resolver = new PartyBehaviourResolver(
+                Lookup(SpawnDao(spawns), BehaviourDao(), messageBoxService.Object),
+                new PriorityPartyBehaviourRegistry(Array.Empty<IPriorityPartyBehaviour>()), fallback,
+                new SupportingStub());
 
             resolver.Resolve(null!, PartyData("first"));
             resolver.Resolve(null!, PartyData("second"));
@@ -369,8 +402,15 @@ namespace CustomSpawns.Tests.AI
             Mock<IPartyBehaviourDao> partyBehaviourDao, IFallbackPartyBehaviour fallback,
             ISupportingPartyBehaviour supporting, params IPriorityPartyBehaviour[] providers)
         {
-            return new PartyBehaviourResolver(spawnDao.Object, partyBehaviourDao.Object, providers, fallback,
-                supporting, new Mock<MessageBoxService>().Object);
+            return new PartyBehaviourResolver(
+                Lookup(spawnDao, partyBehaviourDao, new Mock<MessageBoxService>().Object),
+                new PriorityPartyBehaviourRegistry(providers), fallback, supporting);
+        }
+
+        private static SpawnPartyBehaviourLookup Lookup(Mock<ISpawnDao> spawnDao,
+            Mock<IPartyBehaviourDao> partyBehaviourDao, MessageBoxService messageBoxService)
+        {
+            return new SpawnPartyBehaviourLookup(spawnDao.Object, partyBehaviourDao.Object, messageBoxService);
         }
 
         private static Dictionary<string, SpawnDto> Spawns(params (string PartyTemplate, string TemplateId)[] spawns)
@@ -475,7 +515,6 @@ namespace CustomSpawns.Tests.AI
             }
 
             public int CallCount { get; private set; }
-            public int SyncCount { get; private set; }
             public List<TConfiguration> SeenConfigurations { get; } = new();
 
             public override PartyBehaviourResult GetPriorityBehaviour(MobileParty party, CsPartyData partyData,
@@ -488,11 +527,6 @@ namespace CustomSpawns.Tests.AI
                 }
                 SeenConfigurations.Add(configuration);
                 return _result;
-            }
-
-            public override void SyncData(IDataStore dataStore)
-            {
-                SyncCount++;
             }
         }
 
@@ -517,7 +551,6 @@ namespace CustomSpawns.Tests.AI
         private sealed class FallbackStub : IFallbackPartyBehaviour
         {
             public int CallCount { get; private set; }
-            public int SyncCount { get; private set; }
 
             public PartyBehaviourResult GetPriorityBehaviour(MobileParty party, CsPartyData partyData)
             {
@@ -527,7 +560,6 @@ namespace CustomSpawns.Tests.AI
 
             public void SyncData(IDataStore dataStore)
             {
-                SyncCount++;
             }
         }
     }

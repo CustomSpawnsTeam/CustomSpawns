@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using CustomSpawns.AI;
 using CustomSpawns.AI.Barterables;
 using CustomSpawns.CampaignData.Config;
@@ -126,10 +127,13 @@ namespace CustomSpawns
                 new BesiegeClosestSettlementBehaviour(
                     new BannerlordBesiegeClosestSettlementAdapter(_dynamicSpawnData), MBRandom.RandomFloatRanged)
             };
-            var partyBehaviourResolver = new PartyBehaviourResolver(_spawnDao, _partyBehaviourDao,
-                priorityPartyBehaviours, new HomeSettlementPatrolBehaviour(), new FollowSupportedPartyBehaviour(),
-                _messageBoxService);
-            _customSpawnsAiBehaviour = new CustomSpawnsAiBehaviour(_dynamicSpawnData, partyBehaviourResolver);
+            var homeSettlementPatrolBehaviour = new HomeSettlementPatrolBehaviour();
+            var partyBehaviourResolver = new PartyBehaviourResolver(
+                new SpawnPartyBehaviourLookup(_spawnDao, _partyBehaviourDao, _messageBoxService),
+                new PriorityPartyBehaviourRegistry(priorityPartyBehaviours), homeSettlementPatrolBehaviour,
+                new FollowSupportedPartyBehaviour());
+            _customSpawnsAiBehaviour = new CustomSpawnsAiBehaviour(_dynamicSpawnData, partyBehaviourResolver,
+                new List<ISyncsCampaignData>(priorityPartyBehaviours) { homeSettlementPatrolBehaviour });
             _accompanyingPartySiegeBehaviour = new AccompanyingPartySiegeBehaviour(_dynamicSpawnData);
             _aiDecisionLoggerBehaviour = new AiDecisionLoggerBehaviour(_dailyLogger);
             NonMercenaryCustomSpawnsFactionsProvider nonMercenaryCustomSpawnsFactionsProvider =

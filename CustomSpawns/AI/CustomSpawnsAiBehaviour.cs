@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using CustomSpawns.Spawn;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
@@ -10,12 +13,32 @@ namespace CustomSpawns.AI
 
         private readonly DynamicSpawnData _dynamicSpawnData;
         private readonly PartyBehaviourResolver _partyBehaviourResolver;
+        private readonly IReadOnlyList<ISyncsCampaignData> _syncTargets;
 
         public CustomSpawnsAiBehaviour(DynamicSpawnData dynamicSpawnData,
-            PartyBehaviourResolver partyBehaviourResolver)
+            PartyBehaviourResolver partyBehaviourResolver, IEnumerable<ISyncsCampaignData> syncTargets)
         {
             _dynamicSpawnData = dynamicSpawnData;
             _partyBehaviourResolver = partyBehaviourResolver;
+
+            var distinctTargets = new HashSet<object>(ReferenceEqualityComparer.Instance);
+            var targets = new List<ISyncsCampaignData>();
+            foreach (ISyncsCampaignData syncTarget in syncTargets ??
+                     throw new ArgumentNullException(nameof(syncTargets)))
+            {
+                if (syncTarget is null)
+                {
+                    throw new ArgumentException("Campaign data sync targets cannot contain null.",
+                        nameof(syncTargets));
+                }
+
+                if (distinctTargets.Add(syncTarget))
+                {
+                    targets.Add(syncTarget);
+                }
+            }
+
+            _syncTargets = targets;
         }
 
         public override void RegisterEvents()
@@ -25,7 +48,10 @@ namespace CustomSpawns.AI
 
         public override void SyncData(IDataStore dataStore)
         {
-            _partyBehaviourResolver.SyncData(dataStore);
+            foreach (ISyncsCampaignData syncTarget in _syncTargets)
+            {
+                syncTarget.SyncData(dataStore);
+            }
         }
 
         private void AddBehaviorScore(MobileParty party, PartyThinkParams thinkParams)
@@ -80,6 +106,21 @@ namespace CustomSpawns.AI
             {
                 _thinkParams.AddBehaviorScore((behavior, score));
             }
+        }
+    }
+
+    internal sealed class ReferenceEqualityComparer : IEqualityComparer<object>
+    {
+        internal static ReferenceEqualityComparer Instance { get; } = new();
+
+        public new bool Equals(object? x, object? y)
+        {
+            return ReferenceEquals(x, y);
+        }
+
+        public int GetHashCode(object obj)
+        {
+            return RuntimeHelpers.GetHashCode(obj);
         }
     }
 

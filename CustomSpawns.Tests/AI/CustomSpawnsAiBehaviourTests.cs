@@ -35,6 +35,45 @@ namespace CustomSpawns.Tests.AI
                 Is.EqualTo(CustomSpawnsAiBehaviour.DominantAiBehaviorScore));
         }
 
+        [Test]
+        public void SyncData_DelegatesExactlyOnceToEverySyncTarget()
+        {
+            SyncStub patrol = new();
+            SyncStub raid = new();
+            SyncStub fallback = new();
+            CustomSpawnsAiBehaviour behaviour = new(null!, null!, new ISyncsCampaignData[]
+            {
+                patrol, raid, fallback
+            });
+
+            behaviour.SyncData(null!);
+
+            Assert.That(patrol.SyncCount, Is.EqualTo(1));
+            Assert.That(raid.SyncCount, Is.EqualTo(1));
+            Assert.That(fallback.SyncCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void SyncData_SyncsATargetRegisteredTwiceOnlyOnce()
+        {
+            SyncStub shared = new();
+            CustomSpawnsAiBehaviour behaviour = new(null!, null!, new ISyncsCampaignData[] { shared, shared });
+
+            behaviour.SyncData(null!);
+
+            Assert.That(shared.SyncCount, Is.EqualTo(1));
+        }
+
+        private sealed class SyncStub : ISyncsCampaignData
+        {
+            public int SyncCount { get; private set; }
+
+            public void SyncData(IDataStore dataStore)
+            {
+                SyncCount++;
+            }
+        }
+
         private sealed class AiBehaviorScoreSink : IAiBehaviorScoreSink
         {
             public List<(AIBehaviorData Behavior, float Score)> Scores { get; } = new();
