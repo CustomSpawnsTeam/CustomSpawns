@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using CustomSpawns.AI.Model;
 using CustomSpawns.Data.Dto;
 using CustomSpawns.Spawn;
@@ -18,13 +17,13 @@ namespace CustomSpawns.AI
         : PriorityPartyBehaviour<TConfiguration> where TConfiguration : SettlementOffensiveData
     {
         private readonly Func<float, float, float> _roll;
-        private readonly string _saveKey;
-        private Dictionary<MobileParty, SettlementOffensiveBehaviourState> _states = new();
+        private readonly SettlementOffensiveStateStore _states;
 
-        protected SettlementOffensivePartyBehaviour(Func<float, float, float> roll, string saveKey)
+        private protected SettlementOffensivePartyBehaviour(Func<float, float, float> roll,
+            SettlementOffensiveStateStore states)
         {
             _roll = roll;
-            _saveKey = saveKey;
+            _states = states;
         }
 
         private protected abstract IPartyStrengthObserver PartyStrength { get; }
@@ -36,13 +35,10 @@ namespace CustomSpawns.AI
         public override PartyBehaviourResult GetPriorityBehaviour(MobileParty party, CsPartyData partyData,
             TConfiguration configuration)
         {
-            if (!_states.TryGetValue(party, out SettlementOffensiveBehaviourState? state))
-            {
-                state = new SettlementOffensiveBehaviourState();
-                _states.Add(party, state);
-            }
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
+            var offensive = new SettlementOffensiveStateMachine(state);
 
-            if (SettlementOffensiveBehaviour.TickCooldown(state))
+            if (offensive.TickCooldown())
             {
                 return PartyBehaviourResult.NotApplicable;
             }
@@ -51,11 +47,11 @@ namespace CustomSpawns.AI
                 configuration.MaximumRequiredClearTimeInDays, configuration.MinimumOperationWindowInDays,
                 configuration.MaximumOperationWindowInDays, configuration.GracePeriodInDays,
                 configuration.MaximumFailedAttempts, configuration.CooldownInDays);
-            SettlementOffensiveBehaviour.BeginEpisode(state, settings, _roll);
+            offensive.BeginEpisode(settings, _roll);
 
             float attackerStrength = PartyStrength.GetAttackerStrength(party);
             float visibleHostileStrength = PartyStrength.GetVisibleHostileStrength(party);
-            bool safetyPasses = SettlementOffensiveBehaviour.MeetsStrengthRatio(attackerStrength,
+            bool safetyPasses = OffensiveStrengthRules.MeetsStrengthRatio(attackerStrength,
                 visibleHostileStrength, configuration.MinimumAttackerToRoamingHostilesRatio);
 
             if (state.Target is not null)
@@ -63,7 +59,7 @@ namespace CustomSpawns.AI
                 Settlement observedTarget = state.Target;
                 TrackTarget(state);
                 bool matchingOperationActive = IsMatchingOperationActive(party, observedTarget);
-                ActiveTargetObservation observation = SettlementOffensiveBehaviour.ObserveTarget(state,
+                ActiveTargetObservation observation = offensive.ObserveTarget(
                     IsCurrentTargetValid(party, state, matchingOperationActive),
                     IsTargetComplete(party, observedTarget), matchingOperationActive,
                     OperationStatus.HasNativeContinuation(party, observedTarget),
@@ -77,7 +73,7 @@ namespace CustomSpawns.AI
             if (state.Target is not null &&
                 ShouldAbandonTarget(party, state.Target, attackerStrength, configuration))
             {
-                SettlementOffensiveBehaviour.ClearTarget(state);
+                offensive.ClearTarget();
             }
 
             if (state.Phase == SettlementOffensivePhase.Active)
@@ -88,7 +84,7 @@ namespace CustomSpawns.AI
             if (state.Phase == SettlementOffensivePhase.Recovery)
             {
                 Settlement? recoveryTarget = state.Target;
-                if (!SettlementOffensiveBehaviour.TickRecovery(state))
+                if (!offensive.TickRecovery())
                 {
                     if (IsNativeSafetyInterruption(OperationStatus.GetShortTermBehavior(party)))
                     {
@@ -106,7 +102,7 @@ namespace CustomSpawns.AI
                     TrackTarget(state);
                     float targetRatio = StrengthRatio(attackerStrength,
                         GetTargetStrength(party, state.Target));
-                    SettlementOffensiveBehaviour.AssignTarget(state,
+                    offensive.AssignTarget(
                         safetyPasses && targetRatio >= configuration.SkipWhenTargetStrengthRatio);
                 }
             }
@@ -114,7 +110,7 @@ namespace CustomSpawns.AI
             if (state.Target is null)
             {
                 state.Phase = SettlementOffensivePhase.Search;
-                if (SettlementOffensiveBehaviour.AdvanceOperationClock(state, configuration.CooldownInDays))
+                if (offensive.AdvanceOperationClock(configuration.CooldownInDays))
                 {
                     return PartyBehaviourResult.NotApplicable;
                 }
@@ -125,15 +121,15 @@ namespace CustomSpawns.AI
                 GetTargetStrength(party, state.Target));
             if (state.Phase == SettlementOffensivePhase.Approach && !safetyPasses)
             {
-                SettlementOffensiveBehaviour.ReturnApproachToRecon(state);
+                offensive.ReturnApproachToRecon();
             }
             if (state.Phase == SettlementOffensivePhase.Recon)
             {
-                SettlementOffensiveBehaviour.UpdateRecon(state, safetyPasses,
+                offensive.UpdateRecon(safetyPasses,
                     safetyPasses && currentTargetRatio >= configuration.SkipWhenTargetStrengthRatio);
             }
 
-            if (SettlementOffensiveBehaviour.AdvanceOperationClock(state, configuration.CooldownInDays))
+            if (offensive.AdvanceOperationClock(configuration.CooldownInDays))
             {
                 return PartyBehaviourResult.NotApplicable;
             }
@@ -145,11 +141,8 @@ namespace CustomSpawns.AI
 
         public override void SyncData(IDataStore dataStore)
         {
-            dataStore.SyncData(_saveKey, ref _states);
-            _states ??= new Dictionary<MobileParty, SettlementOffensiveBehaviourState>();
+            _states.SyncData(dataStore);
         }
-
-        internal SettlementOffensiveBehaviourState GetState(MobileParty party) => _states[party];
 
         /**
          * Records whatever the behaviour must remember about a target it has just observed or just selected.

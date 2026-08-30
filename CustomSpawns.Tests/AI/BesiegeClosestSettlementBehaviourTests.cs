@@ -15,6 +15,8 @@ namespace CustomSpawns.Tests.AI
 {
     public class BesiegeClosestSettlementBehaviourTests
     {
+        private SettlementOffensiveStateStore _states = null!;
+
         [Test]
         public void Provider_HandlesTypedSiegeConfiguration()
         {
@@ -147,7 +149,7 @@ namespace CustomSpawns.Tests.AI
 
             Assert.That(unsafeResult.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.PatrolAroundPoint));
             Assert.That(safeResult.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.BesiegeSettlement));
-            Assert.That(provider.GetState(party).Target, Is.SameAs(target));
+            Assert.That(_states.GetOrAdd(party).Target, Is.SameAs(target));
         }
 
         [Test]
@@ -177,7 +179,7 @@ namespace CustomSpawns.Tests.AI
             var operations = new OperationsStub { SiegeTarget = target, PatrolTarget = patrol };
             BesiegeClosestSettlementBehaviour provider = Provider(operations);
             Evaluate(provider, party);
-            SettlementOffensiveBehaviourState state = provider.GetState(party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
             state.Phase = SettlementOffensivePhase.Approach;
             operations.VisibleHostileStrength = 200f;
 
@@ -196,7 +198,7 @@ namespace CustomSpawns.Tests.AI
             var operations = new OperationsStub { SiegeTarget = target, PatrolTarget = patrol };
             BesiegeClosestSettlementBehaviour provider = Provider(operations);
             Evaluate(provider, party);
-            SettlementOffensiveBehaviourState state = provider.GetState(party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
             state.Phase = SettlementOffensivePhase.Approach;
             operations.TargetStrength = 200f;
             operations.SiegeTarget = null;
@@ -217,7 +219,7 @@ namespace CustomSpawns.Tests.AI
             var operations = new OperationsStub { SiegeTarget = target, PatrolTarget = patrol };
             BesiegeClosestSettlementBehaviour provider = Provider(operations);
             Evaluate(provider, party);
-            SettlementOffensiveBehaviourState state = provider.GetState(party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
             operations.MatchingSiegeActive = true;
             operations.TargetStrength = 200f;
             operations.SiegeTarget = null;
@@ -238,7 +240,7 @@ namespace CustomSpawns.Tests.AI
             var operations = new OperationsStub { SiegeTarget = target, PatrolTarget = patrol };
             BesiegeClosestSettlementBehaviour provider = Provider(operations);
             Evaluate(provider, party);
-            SettlementOffensiveBehaviourState state = provider.GetState(party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
             state.Phase = SettlementOffensivePhase.Approach;
             operations.TargetStrength = 100f;
             operations.SiegeTarget = null;
@@ -278,7 +280,7 @@ namespace CustomSpawns.Tests.AI
             var operations = new OperationsStub { SiegeTarget = target };
             BesiegeClosestSettlementBehaviour provider = Provider(operations);
             Evaluate(provider, party);
-            SettlementOffensiveBehaviourState state = provider.GetState(party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
             state.Target = target;
             state.Phase = SettlementOffensivePhase.Approach;
             state.ElapsedOperationDays = 10f;
@@ -300,7 +302,7 @@ namespace CustomSpawns.Tests.AI
             var operations = new OperationsStub { SiegeTarget = target };
             BesiegeClosestSettlementBehaviour provider = Provider(operations);
             Evaluate(provider, party);
-            SettlementOffensiveBehaviourState state = provider.GetState(party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
             state.Target = target;
             state.Phase = SettlementOffensivePhase.Active;
             operations.TargetComplete = true;
@@ -321,7 +323,7 @@ namespace CustomSpawns.Tests.AI
             var operations = new OperationsStub { SiegeTarget = oldTarget };
             BesiegeClosestSettlementBehaviour provider = Provider(operations);
             Evaluate(provider, party);
-            SettlementOffensiveBehaviourState state = provider.GetState(party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
             state.Target = oldTarget;
             state.Phase = SettlementOffensivePhase.Active;
             operations.CurrentTargetValid = false;
@@ -342,7 +344,7 @@ namespace CustomSpawns.Tests.AI
             var operations = new OperationsStub { SiegeTarget = target };
             BesiegeClosestSettlementBehaviour provider = Provider(operations);
             Evaluate(provider, party);
-            SettlementOffensiveBehaviourState state = provider.GetState(party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
             state.Target = target;
             state.Phase = SettlementOffensivePhase.Active;
             state.RecoveryGraceDays = 1f;
@@ -367,7 +369,7 @@ namespace CustomSpawns.Tests.AI
             var operations = new OperationsStub { SiegeTarget = oldTarget };
             BesiegeClosestSettlementBehaviour provider = Provider(operations);
             Evaluate(provider, party);
-            SettlementOffensiveBehaviourState state = provider.GetState(party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
             state.Target = oldTarget;
             state.Phase = SettlementOffensivePhase.Active;
             state.FailedAttempts = 2;
@@ -388,7 +390,7 @@ namespace CustomSpawns.Tests.AI
             var operations = new OperationsStub { SiegeTarget = oldTarget };
             BesiegeClosestSettlementBehaviour provider = Provider(operations);
             Evaluate(provider, party);
-            SettlementOffensiveBehaviourState state = provider.GetState(party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
             state.Target = oldTarget;
             state.Phase = SettlementOffensivePhase.Recovery;
             state.RecoveryGraceDays = 0f;
@@ -407,7 +409,7 @@ namespace CustomSpawns.Tests.AI
             var operations = new OperationsStub();
             BesiegeClosestSettlementBehaviour provider = Provider(operations);
             Evaluate(provider, party);
-            SettlementOffensiveBehaviourState state = provider.GetState(party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
             state.Phase = SettlementOffensivePhase.Search;
             state.ElapsedOperationDays = state.OperationWindowDays;
 
@@ -432,7 +434,7 @@ namespace CustomSpawns.Tests.AI
             provider.SyncData(store);
 
             Assert.That(store.SeenKey, Is.EqualTo(BesiegeClosestSettlementBehaviour.SaveKey));
-            Assert.That(provider.GetState(party), Is.SameAs(loadedState));
+            Assert.That(_states.GetOrAdd(party), Is.SameAs(loadedState));
         }
 
         private static SiegeTargetCandidate Candidate(Settlement target, SpawnSettlementType type,
@@ -441,9 +443,10 @@ namespace CustomSpawns.Tests.AI
             return new SiegeTargetCandidate(target, true, true, type, compatible, distance, defenders);
         }
 
-        private static BesiegeClosestSettlementBehaviour Provider(OperationsStub operations)
+        private BesiegeClosestSettlementBehaviour Provider(OperationsStub operations)
         {
-            return new BesiegeClosestSettlementBehaviour(operations, (minimum, _) => minimum);
+            _states = new SettlementOffensiveStateStore(BesiegeClosestSettlementBehaviour.SaveKey);
+            return new BesiegeClosestSettlementBehaviour(operations, (minimum, _) => minimum, _states);
         }
 
         private static PartyBehaviourResult Evaluate(BesiegeClosestSettlementBehaviour provider,

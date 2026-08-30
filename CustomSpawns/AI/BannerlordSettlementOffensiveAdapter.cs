@@ -50,7 +50,7 @@ namespace CustomSpawns.AI
 
         public float GetVisibleHostileStrength(MobileParty observer)
         {
-            return SettlementOffensiveBehaviour.SumVisibleHostileStrength(
+            return OffensiveStrengthRules.SumVisibleHostileStrength(
                 _getRoamingParties(observer), _getSeeingRange(observer));
         }
 

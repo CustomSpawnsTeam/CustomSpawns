@@ -15,6 +15,8 @@ namespace CustomSpawns.Tests.AI
 {
     public class RaidClosestVillageBehaviourTests
     {
+        private SettlementOffensiveStateStore _states = null!;
+
         [Test]
         public void Provider_HandlesTypedRaidConfiguration()
         {
@@ -39,7 +41,7 @@ namespace CustomSpawns.Tests.AI
             Assert.That(result.AIBehavior?.Party, Is.SameAs(patrol));
             Assert.That(operations.FindRaidTargetCalls, Is.EqualTo(1));
             Assert.That(operations.FindPatrolTargetCalls, Is.EqualTo(1));
-            Assert.That(provider.GetState(party).Phase, Is.EqualTo(SettlementOffensivePhase.Search));
+            Assert.That(_states.GetOrAdd(party).Phase, Is.EqualTo(SettlementOffensivePhase.Search));
         }
 
         [Test]
@@ -73,7 +75,7 @@ namespace CustomSpawns.Tests.AI
             PartyBehaviourResult safeResult = Evaluate(provider, party);
 
             Assert.That(unsafeResult.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.PatrolAroundPoint));
-            Assert.That(provider.GetState(party).Target, Is.SameAs(target));
+            Assert.That(_states.GetOrAdd(party).Target, Is.SameAs(target));
             Assert.That(safeResult.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.RaidSettlement));
             Assert.That(operations.VisibleHostileStrengthCalls, Is.EqualTo(2));
         }
@@ -121,7 +123,7 @@ namespace CustomSpawns.Tests.AI
             var operations = new OperationsStub { RaidTarget = target };
             RaidClosestVillageBehaviour provider = Provider(operations);
             Evaluate(provider, party);
-            SettlementOffensiveBehaviourState state = provider.GetState(party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
             state.Phase = SettlementOffensivePhase.Active;
             state.Target = target;
             state.ElapsedOperationDays = 2f;
@@ -147,7 +149,7 @@ namespace CustomSpawns.Tests.AI
             };
             RaidClosestVillageBehaviour provider = Provider(operations);
             Evaluate(provider, party);
-            SettlementOffensiveBehaviourState state = provider.GetState(party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
             state.Phase = SettlementOffensivePhase.Recovery;
             state.Target = target;
             state.RecoveryGraceDays = 1f;
@@ -171,7 +173,7 @@ namespace CustomSpawns.Tests.AI
             var operations = new OperationsStub { RaidTarget = target };
             RaidClosestVillageBehaviour provider = Provider(operations);
             Evaluate(provider, party);
-            SettlementOffensiveBehaviourState state = provider.GetState(party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
             state.Phase = SettlementOffensivePhase.Recovery;
             state.Target = target;
             state.RecoveryGraceDays = 1f;
@@ -192,7 +194,7 @@ namespace CustomSpawns.Tests.AI
             var operations = new OperationsStub { RaidTarget = oldTarget };
             RaidClosestVillageBehaviour provider = Provider(operations);
             Evaluate(provider, party);
-            SettlementOffensiveBehaviourState state = provider.GetState(party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
             state.Phase = SettlementOffensivePhase.Active;
             state.Target = oldTarget;
             operations.CurrentTargetValid = false;
@@ -225,7 +227,7 @@ namespace CustomSpawns.Tests.AI
             provider.SyncData(dataStore);
 
             Assert.That(dataStore.SeenKey, Is.EqualTo(RaidClosestVillageBehaviour.SaveKey));
-            Assert.That(provider.GetState(party), Is.SameAs(loadedState));
+            Assert.That(_states.GetOrAdd(party), Is.SameAs(loadedState));
         }
 
         [Test]
@@ -235,7 +237,7 @@ namespace CustomSpawns.Tests.AI
             var operations = new OperationsStub();
             RaidClosestVillageBehaviour provider = Provider(operations);
             Evaluate(provider, party);
-            SettlementOffensiveBehaviourState state = provider.GetState(party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
             state.Phase = SettlementOffensivePhase.Cooldown;
             state.CooldownRemainingDays = 1f;
             int strengthCalls = operations.AttackerStrengthCalls;
@@ -251,7 +253,7 @@ namespace CustomSpawns.Tests.AI
         [Test]
         public void TargetRatio_ZeroMilitiaIsAlwaysAQualifiedTarget()
         {
-            Assert.That(SettlementOffensiveBehaviour.MeetsStrengthRatio(0f, 0f, float.MaxValue),
+            Assert.That(OffensiveStrengthRules.MeetsStrengthRatio(0f, 0f, float.MaxValue),
                 Is.True);
         }
 
@@ -321,9 +323,10 @@ namespace CustomSpawns.Tests.AI
             };
         }
 
-        private static RaidClosestVillageBehaviour Provider(OperationsStub operations)
+        private RaidClosestVillageBehaviour Provider(OperationsStub operations)
         {
-            return new RaidClosestVillageBehaviour(operations, (minimum, _) => minimum);
+            _states = new SettlementOffensiveStateStore(RaidClosestVillageBehaviour.SaveKey);
+            return new RaidClosestVillageBehaviour(operations, (minimum, _) => minimum, _states);
         }
 
         private static PartyBehaviourResult Evaluate(RaidClosestVillageBehaviour provider,
@@ -422,7 +425,7 @@ namespace CustomSpawns.Tests.AI
                 FindRaidTargetCalls++;
                 FindRaidTargetStrength = attackerStrength;
                 if (RaidTargetDefenderStrength.HasValue &&
-                    !SettlementOffensiveBehaviour.MeetsStrengthRatio(attackerStrength,
+                    !OffensiveStrengthRules.MeetsStrengthRatio(attackerStrength,
                         RaidTargetDefenderStrength.Value, minimumRatio))
                 {
                     return null;

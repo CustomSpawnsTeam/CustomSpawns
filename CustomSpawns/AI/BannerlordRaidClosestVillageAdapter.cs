@@ -31,7 +31,7 @@ namespace CustomSpawns.AI
             IEnumerable<RaidTargetCandidate<Settlement>> candidates = Settlement.All.Select(settlement =>
                 new RaidTargetCandidate<Settlement>(settlement, IsCandidateValid(party, settlement),
                     party.Position.Distance(settlement.GatePosition), settlement.Militia));
-            return SettlementOffensiveBehaviour.ChooseClosestTarget(candidates, attackerStrength, minimumRatio);
+            return OffensiveStrengthRules.ChooseClosestTarget(candidates, attackerStrength, minimumRatio);
         }
 
         public float GetTargetStrength(Settlement target)

@@ -36,7 +36,7 @@ namespace CustomSpawns.AI
             return _getCandidates(party)
                 .Where(candidate => candidate.IsActive && candidate.IsHostile &&
                                     candidate.HasCompatibleSiege && targetTypes.Contains(candidate.Type) &&
-                                    SettlementOffensiveBehaviour.MeetsStrengthRatio(attackerStrength,
+                                    OffensiveStrengthRules.MeetsStrengthRatio(attackerStrength,
                                         candidate.DefenderStrength, minimumRatio))
                 .OrderBy(candidate => candidate.Distance)
                 .Select(candidate => candidate.Target)

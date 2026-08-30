@@ -14,7 +14,12 @@ namespace CustomSpawns.AI
         private readonly ISiegeOperations _siege;
 
         internal BesiegeClosestSettlementBehaviour(ISiegeOperations siege,
-            Func<float, float, float> roll) : base(roll, SaveKey)
+            Func<float, float, float> roll) : this(siege, roll, new SettlementOffensiveStateStore(SaveKey))
+        {
+        }
+
+        internal BesiegeClosestSettlementBehaviour(ISiegeOperations siege,
+            Func<float, float, float> roll, SettlementOffensiveStateStore states) : base(roll, states)
         {
             _siege = siege ?? throw new ArgumentNullException(nameof(siege));
         }
@@ -56,7 +61,7 @@ namespace CustomSpawns.AI
         private protected override bool ShouldAbandonTarget(MobileParty party, Settlement target,
             float attackerStrength, BesiegeClosestSettlementData configuration)
         {
-            return !SettlementOffensiveBehaviour.MeetsStrengthRatio(attackerStrength,
+            return !OffensiveStrengthRules.MeetsStrengthRatio(attackerStrength,
                 GetTargetStrength(party, target), configuration.MinimumAttackerToTargetRatio);
         }
 
