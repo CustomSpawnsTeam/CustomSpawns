@@ -1,11 +1,9 @@
 using System;
 using CustomSpawns.AI.Model;
 using CustomSpawns.Data.Dto;
-using CustomSpawns.Spawn;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
-using TaleWorlds.Core;
 
 namespace CustomSpawns.AI
 {
@@ -13,53 +11,52 @@ namespace CustomSpawns.AI
         : SettlementOffensivePartyBehaviour<RaidClosestVillageData>
     {
         internal const string SaveKey = "_customSpawnsRaidClosestVillageStates";
-        private readonly IRaidClosestVillageContext _context;
+        private readonly IRaidOperations _raid;
 
-        public RaidClosestVillageBehaviour(DynamicSpawnData dynamicSpawnData) : this(
-            new BannerlordRaidClosestVillageContext(dynamicSpawnData), MBRandom.RandomFloatRanged)
-        {
-        }
-
-        internal RaidClosestVillageBehaviour(IRaidClosestVillageContext context,
+        internal RaidClosestVillageBehaviour(IRaidOperations raid,
             Func<float, float, float> roll) : base(roll, SaveKey)
         {
-            _context = context ?? throw new ArgumentNullException(nameof(context));
+            _raid = raid ?? throw new ArgumentNullException(nameof(raid));
         }
 
-        private protected override ISettlementOffensiveContext Context => _context;
+        private protected override IPartyStrengthObserver PartyStrength => _raid;
+
+        private protected override IOffensiveOperationStatus OperationStatus => _raid;
+
+        private protected override IPatrolOrders PatrolOrders => _raid;
 
         private protected override bool IsMatchingOperationActive(MobileParty party, Settlement target)
         {
-            return _context.IsMatchingRaidActive(party, target);
+            return _raid.IsMatchingRaidActive(party, target);
         }
 
         private protected override bool IsCurrentTargetValid(MobileParty party,
             SettlementOffensiveBehaviourState state, bool matchingOperationActive)
         {
-            return _context.IsCurrentTargetValid(party, state.Target!, matchingOperationActive);
+            return _raid.IsCurrentTargetValid(party, state.Target!, matchingOperationActive);
         }
 
         private protected override bool IsTargetComplete(MobileParty party, Settlement target)
         {
-            return _context.IsTargetComplete(target);
+            return _raid.IsTargetComplete(target);
         }
 
         private protected override Settlement? FindTarget(MobileParty party, float attackerStrength,
             RaidClosestVillageData configuration)
         {
-            return _context.FindClosestRaidTarget(party, attackerStrength,
+            return _raid.FindClosestRaidTarget(party, attackerStrength,
                 configuration.MinimumAttackerToTargetRatio);
         }
 
         private protected override float GetTargetStrength(MobileParty party, Settlement target)
         {
-            return _context.GetTargetStrength(target);
+            return _raid.GetTargetStrength(target);
         }
 
         private protected override AIBehaviorData CreateOffensiveBehavior(MobileParty party,
             Settlement target)
         {
-            return _context.CreateRaidBehavior(party, target);
+            return _raid.CreateRaidBehavior(party, target);
         }
     }
 }

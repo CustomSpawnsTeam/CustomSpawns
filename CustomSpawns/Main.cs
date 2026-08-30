@@ -121,8 +121,10 @@ namespace CustomSpawns
             IPriorityPartyBehaviour[] priorityPartyBehaviours =
             {
                 new PatrolAroundClosestLestInterruptedAndSwitchBehaviour(),
-                new RaidClosestVillageBehaviour(_dynamicSpawnData),
-                new BesiegeClosestSettlementBehaviour(_dynamicSpawnData)
+                new RaidClosestVillageBehaviour(
+                    new BannerlordRaidClosestVillageAdapter(_dynamicSpawnData), MBRandom.RandomFloatRanged),
+                new BesiegeClosestSettlementBehaviour(
+                    new BannerlordBesiegeClosestSettlementAdapter(_dynamicSpawnData), MBRandom.RandomFloatRanged)
             };
             var partyBehaviourResolver = new PartyBehaviourResolver(_spawnDao, _partyBehaviourDao,
                 priorityPartyBehaviours, new HomeSettlementPatrolBehaviour(), new FollowSupportedPartyBehaviour(),

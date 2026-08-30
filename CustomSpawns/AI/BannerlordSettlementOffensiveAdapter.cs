@@ -12,15 +12,15 @@ namespace CustomSpawns.AI
      * The Bannerlord lookups a settlement offensive needs whether it raids or besieges: how strong the
      * attacking force is, what the party can see around itself, and where it waits while it has no
      * target. Only target selection differs between the two, so only that is left to the
-     * behaviour-specific contexts.
+     * behaviour-specific ports.
      */
-    internal abstract class BannerlordSettlementOffensiveContext
+    internal abstract class BannerlordSettlementOffensiveAdapter
     {
         private readonly Func<MobileParty, float> _getSeeingRange;
         private readonly Func<MobileParty, IEnumerable<RoamingPartyStrength>> _getRoamingParties;
         private readonly Func<MobileParty, IEnumerable<MobileParty>> _getAccompanyingParties;
 
-        protected BannerlordSettlementOffensiveContext(Func<MobileParty, float> getSeeingRange,
+        protected BannerlordSettlementOffensiveAdapter(Func<MobileParty, float> getSeeingRange,
             Func<MobileParty, IEnumerable<RoamingPartyStrength>> getRoamingParties,
             Func<MobileParty, IEnumerable<MobileParty>> getAccompanyingParties)
         {

@@ -6,7 +6,11 @@ using TaleWorlds.CampaignSystem.Settlements;
 
 namespace CustomSpawns.AI
 {
-    internal interface IBesiegeClosestSettlementContext : ISettlementOffensiveContext
+    /**
+     * Everything a besieging offensive needs from the game on top of the roles every offensive uses:
+     * picking a settlement it can take, sizing up its defenders, and following the siege it started.
+     */
+    internal interface ISiegeOperations : IPartyStrengthObserver, IOffensiveOperationStatus, IPatrolOrders
     {
         Settlement? FindClosestSiegeTarget(MobileParty party, float attackerStrength,
             float minimumRatio, IReadOnlyList<SpawnSettlementType> targetTypes);

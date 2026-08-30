@@ -10,18 +10,18 @@ using TaleWorlds.CampaignSystem.Settlements;
 
 namespace CustomSpawns.AI
 {
-    internal sealed class BannerlordBesiegeClosestSettlementContext
-        : BannerlordSettlementOffensiveContext, IBesiegeClosestSettlementContext
+    internal sealed class BannerlordBesiegeClosestSettlementAdapter
+        : BannerlordSettlementOffensiveAdapter, ISiegeOperations
     {
         private readonly Func<MobileParty, IEnumerable<SiegeTargetCandidate>> _getCandidates;
 
-        public BannerlordBesiegeClosestSettlementContext(DynamicSpawnData dynamicSpawnData) : this(
+        public BannerlordBesiegeClosestSettlementAdapter(DynamicSpawnData dynamicSpawnData) : this(
             observer => observer.SeeingRange, ObserveRoamingParties, ObserveCandidates,
             dynamicSpawnData.FindAccompanyingParties)
         {
         }
 
-        internal BannerlordBesiegeClosestSettlementContext(Func<MobileParty, float> getSeeingRange,
+        internal BannerlordBesiegeClosestSettlementAdapter(Func<MobileParty, float> getSeeingRange,
             Func<MobileParty, IEnumerable<RoamingPartyStrength>> getRoamingParties,
             Func<MobileParty, IEnumerable<SiegeTargetCandidate>> getCandidates,
             Func<MobileParty, IEnumerable<MobileParty>> getAccompanyingParties)

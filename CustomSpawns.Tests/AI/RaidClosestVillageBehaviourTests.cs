@@ -18,7 +18,9 @@ namespace CustomSpawns.Tests.AI
         [Test]
         public void Provider_HandlesTypedRaidConfiguration()
         {
-            Assert.That(new RaidClosestVillageBehaviour(DummyDynamicSpawnData()).ConfigurationType,
+            Assert.That(new RaidClosestVillageBehaviour(
+                    new BannerlordRaidClosestVillageAdapter(DummyDynamicSpawnData()),
+                    (minimum, _) => minimum).ConfigurationType,
                 Is.EqualTo(typeof(RaidClosestVillageData)));
         }
 
@@ -27,16 +29,16 @@ namespace CustomSpawns.Tests.AI
         {
             MobileParty party = DummyParty();
             Settlement patrol = DummySettlement();
-            var context = new ContextStub { PatrolTarget = patrol };
-            RaidClosestVillageBehaviour provider = Provider(context);
+            var operations = new OperationsStub { PatrolTarget = patrol };
+            RaidClosestVillageBehaviour provider = Provider(operations);
 
             PartyBehaviourResult result = Evaluate(provider, party);
 
             Assert.That(result.IsApplicable, Is.True);
             Assert.That(result.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.PatrolAroundPoint));
             Assert.That(result.AIBehavior?.Party, Is.SameAs(patrol));
-            Assert.That(context.FindRaidTargetCalls, Is.EqualTo(1));
-            Assert.That(context.FindPatrolTargetCalls, Is.EqualTo(1));
+            Assert.That(operations.FindRaidTargetCalls, Is.EqualTo(1));
+            Assert.That(operations.FindPatrolTargetCalls, Is.EqualTo(1));
             Assert.That(provider.GetState(party).Phase, Is.EqualTo(SettlementOffensivePhase.Search));
         }
 
@@ -44,7 +46,7 @@ namespace CustomSpawns.Tests.AI
         public void Search_WithoutPatrolRemainsApplicableWithoutBehavior()
         {
             MobileParty party = DummyParty();
-            RaidClosestVillageBehaviour provider = Provider(new ContextStub());
+            RaidClosestVillageBehaviour provider = Provider(new OperationsStub());
 
             PartyBehaviourResult result = Evaluate(provider, party);
 
@@ -58,26 +60,26 @@ namespace CustomSpawns.Tests.AI
             MobileParty party = DummyParty();
             Settlement target = DummySettlement();
             Settlement patrol = DummySettlement();
-            var context = new ContextStub
+            var operations = new OperationsStub
             {
                 RaidTarget = target,
                 PatrolTarget = patrol,
                 VisibleHostileStrength = 200f
             };
-            RaidClosestVillageBehaviour provider = Provider(context);
+            RaidClosestVillageBehaviour provider = Provider(operations);
 
             PartyBehaviourResult unsafeResult = Evaluate(provider, party);
-            context.VisibleHostileStrength = 0f;
+            operations.VisibleHostileStrength = 0f;
             PartyBehaviourResult safeResult = Evaluate(provider, party);
 
             Assert.That(unsafeResult.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.PatrolAroundPoint));
             Assert.That(provider.GetState(party).Target, Is.SameAs(target));
             Assert.That(safeResult.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.RaidSettlement));
-            Assert.That(context.VisibleHostileStrengthCalls, Is.EqualTo(2));
+            Assert.That(operations.VisibleHostileStrengthCalls, Is.EqualTo(2));
         }
 
         [Test]
-        public void ConcreteContext_UsesEachObserverSeeingRangeAndInclusiveDistanceBoundary()
+        public void ConcreteAdapter_UsesEachObserverSeeingRangeAndInclusiveDistanceBoundary()
         {
             MobileParty boundaryObserver = DummyParty();
             MobileParty shortRangeObserver = DummyParty();
@@ -88,7 +90,7 @@ namespace CustomSpawns.Tests.AI
             };
             int rangeReads = 0;
             int observationReads = 0;
-            var context = new BannerlordRaidClosestVillageContext(
+            var operations = new BannerlordRaidClosestVillageAdapter(
                 observer =>
                 {
                     rangeReads++;
@@ -102,8 +104,8 @@ namespace CustomSpawns.Tests.AI
                 },
                 _ => new List<MobileParty>());
 
-            float atBoundary = context.GetVisibleHostileStrength(boundaryObserver);
-            float outsideShorterObserverRange = context.GetVisibleHostileStrength(shortRangeObserver);
+            float atBoundary = operations.GetVisibleHostileStrength(boundaryObserver);
+            float outsideShorterObserverRange = operations.GetVisibleHostileStrength(shortRangeObserver);
 
             Assert.That(atBoundary, Is.EqualTo(20f));
             Assert.That(outsideShorterObserverRange, Is.Zero);
@@ -116,14 +118,14 @@ namespace CustomSpawns.Tests.AI
         {
             MobileParty party = DummyParty();
             Settlement target = DummySettlement();
-            var context = new ContextStub { RaidTarget = target };
-            RaidClosestVillageBehaviour provider = Provider(context);
+            var operations = new OperationsStub { RaidTarget = target };
+            RaidClosestVillageBehaviour provider = Provider(operations);
             Evaluate(provider, party);
             SettlementOffensiveBehaviourState state = provider.GetState(party);
             state.Phase = SettlementOffensivePhase.Active;
             state.Target = target;
             state.ElapsedOperationDays = 2f;
-            context.MatchingRaidActive = true;
+            operations.MatchingRaidActive = true;
 
             PartyBehaviourResult result = Evaluate(provider, party);
 
@@ -138,12 +140,12 @@ namespace CustomSpawns.Tests.AI
         {
             MobileParty party = DummyParty();
             Settlement target = DummySettlement();
-            var context = new ContextStub
+            var operations = new OperationsStub
             {
                 RaidTarget = target,
                 ShortTermBehavior = shortTermBehavior
             };
-            RaidClosestVillageBehaviour provider = Provider(context);
+            RaidClosestVillageBehaviour provider = Provider(operations);
             Evaluate(provider, party);
             SettlementOffensiveBehaviourState state = provider.GetState(party);
             state.Phase = SettlementOffensivePhase.Recovery;
@@ -166,8 +168,8 @@ namespace CustomSpawns.Tests.AI
         {
             MobileParty party = DummyParty();
             Settlement target = DummySettlement();
-            var context = new ContextStub { RaidTarget = target };
-            RaidClosestVillageBehaviour provider = Provider(context);
+            var operations = new OperationsStub { RaidTarget = target };
+            RaidClosestVillageBehaviour provider = Provider(operations);
             Evaluate(provider, party);
             SettlementOffensiveBehaviourState state = provider.GetState(party);
             state.Phase = SettlementOffensivePhase.Recovery;
@@ -187,14 +189,14 @@ namespace CustomSpawns.Tests.AI
             MobileParty party = DummyParty();
             Settlement oldTarget = DummySettlement();
             Settlement replacement = DummySettlement();
-            var context = new ContextStub { RaidTarget = oldTarget };
-            RaidClosestVillageBehaviour provider = Provider(context);
+            var operations = new OperationsStub { RaidTarget = oldTarget };
+            RaidClosestVillageBehaviour provider = Provider(operations);
             Evaluate(provider, party);
             SettlementOffensiveBehaviourState state = provider.GetState(party);
             state.Phase = SettlementOffensivePhase.Active;
             state.Target = oldTarget;
-            context.CurrentTargetValid = false;
-            context.RaidTarget = replacement;
+            operations.CurrentTargetValid = false;
+            operations.RaidTarget = replacement;
 
             PartyBehaviourResult result = Evaluate(provider, party);
 
@@ -218,7 +220,7 @@ namespace CustomSpawns.Tests.AI
                 [party] = loadedState
             };
             var dataStore = new DataStoreStub(loaded);
-            RaidClosestVillageBehaviour provider = Provider(new ContextStub());
+            RaidClosestVillageBehaviour provider = Provider(new OperationsStub());
 
             provider.SyncData(dataStore);
 
@@ -230,19 +232,19 @@ namespace CustomSpawns.Tests.AI
         public void Cooldown_ReturnsNotApplicableBeforeRuntimeBoundaryEvaluation()
         {
             MobileParty party = DummyParty();
-            var context = new ContextStub();
-            RaidClosestVillageBehaviour provider = Provider(context);
+            var operations = new OperationsStub();
+            RaidClosestVillageBehaviour provider = Provider(operations);
             Evaluate(provider, party);
             SettlementOffensiveBehaviourState state = provider.GetState(party);
             state.Phase = SettlementOffensivePhase.Cooldown;
             state.CooldownRemainingDays = 1f;
-            int strengthCalls = context.AttackerStrengthCalls;
+            int strengthCalls = operations.AttackerStrengthCalls;
 
             PartyBehaviourResult result = Evaluate(provider, party);
 
             Assert.That(result.IsApplicable, Is.False);
             Assert.That(result.AIBehavior, Is.Null);
-            Assert.That(context.AttackerStrengthCalls, Is.EqualTo(strengthCalls));
+            Assert.That(operations.AttackerStrengthCalls, Is.EqualTo(strengthCalls));
             Assert.That(state.CooldownRemainingDays, Is.EqualTo(1f - 1f / 24f));
         }
 
@@ -254,38 +256,38 @@ namespace CustomSpawns.Tests.AI
         }
 
         [Test]
-        public void ConcreteContext_AddsTheAccompanyingPartiesOfTheAssessedPartyToItsOwnStrength()
+        public void ConcreteAdapter_AddsTheAccompanyingPartiesOfTheAssessedPartyToItsOwnStrength()
         {
             MobileParty party = DummyPartyWithPartyBase();
             MobileParty accompanyingParty = DummyPartyWithPartyBase();
             MobileParty? assessedParty = null;
             var counted = new List<MobileParty>();
-            var context = new BannerlordRaidClosestVillageContext(_ => 5f,
+            var operations = new BannerlordRaidClosestVillageAdapter(_ => 5f,
                 _ => new RoamingPartyStrength[0], observed =>
                 {
                     assessedParty = observed;
                     return Counted(accompanyingParty, counted);
                 });
 
-            context.GetAttackerStrength(party);
+            operations.GetAttackerStrength(party);
 
             Assert.That(assessedParty, Is.SameAs(party));
             Assert.That(counted, Is.EqualTo(new[] { accompanyingParty }));
         }
 
         [Test]
-        public void ConcreteContext_ArmyLeaderTakesTheArmyTotalWithoutCountingAccompanyingPartiesAgain()
+        public void ConcreteAdapter_ArmyLeaderTakesTheArmyTotalWithoutCountingAccompanyingPartiesAgain()
         {
             MobileParty party = ArmyLeadingParty();
             bool accompanyingPartiesConsulted = false;
-            var context = new BannerlordRaidClosestVillageContext(_ => 5f,
+            var operations = new BannerlordRaidClosestVillageAdapter(_ => 5f,
                 _ => new RoamingPartyStrength[0], _ =>
                 {
                     accompanyingPartiesConsulted = true;
                     return new List<MobileParty>();
                 });
 
-            context.GetAttackerStrength(party);
+            operations.GetAttackerStrength(party);
 
             Assert.That(accompanyingPartiesConsulted, Is.False);
         }
@@ -294,8 +296,8 @@ namespace CustomSpawns.Tests.AI
         public void TargetRatio_EscortStrengthAdmitsAVillageTheLeaderPartyAloneWouldSkip()
         {
             Settlement village = DummySettlement();
-            ContextStub withEscorts = StrengthRuledContext(village, 150f);
-            ContextStub alone = StrengthRuledContext(village, 50f);
+            OperationsStub withEscorts = StrengthRuledOperations(village, 150f);
+            OperationsStub alone = StrengthRuledOperations(village, 50f);
 
             PartyBehaviourResult escortedResult = Evaluate(Provider(withEscorts), DummyParty());
             PartyBehaviourResult loneResult = Evaluate(Provider(alone), DummyParty());
@@ -307,10 +309,10 @@ namespace CustomSpawns.Tests.AI
             Assert.That(loneResult.AIBehavior, Is.Null);
         }
 
-        private static ContextStub StrengthRuledContext(Settlement village, float attackerStrength)
+        private static OperationsStub StrengthRuledOperations(Settlement village, float attackerStrength)
         {
             const float villageStrength = 60f;
-            return new ContextStub
+            return new OperationsStub
             {
                 AttackerStrength = attackerStrength,
                 RaidTarget = village,
@@ -319,9 +321,9 @@ namespace CustomSpawns.Tests.AI
             };
         }
 
-        private static RaidClosestVillageBehaviour Provider(ContextStub context)
+        private static RaidClosestVillageBehaviour Provider(OperationsStub operations)
         {
-            return new RaidClosestVillageBehaviour(context, (minimum, _) => minimum);
+            return new RaidClosestVillageBehaviour(operations, (minimum, _) => minimum);
         }
 
         private static PartyBehaviourResult Evaluate(RaidClosestVillageBehaviour provider,
@@ -378,7 +380,7 @@ namespace CustomSpawns.Tests.AI
             return (Settlement)FormatterServices.GetUninitializedObject(typeof(Settlement));
         }
 
-        private sealed class ContextStub : IRaidClosestVillageContext
+        private sealed class OperationsStub : IRaidOperations
         {
             public float AttackerStrength { get; set; } = 100f;
             public float VisibleHostileStrength { get; set; }

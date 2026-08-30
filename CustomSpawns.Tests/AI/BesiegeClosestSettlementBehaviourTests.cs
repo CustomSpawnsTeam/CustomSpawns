@@ -18,12 +18,14 @@ namespace CustomSpawns.Tests.AI
         [Test]
         public void Provider_HandlesTypedSiegeConfiguration()
         {
-            Assert.That(new BesiegeClosestSettlementBehaviour(DummyDynamicSpawnData()).ConfigurationType,
+            Assert.That(new BesiegeClosestSettlementBehaviour(
+                    new BannerlordBesiegeClosestSettlementAdapter(DummyDynamicSpawnData()),
+                    (minimum, _) => minimum).ConfigurationType,
                 Is.EqualTo(typeof(BesiegeClosestSettlementData)));
         }
 
         [Test]
-        public void ConcreteContext_FiltersTownCastleAndIncompatibleSiegesThenChoosesClosestQualified()
+        public void ConcreteAdapter_FiltersTownCastleAndIncompatibleSiegesThenChoosesClosestQualified()
         {
             MobileParty party = DummyParty();
             Settlement village = DummySettlement();
@@ -37,29 +39,29 @@ namespace CustomSpawns.Tests.AI
                 Candidate(incompatibleCastle, SpawnSettlementType.Castle, 3f, 10f, false),
                 Candidate(qualifiedCastle, SpawnSettlementType.Castle, 4f, 50f)
             };
-            var context = new BannerlordBesiegeClosestSettlementContext(_ => 5f, _ => new RoamingPartyStrength[0],
+            var operations = new BannerlordBesiegeClosestSettlementAdapter(_ => 5f, _ => new RoamingPartyStrength[0],
                 _ => candidates, _ => new MobileParty[0]);
 
-            Settlement? result = context.FindClosestSiegeTarget(party, 100f, 1.5f,
+            Settlement? result = operations.FindClosestSiegeTarget(party, 100f, 1.5f,
                 new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle });
 
             Assert.That(result, Is.SameAs(qualifiedCastle));
         }
 
         [Test]
-        public void ConcreteContext_ZeroDefendersAndConfiguredTownOnlyAreHandledSafely()
+        public void ConcreteAdapter_ZeroDefendersAndConfiguredTownOnlyAreHandledSafely()
         {
             MobileParty party = DummyParty();
             Settlement castle = DummySettlement();
             Settlement town = DummySettlement();
-            var context = new BannerlordBesiegeClosestSettlementContext(_ => 5f,
+            var operations = new BannerlordBesiegeClosestSettlementAdapter(_ => 5f,
                 _ => new RoamingPartyStrength[0], _ => new[]
                 {
                     Candidate(castle, SpawnSettlementType.Castle, 1f, 0f),
                     Candidate(town, SpawnSettlementType.Town, 2f, 0f)
                 }, _ => new MobileParty[0]);
 
-            Settlement? result = context.FindClosestSiegeTarget(party, 0f, float.MaxValue,
+            Settlement? result = operations.FindClosestSiegeTarget(party, 0f, float.MaxValue,
                 new[] { SpawnSettlementType.Town });
 
             Assert.That(result, Is.SameAs(town));
@@ -70,7 +72,7 @@ namespace CustomSpawns.Tests.AI
         {
             var occupant = new SettlementDefenderPartyStrength(25f, isLordParty: false);
 
-            Assert.That(BannerlordBesiegeClosestSettlementContext.CalculateDefenderStrength(
+            Assert.That(BannerlordBesiegeClosestSettlementAdapter.CalculateDefenderStrength(
                 0f, 0f, new[] { occupant }), Is.EqualTo(25f));
         }
 
@@ -80,7 +82,7 @@ namespace CustomSpawns.Tests.AI
             var occupant = new SettlementDefenderPartyStrength(25f,
                 isHostileToAttacker: true, isSettlementFaction: false);
 
-            Assert.That(BannerlordBesiegeClosestSettlementContext.CalculateDefenderStrength(
+            Assert.That(BannerlordBesiegeClosestSettlementAdapter.CalculateDefenderStrength(
                 0f, 0f, new[] { occupant }), Is.EqualTo(25f));
         }
 
@@ -95,7 +97,7 @@ namespace CustomSpawns.Tests.AI
                 new SettlementDefenderPartyStrength(40f, isHostileToAttacker: false)
             };
 
-            Assert.That(BannerlordBesiegeClosestSettlementContext.CalculateDefenderStrength(
+            Assert.That(BannerlordBesiegeClosestSettlementAdapter.CalculateDefenderStrength(
                 0f, 0f, occupants), Is.Zero);
         }
 
@@ -109,7 +111,7 @@ namespace CustomSpawns.Tests.AI
                 new SettlementDefenderPartyStrength(10f)
             };
 
-            Assert.That(BannerlordBesiegeClosestSettlementContext.CalculateDefenderStrength(
+            Assert.That(BannerlordBesiegeClosestSettlementAdapter.CalculateDefenderStrength(
                 20f, 30f, occupants), Is.EqualTo(60f));
         }
 
@@ -119,9 +121,9 @@ namespace CustomSpawns.Tests.AI
             IFaction intendedDefender = DummyKingdom();
             IFaction thirdParty = DummyKingdom();
 
-            Assert.That(BannerlordBesiegeClosestSettlementContext.IsIntendedTargetFaction(
+            Assert.That(BannerlordBesiegeClosestSettlementAdapter.IsIntendedTargetFaction(
                 intendedDefender, intendedDefender), Is.True);
-            Assert.That(BannerlordBesiegeClosestSettlementContext.IsIntendedTargetFaction(
+            Assert.That(BannerlordBesiegeClosestSettlementAdapter.IsIntendedTargetFaction(
                 thirdParty, intendedDefender), Is.False);
         }
 
@@ -131,16 +133,16 @@ namespace CustomSpawns.Tests.AI
             MobileParty party = DummyParty();
             Settlement target = DummySettlement();
             Settlement patrol = DummySettlement();
-            var context = new ContextStub
+            var operations = new OperationsStub
             {
                 SiegeTarget = target,
                 PatrolTarget = patrol,
                 VisibleHostileStrength = 200f
             };
-            BesiegeClosestSettlementBehaviour provider = Provider(context);
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
 
             PartyBehaviourResult unsafeResult = Evaluate(provider, party);
-            context.VisibleHostileStrength = 0f;
+            operations.VisibleHostileStrength = 0f;
             PartyBehaviourResult safeResult = Evaluate(provider, party);
 
             Assert.That(unsafeResult.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.PatrolAroundPoint));
@@ -149,7 +151,7 @@ namespace CustomSpawns.Tests.AI
         }
 
         [Test]
-        public void ConcreteContext_UsesEachObserverSeeingRangeAndInclusiveBoundary()
+        public void ConcreteAdapter_UsesEachObserverSeeingRangeAndInclusiveBoundary()
         {
             MobileParty boundaryObserver = DummyParty();
             MobileParty shorterObserver = DummyParty();
@@ -158,12 +160,12 @@ namespace CustomSpawns.Tests.AI
                 new RoamingPartyStrength(false, true, true, null, 5f, 20f),
                 new RoamingPartyStrength(false, true, true, null, 5.001f, 100f)
             };
-            var context = new BannerlordBesiegeClosestSettlementContext(
+            var operations = new BannerlordBesiegeClosestSettlementAdapter(
                 observer => observer == boundaryObserver ? 5f : 4.999f,
                 _ => observations, _ => new SiegeTargetCandidate[0], _ => new MobileParty[0]);
 
-            Assert.That(context.GetVisibleHostileStrength(boundaryObserver), Is.EqualTo(20f));
-            Assert.That(context.GetVisibleHostileStrength(shorterObserver), Is.Zero);
+            Assert.That(operations.GetVisibleHostileStrength(boundaryObserver), Is.EqualTo(20f));
+            Assert.That(operations.GetVisibleHostileStrength(shorterObserver), Is.Zero);
         }
 
         [Test]
@@ -172,12 +174,12 @@ namespace CustomSpawns.Tests.AI
             MobileParty party = DummyParty();
             Settlement target = DummySettlement();
             Settlement patrol = DummySettlement();
-            var context = new ContextStub { SiegeTarget = target, PatrolTarget = patrol };
-            BesiegeClosestSettlementBehaviour provider = Provider(context);
+            var operations = new OperationsStub { SiegeTarget = target, PatrolTarget = patrol };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
             Evaluate(provider, party);
             SettlementOffensiveBehaviourState state = provider.GetState(party);
             state.Phase = SettlementOffensivePhase.Approach;
-            context.VisibleHostileStrength = 200f;
+            operations.VisibleHostileStrength = 200f;
 
             PartyBehaviourResult result = Evaluate(provider, party);
 
@@ -191,13 +193,13 @@ namespace CustomSpawns.Tests.AI
             MobileParty party = DummyParty();
             Settlement target = DummySettlement();
             Settlement patrol = DummySettlement();
-            var context = new ContextStub { SiegeTarget = target, PatrolTarget = patrol };
-            BesiegeClosestSettlementBehaviour provider = Provider(context);
+            var operations = new OperationsStub { SiegeTarget = target, PatrolTarget = patrol };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
             Evaluate(provider, party);
             SettlementOffensiveBehaviourState state = provider.GetState(party);
             state.Phase = SettlementOffensivePhase.Approach;
-            context.TargetStrength = 200f;
-            context.SiegeTarget = null;
+            operations.TargetStrength = 200f;
+            operations.SiegeTarget = null;
 
             PartyBehaviourResult result = Evaluate(provider, party);
 
@@ -212,13 +214,13 @@ namespace CustomSpawns.Tests.AI
             MobileParty party = DummyParty();
             Settlement target = DummySettlement();
             Settlement patrol = DummySettlement();
-            var context = new ContextStub { SiegeTarget = target, PatrolTarget = patrol };
-            BesiegeClosestSettlementBehaviour provider = Provider(context);
+            var operations = new OperationsStub { SiegeTarget = target, PatrolTarget = patrol };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
             Evaluate(provider, party);
             SettlementOffensiveBehaviourState state = provider.GetState(party);
-            context.MatchingSiegeActive = true;
-            context.TargetStrength = 200f;
-            context.SiegeTarget = null;
+            operations.MatchingSiegeActive = true;
+            operations.TargetStrength = 200f;
+            operations.SiegeTarget = null;
 
             PartyBehaviourResult result = Evaluate(provider, party);
 
@@ -233,13 +235,13 @@ namespace CustomSpawns.Tests.AI
             MobileParty party = DummyParty();
             Settlement target = DummySettlement();
             Settlement patrol = DummySettlement();
-            var context = new ContextStub { SiegeTarget = target, PatrolTarget = patrol };
-            BesiegeClosestSettlementBehaviour provider = Provider(context);
+            var operations = new OperationsStub { SiegeTarget = target, PatrolTarget = patrol };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
             Evaluate(provider, party);
             SettlementOffensiveBehaviourState state = provider.GetState(party);
             state.Phase = SettlementOffensivePhase.Approach;
-            context.TargetStrength = 100f;
-            context.SiegeTarget = null;
+            operations.TargetStrength = 100f;
+            operations.SiegeTarget = null;
 
             PartyBehaviourResult result = Evaluate(provider, party);
 
@@ -248,20 +250,20 @@ namespace CustomSpawns.Tests.AI
         }
 
         [Test]
-        public void ConcreteContext_AddsTheAccompanyingPartiesOfTheAssessedPartyToItsOwnStrength()
+        public void ConcreteAdapter_AddsTheAccompanyingPartiesOfTheAssessedPartyToItsOwnStrength()
         {
             MobileParty party = DummyPartyWithPartyBase();
             MobileParty accompanyingParty = DummyPartyWithPartyBase();
             MobileParty? assessedParty = null;
             var counted = new List<MobileParty>();
-            var context = new BannerlordBesiegeClosestSettlementContext(_ => 5f,
+            var operations = new BannerlordBesiegeClosestSettlementAdapter(_ => 5f,
                 _ => new RoamingPartyStrength[0], _ => new SiegeTargetCandidate[0], observed =>
                 {
                     assessedParty = observed;
                     return Counted(accompanyingParty, counted);
                 });
 
-            context.GetAttackerStrength(party);
+            operations.GetAttackerStrength(party);
 
             Assert.That(assessedParty, Is.SameAs(party));
             Assert.That(counted, Is.EqualTo(new[] { accompanyingParty }));
@@ -273,15 +275,15 @@ namespace CustomSpawns.Tests.AI
         {
             MobileParty party = DummyParty();
             Settlement target = DummySettlement();
-            var context = new ContextStub { SiegeTarget = target };
-            BesiegeClosestSettlementBehaviour provider = Provider(context);
+            var operations = new OperationsStub { SiegeTarget = target };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
             Evaluate(provider, party);
             SettlementOffensiveBehaviourState state = provider.GetState(party);
             state.Target = target;
             state.Phase = SettlementOffensivePhase.Approach;
             state.ElapsedOperationDays = 10f;
-            context.MatchingSiegeActive = !assault;
-            context.MatchingAssaultActive = assault;
+            operations.MatchingSiegeActive = !assault;
+            operations.MatchingAssaultActive = assault;
 
             PartyBehaviourResult result = Evaluate(provider, party);
 
@@ -295,13 +297,13 @@ namespace CustomSpawns.Tests.AI
         {
             MobileParty party = DummyParty();
             Settlement target = DummySettlement();
-            var context = new ContextStub { SiegeTarget = target };
-            BesiegeClosestSettlementBehaviour provider = Provider(context);
+            var operations = new OperationsStub { SiegeTarget = target };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
             Evaluate(provider, party);
             SettlementOffensiveBehaviourState state = provider.GetState(party);
             state.Target = target;
             state.Phase = SettlementOffensivePhase.Active;
-            context.TargetComplete = true;
+            operations.TargetComplete = true;
 
             PartyBehaviourResult result = Evaluate(provider, party);
 
@@ -316,14 +318,14 @@ namespace CustomSpawns.Tests.AI
             MobileParty party = DummyParty();
             Settlement oldTarget = DummySettlement();
             Settlement replacement = DummySettlement();
-            var context = new ContextStub { SiegeTarget = oldTarget };
-            BesiegeClosestSettlementBehaviour provider = Provider(context);
+            var operations = new OperationsStub { SiegeTarget = oldTarget };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
             Evaluate(provider, party);
             SettlementOffensiveBehaviourState state = provider.GetState(party);
             state.Target = oldTarget;
             state.Phase = SettlementOffensivePhase.Active;
-            context.CurrentTargetValid = false;
-            context.SiegeTarget = replacement;
+            operations.CurrentTargetValid = false;
+            operations.SiegeTarget = replacement;
 
             PartyBehaviourResult result = Evaluate(provider, party);
 
@@ -337,8 +339,8 @@ namespace CustomSpawns.Tests.AI
         {
             MobileParty party = DummyParty();
             Settlement target = DummySettlement();
-            var context = new ContextStub { SiegeTarget = target };
-            BesiegeClosestSettlementBehaviour provider = Provider(context);
+            var operations = new OperationsStub { SiegeTarget = target };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
             Evaluate(provider, party);
             SettlementOffensiveBehaviourState state = provider.GetState(party);
             state.Target = target;
@@ -362,14 +364,14 @@ namespace CustomSpawns.Tests.AI
             MobileParty party = DummyParty();
             Settlement oldTarget = DummySettlement();
             Settlement replacement = DummySettlement();
-            var context = new ContextStub { SiegeTarget = oldTarget };
-            BesiegeClosestSettlementBehaviour provider = Provider(context);
+            var operations = new OperationsStub { SiegeTarget = oldTarget };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
             Evaluate(provider, party);
             SettlementOffensiveBehaviourState state = provider.GetState(party);
             state.Target = oldTarget;
             state.Phase = SettlementOffensivePhase.Active;
             state.FailedAttempts = 2;
-            context.SiegeTarget = replacement;
+            operations.SiegeTarget = replacement;
 
             PartyBehaviourResult result = Evaluate(provider, party);
 
@@ -383,14 +385,14 @@ namespace CustomSpawns.Tests.AI
             MobileParty party = DummyParty();
             Settlement oldTarget = DummySettlement();
             Settlement replacement = DummySettlement();
-            var context = new ContextStub { SiegeTarget = oldTarget };
-            BesiegeClosestSettlementBehaviour provider = Provider(context);
+            var operations = new OperationsStub { SiegeTarget = oldTarget };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
             Evaluate(provider, party);
             SettlementOffensiveBehaviourState state = provider.GetState(party);
             state.Target = oldTarget;
             state.Phase = SettlementOffensivePhase.Recovery;
             state.RecoveryGraceDays = 0f;
-            context.SiegeTarget = replacement;
+            operations.SiegeTarget = replacement;
 
             PartyBehaviourResult result = Evaluate(provider, party);
 
@@ -402,8 +404,8 @@ namespace CustomSpawns.Tests.AI
         public void SearchOperationWindowExpiry_EntersCooldownAndFallsThrough()
         {
             MobileParty party = DummyParty();
-            var context = new ContextStub();
-            BesiegeClosestSettlementBehaviour provider = Provider(context);
+            var operations = new OperationsStub();
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
             Evaluate(provider, party);
             SettlementOffensiveBehaviourState state = provider.GetState(party);
             state.Phase = SettlementOffensivePhase.Search;
@@ -425,7 +427,7 @@ namespace CustomSpawns.Tests.AI
             {
                 [party] = loadedState
             });
-            BesiegeClosestSettlementBehaviour provider = Provider(new ContextStub());
+            BesiegeClosestSettlementBehaviour provider = Provider(new OperationsStub());
 
             provider.SyncData(store);
 
@@ -439,9 +441,9 @@ namespace CustomSpawns.Tests.AI
             return new SiegeTargetCandidate(target, true, true, type, compatible, distance, defenders);
         }
 
-        private static BesiegeClosestSettlementBehaviour Provider(ContextStub context)
+        private static BesiegeClosestSettlementBehaviour Provider(OperationsStub operations)
         {
-            return new BesiegeClosestSettlementBehaviour(context, (minimum, _) => minimum);
+            return new BesiegeClosestSettlementBehaviour(operations, (minimum, _) => minimum);
         }
 
         private static PartyBehaviourResult Evaluate(BesiegeClosestSettlementBehaviour provider,
@@ -490,7 +492,7 @@ namespace CustomSpawns.Tests.AI
             return (Kingdom)FormatterServices.GetUninitializedObject(typeof(Kingdom));
         }
 
-        private sealed class ContextStub : IBesiegeClosestSettlementContext
+        private sealed class OperationsStub : ISiegeOperations
         {
             public float AttackerStrength { get; set; } = 100f;
             public float VisibleHostileStrength { get; set; }

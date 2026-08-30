@@ -9,16 +9,16 @@ using TaleWorlds.CampaignSystem.Settlements;
 
 namespace CustomSpawns.AI
 {
-    internal sealed class BannerlordRaidClosestVillageContext
-        : BannerlordSettlementOffensiveContext, IRaidClosestVillageContext
+    internal sealed class BannerlordRaidClosestVillageAdapter
+        : BannerlordSettlementOffensiveAdapter, IRaidOperations
     {
-        public BannerlordRaidClosestVillageContext(DynamicSpawnData dynamicSpawnData) : this(
+        public BannerlordRaidClosestVillageAdapter(DynamicSpawnData dynamicSpawnData) : this(
             observer => observer.SeeingRange, ObserveRoamingParties,
             dynamicSpawnData.FindAccompanyingParties)
         {
         }
 
-        internal BannerlordRaidClosestVillageContext(Func<MobileParty, float> getSeeingRange,
+        internal BannerlordRaidClosestVillageAdapter(Func<MobileParty, float> getSeeingRange,
             Func<MobileParty, IEnumerable<RoamingPartyStrength>> getRoamingParties,
             Func<MobileParty, IEnumerable<MobileParty>> getAccompanyingParties)
             : base(getSeeingRange, getRoamingParties, getAccompanyingParties)

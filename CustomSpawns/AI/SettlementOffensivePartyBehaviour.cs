@@ -27,7 +27,11 @@ namespace CustomSpawns.AI
             _saveKey = saveKey;
         }
 
-        private protected abstract ISettlementOffensiveContext Context { get; }
+        private protected abstract IPartyStrengthObserver PartyStrength { get; }
+
+        private protected abstract IOffensiveOperationStatus OperationStatus { get; }
+
+        private protected abstract IPatrolOrders PatrolOrders { get; }
 
         public override PartyBehaviourResult GetPriorityBehaviour(MobileParty party, CsPartyData partyData,
             TConfiguration configuration)
@@ -49,8 +53,8 @@ namespace CustomSpawns.AI
                 configuration.MaximumFailedAttempts, configuration.CooldownInDays);
             SettlementOffensiveBehaviour.BeginEpisode(state, settings, _roll);
 
-            float attackerStrength = Context.GetAttackerStrength(party);
-            float visibleHostileStrength = Context.GetVisibleHostileStrength(party);
+            float attackerStrength = PartyStrength.GetAttackerStrength(party);
+            float visibleHostileStrength = PartyStrength.GetVisibleHostileStrength(party);
             bool safetyPasses = SettlementOffensiveBehaviour.MeetsStrengthRatio(attackerStrength,
                 visibleHostileStrength, configuration.MinimumAttackerToRoamingHostilesRatio);
 
@@ -62,7 +66,7 @@ namespace CustomSpawns.AI
                 ActiveTargetObservation observation = SettlementOffensiveBehaviour.ObserveTarget(state,
                     IsCurrentTargetValid(party, state, matchingOperationActive),
                     IsTargetComplete(party, observedTarget), matchingOperationActive,
-                    Context.HasNativeContinuation(party, observedTarget),
+                    OperationStatus.HasNativeContinuation(party, observedTarget),
                     configuration.MaximumFailedAttempts, configuration.CooldownInDays);
                 if (observation == ActiveTargetObservation.EnteredCooldown)
                 {
@@ -86,7 +90,7 @@ namespace CustomSpawns.AI
                 Settlement? recoveryTarget = state.Target;
                 if (!SettlementOffensiveBehaviour.TickRecovery(state))
                 {
-                    if (IsNativeSafetyInterruption(Context.GetShortTermBehavior(party)))
+                    if (IsNativeSafetyInterruption(OperationStatus.GetShortTermBehavior(party)))
                     {
                         return PartyBehaviourResult.ApplicableWithoutBehavior;
                     }
@@ -191,10 +195,10 @@ namespace CustomSpawns.AI
 
         private PartyBehaviourResult PatrolOrRemainApplicable(MobileParty party)
         {
-            Settlement? patrolTarget = Context.FindClosestNonHostileSettlement(party);
+            Settlement? patrolTarget = PatrolOrders.FindClosestNonHostileSettlement(party);
             return patrolTarget is null
                 ? PartyBehaviourResult.ApplicableWithoutBehavior
-                : PartyBehaviourResult.From(Context.CreatePatrolBehavior(party, patrolTarget));
+                : PartyBehaviourResult.From(PatrolOrders.CreatePatrolBehavior(party, patrolTarget));
         }
 
         private PartyBehaviourResult Attack(Settlement target, MobileParty party)

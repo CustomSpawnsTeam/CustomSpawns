@@ -115,7 +115,9 @@ namespace CustomSpawns.Tests.AI
 
             Assert.DoesNotThrow(() => Resolver(SpawnDao(new Dictionary<string, SpawnDto>()), behaviourDao,
                 new FallbackStub(), new RaidClosestVillageBehaviour(
-                    (DynamicSpawnData)FormatterServices.GetUninitializedObject(typeof(DynamicSpawnData)))));
+                    new BannerlordRaidClosestVillageAdapter(
+                        (DynamicSpawnData)FormatterServices.GetUninitializedObject(typeof(DynamicSpawnData))),
+                    (minimum, _) => minimum)));
         }
 
         [Test]
@@ -125,7 +127,9 @@ namespace CustomSpawns.Tests.AI
 
             Assert.DoesNotThrow(() => Resolver(SpawnDao(new Dictionary<string, SpawnDto>()), behaviourDao,
                 new FallbackStub(), new BesiegeClosestSettlementBehaviour(
-                    (DynamicSpawnData)FormatterServices.GetUninitializedObject(typeof(DynamicSpawnData)))));
+                    new BannerlordBesiegeClosestSettlementAdapter(
+                        (DynamicSpawnData)FormatterServices.GetUninitializedObject(typeof(DynamicSpawnData))),
+                    (minimum, _) => minimum)));
         }
 
         [Test]
@@ -135,7 +139,9 @@ namespace CustomSpawns.Tests.AI
             var behaviourDao = BehaviourDao(Template("template", RaidConfiguration()));
 
             Resolver(spawnDao, behaviourDao, new FallbackStub(), new RaidClosestVillageBehaviour(
-                    (DynamicSpawnData)FormatterServices.GetUninitializedObject(typeof(DynamicSpawnData))));
+                    new BannerlordRaidClosestVillageAdapter(
+                        (DynamicSpawnData)FormatterServices.GetUninitializedObject(typeof(DynamicSpawnData))),
+                    (minimum, _) => minimum));
 
             spawnDao.Verify(dao => dao.FindAll(), Times.Never);
             spawnDao.Verify(dao => dao.FindByPartyTemplateId(It.IsAny<string>()), Times.Never);
