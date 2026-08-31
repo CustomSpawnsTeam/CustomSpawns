@@ -138,7 +138,7 @@ namespace CustomSpawns.Invasions.Adapters
 
             var snapshot = new OccupationGarrisonAllocationSnapshot(capture.ParticipantPartyIds, donors,
                 destination.Values.ToList(), destinationRoster.TotalManCount, garrison.Party.PartySizeLimit,
-                garrison.Party.CalculateCurrentStrength(), town.MilitiaParty?.Party.CalculateCurrentStrength() ?? 0f,
+                garrison.Party.CalculateCurrentStrength(), town.Settlement.MilitiaPartyComponent?.MobileParty?.Party.CalculateCurrentStrength() ?? 0f,
                 configuration.MinimumGarrisonTroopCount,
                 configuration.MaximumGarrisonTroopCount, configuration.MilitiaStrengthRatio);
             return new OccupationGarrisonAllocation().Allocate(snapshot);
