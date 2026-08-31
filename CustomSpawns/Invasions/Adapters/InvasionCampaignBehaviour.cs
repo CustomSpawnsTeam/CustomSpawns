@@ -143,6 +143,11 @@ namespace CustomSpawns.Invasions.Adapters
 
         private void OnMapEventEnded(MapEvent mapEvent)
         {
+            if (!IsSuccessfulFinalization(mapEvent))
+            {
+                _correlation.DiscardUnsuccessfulEvent(mapEvent);
+                return;
+            }
             // Native ownership follows this event synchronously; player aftermath may follow much later.
             // Preserve immutable result evidence while native participant sides still exist.
             RecordNativeResult(mapEvent);
@@ -198,8 +203,9 @@ namespace CustomSpawns.Invasions.Adapters
             if (party == null) return;
             var group = State.FindMemberGroup(party.StringId);
             MapEvent? mapEvent = settlement.Party.MapEvent ?? party.MapEvent;
+            if (!ReferenceEquals(mapEvent?.MapEventSettlement, settlement)) return;
             RecordNativeResult(mapEvent);
-            var context = _correlation.ResolveOwnership(mapEvent, IsSuccessfulFinalization(mapEvent), capturer,
+            var context = _correlation.ResolveOwnership(mapEvent, IsSuccessfulFinalization(mapEvent), settlement.StringId, capturer,
                 oldOwner?.Clan?.StringId ?? "", newOwner?.Clan?.StringId ?? "", settlement.OwnerClan?.StringId ?? "");
             if (group == null || context == null || party.ActualClan?.StringId != group.ClanId) return;
             InvasionData? configuration = GetConfiguration(group);

@@ -31,12 +31,21 @@ namespace CustomSpawns.Invasions.Adapters
         }
 
         internal InvasionCaptureContext? ResolveOwnership(object? nativeEvent, bool isFinalizing,
-            object capturer, string previousOwnerClanId, string newOwnerClanId, string actualOwnerClanId)
+            string settlementId, object capturer, string previousOwnerClanId, string newOwnerClanId, string actualOwnerClanId)
         {
             if (nativeEvent == null || !isFinalizing || !_events.TryGetValue(nativeEvent, out var result) || !result.Verified ||
                 !ReferenceEquals(result.Capturer, capturer) || result.PreviousOwnerClanId != previousOwnerClanId ||
                 result.ExpectedOwnerClanId != newOwnerClanId || actualOwnerClanId != newOwnerClanId) return null;
-            return PendingContext(result);
+            var context = PendingContext(result);
+            return context?.SettlementId == settlementId ? context : null;
+        }
+
+        internal void DiscardUnsuccessfulEvent(object nativeEvent)
+        {
+            if (!_events.TryGetValue(nativeEvent, out var result) || result.Verified) return;
+            var context = _state.FindCapture(result.ContextId);
+            if (context != null) context.Cancelled = true;
+            _events.Remove(nativeEvent);
         }
 
         internal InvasionCaptureContext? ResolveAftermath(object? nativeEvent, bool isFinalizing,

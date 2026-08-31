@@ -76,9 +76,9 @@ namespace CustomSpawns.Tests.Invasions
             Record(oldEvent, 100, new[] { _leaderParty, _oldDonor });
             object newEvent = new();
             var capture = Bind(newEvent, 200);
-            Assert.IsNull(_correlation.ResolveOwnership(newEvent, false, _hero, "enemy", "clan", "clan"));
+            Assert.IsNull(_correlation.ResolveOwnership(newEvent, false, "town", _hero, "enemy", "clan", "clan"));
             Assert.False(capture.OwnershipObserved);
-            Assert.IsNull(_correlation.ResolveOwnership(oldEvent, true, _hero, "enemy", "clan", "clan"));
+            Assert.IsNull(_correlation.ResolveOwnership(oldEvent, true, "town", _hero, "enemy", "clan", "clan"));
         }
 
         [Test]
@@ -92,8 +92,8 @@ namespace CustomSpawns.Tests.Invasions
             object newNativeCapturer = new();
             _correlation.RecordResult(newEvent, "town", 200, true, newNativeCapturer, "clan",
                 new[] { _leaderParty, _newDonor });
-            Assert.IsNull(_correlation.ResolveOwnership(newEvent, true, _hero, "enemy", "clan", "clan"));
-            Assert.AreSame(capture, _correlation.ResolveOwnership(newEvent, true, newNativeCapturer, "enemy", "clan", "clan"));
+            Assert.IsNull(_correlation.ResolveOwnership(newEvent, true, "town", _hero, "enemy", "clan", "clan"));
+            Assert.AreSame(capture, _correlation.ResolveOwnership(newEvent, true, "town", newNativeCapturer, "enemy", "clan", "clan"));
         }
 
         [Test]
@@ -102,9 +102,48 @@ namespace CustomSpawns.Tests.Invasions
             object nativeEvent = new();
             Bind(nativeEvent, 100);
             Record(nativeEvent, 100, new[] { _leaderParty });
-            Assert.IsNull(_correlation.ResolveOwnership(new object(), true, _hero, "enemy", "clan", "clan"));
-            Assert.IsNull(_correlation.ResolveOwnership(null, true, _hero, "enemy", "clan", "clan"));
-            Assert.IsNull(_correlation.ResolveOwnership(nativeEvent, true, _hero, "enemy", "clan", "different-actual-owner"));
+            Assert.IsNull(_correlation.ResolveOwnership(new object(), true, "town", _hero, "enemy", "clan", "clan"));
+            Assert.IsNull(_correlation.ResolveOwnership(null, true, "town", _hero, "enemy", "clan", "clan"));
+            Assert.IsNull(_correlation.ResolveOwnership(nativeEvent, true, "town", _hero, "enemy", "clan", "different-actual-owner"));
+        }
+
+        [Test]
+        public void LateCoastalTownOwnershipCannotMarkTheCapturersCurrentInlandBattleAsCoastal()
+        {
+            object oldEvent = new();
+            var oldCoastalCapture = _state.StartCapture("coastal-a", 100, "leader");
+            _correlation.Bind(oldEvent, oldCoastalCapture.Id, "enemy");
+            object inlandEvent = new();
+            var inlandCapture = _state.StartCapture("inland-b", 200, "leader");
+            _correlation.Bind(inlandEvent, inlandCapture.Id, "enemy");
+            _correlation.RecordResult(inlandEvent, "inland-b", 200, true, _hero, "clan", new[] { _leaderParty });
+
+            var stale = _correlation.ResolveOwnership(inlandEvent, true, "coastal-a", _hero, "enemy", "clan", "clan");
+            Assert.IsNull(stale);
+            Assert.False(inlandCapture.OwnershipObserved);
+            Assert.False(_group.HasFirstCoastalConquest);
+            Assert.That(_state.Credits, Is.Empty);
+
+            var actual = _correlation.ResolveOwnership(inlandEvent, true, "inland-b", _hero, "enemy", "clan", "clan");
+            Assert.AreSame(inlandCapture, actual);
+            _state.ObserveOwnership(actual!.Id, _group.Id, "leader", "enemy", "clan", true, false);
+            _state.ObserveAftermath(actual.Id, "leader", "enemy", new Dictionary<string, string> { ["leader"] = _group.Id });
+            Assert.AreEqual("inland-b", _state.Credits.Single().SettlementId);
+            Assert.False(_state.Credits.Single().SupplyPortEligible);
+            Assert.False(_group.HasFirstCoastalConquest);
+        }
+
+        [Test]
+        public void FailedOrAbandonedSiegeEndReleasesNativeReferenceAndCancelsOccurrence()
+        {
+            object nativeEvent = new();
+            var capture = Bind(nativeEvent, 100);
+            _correlation.DiscardUnsuccessfulEvent(nativeEvent);
+            Assert.False(_correlation.IsBound(nativeEvent));
+            Assert.True(capture.Cancelled);
+            Assert.IsNull(_correlation.ResolveOwnership(nativeEvent, true, "town", _hero, "enemy", "clan", "clan"));
+            _state.Reconcile(new[] { "leader" }, _ => "enemy", _ => true);
+            Assert.IsNull(_state.FindCapture(capture.Id));
         }
 
         [Test]
@@ -113,7 +152,7 @@ namespace CustomSpawns.Tests.Invasions
             object nativeEvent = new();
             Bind(nativeEvent, 100);
             Record(nativeEvent, 200, new[] { _leaderParty });
-            Assert.IsNull(_correlation.ResolveOwnership(nativeEvent, true, _hero, "enemy", "clan", "clan"));
+            Assert.IsNull(_correlation.ResolveOwnership(nativeEvent, true, "town", _hero, "enemy", "clan", "clan"));
         }
 
         [TestCase(true)]
@@ -204,7 +243,7 @@ namespace CustomSpawns.Tests.Invasions
             _correlation.RecordResult(nativeEvent, "town", time, true, _hero, "clan", participants);
         private void Own(object nativeEvent, InvasionCaptureContext capture)
         {
-            Assert.AreSame(capture, _correlation.ResolveOwnership(nativeEvent, true, _hero, "enemy", "clan", "clan"));
+            Assert.AreSame(capture, _correlation.ResolveOwnership(nativeEvent, true, "town", _hero, "enemy", "clan", "clan"));
             _state.ObserveOwnership(capture.Id, _group.Id, "leader", "enemy", "clan", true, true);
         }
         private void ApplyAftermath(InvasionCaptureContext capture, string donor) =>
