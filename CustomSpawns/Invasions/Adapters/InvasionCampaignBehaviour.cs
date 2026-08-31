@@ -128,6 +128,16 @@ namespace CustomSpawns.Invasions.Adapters
 
         public InvasionData? GetConfiguration(InvasionGroupState group) => _spawns.FindByPartyTemplateId(group.SpawnTemplateId)?.Invasion;
 
+        public InvasionCoastalTargeting? GetCoastalTargeting(MobileParty party)
+        {
+            Initialize();
+            InvasionGroupState? group = State.FindMemberGroup(party.StringId);
+            if (group == null || group.IsSuspended || party.ActualClan?.StringId != group.ClanId) return null;
+            InvasionData? configuration = GetConfiguration(group);
+            return configuration == null ? null : new InvasionCoastalTargeting(group.HasFirstCoastalConquest,
+                configuration.CoastalTownIds);
+        }
+
         private void OnMapEventStarted(MapEvent mapEvent, PartyBase attacker, PartyBase defender)
         {
             Initialize();
@@ -210,8 +220,8 @@ namespace CustomSpawns.Invasions.Adapters
             if (group == null || context == null || party.ActualClan?.StringId != group.ClanId) return;
             InvasionData? configuration = GetConfiguration(group);
             if (configuration == null) return;
-            bool coastal = configuration.CoastalTownIds.Count > 0
-                ? configuration.CoastalTownIds.Contains(settlement.StringId) : settlement.HasPort;
+            bool coastal = InvasionCoastalTargeting.IsCoastalTown(configuration.CoastalTownIds,
+                settlement.StringId, settlement.IsTown, settlement.HasPort);
             State.ObserveOwnership(context.Id, group.Id, party.StringId, oldOwner?.Clan?.StringId ?? "",
                 newOwner?.Clan?.StringId ?? "", true, coastal);
         }

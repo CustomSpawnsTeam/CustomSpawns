@@ -5,6 +5,7 @@ using CustomSpawns.AI;
 using CustomSpawns.AI.Model;
 using CustomSpawns.Data.Adapter;
 using CustomSpawns.Data.Dto;
+using CustomSpawns.Invasions;
 using CustomSpawns.Spawn;
 using NUnit.Framework;
 using TaleWorlds.CampaignSystem;
@@ -67,6 +68,110 @@ namespace CustomSpawns.Tests.AI
                 new[] { SpawnSettlementType.Town });
 
             Assert.That(result, Is.SameAs(town));
+        }
+
+        [Test]
+        public void ConcreteAdapter_BeforeFirstCoastalConquestPrefersReachableCoastalTown()
+        {
+            MobileParty party = DummyParty();
+            Settlement inlandCastle = DummySettlement();
+            Settlement inlandTown = DummySettlement();
+            Settlement coastalTown = DummySettlement();
+            var operations = new BannerlordBesiegeClosestSettlementAdapter(_ => 5f,
+                _ => new RoamingPartyStrength[0], _ => new[]
+                {
+                    Candidate(inlandCastle, SpawnSettlementType.Castle, 1f, 10f, true, "inland-castle"),
+                    Candidate(inlandTown, SpawnSettlementType.Town, 2f, 10f, true, "inland-town"),
+                    Candidate(coastalTown, SpawnSettlementType.Town, 3f, 10f, true, "coastal-town")
+                }, _ => new MobileParty[0], _ => new InvasionCoastalTargeting(false,
+                    new[] { "coastal-town" }), (_, settlement) => settlement == coastalTown);
+
+            Settlement? result = operations.FindClosestSiegeTarget(party, 100f, 1.5f,
+                new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle });
+
+            Assert.That(result, Is.SameAs(coastalTown));
+        }
+
+        [Test]
+        public void ConcreteAdapter_BeforeFirstCoastalConquestHasNoInlandFallbackWhenLandGateFails()
+        {
+            MobileParty party = DummyParty();
+            Settlement inlandTown = DummySettlement();
+            Settlement coastalTown = DummySettlement();
+            var operations = new BannerlordBesiegeClosestSettlementAdapter(_ => 5f,
+                _ => new RoamingPartyStrength[0], _ => new[]
+                {
+                    Candidate(inlandTown, SpawnSettlementType.Town, 1f, 10f, true, "inland-town"),
+                    Candidate(coastalTown, SpawnSettlementType.Town, 2f, 10f, true, "coastal-town")
+                }, _ => new MobileParty[0], _ => new InvasionCoastalTargeting(false,
+                    new[] { "coastal-town" }), (_, _) => false);
+
+            Settlement? result = operations.FindClosestSiegeTarget(party, 100f, 1.5f,
+                new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle });
+
+            Assert.That(result, Is.Null);
+        }
+
+        [Test]
+        public void ConcreteAdapter_CoastalPolicyKeepsExistingEligibilityChecks()
+        {
+            MobileParty party = DummyParty();
+            Settlement neutralTown = DummySettlement();
+            Settlement strongTown = DummySettlement();
+            Settlement incompatibleTown = DummySettlement();
+            Settlement viableTown = DummySettlement();
+            var operations = new BannerlordBesiegeClosestSettlementAdapter(_ => 5f,
+                _ => new RoamingPartyStrength[0], _ => new[]
+                {
+                    new SiegeTargetCandidate(neutralTown, true, false, SpawnSettlementType.Town, true,
+                        1f, 10f, "coastal-town", true),
+                    Candidate(strongTown, SpawnSettlementType.Town, 2f, 200f, true, "coastal-town"),
+                    Candidate(incompatibleTown, SpawnSettlementType.Town, 3f, 10f, false, "coastal-town"),
+                    Candidate(viableTown, SpawnSettlementType.Town, 4f, 10f, true, "coastal-town")
+                }, _ => new MobileParty[0], _ => new InvasionCoastalTargeting(false,
+                    new[] { "coastal-town" }), (_, _) => true);
+
+            Settlement? result = operations.FindClosestSiegeTarget(party, 100f, 1.5f,
+                new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle });
+
+            Assert.That(result, Is.SameAs(viableTown));
+        }
+
+        [Test]
+        public void ConcreteAdapter_AfterFirstCoastalConquestDoesNotApplyLandGate()
+        {
+            MobileParty party = DummyParty();
+            Settlement inlandCastle = DummySettlement();
+            var operations = new BannerlordBesiegeClosestSettlementAdapter(_ => 5f,
+                _ => new RoamingPartyStrength[0], _ => new[]
+                {
+                    Candidate(inlandCastle, SpawnSettlementType.Castle, 1f, 10f, true, "inland-castle")
+                }, _ => new MobileParty[0], _ => new InvasionCoastalTargeting(true,
+                    new[] { "coastal-town" }), (_, _) => false);
+
+            Settlement? result = operations.FindClosestSiegeTarget(party, 100f, 1.5f,
+                new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle });
+
+            Assert.That(result, Is.SameAs(inlandCastle));
+        }
+
+        [Test]
+        public void ConcreteAdapter_OrdinaryPartyDoesNotApplyCoastalOrLandGate()
+        {
+            MobileParty party = DummyParty();
+            Settlement nearestCastle = DummySettlement();
+            Settlement town = DummySettlement();
+            var operations = new BannerlordBesiegeClosestSettlementAdapter(_ => 5f,
+                _ => new RoamingPartyStrength[0], _ => new[]
+                {
+                    Candidate(nearestCastle, SpawnSettlementType.Castle, 1f, 10f),
+                    Candidate(town, SpawnSettlementType.Town, 2f, 10f)
+                }, _ => new MobileParty[0], _ => null, (_, _) => false);
+
+            Settlement? result = operations.FindClosestSiegeTarget(party, 100f, 1.5f,
+                new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle });
+
+            Assert.That(result, Is.SameAs(nearestCastle));
         }
 
         [Test]
@@ -437,9 +542,10 @@ namespace CustomSpawns.Tests.AI
         }
 
         private static SiegeTargetCandidate Candidate(Settlement target, SpawnSettlementType type,
-            float distance, float defenders, bool compatible = true)
+            float distance, float defenders, bool compatible = true, string targetId = "", bool hasPort = false)
         {
-            return new SiegeTargetCandidate(target, true, true, type, compatible, distance, defenders);
+            return new SiegeTargetCandidate(target, true, true, type, compatible, distance, defenders,
+                targetId, hasPort);
         }
 
         private BesiegeClosestSettlementBehaviour Provider(OperationsStub operations)

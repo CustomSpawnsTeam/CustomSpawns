@@ -65,6 +65,7 @@ namespace CustomSpawns.Tests.Invasions
             Assert.AreEqual(_group.Id, _state.Credits.Single().GroupId);
             Assert.That(capture.ParticipantPartyIds, Is.EquivalentTo(new[] { "capturer", "escort" }));
             Assert.True(_group.HasFirstCoastalConquest);
+            Assert.True(_state.FindMemberGroup("escort")!.HasFirstCoastalConquest);
             Assert.False(leaderGroup.HasFirstCoastalConquest);
             Assert.True(_state.CompleteOccupation(capture.Id, "clan"));
             Assert.False(_state.CompleteOccupation(capture.Id, "clan"));

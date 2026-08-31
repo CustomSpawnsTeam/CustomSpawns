@@ -12,9 +12,12 @@ namespace CustomSpawns.AI.Model
         public bool HasCompatibleSiege { get; }
         public float Distance { get; }
         public float DefenderStrength { get; }
+        public string TargetId { get; }
+        public bool HasPort { get; }
 
         public SiegeTargetCandidate(Settlement target, bool isActive, bool isHostile,
-            SpawnSettlementType type, bool hasCompatibleSiege, float distance, float defenderStrength)
+            SpawnSettlementType type, bool hasCompatibleSiege, float distance, float defenderStrength,
+            string targetId = "", bool hasPort = false)
         {
             Target = target;
             IsActive = isActive;
@@ -23,6 +26,8 @@ namespace CustomSpawns.AI.Model
             HasCompatibleSiege = hasCompatibleSiege;
             Distance = distance;
             DefenderStrength = defenderStrength;
+            TargetId = targetId;
+            HasPort = hasPort;
         }
     }
 }
