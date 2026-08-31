@@ -27,6 +27,7 @@ namespace CustomSpawns.Data.Dto
         public float DevestationLinearMultiplier { get; set; }
         public PatrolAroundClosestLestInterruptedAndSwitchData? PatrolAroundClosestLestInterruptedAndSwitch { get; set; }
         public string? PriorityPartyBehaviourTemplateId { get; set; }
+        public InvasionData? Invasion { get; set; }
         public float ChanceOfSpawn { get; set; }
         public float ChanceInverseConstant { get; set; }
         public PartyTemplateObject PartyTemplate { get; set; }

@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text.RegularExpressions;
 using CustomSpawns.Data.Dto;
+using CustomSpawns.Data.Dao;
 using CustomSpawns.Data.Model;
 using CustomSpawns.Data.Reader.Impl;
 using CustomSpawns.Exception;
@@ -22,13 +23,21 @@ namespace CustomSpawns.Data.Adapter
         private readonly NameSignifierDataReader _nameSignifierDataReader;
         private readonly MBObjectManager _objectManager;
         private readonly CampaignObjectManager _campaignObjectManager;
+        private readonly IPartyBehaviourDao? _partyBehaviourDao;
 
         public SpawnDtoAdapter(NameSignifierDataReader nameSignifierDataReader, MBObjectManager objectManager,
             CampaignObjectManager campaignObjectManager)
+            : this(nameSignifierDataReader, objectManager, campaignObjectManager, null)
+        {
+        }
+
+        public SpawnDtoAdapter(NameSignifierDataReader nameSignifierDataReader, MBObjectManager objectManager,
+            CampaignObjectManager campaignObjectManager, IPartyBehaviourDao? partyBehaviourDao)
         {
             _nameSignifierDataReader = nameSignifierDataReader;
             _objectManager = objectManager;
             _campaignObjectManager = campaignObjectManager;
+            _partyBehaviourDao = partyBehaviourDao;
         }
         
         public SpawnDto Adapt(Model.Spawn spawn)
@@ -117,6 +126,18 @@ namespace CustomSpawns.Data.Adapter
             dat.PriorityPartyBehaviourTemplateId = spawn.PriorityPartyBehaviourTemplateIdSpecified
                 ? spawn.PriorityPartyBehaviourTemplateId ?? string.Empty
                 : null;
+
+            if (spawn.Invasion != null)
+            {
+                dat.Invasion = InvasionDtoAdapter.Adapt(spawn.Invasion);
+                List<InvasionTownReference> coastalTowns = dat.Invasion.CoastalTownIds
+                    .Select(id => ToInvasionTownReference(id))
+                    .ToList();
+                InvasionRuntimeConfigurationValidator.ValidateReferences(dat.Invasion, spawn.PartyTemplate,
+                    dat.SpawnClan.IsBanditFaction, ReinforcementTemplateExists(dat.Invasion.ReinforcementPartyTemplateId),
+                    coastalTowns);
+                ValidateInvasionBehaviourTemplate(spawn.PartyTemplate, dat.PriorityPartyBehaviourTemplateId);
+            }
 
             //patrol around closest lest interrupted and switch
             dat.PatrolAroundClosestLestInterruptedAndSwitch = AdaptLegacyPatrol(spawn);
@@ -221,6 +242,55 @@ namespace CustomSpawns.Data.Adapter
             if(partyTemplate == null)
                 throw new ArgumentException("PartyTemplate " + partyTemplateId + " is not defined. You have to add this party template via xml or use an existing template.");
             return partyTemplate;
+        }
+
+        private bool ReinforcementTemplateExists(string partyTemplateId)
+        {
+            try
+            {
+                FindPartyTemplate(partyTemplateId);
+                return true;
+            }
+            catch (ArgumentException)
+            {
+                return false;
+            }
+            catch (TechnicalException)
+            {
+                return false;
+            }
+        }
+
+        private InvasionTownReference ToInvasionTownReference(string townId)
+        {
+            try
+            {
+                Settlement settlement = FindSettlement(townId);
+                return new InvasionTownReference(townId, exists: true,
+                    isTown: settlement.IsTown && settlement.Town != null);
+            }
+            catch (ArgumentException)
+            {
+                return new InvasionTownReference(townId, exists: false, isTown: false);
+            }
+            catch (TechnicalException)
+            {
+                return new InvasionTownReference(townId, exists: false, isTown: false);
+            }
+        }
+
+        private void ValidateInvasionBehaviourTemplate(string spawnPartyTemplateId, string? templateId)
+        {
+            if (_partyBehaviourDao == null)
+            {
+                throw new ArgumentException("Invasion configuration validation requires the party behaviour DAO.");
+            }
+
+            PartyBehaviourDto? template = string.IsNullOrWhiteSpace(templateId)
+                ? null
+                : _partyBehaviourDao.FindById(templateId);
+            InvasionRuntimeConfigurationValidator.ValidateEffectiveSiegeTemplate(spawnPartyTemplateId, templateId,
+                template != null, template?.PriorityPartyBehaviours ?? Array.Empty<PriorityPartyBehaviourData>());
         }
 
         private Color ResolveColour(string? colour)

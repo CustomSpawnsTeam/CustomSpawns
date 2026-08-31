@@ -87,6 +87,9 @@ namespace CustomSpawns.Data.Model
         [XmlElement(ElementName="PatrolAroundClosestLestInterruptedAndSwitch")]
         public PatrolAroundConfig? PatrolAroundConfig { get; set; }
 
+        [XmlElement(ElementName = "Invasion")]
+        public InvasionConfig? Invasion { get; set; }
+
         [XmlElement(ElementName = "PriorityPartyBehaviourTemplateId")]
         public string? PriorityPartyBehaviourTemplateId
         {

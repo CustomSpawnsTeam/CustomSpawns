@@ -60,6 +60,24 @@ namespace CustomSpawns.Data.Reader.Impl
                     throw new InvalidOperationException("Spawn data XML root deserialized to null.");
                 }
 
+                List<Model.Spawn> validSpawns = new();
+                foreach (Model.Spawn spawn in document.AllSpawns ?? new List<Model.Spawn>())
+                {
+                    try
+                    {
+                        if (spawn.Invasion != null)
+                        {
+                            InvasionConfigValidator.Validate(spawn.Invasion);
+                        }
+                        validSpawns.Add(spawn);
+                    }
+                    catch (ArgumentException error)
+                    {
+                        onError(new ArgumentException("Invasion configuration for spawn '" + spawn.PartyTemplate + "' is invalid: " +
+                                                      error.Message, error));
+                    }
+                }
+                document.AllSpawns = validSpawns;
                 return document;
             }
             catch (ArgumentException error)

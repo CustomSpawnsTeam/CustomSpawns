@@ -103,7 +103,8 @@ namespace CustomSpawns
             var besiegingPartyLordResolver = new BesiegingPartyLordResolver(_partyBehaviourDao, _messageBoxService, _modDebug);
             _spawner = new Spawner(_banditPartySpawnFactory, _customPartySpawnFactory, besiegingPartyLordResolver, _messageBoxService, _modDebug);
             _campaignDataConfigLoader = new CampaignDataConfigLoader(_subModService, _messageBoxService);
-            _spawnDtoAdapter = new SpawnDtoAdapter(_nameSignifierDataReader, Campaign.Current.ObjectManager, Campaign.Current.CampaignObjectManager);
+            _spawnDtoAdapter = new SpawnDtoAdapter(_nameSignifierDataReader, Campaign.Current.ObjectManager,
+                Campaign.Current.CampaignObjectManager, _partyBehaviourDao);
             _spawnDao = new SpawnDao(_spawnDataReader, _spawnDtoAdapter, _messageBoxService);
             _dialogueConsequenceInterpretor = new DialogueConsequenceInterpretor(_constantWarFactionDiplomacyProvider, _messageBoxService);
             _dialogueConditionInterpretor = new DialogueConditionInterpretor(_spawnDao);
