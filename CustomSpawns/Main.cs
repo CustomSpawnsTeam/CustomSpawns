@@ -9,6 +9,7 @@ using CustomSpawns.Data.Dao;
 using CustomSpawns.Data.Reader.Impl;
 using CustomSpawns.Dialogues;
 using CustomSpawns.Diplomacy;
+using CustomSpawns.Invasions.Adapters;
 using CustomSpawns.ModIntegration;
 using CustomSpawns.RewardSystem;
 using CustomSpawns.Spawn;
@@ -49,6 +50,7 @@ namespace CustomSpawns
         private PartyBehaviourDao _partyBehaviourDao;
         private NameSignifierDataReader _nameSignifierDataReader;
         private DynamicSpawnData _dynamicSpawnData;
+        private InvasionCampaignBehaviour _invasionCampaignBehaviour;
         private SpawnDtoAdapter _spawnDtoAdapter;
         private SpawnDao _spawnDao;
         private CampaignDataConfigLoader _campaignDataConfigLoader;
@@ -117,6 +119,7 @@ namespace CustomSpawns
             _spawnRewardBehaviour = new SpawnRewardBehaviour(_rewardDao, _modDebug);
             _mobilePartyTrackingBehaviour = new MobilePartyTrackingBehaviour(_saveInitialiser, _modDebug);
             _dynamicSpawnData = new (_spawnDao, _saveInitialiser);
+            _invasionCampaignBehaviour = new InvasionCampaignBehaviour(_spawnDao, _dynamicSpawnData, _saveInitialiser);
             _spawnGroupService = new SpawnGroupService(_spawner, _dynamicSpawnData);
             _devestationMetricData = new DevestationMetricData(_mobilePartyTrackingBehaviour, _campaignDataConfigLoader, _saveInitialiser, _messageBoxService, _modDebug);
             _dailyLogger = new DailyLogger(_devestationMetricData, _messageBoxService);
@@ -178,6 +181,7 @@ namespace CustomSpawns
                 starter.AddBehavior(_saveInitialiser);
                 starter.AddBehavior(_safePassageBehaviour);
                 starter.AddBehavior(_dynamicSpawnData);
+                starter.AddBehavior(_invasionCampaignBehaviour);
                 starter.AddBehavior(_customSpawnsDiplomacyBehaviour);
                 starter.AddBehavior(_customSpawnsAiBehaviour);
                 starter.AddBehavior(_accompanyingPartySiegeBehaviour);

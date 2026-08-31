@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CustomSpawns.Data.Dao;
@@ -24,6 +25,8 @@ namespace CustomSpawns.Spawn
         private ILookup<MobileParty, MobileParty>? _accompanyingParties;
         private ISet<string> _spawnPartyTemplateIds;
         private ISet<string> _spawnSubPartyTemplateIds;
+        public event Action<MobileParty, CsPartyData>? PartyRegistered;
+        public event Action<MobileParty>? PartyRemoved;
 
         public DynamicSpawnData(SpawnDao spawnDao, SaveInitialiser saveInitialiser)
         {
@@ -89,6 +92,7 @@ namespace CustomSpawns.Spawn
                     _spawnSubPartyTemplateIds.Contains(isolatedPartyStringId), settlement);
                 _dynamicSpawnData.Add(mobileParty, partyData);
                 InvalidateAccompanyingParties();
+                PartyRegistered?.Invoke(mobileParty, partyData);
             }
         }
 
@@ -119,6 +123,7 @@ namespace CustomSpawns.Spawn
             _dynamicSpawnData[mobileParty] = new CsPartyData(partyTemplateId, owningSpawnTemplateId,
                 isPrimarySpawn, GetNearestSettlement(mobileParty), supportedParty);
             InvalidateAccompanyingParties();
+            PartyRegistered?.Invoke(mobileParty, _dynamicSpawnData[mobileParty]);
         }
 
         private void HourlyMobilePartyUpdate(MobileParty? mobileParty)
@@ -172,7 +177,9 @@ namespace CustomSpawns.Spawn
         public CsPartyData? TakeDynamicSpawnData(MobileParty? mobileParty)
         {
             InvalidateAccompanyingParties();
-            return TakeFromRegistry(_dynamicSpawnData, mobileParty);
+            CsPartyData? data = TakeFromRegistry(_dynamicSpawnData, mobileParty);
+            if (data != null && mobileParty != null) PartyRemoved?.Invoke(mobileParty);
+            return data;
         }
 
         internal static CsPartyData? TakeFromRegistry<TKey>(IDictionary<TKey, CsPartyData> registry, TKey? key)
@@ -216,6 +223,21 @@ namespace CustomSpawns.Spawn
 
         [SaveableField(5)]
         private MobileParty? _supportedParty;
+
+        [SaveableField(6)]
+        private string? _invasionGroupId;
+
+        [SaveableField(7)]
+        private string? _invasionRole;
+
+        public string? InvasionGroupId => _invasionGroupId;
+        public string? InvasionRole => _invasionRole;
+
+        public void SetInvasionIdentity(string? groupId, string? role)
+        {
+            _invasionGroupId = groupId;
+            _invasionRole = role;
+        }
 
         public string PartyTemplateId => _partyTemplateId;
         public string? OwningSpawnTemplateId => _owningSpawnTemplateId;

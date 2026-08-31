@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using CustomSpawns.AI;
 using CustomSpawns.AI.Model;
+using CustomSpawns.Invasions.Adapters;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.SaveSystem;
 
@@ -22,6 +23,10 @@ namespace CustomSpawns.Spawn.PartyComponents
             AddClassDefinition(typeof(CsPartyData), 2);
             AddClassDefinition(typeof(PatrolAroundClosestLestInterruptedAndSwitchBehaviour.PatrolState), 3);
             AddClassDefinition(typeof(SettlementOffensiveBehaviourState), 4);
+            AddClassDefinition(typeof(InvasionSaveData), 6);
+            AddClassDefinition(typeof(InvasionGroupSaveData), 7);
+            AddClassDefinition(typeof(InvasionCaptureSaveData), 8);
+            AddClassDefinition(typeof(InvasionCreditSaveData), 9);
         }
 
         protected override void DefineEnumTypes()
@@ -31,6 +36,11 @@ namespace CustomSpawns.Spawn.PartyComponents
 
         protected override void DefineContainerDefinitions()
         {
+            ConstructContainerDefinition(typeof(List<InvasionGroupSaveData>));
+            ConstructContainerDefinition(typeof(List<InvasionCaptureSaveData>));
+            ConstructContainerDefinition(typeof(List<InvasionCreditSaveData>));
+            ConstructContainerDefinition(typeof(List<string>));
+            ConstructContainerDefinition(typeof(Dictionary<string, string>));
             ConstructContainerDefinition(typeof(Dictionary<
                 MobileParty, CsPartyData>));
             ConstructContainerDefinition(typeof(Dictionary<MobileParty,
