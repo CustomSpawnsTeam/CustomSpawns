@@ -288,7 +288,7 @@ namespace CustomSpawns.Data.Adapter
 
             PartyBehaviourDto? template = string.IsNullOrWhiteSpace(templateId)
                 ? null
-                : _partyBehaviourDao.FindById(templateId);
+                : _partyBehaviourDao.FindById(templateId!);
             InvasionRuntimeConfigurationValidator.ValidateEffectiveSiegeTemplate(spawnPartyTemplateId, templateId,
                 template != null, template?.PriorityPartyBehaviours ?? Array.Empty<PriorityPartyBehaviourData>());
         }

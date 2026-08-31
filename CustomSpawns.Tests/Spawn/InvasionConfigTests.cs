@@ -16,7 +16,7 @@ namespace CustomSpawns.Tests.Spawn
         [Test]
         public void DeserializeAndResolve_LegacySpawnWithoutInvasionRetainsNullInvasion()
         {
-            Spawns spawns = Read("<RegularBanditDailySpawnData party_template=\"PartyTemplate.legacy\" />", out List<Exception> errors);
+            Spawns spawns = Read("<RegularBanditDailySpawnData party_template=\"PartyTemplate.legacy\" />", out List<System.Exception> errors);
 
             Assert.Multiple(() =>
             {
@@ -37,7 +37,7 @@ namespace CustomSpawns.Tests.Spawn
                                     "<Reinforcements><PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId>" +
                                     "<ActivePartyCap>2</ActivePartyCap></Reinforcements></Invasion>";
             Spawns spawns = Read("<RegularBanditDailySpawnData party_template=\"PartyTemplate.invasion\">" + invasion +
-                                 "</RegularBanditDailySpawnData>", out List<Exception> errors);
+                                 "</RegularBanditDailySpawnData>", out List<System.Exception> errors);
 
             InvasionData data = InvasionDtoAdapter.Adapt(spawns.AllSpawns.Single().Invasion!);
 
@@ -68,7 +68,7 @@ namespace CustomSpawns.Tests.Spawn
                                    "</Invasion></RegularBanditDailySpawnData>";
             const string valid = "<RegularBanditDailySpawnData party_template=\"PartyTemplate.legacy\" />";
 
-            Spawns spawns = Read(invalid + valid, out List<Exception> errors);
+            Spawns spawns = Read(invalid + valid, out List<System.Exception> errors);
 
             Assert.Multiple(() =>
             {
@@ -150,9 +150,9 @@ namespace CustomSpawns.Tests.Spawn
                 "PartyTemplate.origin", "siege", true, new PriorityPartyBehaviourData[] { townTargeting }));
         }
 
-        private static Spawns Read(string spawnXml, out List<Exception> errors)
+        private static Spawns Read(string spawnXml, out List<System.Exception> errors)
         {
-            errors = new List<Exception>();
+            errors = new List<System.Exception>();
             using MemoryStream stream = new(Encoding.UTF8.GetBytes("<root>" + spawnXml + "</root>"));
             return SpawnDataReader.DeserializeAndResolve(stream, errors.Add);
         }
