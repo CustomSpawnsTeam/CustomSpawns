@@ -28,6 +28,7 @@ namespace CustomSpawns.Spawn
         private readonly MessageBoxService _messageBoxService;
         private readonly DailyLogger _dailyLogger;
         private readonly ModDebug _modDebug;
+        private readonly Func<CsPartyData, bool> _hasPersistentInvasionGroup;
         
         #region Data Management
 
@@ -43,7 +44,8 @@ namespace CustomSpawns.Spawn
             MessageBoxService messageBoxService,
             DailyLogger dailyLogger,
             ModDebug modDebug,
-            PartySizeCalculatedSubject partySizeCalculatedSubject
+            PartySizeCalculatedSubject partySizeCalculatedSubject,
+            Func<CsPartyData, bool> hasPersistentInvasionGroup
         )
         {
             _spawnGroupService = spawnGroupService;
@@ -56,6 +58,7 @@ namespace CustomSpawns.Spawn
             _numberOfSpawns = new();
             _configLoader = configLoader;
             _dailyLogger = dailyLogger;
+            _hasPersistentInvasionGroup = hasPersistentInvasionGroup;
             saveInitialiser.RunCallbackOnFirstCampaignTick(OnSaveStart);
             // Set the party size of a custom party to the size of the actual spawned party
             // This cancels the speed malus that is applied to non-lordly parties that are too big
@@ -282,7 +285,7 @@ namespace CustomSpawns.Spawn
 
         private void HandleDeathMessage(MobileParty mobileParty, CsPartyData partyData)
         {
-            if (partyData.IsIndependentReinforcement)
+            if (ShouldSuppressDeathMessage(partyData, _hasPersistentInvasionGroup))
                 return;
             SpawnDto? spawn = partyData.OwningSpawnTemplateId == null
                 ? null
@@ -292,6 +295,13 @@ namespace CustomSpawns.Spawn
                 UX.ShowMessage(spawn.DeathMessage.Information, spawn.DeathMessage.Color,
                     CampaignUtils.GetClosestInhabitedSettlement(mobileParty).Name.ToString());
             }
+        }
+
+        internal static bool ShouldSuppressDeathMessage(CsPartyData partyData,
+            Func<CsPartyData, bool> hasPersistentInvasionGroup)
+        {
+            return partyData.IsIndependentReinforcement ||
+                   (partyData.IsPrimarySpawn && hasPersistentInvasionGroup(partyData));
         }
 
         #endregion

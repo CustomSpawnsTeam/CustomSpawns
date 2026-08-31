@@ -148,6 +148,8 @@ namespace CustomSpawns.Invasions.Adapters
 
         public InvasionData? GetConfiguration(InvasionGroupState group) => _spawns.FindByPartyTemplateId(group.SpawnTemplateId)?.Invasion;
 
+        public bool HasPersistentInvasionGroup(CsPartyData partyData) => State.FindGroup(partyData.InvasionGroupId) != null;
+
         public InvasionCoastalTargeting? GetCoastalTargeting(MobileParty party)
         {
             Initialize();
@@ -382,6 +384,7 @@ namespace CustomSpawns.Invasions.Adapters
             {
                 Settlement? settlement = Settlement.Find(context.SettlementId);
                 if (settlement?.Town?.GarrisonParty?.IsActive != true || settlement.Party.MapEvent != null ||
+                    settlement.SiegeEvent != null ||
                     !State.CanApplyOccupation(context.Id, settlement.OwnerClan?.StringId ?? "")) continue;
                 bool donorInBattle = MobileParty.All.Any(p => p.IsActive && context.ParticipantPartyIds.Contains(p.StringId) && p.MapEvent != null);
                 if (!donorInBattle) ready.Add(context);

@@ -53,6 +53,20 @@ namespace CustomSpawns.Tests.Spawn
         }
 
         [Test]
+        public void DeathMessage_SuppressesOnlyReinforcementsAndPersistingOriginalInvasions()
+        {
+            CsPartyData original = new CsPartyData("primary", "primary", true, null);
+            CsPartyData escort = new CsPartyData("escort", "primary", false, null, null, "Escort");
+            CsPartyData reinforcement = new CsPartyData("reinforcement", "primary", false, null, null,
+                "Reinforcement");
+
+            Assert.True(SpawnBehaviour.ShouldSuppressDeathMessage(original, _ => true));
+            Assert.False(SpawnBehaviour.ShouldSuppressDeathMessage(original, _ => false));
+            Assert.False(SpawnBehaviour.ShouldSuppressDeathMessage(escort, _ => true));
+            Assert.True(SpawnBehaviour.ShouldSuppressDeathMessage(reinforcement, _ => false));
+        }
+
+        [Test]
         public void PrimaryIdentity_RestoresAndRemovesTheOwningSpawnCounter()
         {
             var spawnCounts = new Dictionary<string, int> { ["primary"] = 0 };

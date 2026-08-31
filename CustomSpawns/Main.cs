@@ -146,7 +146,8 @@ namespace CustomSpawns
             _customSpawnsDiplomacyBehaviour = new CustomSpawnsDiplomacyBehaviour(_customSpawnsDiplomacyFactionsProvider,
                 _customSpawnsClanDiplomacyProvider, nonMercenaryCustomSpawnsFactionsProvider, _dailyLogger);
             _partySizeCalculatedSubject = new PartySizeCalculatedSubject();
-            _spawnBehaviour = new SpawnBehaviour(_spawnGroupService, _spawnDao, _dynamicSpawnData, _saveInitialiser, _devestationMetricData, _configLoader, _messageBoxService, _dailyLogger, _modDebug, _partySizeCalculatedSubject);
+            _spawnBehaviour = new SpawnBehaviour(_spawnGroupService, _spawnDao, _dynamicSpawnData, _saveInitialiser, _devestationMetricData, _configLoader, _messageBoxService, _dailyLogger, _modDebug, _partySizeCalculatedSubject,
+                _invasionCampaignBehaviour.HasPersistentInvasionGroup);
             _safePassageBehaviour = new SafePassageBehaviour(_spawnDao);
             _spawnCheats = new SpawnCheats(_spawnGroupService, _spawnDao);
         }
