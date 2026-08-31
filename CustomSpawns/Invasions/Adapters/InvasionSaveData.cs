@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.SaveSystem;
 
 namespace CustomSpawns.Invasions.Adapters
@@ -13,6 +15,7 @@ namespace CustomSpawns.Invasions.Adapters
         [SaveableField(3)] public List<InvasionGroupSaveData> Groups = new();
         [SaveableField(4)] public List<InvasionCaptureSaveData> Captures = new();
         [SaveableField(5)] public List<InvasionCreditSaveData> Credits = new();
+        [SaveableField(6)] public List<InvasionCaptureEvidenceSaveData> OwnedCaptureEvidence = new();
 
         internal static InvasionSaveData FromState(InvasionState state) => new()
         {
@@ -34,6 +37,17 @@ namespace CustomSpawns.Invasions.Adapters
             state.NextCaptureId = Math.Max(state.NextCaptureId, state.Captures.Select(c => c.Id + 1).DefaultIfEmpty(1).Max());
             return state;
         }
+    }
+
+    // Native references preserve identity across a save made between ownership and the player's aftermath choice.
+    // This is evidence for the saved context, not another copy of the invasion rules or mutable credit state.
+    public sealed class InvasionCaptureEvidenceSaveData
+    {
+        [SaveableField(1)] public long ContextId;
+        [SaveableField(2)] public string PreviousOwnerClanId = "";
+        [SaveableField(3)] public string ExpectedOwnerClanId = "";
+        [SaveableField(4)] public Hero? Capturer;
+        [SaveableField(5)] public List<MobileParty> Participants = new();
     }
 
     public sealed class InvasionGroupSaveData

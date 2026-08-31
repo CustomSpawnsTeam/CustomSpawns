@@ -10,6 +10,7 @@ using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.MapEvents;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.Core;
 
 namespace CustomSpawns.Invasions.Adapters
 {
@@ -17,7 +18,7 @@ namespace CustomSpawns.Invasions.Adapters
     {
         private readonly SpawnDao _spawns;
         private readonly DynamicSpawnData _parties;
-        private readonly Dictionary<MapEvent, long> _liveContexts = new();
+        private InvasionCaptureCorrelation _correlation;
         private bool _initialized;
         public InvasionState State { get; private set; } = new();
 
@@ -25,6 +26,7 @@ namespace CustomSpawns.Invasions.Adapters
         {
             _spawns = spawns;
             _parties = parties;
+            _correlation = new InvasionCaptureCorrelation(State);
             // DynamicSpawnData registers its discovery callback first; scheduling/AI are composed later.
             initialiser.RunCallbackOnFirstCampaignTick(Initialize);
             parties.PartyRegistered += RegisterParty;
@@ -43,10 +45,20 @@ namespace CustomSpawns.Invasions.Adapters
         public override void SyncData(IDataStore dataStore)
         {
             InvasionSaveData? saved = dataStore.IsSaving ? InvasionSaveData.FromState(State) : null;
+            if (saved != null)
+                saved.OwnedCaptureEvidence = _correlation.ExportOwnedResults().Select(result => new InvasionCaptureEvidenceSaveData
+                {
+                    ContextId = result.ContextId, PreviousOwnerClanId = result.PreviousOwnerClanId,
+                    ExpectedOwnerClanId = result.ExpectedOwnerClanId, Capturer = result.Capturer as Hero,
+                    Participants = result.Participants.Cast<MobileParty>().ToList()
+                }).ToList();
             dataStore.SyncData("_invasionState", ref saved);
             if (!dataStore.IsLoading) return;
             State = saved?.ToState() ?? new InvasionState();
-            _liveContexts.Clear();
+            _correlation = new InvasionCaptureCorrelation(State);
+            foreach (var evidence in saved?.OwnedCaptureEvidence ?? new List<InvasionCaptureEvidenceSaveData>())
+                _correlation.RestoreOwnedResult(evidence.ContextId, evidence.PreviousOwnerClanId,
+                    evidence.ExpectedOwnerClanId, evidence.Capturer, (evidence.Participants ?? new List<MobileParty>()).Cast<object>());
             _initialized = false;
         }
 
@@ -62,15 +74,17 @@ namespace CustomSpawns.Invasions.Adapters
             }
             // Only a unique live native anchor can restore an incomplete occurrence.
             var liveEvents = Settlement.All.Select(s => s.Party.MapEvent).Where(e => e != null).Distinct().ToList();
-            var rebound = new HashSet<long>();
+            var rebound = new HashSet<long>(_correlation.ExportOwnedResults().Select(result => result.ContextId));
             foreach (var context in State.Captures.Where(c => !c.Cancelled && !c.Joined))
             {
+                if (rebound.Contains(context.Id)) continue;
                 var matches = liveEvents.Where(e => e!.MapEventSettlement?.StringId == context.SettlementId &&
                     BitConverter.DoubleToInt64Bits(e.BattleStartTime.ToSeconds) == context.BattleStartTimeBits).ToList();
                 int savedMatches = State.Captures.Count(c => !c.Cancelled && !c.Joined &&
                     c.SettlementId == context.SettlementId && c.BattleStartTimeBits == context.BattleStartTimeBits);
-                if (matches.Count != 1 || savedMatches != 1 || _liveContexts.ContainsKey(matches[0]!)) continue;
-                _liveContexts.Add(matches[0]!, context.Id);
+                if (matches.Count != 1 || savedMatches != 1 || _correlation.IsBound(matches[0]!)) continue;
+                _correlation.Bind(matches[0]!, context.Id, context.PreviousOwnerClanId ??
+                    context.AftermathPreviousOwnerClanId ?? matches[0]!.MapEventSettlement.OwnerClan?.StringId ?? "");
                 rebound.Add(context.Id);
             }
             State.DiscardUnboundCaptures(rebound);
@@ -109,6 +123,7 @@ namespace CustomSpawns.Invasions.Adapters
             State.Reconcile(MobileParty.All.Where(p => p.IsActive).Select(p => p.StringId),
                 id => Settlement.Find(id)?.OwnerClan?.StringId,
                 group => GetConfiguration(group) != null && Clan.FindFirst(c => c.StringId == group.ClanId)?.IsEliminated == false);
+            _correlation.Prune();
         }
 
         public InvasionData? GetConfiguration(InvasionGroupState group) => _spawns.FindByPartyTemplateId(group.SpawnTemplateId)?.Invasion;
@@ -117,30 +132,51 @@ namespace CustomSpawns.Invasions.Adapters
         {
             Initialize();
             Settlement? town = mapEvent.MapEventSettlement;
-            if (!mapEvent.IsSiegeAssault || town?.IsTown != true || attacker.MobileParty == null) return;
-            if (_liveContexts.ContainsKey(mapEvent)) return;
-            var context = State.StartCapture(town.StringId, BitConverter.DoubleToInt64Bits(mapEvent.BattleStartTime.ToSeconds), attacker.MobileParty.StringId);
-            _liveContexts.Add(mapEvent, context.Id);
+            BattleSideEnum conqueringSide = GetConqueringSide(mapEvent.IsSiegeAssault, mapEvent.IsSallyOut, mapEvent.IsBlockadeSallyOut);
+            if (conqueringSide == BattleSideEnum.None || town?.IsTown != true) return;
+            MobileParty? besieger = mapEvent.GetMapEventSide(conqueringSide).LeaderParty?.MobileParty;
+            if (besieger == null) return;
+            if (_correlation.IsBound(mapEvent)) return;
+            var context = State.StartCapture(town.StringId, BitConverter.DoubleToInt64Bits(mapEvent.BattleStartTime.ToSeconds), besieger.StringId);
+            _correlation.Bind(mapEvent, context.Id, town.OwnerClan?.StringId ?? "");
         }
 
         private void OnMapEventEnded(MapEvent mapEvent)
         {
-            // Native aftermath may be dispatched later. The primitive occurrence survives map-event teardown.
-            _liveContexts.Remove(mapEvent);
+            // Native ownership follows this event synchronously; player aftermath may follow much later.
+            // Preserve immutable result evidence while native participant sides still exist.
+            RecordNativeResult(mapEvent);
         }
 
-        private InvasionCaptureContext? ResolveContext(Settlement settlement, string? attackerId = null)
+        private void RecordNativeResult(MapEvent? mapEvent)
         {
-            var matches = State.Captures.Where(c => c.SettlementId == settlement.StringId && !c.Cancelled && !c.Joined &&
-                (attackerId == null || c.StartingAttackerId == attackerId)).ToList();
-            return matches.Count == 1 ? matches[0] : null;
+            if (mapEvent?.MapEventSettlement == null || !IsSuccessfulFinalization(mapEvent)) return;
+            BattleSideEnum conqueringSide = GetConqueringSide(mapEvent.IsSiegeAssault, mapEvent.IsSallyOut, mapEvent.IsBlockadeSallyOut);
+            PartyBase? capturerParty = mapEvent.GetMapEventSide(conqueringSide).LeaderParty;
+            _correlation.RecordResult(mapEvent, mapEvent.MapEventSettlement.StringId,
+                BitConverter.DoubleToInt64Bits(mapEvent.BattleStartTime.ToSeconds), true,
+                capturerParty?.Owner, capturerParty?.MobileParty?.MapFaction?.Leader?.Clan?.StringId ?? "",
+                mapEvent.PartiesOnSide(conqueringSide).Where(p => p.Party.IsMobile)
+                    .Select(p => (object)p.Party.MobileParty));
         }
+
+        private static bool IsSuccessfulFinalization(MapEvent? mapEvent) => mapEvent != null &&
+            GetConqueringSide(mapEvent.IsSiegeAssault, mapEvent.IsSallyOut, mapEvent.IsBlockadeSallyOut) != BattleSideEnum.None &&
+            mapEvent.WinningSide == GetConqueringSide(mapEvent.IsSiegeAssault, mapEvent.IsSallyOut, mapEvent.IsBlockadeSallyOut) && mapEvent.IsFinalized;
+
+        // Native sally-out attackers are the garrison; the besiegers are the defenders.
+        internal static BattleSideEnum GetConqueringSide(bool isSiegeAssault, bool isSallyOut, bool isBlockadeSallyOut) =>
+            isSiegeAssault ? BattleSideEnum.Attacker : isSallyOut || isBlockadeSallyOut ? BattleSideEnum.Defender : BattleSideEnum.None;
 
         private void OnAftermath(MobileParty attacker, Settlement settlement, SiegeAftermathAction.SiegeAftermath aftermath,
             Clan previousOwner, Dictionary<MobileParty, float> contributions)
         {
             Initialize();
-            var context = ResolveContext(settlement, attacker.StringId);
+            MapEvent? mapEvent = settlement.Party.MapEvent ?? attacker.MapEvent;
+            RecordNativeResult(mapEvent);
+            var context = _correlation.ResolveAftermath(mapEvent, IsSuccessfulFinalization(mapEvent),
+                settlement.StringId, attacker.StringId, previousOwner?.StringId ?? "", settlement.OwnerClan?.StringId ?? "",
+                contributions.Keys.Cast<object>());
             if (context == null) return;
             var participants = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (MobileParty party in contributions.Keys)
@@ -156,12 +192,15 @@ namespace CustomSpawns.Invasions.Adapters
             Hero capturer, ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail detail)
         {
             Initialize();
-            State.ObserveOwner(settlement.StringId, newOwner?.Clan?.StringId);
+            State.ObserveOwner(settlement.StringId, settlement.OwnerClan?.StringId);
             if (!settlement.IsTown || detail != ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail.BySiege) return;
             MobileParty? party = capturer?.PartyBelongedTo;
             if (party == null) return;
             var group = State.FindMemberGroup(party.StringId);
-            var context = ResolveContext(settlement);
+            MapEvent? mapEvent = settlement.Party.MapEvent ?? party.MapEvent;
+            RecordNativeResult(mapEvent);
+            var context = _correlation.ResolveOwnership(mapEvent, IsSuccessfulFinalization(mapEvent), capturer,
+                oldOwner?.Clan?.StringId ?? "", newOwner?.Clan?.StringId ?? "", settlement.OwnerClan?.StringId ?? "");
             if (group == null || context == null || party.ActualClan?.StringId != group.ClanId) return;
             InvasionData? configuration = GetConfiguration(group);
             if (configuration == null) return;
