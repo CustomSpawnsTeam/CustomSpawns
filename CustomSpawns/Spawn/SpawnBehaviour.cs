@@ -282,6 +282,8 @@ namespace CustomSpawns.Spawn
 
         private void HandleDeathMessage(MobileParty mobileParty, CsPartyData partyData)
         {
+            if (partyData.IsIndependentReinforcement)
+                return;
             SpawnDto? spawn = partyData.OwningSpawnTemplateId == null
                 ? null
                 : _spawnDao.FindByPartyTemplateId(partyData.OwningSpawnTemplateId);

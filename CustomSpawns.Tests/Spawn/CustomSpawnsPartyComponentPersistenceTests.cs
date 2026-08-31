@@ -74,6 +74,7 @@ namespace CustomSpawns.Tests.Spawn
             Assert.AreEqual(3, SaveId<CsPartyData>("_isPrimarySpawn"));
             Assert.AreEqual(4, SaveId<CsPartyData>("_latestClosestSettlement"));
             Assert.AreEqual(5, SaveId<CsPartyData>("_supportedParty"));
+            Assert.AreEqual(8, SaveId<CsPartyData>("_partyRole"));
         }
 
         [Test]

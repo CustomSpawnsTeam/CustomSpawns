@@ -59,6 +59,7 @@ namespace CustomSpawns.Invasions.Adapters
         [SaveableField(5)] public bool IsSuspended;
         [SaveableField(6)] public double NextReinforcementDeadlineDays;
         [SaveableField(7)] public List<string> Members = new();
+        [SaveableField(8)] public double ReinforcementIntervalDays;
 
         internal static InvasionGroupSaveData FromState(InvasionGroupState value) => new()
         {
@@ -68,6 +69,7 @@ namespace CustomSpawns.Invasions.Adapters
             HasFirstCoastalConquest = value.HasFirstCoastalConquest,
             IsSuspended = value.IsSuspended,
             NextReinforcementDeadlineDays = value.NextReinforcementDeadlineDays,
+            ReinforcementIntervalDays = value.ReinforcementIntervalDays,
             Members = value.Members.ToList()
         };
 
@@ -76,6 +78,7 @@ namespace CustomSpawns.Invasions.Adapters
             HasFirstCoastalConquest = HasFirstCoastalConquest,
             IsSuspended = IsSuspended,
             NextReinforcementDeadlineDays = NextReinforcementDeadlineDays,
+            ReinforcementIntervalDays = ReinforcementIntervalDays,
             Members = new HashSet<string>(Members ?? new List<string>(), StringComparer.Ordinal)
         };
     }

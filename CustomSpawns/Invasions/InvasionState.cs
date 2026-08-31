@@ -121,6 +121,34 @@ namespace CustomSpawns.Invasions
             return true;
         }
 
+        public bool StartReinforcementSchedule(long contextId, double nowDays, double intervalDays)
+        {
+            InvasionCaptureContext? context = FindCapture(contextId);
+            InvasionGroupState? group = FindGroup(context?.OwnershipGroupId);
+            if (context?.Joined != true || !context.IsCoastalTown || group == null ||
+                group.NextReinforcementDeadlineDays != 0 || intervalDays <= 0)
+            {
+                return false;
+            }
+
+            group.ReinforcementIntervalDays = intervalDays;
+            group.NextReinforcementDeadlineDays = nowDays + intervalDays;
+            return true;
+        }
+
+        public bool TryConsumeReinforcementSlot(string groupId, double nowDays)
+        {
+            InvasionGroupState? group = FindGroup(groupId);
+            if (group == null || group.NextReinforcementDeadlineDays == 0 ||
+                group.NextReinforcementDeadlineDays > nowDays || group.ReinforcementIntervalDays <= 0)
+            {
+                return false;
+            }
+
+            group.NextReinforcementDeadlineDays = nowDays + group.ReinforcementIntervalDays;
+            return true;
+        }
+
         public void Reconcile(IEnumerable<string> activePartyIds, Func<string, string?> ownerOfTown,
             Func<InvasionGroupState, bool> effectsEnabled)
         {
@@ -163,6 +191,8 @@ namespace CustomSpawns.Invasions
         public bool IsSuspended { get; internal set; }
         // Zero means no deadline has been established yet. Scheduling is a separate feature.
         public double NextReinforcementDeadlineDays { get; internal set; }
+        // Retained after configuration removal so a due slot is consumed once rather than retried daily.
+        public double ReinforcementIntervalDays { get; internal set; }
         internal HashSet<string> Members = new(StringComparer.Ordinal);
         public IReadOnlyCollection<string> MemberPartyIds => Members;
     }

@@ -3,6 +3,7 @@ using CustomSpawns.Data.Dto;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.Core;
 using TaleWorlds.Localization;
 
 namespace CustomSpawns.Spawn
@@ -44,6 +45,18 @@ namespace CustomSpawns.Spawn
             }
 
             return mainParty;
+        }
+
+        public MobileParty? SpawnInvasionReinforcement(SpawnDto spawn, PartyTemplateObject reinforcementTemplate,
+            Settlement landingSettlement, Clan invasionClan)
+        {
+            MobileParty? reinforcement = _spawner.SpawnParty(landingSettlement, invasionClan, reinforcementTemplate,
+                new TextObject(spawn.Name), spawn.PriorityPartyBehaviourTemplateId);
+            if (reinforcement != null)
+            {
+                _dynamicSpawnData.RegisterInvasionReinforcementParty(reinforcement, spawn.PartyTemplate.StringId);
+            }
+            return reinforcement;
         }
     }
 }

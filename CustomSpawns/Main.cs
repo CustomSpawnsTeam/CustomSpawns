@@ -16,6 +16,7 @@ using CustomSpawns.Spawn;
 using CustomSpawns.Spawn.PartySize;
 using CustomSpawns.UtilityBehaviours;
 using CustomSpawns.Utils;
+using NLog;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.ComponentInterfaces;
 using TaleWorlds.Core;
@@ -28,6 +29,7 @@ namespace CustomSpawns
 
     public class Main : MBSubModuleBase
     {
+        private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         public static string ModuleName = "CustomSpawns";
 
         #region Dependencies
@@ -51,6 +53,7 @@ namespace CustomSpawns
         private NameSignifierDataReader _nameSignifierDataReader;
         private DynamicSpawnData _dynamicSpawnData;
         private InvasionCampaignBehaviour _invasionCampaignBehaviour;
+        private InvasionGarrisonTransfer _invasionGarrisonTransfer;
         private SpawnDtoAdapter _spawnDtoAdapter;
         private SpawnDao _spawnDao;
         private CampaignDataConfigLoader _campaignDataConfigLoader;
@@ -119,8 +122,10 @@ namespace CustomSpawns
             _spawnRewardBehaviour = new SpawnRewardBehaviour(_rewardDao, _modDebug);
             _mobilePartyTrackingBehaviour = new MobilePartyTrackingBehaviour(_saveInitialiser, _modDebug);
             _dynamicSpawnData = new (_spawnDao, _saveInitialiser);
-            _invasionCampaignBehaviour = new InvasionCampaignBehaviour(_spawnDao, _dynamicSpawnData, _saveInitialiser);
             _spawnGroupService = new SpawnGroupService(_spawner, _dynamicSpawnData);
+            _invasionGarrisonTransfer = new InvasionGarrisonTransfer(_dynamicSpawnData);
+            _invasionCampaignBehaviour = new InvasionCampaignBehaviour(_spawnDao, _dynamicSpawnData,
+                _spawnGroupService, _invasionGarrisonTransfer, _saveInitialiser);
             _devestationMetricData = new DevestationMetricData(_mobilePartyTrackingBehaviour, _campaignDataConfigLoader, _saveInitialiser, _messageBoxService, _modDebug);
             _dailyLogger = new DailyLogger(_devestationMetricData, _messageBoxService);
             IPriorityPartyBehaviour[] priorityPartyBehaviours =
@@ -187,6 +192,12 @@ namespace CustomSpawns
                 starter.AddBehavior(_accompanyingPartySiegeBehaviour);
                 starter.AddBehavior(_aiDecisionLoggerBehaviour);
                 
+                SettlementFoodModel foodModel = starter.GetModel<SettlementFoodModel>();
+                var invasionFoodModel = new InvasionSettlementFoodModel(foodModel,
+                    _invasionCampaignBehaviour.GetOngoingFoodSupport);
+                starter.AddModel(invasionFoodModel);
+                _saveInitialiser.RunCallbackOnFirstCampaignTick(() => Logger.Info(
+                    "Invasion food model selected: " + Campaign.Current.Models.SettlementFoodModel.GetType().FullName));
                 starter.AddModel(_customSpawnsDiplomacyModel);
                 starter.AddModel(new CustomSpawnsPartySizeLimitModel(starter.GetModel<PartySizeLimitModel>(),
                     _partySizeCalculatedSubject));

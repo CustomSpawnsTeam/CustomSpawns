@@ -32,6 +32,36 @@ namespace CustomSpawns.Tests.Invasions
             Assert.That(_group.MemberPartyIds, Is.EquivalentTo(new[] { "capturer", "second-original", "escort" }));
         }
 
+        [Test]
+        public void FirstCoastalCreditStartsOnePersistentReinforcementClock()
+        {
+            InvasionCaptureContext capture = Conquer();
+
+            Assert.True(_state.StartReinforcementSchedule(capture.Id, 10, 7));
+            Assert.False(_state.StartReinforcementSchedule(capture.Id, 10, 3));
+            Assert.AreEqual(17, _group.NextReinforcementDeadlineDays);
+            Assert.AreEqual(7, _group.ReinforcementIntervalDays);
+            Assert.False(_state.TryConsumeReinforcementSlot(_group.Id, 16.9));
+            Assert.True(_state.TryConsumeReinforcementSlot(_group.Id, 17));
+            Assert.AreEqual(24, _group.NextReinforcementDeadlineDays);
+            Assert.False(_state.TryConsumeReinforcementSlot(_group.Id, 17));
+
+            _state = RoundTrip();
+            Assert.AreEqual(7, _state.Groups.Single().ReinforcementIntervalDays);
+            Assert.AreEqual(24, _state.Groups.Single().NextReinforcementDeadlineDays);
+        }
+
+        [Test]
+        public void ConsumingOverdueSlotSchedulesOnlyOneFutureArrival()
+        {
+            InvasionCaptureContext capture = Conquer();
+            _state.StartReinforcementSchedule(capture.Id, 10, 7);
+
+            Assert.True(_state.TryConsumeReinforcementSlot(_group.Id, 50));
+            Assert.AreEqual(57, _group.NextReinforcementDeadlineDays);
+            Assert.False(_state.TryConsumeReinforcementSlot(_group.Id, 50));
+        }
+
         [TestCase(true)]
         [TestCase(false)]
         public void CaptureObservationsJoinInEitherOrderAndReplayDoesNotRepeatOccupation(bool aftermathFirst)

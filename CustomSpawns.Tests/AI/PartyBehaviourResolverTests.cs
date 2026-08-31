@@ -391,6 +391,25 @@ namespace CustomSpawns.Tests.AI
             Assert.That(fallback.CallCount, Is.EqualTo(1));
         }
 
+        [Test]
+        public void Resolve_IndependentReinforcementUsesItsOwningSpawnsPriorityBehaviours()
+        {
+            var patrol = new ProviderStub<PatrolAroundClosestLestInterruptedAndSwitchData>(
+                PartyBehaviourResult.ApplicableWithoutBehavior);
+            var fallback = new FallbackStub();
+            var supporting = new SupportingStub(PartyBehaviourResult.ApplicableWithoutBehavior);
+            var resolver = Resolver(SpawnDao(Spawns(("spawn", "template"))),
+                BehaviourDao(Template("template", PatrolConfiguration())), fallback, supporting, patrol);
+            CsPartyData reinforcement = new CsPartyData("reinforcement", "spawn", false, null, null,
+                "Reinforcement");
+
+            resolver.Resolve(null!, reinforcement);
+
+            Assert.That(patrol.CallCount, Is.EqualTo(1));
+            Assert.That(supporting.CallCount, Is.Zero);
+            Assert.That(fallback.CallCount, Is.Zero);
+        }
+
         private static PartyBehaviourResolver Resolver(Mock<ISpawnDao> spawnDao,
             Mock<IPartyBehaviourDao> partyBehaviourDao, IFallbackPartyBehaviour fallback,
             params IPriorityPartyBehaviour[] providers)

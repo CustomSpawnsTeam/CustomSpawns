@@ -32,7 +32,7 @@ namespace CustomSpawns.AI
 
         public PartyBehaviourResult Resolve(MobileParty party, CsPartyData partyData)
         {
-            if (!partyData.IsPrimarySpawn)
+            if (partyData.IsEscort)
             {
                 PartyBehaviourResult supportingResult = _supportingPartyBehaviour.GetPriorityBehaviour(party, partyData);
                 return supportingResult.IsApplicable ? supportingResult : _fallback.GetPriorityBehaviour(party, partyData);

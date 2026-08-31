@@ -107,21 +107,26 @@ namespace CustomSpawns.Spawn
 
         public void RegisterPrimaryParty(MobileParty mobileParty, string owningSpawnTemplateId)
         {
-            RegisterParty(mobileParty, owningSpawnTemplateId, true, null);
+            RegisterParty(mobileParty, owningSpawnTemplateId, true, null, "Original");
         }
 
         public void RegisterSupportingParty(MobileParty mobileParty, string owningSpawnTemplateId,
             MobileParty supportedParty)
         {
-            RegisterParty(mobileParty, owningSpawnTemplateId, false, supportedParty);
+            RegisterParty(mobileParty, owningSpawnTemplateId, false, supportedParty, "Escort");
+        }
+
+        public void RegisterInvasionReinforcementParty(MobileParty mobileParty, string owningSpawnTemplateId)
+        {
+            RegisterParty(mobileParty, owningSpawnTemplateId, false, null, "Reinforcement");
         }
 
         private void RegisterParty(MobileParty mobileParty, string owningSpawnTemplateId, bool isPrimarySpawn,
-            MobileParty? supportedParty)
+            MobileParty? supportedParty, string? partyRole = null)
         {
             string partyTemplateId = CampaignUtils.IsolateMobilePartyStringID(mobileParty);
             _dynamicSpawnData[mobileParty] = new CsPartyData(partyTemplateId, owningSpawnTemplateId,
-                isPrimarySpawn, GetNearestSettlement(mobileParty), supportedParty);
+                isPrimarySpawn, GetNearestSettlement(mobileParty), supportedParty, partyRole);
             InvalidateAccompanyingParties();
             PartyRegistered?.Invoke(mobileParty, _dynamicSpawnData[mobileParty]);
         }
@@ -230,8 +235,12 @@ namespace CustomSpawns.Spawn
         [SaveableField(7)]
         private string? _invasionRole;
 
+        [SaveableField(8)]
+        private string? _partyRole;
+
         public string? InvasionGroupId => _invasionGroupId;
         public string? InvasionRole => _invasionRole;
+        public string? PartyRole => _partyRole;
 
         public void SetInvasionIdentity(string? groupId, string? role)
         {
@@ -242,6 +251,10 @@ namespace CustomSpawns.Spawn
         public string PartyTemplateId => _partyTemplateId;
         public string? OwningSpawnTemplateId => _owningSpawnTemplateId;
         public bool IsPrimarySpawn => _isPrimarySpawn;
+        public bool IsIndependentReinforcement => string.Equals(_partyRole, "Reinforcement",
+            StringComparison.Ordinal);
+        public bool IsEscort => string.Equals(_partyRole, "Escort", StringComparison.Ordinal) ||
+                                (_partyRole == null && !_isPrimarySpawn);
         public Settlement? LatestClosestSettlement
         {
             get => _latestClosestSettlement;
@@ -255,13 +268,14 @@ namespace CustomSpawns.Spawn
         public MobileParty? SupportedParty => _supportedParty;
 
         public CsPartyData(string partyTemplateId, string? owningSpawnTemplateId, bool isPrimarySpawn,
-            Settlement? latestClosestSettlement, MobileParty? supportedParty = null)
+            Settlement? latestClosestSettlement, MobileParty? supportedParty = null, string? partyRole = null)
         {
             _partyTemplateId = partyTemplateId;
             _owningSpawnTemplateId = owningSpawnTemplateId;
             _isPrimarySpawn = isPrimarySpawn;
             _latestClosestSettlement = latestClosestSettlement;
             _supportedParty = supportedParty;
+            _partyRole = partyRole;
         }
     }
 }

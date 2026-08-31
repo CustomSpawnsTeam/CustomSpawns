@@ -5,27 +5,37 @@ using CustomSpawns.Data.Dao;
 using CustomSpawns.Data.Dto;
 using CustomSpawns.Spawn;
 using CustomSpawns.UtilityBehaviours;
+using NLog;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.MapEvents;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
+using TaleWorlds.Library;
 
 namespace CustomSpawns.Invasions.Adapters
 {
     public sealed class InvasionCampaignBehaviour : CampaignBehaviorBase
     {
+        private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         private readonly SpawnDao _spawns;
         private readonly DynamicSpawnData _parties;
+        private readonly SpawnGroupService _spawnGroups;
+        private readonly InvasionGarrisonTransfer _garrisonTransfer;
+        private readonly Func<int, int> _randomIndex;
         private InvasionCaptureCorrelation _correlation;
         private bool _initialized;
         public InvasionState State { get; private set; } = new();
 
-        public InvasionCampaignBehaviour(SpawnDao spawns, DynamicSpawnData parties, SaveInitialiser initialiser)
+        internal InvasionCampaignBehaviour(SpawnDao spawns, DynamicSpawnData parties, SpawnGroupService spawnGroups,
+            InvasionGarrisonTransfer garrisonTransfer, SaveInitialiser initialiser, Func<int, int>? randomIndex = null)
         {
             _spawns = spawns;
             _parties = parties;
+            _spawnGroups = spawnGroups;
+            _garrisonTransfer = garrisonTransfer;
+            _randomIndex = randomIndex ?? MBRandom.RandomInt;
             _correlation = new InvasionCaptureCorrelation(State);
             // DynamicSpawnData registers its discovery callback first; scheduling/AI are composed later.
             initialiser.RunCallbackOnFirstCampaignTick(Initialize);
@@ -39,7 +49,8 @@ namespace CustomSpawns.Invasions.Adapters
             CampaignEvents.MapEventEnded.AddNonSerializedListener(this, OnMapEventEnded);
             CampaignEvents.OnSiegeAftermathAppliedEvent.AddNonSerializedListener(this, OnAftermath);
             CampaignEvents.OnSettlementOwnerChangedEvent.AddNonSerializedListener(this, OnOwnerChanged);
-            CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, Reconcile);
+            CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, OnHourlyTick);
+            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, ScheduleReinforcements);
         }
 
         public override void SyncData(IDataStore dataStore)
@@ -97,7 +108,7 @@ namespace CustomSpawns.Invasions.Adapters
             if (saved != null && saved.ClanId == party.ActualClan?.StringId && saved.SpawnTemplateId == data.OwningSpawnTemplateId)
             {
                 saved.Members.Add(party.StringId);
-                data.SetInvasionIdentity(saved.Id, data.InvasionRole ?? (data.IsPrimarySpawn ? "Original" : "Escort"));
+                data.SetInvasionIdentity(saved.Id, data.InvasionRole ?? InvasionRoleFor(data));
                 return;
             }
             string? templateId = data.OwningSpawnTemplateId;
@@ -109,7 +120,7 @@ namespace CustomSpawns.Invasions.Adapters
                 return;
             }
             var group = State.RegisterMember(templateId, clan.StringId, party.StringId);
-            data.SetInvasionIdentity(group.Id, data.IsPrimarySpawn ? "Original" : "Escort");
+            data.SetInvasionIdentity(group.Id, InvasionRoleFor(data));
         }
 
         private void RemoveParty(MobileParty party)
@@ -118,12 +129,21 @@ namespace CustomSpawns.Invasions.Adapters
             Reconcile();
         }
 
+        private static string InvasionRoleFor(CsPartyData data) => data.IsIndependentReinforcement ? "Reinforcement" :
+            data.IsPrimarySpawn ? "Original" : "Escort";
+
         private void Reconcile()
         {
             State.Reconcile(MobileParty.All.Where(p => p.IsActive).Select(p => p.StringId),
                 id => Settlement.Find(id)?.OwnerClan?.StringId,
                 group => GetConfiguration(group) != null && Clan.FindFirst(c => c.StringId == group.ClanId)?.IsEliminated == false);
             _correlation.Prune();
+        }
+
+        private void OnHourlyTick()
+        {
+            Reconcile();
+            ApplyReadyOccupations();
         }
 
         public InvasionData? GetConfiguration(InvasionGroupState group) => _spawns.FindByPartyTemplateId(group.SpawnTemplateId)?.Invasion;
@@ -201,13 +221,17 @@ namespace CustomSpawns.Invasions.Adapters
             }
             // Copy immediately: the native dictionary is cleared after the callback.
             State.ObserveAftermath(context.Id, attacker.StringId, previousOwner?.StringId ?? "", participants);
+            StartReinforcementSchedule(context.Id);
         }
 
         private void OnOwnerChanged(Settlement settlement, bool openToClaim, Hero newOwner, Hero oldOwner,
             Hero capturer, ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail detail)
         {
             Initialize();
+            InvasionTownCredit? previousCredit = State.FindCredit(settlement.StringId);
             State.ObserveOwner(settlement.StringId, settlement.OwnerClan?.StringId);
+            if (previousCredit != null && State.FindCredit(settlement.StringId) == null)
+                Logger.Info("Invasion coastal credit lost: group=" + previousCredit.GroupId + " town=" + settlement.StringId);
             if (!settlement.IsTown || detail != ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail.BySiege) return;
             MobileParty? party = capturer?.PartyBelongedTo;
             if (party == null) return;
@@ -224,6 +248,128 @@ namespace CustomSpawns.Invasions.Adapters
                 settlement.StringId, settlement.IsTown, settlement.HasPort);
             State.ObserveOwnership(context.Id, group.Id, party.StringId, oldOwner?.Clan?.StringId ?? "",
                 newOwner?.Clan?.StringId ?? "", true, coastal);
+            StartReinforcementSchedule(context.Id);
+        }
+
+        private void StartReinforcementSchedule(long contextId)
+        {
+            InvasionCaptureContext? context = State.FindCapture(contextId);
+            InvasionData? configuration = context == null ? null : State.FindGroup(context.OwnershipGroupId) is { } group
+                ? GetConfiguration(group)
+                : null;
+            if (configuration != null && State.StartReinforcementSchedule(contextId, CampaignTime.Now.ToDays,
+                    configuration.ReinforcementIntervalInDays))
+            {
+                Logger.Info("Invasion coastal credit joined: group=" + context!.OwnershipGroupId + " town=" +
+                            context.SettlementId + " next_arrival_day=" +
+                            State.FindGroup(context.OwnershipGroupId)!.NextReinforcementDeadlineDays);
+            }
+        }
+
+        private void ScheduleReinforcements()
+        {
+            Initialize();
+            Reconcile();
+            double nowDays = CampaignTime.Now.ToDays;
+            foreach (InvasionGroupState group in State.Groups.ToList())
+            {
+                if (group.NextReinforcementDeadlineDays == 0 || group.NextReinforcementDeadlineDays > nowDays)
+                    continue;
+
+                // Claim the slot first. A failed spawn and repeated callback both wait for the next interval.
+                if (!State.TryConsumeReinforcementSlot(group.Id, nowDays))
+                    continue;
+
+                InvasionData? configuration = GetConfiguration(group);
+                Clan? clan = Clan.FindFirst(candidate => candidate.StringId == group.ClanId);
+                SpawnDto? spawn = _spawns.FindByPartyTemplateId(group.SpawnTemplateId);
+                if (configuration == null || spawn == null || clan == null || clan.IsEliminated || group.IsSuspended)
+                {
+                    Logger.Info("Invasion reinforcement slot skipped: group=" + group.Id + " reason=configuration_or_clan");
+                    continue;
+                }
+                if (ActiveReinforcementCount(group.Id) >= configuration.ReinforcementActivePartyCap)
+                {
+                    Logger.Info("Invasion reinforcement slot skipped: group=" + group.Id + " reason=active_cap");
+                    continue;
+                }
+
+                List<Settlement> eligible = Settlement.All.Where(settlement => IsEligibleLandingSettlement(settlement,
+                    group, configuration)).ToList();
+                if (eligible.Count == 0)
+                {
+                    Logger.Info("Invasion reinforcement slot skipped: group=" + group.Id + " reason=no_credited_port");
+                    continue;
+                }
+
+                Settlement landing = eligible[_randomIndex(eligible.Count)];
+                PartyTemplateObject? template = Campaign.Current.ObjectManager.GetObject<PartyTemplateObject>(
+                    configuration.ReinforcementPartyTemplateId);
+                if (template == null || !IsEligibleLandingSettlement(landing, group, configuration))
+                {
+                    Logger.Info("Invasion reinforcement slot skipped: group=" + group.Id + " reason=template_or_port_changed");
+                    continue;
+                }
+
+                MobileParty? reinforcement = _spawnGroups.SpawnInvasionReinforcement(spawn, template, landing, clan);
+                Logger.Info("Invasion reinforcement " + (reinforcement == null ? "failed" : "arrived") + ": group=" +
+                            group.Id + " town=" + landing.StringId + " next_arrival_day=" +
+                            group.NextReinforcementDeadlineDays);
+            }
+        }
+
+        private int ActiveReinforcementCount(string groupId)
+        {
+            return MobileParty.All.Count(party => party.IsActive && _parties.GetDynamicSpawnData(party) is { } data &&
+                data.InvasionGroupId == groupId && data.IsIndependentReinforcement);
+        }
+
+        private bool IsEligibleLandingSettlement(Settlement settlement, InvasionGroupState group,
+            InvasionData configuration)
+        {
+            InvasionTownCredit? credit = State.FindCredit(settlement.StringId);
+            return credit?.GroupId == group.Id && credit.SupplyPortEligible && settlement.IsTown &&
+                   settlement.OwnerClan?.StringId == group.ClanId && settlement.SiegeEvent == null &&
+                   InvasionCoastalTargeting.IsCoastalTown(configuration.CoastalTownIds, settlement.StringId,
+                       settlement.IsTown, settlement.HasPort);
+        }
+
+        public float GetOngoingFoodSupport(Town town)
+        {
+            InvasionTownCredit? credit = State.FindCredit(town.Settlement.StringId);
+            InvasionGroupState? group = State.FindGroup(credit?.GroupId);
+            InvasionData? configuration = group == null ? null : GetConfiguration(group);
+            return IsEligibleForFood(town, group, configuration) ? configuration!.DailyFoodBonus : 0f;
+        }
+
+        private void ApplyReadyOccupations()
+        {
+            foreach (InvasionCaptureContext capture in GetReadyOccupations())
+            {
+                Town? town = Settlement.Find(capture.SettlementId)?.Town;
+                InvasionGroupState? group = State.FindGroup(capture.OwnershipGroupId);
+                InvasionData? configuration = group == null ? null : GetConfiguration(group);
+                if (town == null || group == null || configuration == null ||
+                    !_garrisonTransfer.TryApply(capture, town, group, configuration))
+                    continue;
+
+                if (IsEligibleForFood(town, group, configuration))
+                    InvasionOccupationFood.Apply(town, configuration.FoodStockFloor);
+                if (State.CompleteOccupation(capture.Id, town.Settlement.OwnerClan?.StringId ?? ""))
+                    Logger.Info("Invasion occupation applied: group=" + group.Id + " town=" + town.Settlement.StringId);
+            }
+        }
+
+        private bool IsEligibleForFood(Town town, InvasionGroupState? group, InvasionData? configuration)
+        {
+            Clan? clan = group == null ? null : Clan.FindFirst(candidate => candidate.StringId == group.ClanId);
+            InvasionTownCredit? credit = State.FindCredit(town.Settlement.StringId);
+            return InvasionFoodSupportRules.IsEligibleForOngoingSupport(credit?.GroupId == group?.Id,
+                credit?.SupplyPortEligible == true, InvasionCoastalTargeting.IsCoastalTown(
+                    configuration?.CoastalTownIds ?? Array.Empty<string>(), town.Settlement.StringId,
+                    town.Settlement.IsTown, town.Settlement.HasPort),
+                group?.ClanId == town.Settlement.OwnerClan?.StringId, configuration != null && !group!.IsSuspended &&
+                clan?.IsEliminated == false, town.Settlement.SiegeEvent != null);
         }
 
         // A later occupation adapter consumes this readiness seam on an hourly tick, never in capture callbacks.
