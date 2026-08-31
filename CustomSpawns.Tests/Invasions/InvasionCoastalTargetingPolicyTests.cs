@@ -41,5 +41,31 @@ namespace CustomSpawns.Tests.Invasions
             Assert.False(InvasionCoastalTargeting.IsCoastalTown(new[] { "configured-port" },
                 "native-port", true, true));
         }
+
+        [Test]
+        public void HeldInlandTargetIsRejectedBeforeTheFirstCoastalConquest()
+        {
+            var targeting = new InvasionCoastalTargeting(false, new[] { "coastal-town" });
+
+            Assert.False(targeting.AllowsHeldTarget("inland-town", true, false, false, true));
+        }
+
+        [Test]
+        public void HeldInlandTargetIsRetainedOnlyForAMatchingNativeAssault()
+        {
+            var targeting = new InvasionCoastalTargeting(false, new[] { "coastal-town" });
+
+            Assert.True(targeting.AllowsHeldTarget("inland-town", true, false, true, false));
+            Assert.False(targeting.AllowsHeldTarget("inland-town", true, false, false, false));
+        }
+
+        [Test]
+        public void HeldCoastalTargetRequiresAReachableLandGate()
+        {
+            var targeting = new InvasionCoastalTargeting(false, new[] { "coastal-town" });
+
+            Assert.True(targeting.AllowsHeldTarget("coastal-town", true, false, false, true));
+            Assert.False(targeting.AllowsHeldTarget("coastal-town", true, false, false, false));
+        }
     }
 }

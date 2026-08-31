@@ -21,6 +21,13 @@ namespace CustomSpawns.Invasions
             return !RequiresFirstCoastalConquest || IsCoastalTown(_coastalTownIds, settlementId, isTown, hasPort);
         }
 
+        public bool AllowsHeldTarget(string settlementId, bool isTown, bool hasPort,
+            bool matchingNativeAssault, bool hasReachableLandGate)
+        {
+            return !RequiresFirstCoastalConquest || matchingNativeAssault ||
+                   (AllowsFirstConquestTarget(settlementId, isTown, hasPort) && hasReachableLandGate);
+        }
+
         public static bool IsCoastalTown(IReadOnlyList<string> coastalTownIds, string settlementId,
             bool isTown, bool hasPort)
         {

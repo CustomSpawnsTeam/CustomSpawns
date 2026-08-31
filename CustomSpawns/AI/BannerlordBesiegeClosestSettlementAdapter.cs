@@ -16,7 +16,7 @@ namespace CustomSpawns.AI
     internal sealed class BannerlordBesiegeClosestSettlementAdapter
         : BannerlordSettlementOffensiveAdapter, ISiegeOperations
     {
-        private const float MaximumLandPathDistance = 1000f;
+        private const float UnboundedLandPathDistance = float.MaxValue;
         private readonly Func<MobileParty, IEnumerable<SiegeTargetCandidate>> _getCandidates;
         private readonly Func<MobileParty, InvasionCoastalTargeting?> _getCoastalTargeting;
         private readonly Func<MobileParty, Settlement, bool> _hasReachableLandGate;
@@ -97,14 +97,20 @@ namespace CustomSpawns.AI
                 (target.SiegeEvent is not null && !matchingOperationActive)) return false;
             InvasionCoastalTargeting? coastalTargeting = _getCoastalTargeting(party);
             if (coastalTargeting == null || !coastalTargeting.RequiresFirstCoastalConquest) return true;
-            // Existing native assaults are allowed to finish when a legacy save first adopts this policy.
-            if (IsMatchingAssaultActive(party, target)) return true;
-            if (!coastalTargeting.AllowsFirstConquestTarget(target.StringId, target.IsTown, target.HasPort))
+            bool matchingNativeAssault = IsMatchingAssaultActive(party, target);
+            bool isCoastalTarget = coastalTargeting.AllowsFirstConquestTarget(target.StringId,
+                target.IsTown, target.HasPort);
+            bool hasReachableLandGate = isCoastalTarget && !matchingNativeAssault &&
+                                        _hasReachableLandGate(party, target);
+            if (coastalTargeting.AllowsHeldTarget(target.StringId, target.IsTown, target.HasPort,
+                    matchingNativeAssault, hasReachableLandGate)) return true;
+            if (!isCoastalTarget)
             {
                 ReportCoastalRejection(target.StringId, "not an eligible coastal town");
                 return false;
             }
-            return _hasReachableLandGate(party, target);
+            ReportCoastalRejection(target.StringId, "no reachable land gate");
+            return false;
         }
 
         internal static bool IsIntendedTargetFaction(IFaction currentFaction,
@@ -181,13 +187,13 @@ namespace CustomSpawns.AI
             int[] invalidTerrainTypes = Campaign.Current.Models.PartyNavigationModel
                 .GetInvalidTerrainTypesForNavigationType(party.NavigationCapability);
             bool hasPath = Campaign.Current.MapSceneWrapper.GetPathDistanceBetweenAIFaces(fromFace, toFace,
-                party.Position.ToVec2(), settlement.GatePosition.ToVec2(), 0.3f, MaximumLandPathDistance,
+                party.Position.ToVec2(), settlement.GatePosition.ToVec2(), 0.3f, UnboundedLandPathDistance,
                 out float pathDistance, invalidTerrainTypes,
                 Campaign.Current.Models.MapDistanceModel.RegionSwitchCostFromLandToSea,
                 Campaign.Current.Models.MapDistanceModel.RegionSwitchCostFromSeaToLand);
             if (hasPath && !float.IsNaN(pathDistance) && !float.IsInfinity(pathDistance) &&
-                pathDistance >= 0f && pathDistance <= MaximumLandPathDistance) return true;
-            ReportCoastalRejection(settlement.StringId, "no finite land path within search distance");
+                pathDistance >= 0f) return true;
+            ReportCoastalRejection(settlement.StringId, "no finite land path");
             return false;
         }
 

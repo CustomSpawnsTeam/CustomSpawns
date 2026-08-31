@@ -69,6 +69,9 @@ namespace CustomSpawns.Tests.Invasions
             Assert.False(leaderGroup.HasFirstCoastalConquest);
             Assert.True(_state.CompleteOccupation(capture.Id, "clan"));
             Assert.False(_state.CompleteOccupation(capture.Id, "clan"));
+            _state = RoundTrip();
+            Assert.True(_state.FindMemberGroup("capturer")!.HasFirstCoastalConquest);
+            Assert.True(_state.FindMemberGroup("escort")!.HasFirstCoastalConquest);
         }
 
         [TestCase("ally", "capturer", true)]
