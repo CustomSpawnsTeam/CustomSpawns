@@ -246,19 +246,11 @@ namespace CustomSpawns.Data.Adapter
 
         private bool ReinforcementTemplateExists(string partyTemplateId)
         {
-            try
-            {
-                FindPartyTemplate(partyTemplateId);
-                return true;
-            }
-            catch (ArgumentException)
-            {
-                return false;
-            }
-            catch (TechnicalException)
-            {
-                return false;
-            }
+            // Invasion XML stores the raw StringId because the same value is used directly by the
+            // reinforcement scheduler. Do not route it through FindPartyTemplate/ParseId, which
+            // expects the qualified "PartyTemplate.Id" syntax used by ordinary spawn attributes.
+            return _objectManager.GetObject<PartyTemplateObject>(partyTemplateId) != null ||
+                   _campaignObjectManager.Find<PartyTemplateObject>(partyTemplateId) != null;
         }
 
         private InvasionTownReference ToInvasionTownReference(string townId)
