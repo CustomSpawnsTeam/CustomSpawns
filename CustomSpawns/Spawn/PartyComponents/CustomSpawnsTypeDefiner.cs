@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using CustomSpawns.AI;
+using CustomSpawns.AI.Behaviours;
 using CustomSpawns.AI.Model;
 using CustomSpawns.Invasions.Adapters;
 using TaleWorlds.CampaignSystem.Party;

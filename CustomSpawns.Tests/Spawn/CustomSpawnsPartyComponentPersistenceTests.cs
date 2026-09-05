@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Reflection;
-using CustomSpawns.AI;
+using CustomSpawns.AI.Behaviours;
 using CustomSpawns.AI.Model;
 using CustomSpawns.Data.Dao;
 using CustomSpawns.Spawn;

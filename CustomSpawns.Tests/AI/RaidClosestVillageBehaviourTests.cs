@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.Serialization;
-using CustomSpawns.AI;
+using CustomSpawns.AI.Adapters;
+using CustomSpawns.AI.Behaviours;
 using CustomSpawns.AI.Model;
+using CustomSpawns.AI.Offensives;
 using CustomSpawns.Data.Dto;
 using CustomSpawns.Spawn;
 using NUnit.Framework;

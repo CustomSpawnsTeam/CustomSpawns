@@ -2,11 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CustomSpawns.AI.Model;
+using CustomSpawns.AI.Offensives;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 
-namespace CustomSpawns.AI
+namespace CustomSpawns.AI.Adapters
 {
     /**
      * The Bannerlord lookups a settlement offensive needs whether it raids or besieges: how strong the

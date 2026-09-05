@@ -1,4 +1,6 @@
 using System;
+using CustomSpawns.AI.Adapters;
+using CustomSpawns.AI.Behaviours;
 using CustomSpawns.AI.Model;
 using CustomSpawns.Data.Dto;
 using CustomSpawns.Spawn;
@@ -6,7 +8,7 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 
-namespace CustomSpawns.AI
+namespace CustomSpawns.AI.Offensives
 {
     /**
      * The phase sequencing every settlement offensive follows, whichever settlement it attacks and however

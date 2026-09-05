@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.Serialization;
-using CustomSpawns.AI;
+using CustomSpawns.AI.Offensives;
 using CustomSpawns.AI.Model;
 using NUnit.Framework;
 using TaleWorlds.CampaignSystem.Settlements;

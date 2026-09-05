@@ -2,7 +2,7 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 
-namespace CustomSpawns.AI
+namespace CustomSpawns.AI.Offensives
 {
     /**
      * What the game is already doing with the party, which the phase sequencing reads to know whether it

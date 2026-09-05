@@ -1,6 +1,6 @@
 using TaleWorlds.CampaignSystem.Party;
 
-namespace CustomSpawns.AI
+namespace CustomSpawns.AI.Offensives
 {
     /**
      * How strong a party is and how strong the hostiles it can see are. Target strength is left to the

@@ -1,6 +1,6 @@
 using TaleWorlds.CampaignSystem;
 
-namespace CustomSpawns.AI
+namespace CustomSpawns.AI.Behaviours
 {
     public interface ISyncsCampaignData
     {

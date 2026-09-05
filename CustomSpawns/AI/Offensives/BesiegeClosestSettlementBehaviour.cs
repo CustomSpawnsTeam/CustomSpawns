@@ -1,11 +1,12 @@
 using System;
+using CustomSpawns.AI.Adapters;
 using CustomSpawns.AI.Model;
 using CustomSpawns.Data.Dto;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 
-namespace CustomSpawns.AI
+namespace CustomSpawns.AI.Offensives
 {
     public sealed class BesiegeClosestSettlementBehaviour
         : SettlementOffensivePartyBehaviour<BesiegeClosestSettlementData>

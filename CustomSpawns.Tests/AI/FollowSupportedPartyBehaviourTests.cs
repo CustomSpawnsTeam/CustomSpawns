@@ -1,5 +1,5 @@
 using System.Runtime.Serialization;
-using CustomSpawns.AI;
+using CustomSpawns.AI.Behaviours;
 using CustomSpawns.Spawn;
 using NUnit.Framework;
 using TaleWorlds.CampaignSystem;

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 
-namespace CustomSpawns.AI
+namespace CustomSpawns.AI.Adapters
 {
     /**
      * Where a behaviour keeps one state per party, and how those states survive a save. Parties that have

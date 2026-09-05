@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using CustomSpawns.AI;
+using CustomSpawns.AI.Adapters;
+using CustomSpawns.AI.Behaviours;
+using CustomSpawns.AI.Offensives;
 using CustomSpawns.Data.Adapter;
 using CustomSpawns.Spawn;
 using TaleWorlds.CampaignSystem.Party;

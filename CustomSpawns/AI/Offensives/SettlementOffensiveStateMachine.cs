@@ -1,7 +1,7 @@
 using System;
 using CustomSpawns.AI.Model;
 
-namespace CustomSpawns.AI
+namespace CustomSpawns.AI.Offensives
 {
     /**
      * The phases one party's settlement offensive moves through. It owns the state it advances, so callers

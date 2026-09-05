@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using CustomSpawns.AI;
+using CustomSpawns.AI.Behaviours;
 using NUnit.Framework;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;

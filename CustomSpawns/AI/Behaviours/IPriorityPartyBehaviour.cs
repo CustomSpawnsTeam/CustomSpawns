@@ -4,7 +4,7 @@ using CustomSpawns.Spawn;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 
-namespace CustomSpawns.AI
+namespace CustomSpawns.AI.Behaviours
 {
     public interface IPriorityPartyBehaviour : ISyncsCampaignData
     {

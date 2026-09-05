@@ -4,7 +4,7 @@ using CustomSpawns.Data.Dao;
 using CustomSpawns.Data.Dto;
 using CustomSpawns.Utils;
 
-namespace CustomSpawns.AI
+namespace CustomSpawns.AI.Adapters
 {
     public sealed class SpawnPartyBehaviourLookup
     {

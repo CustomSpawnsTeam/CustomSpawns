@@ -1,7 +1,7 @@
 using CustomSpawns.Spawn;
 using TaleWorlds.CampaignSystem.Party;
 
-namespace CustomSpawns.AI
+namespace CustomSpawns.AI.Behaviours
 {
     /**
      * Behaviour of the parties spawned alongside a main party. It replaces every behaviour configured for

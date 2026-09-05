@@ -2,12 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CustomSpawns.AI.Model;
+using CustomSpawns.AI.Offensives;
 using CustomSpawns.Spawn;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 
-namespace CustomSpawns.AI
+namespace CustomSpawns.AI.Adapters
 {
     internal sealed class BannerlordRaidClosestVillageAdapter
         : BannerlordSettlementOffensiveAdapter, IRaidOperations

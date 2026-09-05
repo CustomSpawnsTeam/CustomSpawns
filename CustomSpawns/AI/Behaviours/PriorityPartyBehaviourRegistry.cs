@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using CustomSpawns.Data.Dto;
 
-namespace CustomSpawns.AI
+namespace CustomSpawns.AI.Behaviours
 {
     public sealed class PriorityPartyBehaviourRegistry
     {

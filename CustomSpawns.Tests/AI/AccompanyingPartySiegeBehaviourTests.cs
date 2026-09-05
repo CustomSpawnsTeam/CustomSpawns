@@ -1,4 +1,4 @@
-using CustomSpawns.AI;
+using CustomSpawns.AI.CampaignBehaviours;
 using NUnit.Framework;
 
 namespace CustomSpawns.Tests.AI

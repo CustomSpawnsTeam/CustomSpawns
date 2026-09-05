@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using CustomSpawns.AI.Adapters;
 using CustomSpawns.Data.Dto;
 using CustomSpawns.Spawn;
 using CustomSpawns.Utils;
@@ -8,7 +9,7 @@ using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.SaveSystem;
 
-namespace CustomSpawns.AI
+namespace CustomSpawns.AI.Behaviours
 {
     public sealed class PatrolAroundClosestLestInterruptedAndSwitchBehaviour :
         PriorityPartyBehaviour<PatrolAroundClosestLestInterruptedAndSwitchData>

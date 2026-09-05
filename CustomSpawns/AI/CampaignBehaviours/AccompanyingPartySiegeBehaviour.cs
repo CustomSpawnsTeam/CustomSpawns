@@ -2,7 +2,7 @@ using CustomSpawns.Spawn;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 
-namespace CustomSpawns.AI
+namespace CustomSpawns.AI.CampaignBehaviours
 {
     /**
      * Makes a party spawned alongside a main party join the siege the main party is besieging,

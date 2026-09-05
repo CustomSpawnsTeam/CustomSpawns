@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using CustomSpawns.AI.Model;
+using CustomSpawns.AI.Offensives;
 using CustomSpawns.Data.Adapter;
 using CustomSpawns.Spawn;
 using TaleWorlds.CampaignSystem;
@@ -10,7 +11,7 @@ using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using PathFaceRecord = TaleWorlds.Library.PathFaceRecord;
 
-namespace CustomSpawns.AI
+namespace CustomSpawns.AI.Adapters
 {
     internal sealed class BannerlordBesiegeClosestSettlementAdapter
         : BannerlordSettlementOffensiveAdapter, ISiegeOperations

@@ -3,7 +3,7 @@ using CustomSpawns.Spawn;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 
-namespace CustomSpawns.AI
+namespace CustomSpawns.AI.Behaviours
 {
     /**
      * Makes a party spawned alongside a main party escort it, the same way a party of an army follows its leader.

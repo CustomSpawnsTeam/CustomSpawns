@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Runtime.Serialization;
-using CustomSpawns.AI;
+using CustomSpawns.AI.Adapters;
 using NUnit.Framework;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;

@@ -1,6 +1,9 @@
 ﻿using System.Collections.Generic;
 using CustomSpawns.AI;
+using CustomSpawns.AI.Adapters;
 using CustomSpawns.AI.Barterables;
+using CustomSpawns.AI.Behaviours;
+using CustomSpawns.AI.CampaignBehaviours;
 using CustomSpawns.CampaignData.Config;
 using CustomSpawns.CampaignData.Implementations;
 using CustomSpawns.Config;
