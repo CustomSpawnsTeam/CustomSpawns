@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Linq;
 using CustomSpawns.AI.Model;
 using CustomSpawns.Data.Adapter;
-using CustomSpawns.Invasions;
 using CustomSpawns.Spawn;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
@@ -18,7 +17,7 @@ namespace CustomSpawns.AI
     {
         private const float UnboundedLandPathDistance = float.MaxValue;
         private readonly Func<MobileParty, IEnumerable<SiegeTargetCandidate>> _getCandidates;
-        private readonly Func<MobileParty, InvasionCoastalTargeting?> _getCoastalTargeting;
+        private readonly Func<MobileParty, Func<Settlement, bool>?> _getInitialCoastalTargetFilter;
         private readonly Func<MobileParty, Settlement, bool> _hasReachableLandGate;
         private readonly Func<MobileParty, Settlement, IEnumerable<RoamingPartyStrength>>
             _getTargetRoamingParties;
@@ -31,9 +30,9 @@ namespace CustomSpawns.AI
         }
 
         internal BannerlordBesiegeClosestSettlementAdapter(DynamicSpawnData dynamicSpawnData,
-            Func<MobileParty, InvasionCoastalTargeting?> getCoastalTargeting) : this(
+            Func<MobileParty, Func<Settlement, bool>?> getInitialCoastalTargetFilter) : this(
             observer => observer.SeeingRange, ObserveRoamingParties, ObserveCandidates,
-            dynamicSpawnData.FindAccompanyingParties, getCoastalTargeting, HasReachableLandGate,
+            dynamicSpawnData.FindAccompanyingParties, getInitialCoastalTargetFilter, HasReachableLandGate,
             ObserveRoamingPartiesNearTarget)
         {
         }
@@ -61,10 +60,10 @@ namespace CustomSpawns.AI
             Func<MobileParty, IEnumerable<RoamingPartyStrength>> getRoamingParties,
             Func<MobileParty, IEnumerable<SiegeTargetCandidate>> getCandidates,
             Func<MobileParty, IEnumerable<MobileParty>> getAccompanyingParties,
-            Func<MobileParty, InvasionCoastalTargeting?> getCoastalTargeting,
+            Func<MobileParty, Func<Settlement, bool>?> getInitialCoastalTargetFilter,
             Func<MobileParty, Settlement, bool> hasReachableLandGate)
             : this(getSeeingRange, getRoamingParties, getCandidates, getAccompanyingParties,
-                getCoastalTargeting, hasReachableLandGate,
+                getInitialCoastalTargetFilter, hasReachableLandGate,
                 (_, _) => Enumerable.Empty<RoamingPartyStrength>())
         {
         }
@@ -73,13 +72,13 @@ namespace CustomSpawns.AI
             Func<MobileParty, IEnumerable<RoamingPartyStrength>> getRoamingParties,
             Func<MobileParty, IEnumerable<SiegeTargetCandidate>> getCandidates,
             Func<MobileParty, IEnumerable<MobileParty>> getAccompanyingParties,
-            Func<MobileParty, InvasionCoastalTargeting?> getCoastalTargeting,
+            Func<MobileParty, Func<Settlement, bool>?> getInitialCoastalTargetFilter,
             Func<MobileParty, Settlement, bool> hasReachableLandGate,
             Func<MobileParty, Settlement, IEnumerable<RoamingPartyStrength>> getTargetRoamingParties)
             : base(getSeeingRange, getRoamingParties, getAccompanyingParties)
         {
             _getCandidates = getCandidates;
-            _getCoastalTargeting = getCoastalTargeting;
+            _getInitialCoastalTargetFilter = getInitialCoastalTargetFilter;
             _hasReachableLandGate = hasReachableLandGate;
             _getTargetRoamingParties = getTargetRoamingParties;
         }
@@ -117,14 +116,14 @@ namespace CustomSpawns.AI
             float attackerStrength, float minimumTargetRatio, float minimumRoamingHostilesRatio,
             IReadOnlyList<SpawnSettlementType> targetTypes)
         {
-            InvasionCoastalTargeting? coastalTargeting = _getCoastalTargeting(party);
+            Func<Settlement, bool>? initialCoastalTargetFilter = _getInitialCoastalTargetFilter(party);
             return _getCandidates(party)
                 .Where(candidate => candidate.IsActive && candidate.IsHostile &&
                                     candidate.HasCompatibleSiege && targetTypes.Contains(candidate.Type) &&
                                     candidate.Target != excludedTarget &&
                                     OffensiveStrengthRules.MeetsStrengthRatio(attackerStrength,
                                         candidate.DefenderStrength, minimumTargetRatio))
-                .Where(candidate => IsEligibleCoastalTarget(party, candidate, coastalTargeting))
+                .Where(candidate => IsEligibleCoastalTarget(party, candidate, initialCoastalTargetFilter))
                 .Where(candidate => OffensiveStrengthRules.MeetsStrengthRatio(attackerStrength,
                     GetHostileLordStrengthNearTarget(party, candidate.Target),
                     minimumRoamingHostilesRatio))
@@ -165,20 +164,16 @@ namespace CustomSpawns.AI
                 !party.MapFaction.IsAtWarWith(target.MapFaction) ||
                 !IsIntendedTargetFaction(target.MapFaction, intendedTargetFaction) ||
                 (target.SiegeEvent is not null && !matchingOperationActive)) return false;
-            InvasionCoastalTargeting? coastalTargeting = _getCoastalTargeting(party);
-            if (coastalTargeting == null || !coastalTargeting.RequiresFirstCoastalConquest) return true;
+            Func<Settlement, bool>? initialCoastalTargetFilter = _getInitialCoastalTargetFilter(party);
+            if (initialCoastalTargetFilter == null) return true;
             bool matchingNativeAssault = IsMatchingAssaultActive(party, target);
-            bool isCoastalTarget = coastalTargeting.AllowsFirstConquestTarget(target.StringId,
-                target.IsTown, target.HasPort);
-            bool hasReachableLandGate = isCoastalTarget && !matchingNativeAssault &&
-                                        _hasReachableLandGate(party, target);
-            if (coastalTargeting.AllowsHeldTarget(target.StringId, target.IsTown, target.HasPort,
-                    matchingNativeAssault, hasReachableLandGate)) return true;
-            if (!isCoastalTarget)
+            if (matchingNativeAssault) return true;
+            if (!initialCoastalTargetFilter(target))
             {
                 ReportCoastalRejection(target.StringId, "not an eligible coastal town");
                 return false;
             }
+            if (_hasReachableLandGate(party, target)) return true;
             ReportCoastalRejection(target.StringId, "no reachable land gate");
             return false;
         }
@@ -239,16 +234,17 @@ namespace CustomSpawns.AI
         }
 
         private bool IsEligibleCoastalTarget(MobileParty party, SiegeTargetCandidate candidate,
-            InvasionCoastalTargeting? coastalTargeting)
+            Func<Settlement, bool>? initialCoastalTargetFilter)
         {
-            if (coastalTargeting == null || !coastalTargeting.RequiresFirstCoastalConquest) return true;
-            if (!coastalTargeting.AllowsFirstConquestTarget(candidate.TargetId,
-                candidate.Type == SpawnSettlementType.Town, candidate.HasPort))
+            if (initialCoastalTargetFilter == null) return true;
+            if (!initialCoastalTargetFilter(candidate.Target))
             {
                 ReportCoastalRejection(candidate.TargetId, "not an eligible coastal town");
                 return false;
             }
-            return _hasReachableLandGate(party, candidate.Target);
+            if (_hasReachableLandGate(party, candidate.Target)) return true;
+            ReportCoastalRejection(candidate.TargetId, "no reachable land gate");
+            return false;
         }
 
         private static bool HasReachableLandGate(MobileParty party, Settlement settlement)

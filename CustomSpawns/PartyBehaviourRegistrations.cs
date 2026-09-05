@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using CustomSpawns.AI;
 using CustomSpawns.Data.Adapter;
-using CustomSpawns.Invasions;
 using CustomSpawns.Spawn;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 
 namespace CustomSpawns
@@ -16,10 +16,12 @@ namespace CustomSpawns
      */
     internal sealed class PartyBehaviourRegistration
     {
-        private readonly Func<DynamicSpawnData, Func<MobileParty, InvasionCoastalTargeting?>, IPriorityPartyBehaviour> _createBehaviour;
+        private readonly Func<DynamicSpawnData, Func<MobileParty, Func<Settlement, bool>?>,
+            IPriorityPartyBehaviour> _createBehaviour;
 
         internal PartyBehaviourRegistration(IPriorityPartyBehaviourConfigAdapter configAdapter,
-            Func<DynamicSpawnData, Func<MobileParty, InvasionCoastalTargeting?>, IPriorityPartyBehaviour> createBehaviour)
+            Func<DynamicSpawnData, Func<MobileParty, Func<Settlement, bool>?>,
+                IPriorityPartyBehaviour> createBehaviour)
         {
             ConfigAdapter = configAdapter ?? throw new ArgumentNullException(nameof(configAdapter));
             _createBehaviour = createBehaviour ?? throw new ArgumentNullException(nameof(createBehaviour));
@@ -28,9 +30,9 @@ namespace CustomSpawns
         internal IPriorityPartyBehaviourConfigAdapter ConfigAdapter { get; }
 
         internal IPriorityPartyBehaviour CreateBehaviour(DynamicSpawnData dynamicSpawnData,
-            Func<MobileParty, InvasionCoastalTargeting?> getCoastalTargeting)
+            Func<MobileParty, Func<Settlement, bool>?> getInitialCoastalTargetFilter)
         {
-            return _createBehaviour(dynamicSpawnData, getCoastalTargeting);
+            return _createBehaviour(dynamicSpawnData, getInitialCoastalTargetFilter);
         }
     }
 
@@ -53,17 +55,19 @@ namespace CustomSpawns
                     new BannerlordRaidClosestVillageAdapter(dynamicSpawnData), MBRandom.RandomFloatRanged)),
             new PartyBehaviourRegistration(
                 new BesiegeClosestSettlementConfigAdapter(),
-                (dynamicSpawnData, getCoastalTargeting) => new BesiegeClosestSettlementBehaviour(
-                    new BannerlordBesiegeClosestSettlementAdapter(dynamicSpawnData, getCoastalTargeting), MBRandom.RandomFloatRanged))
+                (dynamicSpawnData, getInitialCoastalTargetFilter) => new BesiegeClosestSettlementBehaviour(
+                    new BannerlordBesiegeClosestSettlementAdapter(dynamicSpawnData,
+                        getInitialCoastalTargetFilter), MBRandom.RandomFloatRanged))
         };
 
         internal static IEnumerable<IPriorityPartyBehaviourConfigAdapter> ConfigAdapters =>
             All.Select(registration => registration.ConfigAdapter);
 
         internal static IPriorityPartyBehaviour[] CreateBehaviours(DynamicSpawnData dynamicSpawnData,
-            Func<MobileParty, InvasionCoastalTargeting?> getCoastalTargeting)
+            Func<MobileParty, Func<Settlement, bool>?> getInitialCoastalTargetFilter)
         {
-            return All.Select(registration => registration.CreateBehaviour(dynamicSpawnData, getCoastalTargeting)).ToArray();
+            return All.Select(registration => registration.CreateBehaviour(dynamicSpawnData,
+                getInitialCoastalTargetFilter)).ToArray();
         }
     }
 }

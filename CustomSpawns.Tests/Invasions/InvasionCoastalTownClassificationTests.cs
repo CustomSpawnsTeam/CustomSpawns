@@ -3,16 +3,14 @@ using NUnit.Framework;
 
 namespace CustomSpawns.Tests.Invasions
 {
-    public class InvasionCoastalTargetingPolicyTests
+    public class InvasionCoastalTownClassificationTests
     {
         [Test]
         public void NativePortMetadataAllowsTownsButNeverCastles()
         {
-            var targeting = new InvasionCoastalTargeting(false);
-
-            Assert.True(targeting.AllowsFirstConquestTarget("native-port", true, true));
-            Assert.False(targeting.AllowsFirstConquestTarget("coastal-castle", false, true));
-            Assert.False(targeting.AllowsFirstConquestTarget("inland-town", true, false));
+            Assert.True(InvasionCoastalTownClassification.IsCoastalTown(true, true, false));
+            Assert.False(InvasionCoastalTownClassification.IsCoastalTown(false, true, false));
+            Assert.False(InvasionCoastalTownClassification.IsCoastalTown(true, false, false));
         }
 
         [Test]
@@ -81,46 +79,5 @@ namespace CustomSpawns.Tests.Invasions
             Assert.That(nearestDistanceSquared, Is.EqualTo(100f));
         }
 
-        [Test]
-        public void CreditedCoastalConquestUnlocksTheExistingTargetTypes()
-        {
-            var targeting = new InvasionCoastalTargeting(true);
-
-            Assert.False(targeting.RequiresFirstCoastalConquest);
-            Assert.True(targeting.AllowsFirstConquestTarget("inland-castle", false, false));
-        }
-
-        [Test]
-        public void CaptureClassificationUsesTheSameCoastalTownRule()
-        {
-            Assert.True(InvasionCoastalTargeting.IsCoastalTown(true, true));
-            Assert.False(InvasionCoastalTargeting.IsCoastalTown(true, false));
-        }
-
-        [Test]
-        public void HeldInlandTargetIsRejectedBeforeTheFirstCoastalConquest()
-        {
-            var targeting = new InvasionCoastalTargeting(false, settlementId => settlementId == "coastal-town");
-
-            Assert.False(targeting.AllowsHeldTarget("inland-town", true, false, false, true));
-        }
-
-        [Test]
-        public void HeldInlandTargetIsRetainedOnlyForAMatchingNativeAssault()
-        {
-            var targeting = new InvasionCoastalTargeting(false, settlementId => settlementId == "coastal-town");
-
-            Assert.True(targeting.AllowsHeldTarget("inland-town", true, false, true, false));
-            Assert.False(targeting.AllowsHeldTarget("inland-town", true, false, false, false));
-        }
-
-        [Test]
-        public void HeldCoastalTargetRequiresAReachableLandGate()
-        {
-            var targeting = new InvasionCoastalTargeting(false, settlementId => settlementId == "coastal-town");
-
-            Assert.True(targeting.AllowsHeldTarget("coastal-town", true, false, false, true));
-            Assert.False(targeting.AllowsHeldTarget("coastal-town", true, false, false, false));
-        }
     }
 }

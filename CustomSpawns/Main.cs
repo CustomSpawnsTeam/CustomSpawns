@@ -129,7 +129,8 @@ namespace CustomSpawns
             _devestationMetricData = new DevestationMetricData(_mobilePartyTrackingBehaviour, _campaignDataConfigLoader, _saveInitialiser, _messageBoxService, _modDebug);
             _dailyLogger = new DailyLogger(_devestationMetricData, _messageBoxService);
             IPriorityPartyBehaviour[] priorityPartyBehaviours =
-                PartyBehaviourRegistrations.CreateBehaviours(_dynamicSpawnData, _invasionCampaignBehaviour.GetCoastalTargeting);
+                PartyBehaviourRegistrations.CreateBehaviours(_dynamicSpawnData,
+                    _invasionCampaignBehaviour.GetInitialCoastalTargetFilter);
             var homeSettlementPatrolBehaviour = new HomeSettlementPatrolBehaviour();
             var partyBehaviourResolver = new PartyBehaviourResolver(
                 new SpawnPartyBehaviourLookup(_spawnDao, _partyBehaviourDao, _messageBoxService),

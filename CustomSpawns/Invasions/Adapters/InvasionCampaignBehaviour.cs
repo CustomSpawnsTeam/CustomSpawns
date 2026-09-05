@@ -152,14 +152,14 @@ namespace CustomSpawns.Invasions.Adapters
 
         public bool HasPersistentInvasionGroup(CsPartyData partyData) => State.FindGroup(partyData.InvasionGroupId) != null;
 
-        public InvasionCoastalTargeting? GetCoastalTargeting(MobileParty party)
+        public Func<Settlement, bool>? GetInitialCoastalTargetFilter(MobileParty party)
         {
             Initialize();
             InvasionGroupState? group = State.FindMemberGroup(party.StringId);
-            if (group == null || group.IsSuspended || party.ActualClan?.StringId != group.ClanId) return null;
+            if (group == null || group.IsSuspended || group.HasFirstCoastalConquest ||
+                party.ActualClan?.StringId != group.ClanId) return null;
             InvasionData? configuration = GetConfiguration(group);
-            return configuration == null ? null : new InvasionCoastalTargeting(group.HasFirstCoastalConquest,
-                _coastalTownResolver.IsCoastalTown);
+            return configuration == null ? null : _coastalTownResolver.IsCoastalTown;
         }
 
         private void OnMapEventStarted(MapEvent mapEvent, PartyBase attacker, PartyBase defender)

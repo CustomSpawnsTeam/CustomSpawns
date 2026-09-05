@@ -5,7 +5,6 @@ using CustomSpawns.AI;
 using CustomSpawns.AI.Model;
 using CustomSpawns.Data.Adapter;
 using CustomSpawns.Data.Dto;
-using CustomSpawns.Invasions;
 using CustomSpawns.Spawn;
 using NUnit.Framework;
 using TaleWorlds.CampaignSystem;
@@ -163,8 +162,8 @@ namespace CustomSpawns.Tests.AI
                     Candidate(inlandCastle, SpawnSettlementType.Castle, 1f, 10f, true, "inland-castle"),
                     Candidate(inlandTown, SpawnSettlementType.Town, 2f, 10f, true, "inland-town"),
                     Candidate(coastalTown, SpawnSettlementType.Town, 3f, 10f, true, "coastal-town")
-                }, _ => new MobileParty[0], _ => new InvasionCoastalTargeting(false,
-                    settlementId => settlementId == "coastal-town"), (_, settlement) => settlement == coastalTown);
+                }, _ => new MobileParty[0], _ => settlement => settlement == coastalTown,
+                (_, settlement) => settlement == coastalTown);
 
             Settlement? result = operations.FindClosestSiegeTarget(party, 100f, 1.5f,
                 new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle });
@@ -183,8 +182,7 @@ namespace CustomSpawns.Tests.AI
                 {
                     Candidate(inlandTown, SpawnSettlementType.Town, 1f, 10f, true, "inland-town"),
                     Candidate(coastalTown, SpawnSettlementType.Town, 2f, 10f, true, "coastal-town")
-                }, _ => new MobileParty[0], _ => new InvasionCoastalTargeting(false,
-                    settlementId => settlementId == "coastal-town"), (_, _) => false);
+                }, _ => new MobileParty[0], _ => settlement => settlement == coastalTown, (_, _) => false);
 
             Settlement? result = operations.FindClosestSiegeTarget(party, 100f, 1.5f,
                 new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle });
@@ -208,8 +206,7 @@ namespace CustomSpawns.Tests.AI
                     Candidate(strongTown, SpawnSettlementType.Town, 2f, 200f, true, "coastal-town"),
                     Candidate(incompatibleTown, SpawnSettlementType.Town, 3f, 10f, false, "coastal-town"),
                     Candidate(viableTown, SpawnSettlementType.Town, 4f, 10f, true, "coastal-town")
-                }, _ => new MobileParty[0], _ => new InvasionCoastalTargeting(false,
-                    settlementId => settlementId == "coastal-town"), (_, _) => true);
+                }, _ => new MobileParty[0], _ => _ => true, (_, _) => true);
 
             Settlement? result = operations.FindClosestSiegeTarget(party, 100f, 1.5f,
                 new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle });
@@ -226,8 +223,7 @@ namespace CustomSpawns.Tests.AI
                 _ => new RoamingPartyStrength[0], _ => new[]
                 {
                     Candidate(inlandCastle, SpawnSettlementType.Castle, 1f, 10f, true, "inland-castle")
-                }, _ => new MobileParty[0], _ => new InvasionCoastalTargeting(true,
-                    settlementId => settlementId == "coastal-town"), (_, _) => false);
+                }, _ => new MobileParty[0], _ => null, (_, _) => false);
 
             Settlement? result = operations.FindClosestSiegeTarget(party, 100f, 1.5f,
                 new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle });
