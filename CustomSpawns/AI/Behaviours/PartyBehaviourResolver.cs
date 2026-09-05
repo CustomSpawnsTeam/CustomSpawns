@@ -21,14 +21,6 @@ namespace CustomSpawns.AI.Behaviours
             _fallback = fallback ?? throw new ArgumentNullException(nameof(fallback));
             _supportingPartyBehaviour = supportingPartyBehaviour ??
                                         throw new ArgumentNullException(nameof(supportingPartyBehaviour));
-
-            foreach (Type configurationType in lookup.FindAllConfiguredBehaviourTypes())
-            {
-                if (!registry.TryGet(configurationType, out _))
-                {
-                    throw CreateMissingProviderException(configurationType);
-                }
-            }
         }
 
         public PartyBehaviourResult Resolve(MobileParty party, CsPartyData partyData)
@@ -60,6 +52,18 @@ namespace CustomSpawns.AI.Behaviours
         {
             return new InvalidOperationException($"No priority party behaviour provider is registered for " +
                                                  $"{configurationType.FullName}.");
+        }
+
+        public static void ValidateConfiguredBehaviorTypes(
+            SpawnPartyBehaviourLookup lookup, PriorityPartyBehaviourRegistry registry)
+        {
+            foreach (Type configurationType in lookup.FindAllConfiguredBehaviourTypes())
+            {
+                if (!registry.TryGet(configurationType, out _))
+                {
+                    throw CreateMissingProviderException(configurationType);
+                }
+            }
         }
     }
 }

@@ -100,12 +100,17 @@ namespace CustomSpawns.Tests.AI
         }
 
         [Test]
-        public void Constructor_ConfiguredTypeWithoutProviderFailsClearly()
+        public void ValidateConfiguredBehaviorTypes_CatchesMissingProvider()
         {
             var behaviourDao = BehaviourDao(Template("template", RaidConfiguration()));
+            PartyBehaviourResolver.ValidateConfiguredBehaviorTypes(
+                Lookup(SpawnDao(new Dictionary<string, SpawnDto>()), BehaviourDao(), new Mock<MessageBoxService>().Object),
+                new PriorityPartyBehaviourRegistry(Array.Empty<IPriorityPartyBehaviour>()));
 
             InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>
-                Resolver(SpawnDao(new Dictionary<string, SpawnDto>()), behaviourDao, new FallbackStub()))!;
+                PartyBehaviourResolver.ValidateConfiguredBehaviorTypes(
+                    Lookup(SpawnDao(new Dictionary<string, SpawnDto>()), behaviourDao, new Mock<MessageBoxService>().Object),
+                    new PriorityPartyBehaviourRegistry(Array.Empty<IPriorityPartyBehaviour>())))!;
 
             Assert.That(error.Message, Does.Contain(typeof(RaidClosestVillageData).FullName));
         }

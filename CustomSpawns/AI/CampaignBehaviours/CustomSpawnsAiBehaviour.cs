@@ -12,34 +12,13 @@ namespace CustomSpawns.AI
     {
         internal const float DominantAiBehaviorScore = 1000000f;
 
-        private readonly DynamicSpawnData _dynamicSpawnData;
-        private readonly PartyBehaviourResolver _partyBehaviourResolver;
-        private readonly IReadOnlyList<ISyncsCampaignData> _syncTargets;
+        private readonly PartyBehaviorDecisionCoordinator _decisionCoordinator;
 
         public CustomSpawnsAiBehaviour(DynamicSpawnData dynamicSpawnData,
             PartyBehaviourResolver partyBehaviourResolver, IEnumerable<ISyncsCampaignData> syncTargets)
         {
-            _dynamicSpawnData = dynamicSpawnData;
-            _partyBehaviourResolver = partyBehaviourResolver;
-
-            var distinctTargets = new HashSet<object>(ReferenceEqualityComparer.Instance);
-            var targets = new List<ISyncsCampaignData>();
-            foreach (ISyncsCampaignData syncTarget in syncTargets ??
-                     throw new ArgumentNullException(nameof(syncTargets)))
-            {
-                if (syncTarget is null)
-                {
-                    throw new ArgumentException("Campaign data sync targets cannot contain null.",
-                        nameof(syncTargets));
-                }
-
-                if (distinctTargets.Add(syncTarget))
-                {
-                    targets.Add(syncTarget);
-                }
-            }
-
-            _syncTargets = targets;
+            _decisionCoordinator = new PartyBehaviorDecisionCoordinator(
+                dynamicSpawnData, partyBehaviourResolver, syncTargets);
         }
 
         public override void RegisterEvents()
@@ -49,27 +28,12 @@ namespace CustomSpawns.AI
 
         public override void SyncData(IDataStore dataStore)
         {
-            foreach (ISyncsCampaignData syncTarget in _syncTargets)
-            {
-                syncTarget.SyncData(dataStore);
-            }
+            _decisionCoordinator.SyncData(dataStore);
         }
 
         private void AddBehaviorScore(MobileParty party, PartyThinkParams thinkParams)
         {
-            CsPartyData? partyData = _dynamicSpawnData.GetDynamicSpawnData(party);
-            if (partyData is null)
-            {
-                return;
-            }
-
-            AIBehaviorData? behavior = _partyBehaviourResolver.Resolve(party, partyData).AIBehavior;
-            if (!behavior.HasValue)
-            {
-                return;
-            }
-
-            ApplyDominantBehaviorScore(new PartyThinkParamsAiBehaviorScoreSink(thinkParams), behavior.Value);
+            _decisionCoordinator.AddBehaviorScore(party, thinkParams);
         }
 
         internal static void ApplyDominantBehaviorScore(IAiBehaviorScoreSink scoreSink,
@@ -82,6 +46,66 @@ namespace CustomSpawns.AI
             }
 
             scoreSink.AddBehaviorScore(behavior, DominantAiBehaviorScore);
+        }
+
+        private sealed class PartyBehaviorDecisionCoordinator
+        {
+            private readonly DynamicSpawnData _dynamicSpawnData;
+            private readonly PartyBehaviourResolver _partyBehaviourResolver;
+            private readonly IReadOnlyList<ISyncsCampaignData> _syncTargets;
+
+            public PartyBehaviorDecisionCoordinator(
+                DynamicSpawnData dynamicSpawnData, PartyBehaviourResolver partyBehaviourResolver,
+                IEnumerable<ISyncsCampaignData> syncTargets)
+            {
+                _dynamicSpawnData = dynamicSpawnData;
+                _partyBehaviourResolver = partyBehaviourResolver;
+
+                var distinctTargets = new HashSet<object>(ReferenceEqualityComparer.Instance);
+                var targets = new List<ISyncsCampaignData>();
+                foreach (ISyncsCampaignData syncTarget in syncTargets ??
+                         throw new ArgumentNullException(nameof(syncTargets)))
+                {
+                    if (syncTarget is null)
+                    {
+                        throw new ArgumentException("Campaign data sync targets cannot contain null.",
+                            nameof(syncTargets));
+                    }
+
+                    if (distinctTargets.Add(syncTarget))
+                    {
+                        targets.Add(syncTarget);
+                    }
+                }
+
+                _syncTargets = targets;
+            }
+
+            public void AddBehaviorScore(MobileParty party, PartyThinkParams thinkParams)
+            {
+                CsPartyData? partyData = _dynamicSpawnData.GetDynamicSpawnData(party);
+                if (partyData is null)
+                {
+                    return;
+                }
+
+                AIBehaviorData? behavior = _partyBehaviourResolver.Resolve(party, partyData).AIBehavior;
+                if (!behavior.HasValue)
+                {
+                    return;
+                }
+
+                ApplyDominantBehaviorScore(new PartyThinkParamsAiBehaviorScoreSink(thinkParams),
+                    behavior.Value);
+            }
+
+            public void SyncData(IDataStore dataStore)
+            {
+                foreach (ISyncsCampaignData syncTarget in _syncTargets)
+                {
+                    syncTarget.SyncData(dataStore);
+                }
+            }
         }
 
         private sealed class PartyThinkParamsAiBehaviorScoreSink : IAiBehaviorScoreSink

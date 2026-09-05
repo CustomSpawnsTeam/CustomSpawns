@@ -134,10 +134,13 @@ namespace CustomSpawns
             IPriorityPartyBehaviour[] priorityPartyBehaviours =
                 PartyBehaviourRegistrations.CreateBehaviours(_dynamicSpawnData,
                     _invasionCampaignBehaviour.GetInitialCoastalTargetFilter);
+            var partyBehaviourLookup = new SpawnPartyBehaviourLookup(_spawnDao, _partyBehaviourDao,
+                _messageBoxService);
+            var priorityPartyBehaviourRegistry = new PriorityPartyBehaviourRegistry(priorityPartyBehaviours);
+            PartyBehaviourResolver.ValidateConfiguredBehaviorTypes(partyBehaviourLookup, priorityPartyBehaviourRegistry);
             var homeSettlementPatrolBehaviour = new HomeSettlementPatrolBehaviour();
             var partyBehaviourResolver = new PartyBehaviourResolver(
-                new SpawnPartyBehaviourLookup(_spawnDao, _partyBehaviourDao, _messageBoxService),
-                new PriorityPartyBehaviourRegistry(priorityPartyBehaviours), homeSettlementPatrolBehaviour,
+                partyBehaviourLookup, priorityPartyBehaviourRegistry, homeSettlementPatrolBehaviour,
                 new FollowSupportedPartyBehaviour());
             _customSpawnsAiBehaviour = new CustomSpawnsAiBehaviour(_dynamicSpawnData, partyBehaviourResolver,
                 new List<ISyncsCampaignData>(priorityPartyBehaviours) { homeSettlementPatrolBehaviour });
