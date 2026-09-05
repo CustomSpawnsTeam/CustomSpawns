@@ -1,14 +1,10 @@
 using System;
-using System.Collections.Generic;
 using System.Xml.Serialization;
 
 namespace CustomSpawns.Data.Model
 {
     public sealed class InvasionConfig
     {
-        [XmlElement("Foothold")]
-        public InvasionFootholdConfig Foothold { get; set; } = new();
-
         [XmlElement("Supplies")]
         public InvasionSuppliesConfig Supplies { get; set; } = new();
 
@@ -17,13 +13,6 @@ namespace CustomSpawns.Data.Model
 
         [XmlElement("Reinforcements")]
         public InvasionReinforcementsConfig Reinforcements { get; set; } = new();
-    }
-
-    public sealed class InvasionFootholdConfig
-    {
-        [XmlArray("CoastalTownIds")]
-        [XmlArrayItem("TownId")]
-        public List<string>? CoastalTownIds { get; set; }
     }
 
     public sealed class InvasionSuppliesConfig
@@ -70,8 +59,7 @@ namespace CustomSpawns.Data.Model
             {
                 throw new ArgumentNullException(nameof(config));
             }
-            if (config.Foothold == null || config.Supplies == null || config.OccupationGarrison == null ||
-                config.Reinforcements == null)
+            if (config.Supplies == null || config.OccupationGarrison == null || config.Reinforcements == null)
             {
                 throw new ArgumentException("Invasion configuration groups cannot be null.");
             }
@@ -105,10 +93,6 @@ namespace CustomSpawns.Data.Model
             if (config.Reinforcements.ActivePartyCap <= 0)
             {
                 throw new ArgumentException("Invasion Reinforcements ActivePartyCap must be greater than zero.");
-            }
-            if (config.Foothold.CoastalTownIds != null && config.Foothold.CoastalTownIds.Exists(string.IsNullOrWhiteSpace))
-            {
-                throw new ArgumentException("Invasion Foothold CoastalTownIds cannot contain blank town IDs.");
             }
         }
 

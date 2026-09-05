@@ -23,6 +23,7 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly DynamicSpawnData _parties;
         private readonly SpawnGroupService _spawnGroups;
         private readonly InvasionGarrisonTransfer _garrisonTransfer;
+        private readonly InvasionCoastalTownResolver _coastalTownResolver = new();
         private readonly Func<int, int> _randomIndex;
         private InvasionCaptureCorrelation _correlation;
         private bool _initialized;
@@ -71,6 +72,7 @@ namespace CustomSpawns.Invasions.Adapters
                 _correlation.RestoreOwnedResult(evidence.ContextId, evidence.PreviousOwnerClanId,
                     evidence.ExpectedOwnerClanId, evidence.Capturer, (evidence.Participants ?? new List<MobileParty>()).Cast<object>());
             _initialized = false;
+            _coastalTownResolver.ClearCache();
         }
 
         private void Initialize()
@@ -157,7 +159,7 @@ namespace CustomSpawns.Invasions.Adapters
             if (group == null || group.IsSuspended || party.ActualClan?.StringId != group.ClanId) return null;
             InvasionData? configuration = GetConfiguration(group);
             return configuration == null ? null : new InvasionCoastalTargeting(group.HasFirstCoastalConquest,
-                configuration.CoastalTownIds);
+                _coastalTownResolver.IsCoastalTown);
         }
 
         private void OnMapEventStarted(MapEvent mapEvent, PartyBase attacker, PartyBase defender)
@@ -246,8 +248,7 @@ namespace CustomSpawns.Invasions.Adapters
             if (group == null || context == null || party.ActualClan?.StringId != group.ClanId) return;
             InvasionData? configuration = GetConfiguration(group);
             if (configuration == null) return;
-            bool coastal = InvasionCoastalTargeting.IsCoastalTown(configuration.CoastalTownIds,
-                settlement.StringId, settlement.IsTown, settlement.HasPort);
+            bool coastal = _coastalTownResolver.IsCoastalTown(settlement);
             State.ObserveOwnership(context.Id, group.Id, party.StringId, oldOwner?.Clan?.StringId ?? "",
                 newOwner?.Clan?.StringId ?? "", true, coastal);
             StartReinforcementSchedule(context.Id);
@@ -332,8 +333,7 @@ namespace CustomSpawns.Invasions.Adapters
             InvasionTownCredit? credit = State.FindCredit(settlement.StringId);
             return credit?.GroupId == group.Id && credit.SupplyPortEligible && settlement.IsTown &&
                    settlement.OwnerClan?.StringId == group.ClanId && settlement.SiegeEvent == null &&
-                   InvasionCoastalTargeting.IsCoastalTown(configuration.CoastalTownIds, settlement.StringId,
-                       settlement.IsTown, settlement.HasPort);
+                   _coastalTownResolver.IsCoastalTown(settlement);
         }
 
         public float GetOngoingFoodSupport(Town town)
@@ -367,9 +367,8 @@ namespace CustomSpawns.Invasions.Adapters
             Clan? clan = group == null ? null : Clan.FindFirst(candidate => candidate.StringId == group.ClanId);
             InvasionTownCredit? credit = State.FindCredit(town.Settlement.StringId);
             return InvasionFoodSupportRules.IsEligibleForOngoingSupport(credit?.GroupId == group?.Id,
-                credit?.SupplyPortEligible == true, InvasionCoastalTargeting.IsCoastalTown(
-                    configuration?.CoastalTownIds ?? Array.Empty<string>(), town.Settlement.StringId,
-                    town.Settlement.IsTown, town.Settlement.HasPort),
+                credit?.SupplyPortEligible == true, configuration != null &&
+                _coastalTownResolver.IsCoastalTown(town.Settlement),
                 group?.ClanId == town.Settlement.OwnerClan?.StringId, configuration != null && !group!.IsSuspended &&
                 clan?.IsEliminated == false, town.Settlement.SiegeEvent != null);
         }

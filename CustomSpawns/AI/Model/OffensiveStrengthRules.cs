@@ -23,6 +23,15 @@ namespace CustomSpawns.AI.Model
                 .Sum(army => army.Sum(p => p.PartyStrength));
         }
 
+        internal static float SumVisibleHostileLordStrength(
+            IEnumerable<RoamingPartyStrength> parties, float observerSeeingRange)
+        {
+            return parties.Where(p => !p.IsSelf && p.IsActive && p.IsHostile && p.IsLordParty &&
+                                      IsWithinSeeingRange(p.Distance, observerSeeingRange))
+                .GroupBy(p => p.ArmyIdentity)
+                .Sum(army => army.Sum(p => p.PartyStrength));
+        }
+
         internal static bool MeetsStrengthRatio(float attackerStrength, float defenderStrength,
             float minimumRatio)
         {

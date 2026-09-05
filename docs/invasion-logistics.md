@@ -4,7 +4,6 @@ An optional, element-only `Invasion` block in a spawn definition enables coastal
 
 ```xml
 <Invasion>
-  <Foothold />
   <Supplies>
     <FoodStockFloor>100</FoodStockFloor>
     <DailyFoodBonus>5</DailyFoodBonus>
@@ -29,7 +28,6 @@ These are initial sample balance values, not a guarantee of positive food, rebel
 
 | Element | Meaning / omitted default |
 | --- | --- |
-| `Foothold/CoastalTownIds/TownId` | Repeated raw settlement IDs. An empty list uses native port metadata. A nonempty list replaces that set; entries must still be towns. |
 | `Supplies/FoodStockFloor` | One-time minimum food stock after occupation, limited by actual capacity; default 0. Existing stock is never reduced. |
 | `Supplies/DailyFoodBonus` | Additive daily `Overseas supplies` food-model contribution; default 0. |
 | `OccupationGarrison/MinimumTroopCount` | Minimum desired total native garrison count, not the size of an additional donation; default 0. |
@@ -40,21 +38,13 @@ These are initial sample balance values, not a guarantee of positive food, rebel
 | `Reinforcements/IntervalInDays` | Positive interval for both the first and later arrivals; default 7. |
 | `Reinforcements/ActivePartyCap` | Positive cap on surviving registered reinforcements in this group; default 1. The sample explicitly uses 3. |
 
-All quantities must be finite and nonnegative, with maximum garrison count at least its minimum. Runtime validation checks troop/town references, non-bandit ownership and an effective behaviour template able to besiege towns. Invalid opt-ins are diagnosed without breaking unrelated valid spawn definitions. Reinforcements inherit the original `PriorityPartyBehaviourTemplateId`; there is no second behaviour configuration.
-
-For a map with unsuitable port metadata, use an explicit list:
-
-```xml
-<Foothold>
-  <CoastalTownIds><TownId>your_coastal_town_id</TownId></CoastalTownIds>
-</Foothold>
-```
+All quantities must be finite and nonnegative, with maximum garrison count at least its minimum. Runtime validation checks troop-template references, non-bandit ownership and an effective behaviour template able to besiege towns. Invalid opt-ins are diagnosed without breaking unrelated valid spawn definitions. Reinforcements inherit the original `PriorityPartyBehaviourTemplateId`; there is no second behaviour configuration.
 
 ## Groups, conquests and supply
 
 One logistics group belongs to an original spawn-template ID and actual clan. Several original armies and their escorts can share it. Each town's credit belongs exclusively to the verified capturing party's group; allied conquests and other same-clan groups do not receive duplicate credit or supply.
 
-Before the first credited coastal conquest, the group may begin a siege only at an eligible coastal town with a reachable land gate. Existing hostility, defender-strength, reconnaissance and siege-compatibility checks still apply. No viable coast means the normal raid/patrol fallback, not an inland exception. A native assault already running when a legacy save adopts the rule is allowed to finish. Coastal success permanently unlocks the configured town/castle targets across the group; losing ports does not re-lock expansion or create defence/retaking orders.
+Before the first credited coastal conquest, the group may begin a siege only at an eligible coastal town with a reachable land gate. A town is coastal when Bannerlord marks it with `HasPort`, or when a `CoastalSea` or `OpenSea` navigation face lies within 30 campaign units of its settlement position or gate; lake and river faces do not qualify. Existing hostility, defender-strength, reconnaissance and siege-compatibility checks still apply. No viable coast means the normal raid/patrol fallback, not an inland exception. A native assault already running when a legacy save adopts the rule is allowed to finish. Coastal success permanently unlocks the configured town/castle targets across the group; losing ports does not re-lock expansion or create defence/retaking orders.
 
 Ownership loss deletes credit and pending occupation effects. Peaceful reacquisition does not restore them. A new attributable siege capture creates a new transition. Assault victories and winning besieger-side sally-out results use native ownership handling; the feature never force-transfers a settlement or creates a kingdom.
 

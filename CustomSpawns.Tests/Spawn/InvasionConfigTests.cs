@@ -29,8 +29,7 @@ namespace CustomSpawns.Tests.Spawn
         [Test]
         public void Adapt_ValidInvasionPreservesConfigurationAndDefaultSevenDayInterval()
         {
-            const string invasion = "<Invasion><Foothold><CoastalTownIds><TownId>Settlement.port</TownId></CoastalTownIds>" +
-                                    "</Foothold><Supplies><FoodStockFloor>30</FoodStockFloor><DailyFoodBonus>5</DailyFoodBonus>" +
+            const string invasion = "<Invasion><Supplies><FoodStockFloor>30</FoodStockFloor><DailyFoodBonus>5</DailyFoodBonus>" +
                                     "</Supplies><OccupationGarrison><MinimumTroopCount>10</MinimumTroopCount>" +
                                     "<MaximumTroopCount>25</MaximumTroopCount><MilitiaStrengthRatio>1.5</MilitiaStrengthRatio>" +
                                     "<MaximumDonorLossFraction>0.25</MaximumDonorLossFraction></OccupationGarrison>" +
@@ -44,8 +43,6 @@ namespace CustomSpawns.Tests.Spawn
             Assert.Multiple(() =>
             {
                 Assert.That(errors, Is.Empty);
-                Assert.That(data.CoastalTownIds, Is.EqualTo(new[] { "Settlement.port" }));
-                Assert.That(data.UsesNativePortMetadata, Is.False);
                 Assert.That(data.FoodStockFloor, Is.EqualTo(30f));
                 Assert.That(data.DailyFoodBonus, Is.EqualTo(5f));
                 Assert.That(data.MinimumGarrisonTroopCount, Is.EqualTo(10));
@@ -55,6 +52,26 @@ namespace CustomSpawns.Tests.Spawn
                 Assert.That(data.ReinforcementPartyTemplateId, Is.EqualTo("PartyTemplate.reinforcements"));
                 Assert.That(data.ReinforcementIntervalInDays, Is.EqualTo(7f));
                 Assert.That(data.ReinforcementActivePartyCap, Is.EqualTo(2));
+            });
+        }
+
+        [Test]
+        public void DeserializeAndResolve_LegacyCoastalTownElementsAreIgnored()
+        {
+            const string invasion = "<Invasion><Foothold><CoastalTownIds><TownId>town_V7</TownId>" +
+                                    "</CoastalTownIds></Foothold><Reinforcements>" +
+                                    "<PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId>" +
+                                    "</Reinforcements></Invasion>";
+            Spawns spawns = Read("<RegularBanditDailySpawnData party_template=\"PartyTemplate.invasion\">" +
+                                 invasion + "</RegularBanditDailySpawnData>", out List<System.Exception> errors);
+
+            InvasionData data = InvasionDtoAdapter.Adapt(spawns.AllSpawns.Single().Invasion!);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(errors, Is.Empty);
+                Assert.That(data.ReinforcementPartyTemplateId, Is.EqualTo("PartyTemplate.reinforcements"));
+                Assert.That(data.ReinforcementIntervalInDays, Is.EqualTo(7f));
             });
         }
 
@@ -93,28 +110,20 @@ namespace CustomSpawns.Tests.Spawn
         }
 
         [Test]
-        public void ValidateReferences_RejectsUnknownTemplateUnknownTownVillageAndBanditSpawn()
+        public void ValidateReferences_RejectsUnknownTemplateAndBanditSpawn()
         {
             InvasionData invasion = AdaptValidConfig();
 
             ArgumentException template = Assert.Throws<ArgumentException>(() =>
                 InvasionRuntimeConfigurationValidator.ValidateReferences(invasion, "PartyTemplate.origin", false,
-                    false, Array.Empty<InvasionTownReference>()))!;
-            ArgumentException village = Assert.Throws<ArgumentException>(() =>
-                InvasionRuntimeConfigurationValidator.ValidateReferences(invasion, "PartyTemplate.origin", false,
-                    true, new[] { new InvasionTownReference("Settlement.village", true, false) }))!;
-            ArgumentException unknownTown = Assert.Throws<ArgumentException>(() =>
-                InvasionRuntimeConfigurationValidator.ValidateReferences(invasion, "PartyTemplate.origin", false,
-                    true, new[] { new InvasionTownReference("Settlement.missing", false, false) }))!;
+                    false))!;
             ArgumentException bandit = Assert.Throws<ArgumentException>(() =>
                 InvasionRuntimeConfigurationValidator.ValidateReferences(invasion, "PartyTemplate.origin", true,
-                    true, new[] { new InvasionTownReference("Settlement.town", true, true) }))!;
+                    true))!;
 
             Assert.Multiple(() =>
             {
                 Assert.That(template.Message, Does.Contain("unknown reinforcement party template"));
-                Assert.That(village.Message, Does.Contain("must be a town"));
-                Assert.That(unknownTown.Message, Does.Contain("unknown coastal town"));
                 Assert.That(bandit.Message, Does.Contain("bandit clan"));
             });
         }
@@ -137,15 +146,14 @@ namespace CustomSpawns.Tests.Spawn
         }
 
         [Test]
-        public void ValidateRuntimeConfiguration_AcceptsResolvableTownAndTownTargetingSiegeTemplate()
+        public void ValidateRuntimeConfiguration_AcceptsReinforcementTemplateAndTownTargetingSiegeTemplate()
         {
             InvasionData invasion = AdaptValidConfig();
             BesiegeClosestSettlementData townTargeting = new(new[] { SpawnSettlementType.Town }, 1f, 1f,
                 0f, 0f, 1f, 0f, 0f, 0f, 1, 0f);
 
             Assert.DoesNotThrow(() => InvasionRuntimeConfigurationValidator.ValidateReferences(invasion,
-                "PartyTemplate.origin", false, true,
-                new[] { new InvasionTownReference("Settlement.town", true, true) }));
+                "PartyTemplate.origin", false, true));
             Assert.DoesNotThrow(() => InvasionRuntimeConfigurationValidator.ValidateEffectiveSiegeTemplate(
                 "PartyTemplate.origin", "siege", true, new PriorityPartyBehaviourData[] { townTargeting }));
         }

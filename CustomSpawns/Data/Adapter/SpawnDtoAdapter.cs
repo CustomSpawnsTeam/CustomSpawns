@@ -130,12 +130,8 @@ namespace CustomSpawns.Data.Adapter
             if (spawn.Invasion != null)
             {
                 dat.Invasion = InvasionDtoAdapter.Adapt(spawn.Invasion);
-                List<InvasionTownReference> coastalTowns = dat.Invasion.CoastalTownIds
-                    .Select(id => ToInvasionTownReference(id))
-                    .ToList();
                 InvasionRuntimeConfigurationValidator.ValidateReferences(dat.Invasion, spawn.PartyTemplate,
-                    dat.SpawnClan.IsBanditFaction, ReinforcementTemplateExists(dat.Invasion.ReinforcementPartyTemplateId),
-                    coastalTowns);
+                    dat.SpawnClan.IsBanditFaction, ReinforcementTemplateExists(dat.Invasion.ReinforcementPartyTemplateId));
                 ValidateInvasionBehaviourTemplate(spawn.PartyTemplate, dat.PriorityPartyBehaviourTemplateId);
             }
 
@@ -251,24 +247,6 @@ namespace CustomSpawns.Data.Adapter
             // expects the qualified "PartyTemplate.Id" syntax used by ordinary spawn attributes.
             return _objectManager.GetObject<PartyTemplateObject>(partyTemplateId) != null ||
                    _campaignObjectManager.Find<PartyTemplateObject>(partyTemplateId) != null;
-        }
-
-        private InvasionTownReference ToInvasionTownReference(string townId)
-        {
-            try
-            {
-                Settlement settlement = FindSettlement(townId);
-                return new InvasionTownReference(townId, exists: true,
-                    isTown: settlement.IsTown && settlement.Town != null);
-            }
-            catch (ArgumentException)
-            {
-                return new InvasionTownReference(townId, exists: false, isTown: false);
-            }
-            catch (TechnicalException)
-            {
-                return new InvasionTownReference(townId, exists: false, isTown: false);
-            }
         }
 
         private void ValidateInvasionBehaviourTemplate(string spawnPartyTemplateId, string? templateId)

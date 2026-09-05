@@ -71,6 +71,86 @@ namespace CustomSpawns.Tests.AI
         }
 
         [Test]
+        public void ConcreteAdapter_AlternativeTargetExcludesTheHeldTarget()
+        {
+            MobileParty party = DummyParty();
+            Settlement heldTarget = DummySettlement();
+            Settlement alternative = DummySettlement();
+            var operations = new BannerlordBesiegeClosestSettlementAdapter(_ => 5f,
+                _ => new RoamingPartyStrength[0], _ => new[]
+                {
+                    Candidate(heldTarget, SpawnSettlementType.Town, 1f, 10f),
+                    Candidate(alternative, SpawnSettlementType.Castle, 2f, 10f)
+                }, _ => new MobileParty[0]);
+
+            Settlement? result = operations.FindAlternativeSiegeTarget(party, heldTarget, 100f, 1f,
+                new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle });
+
+            Assert.That(result, Is.SameAs(alternative));
+        }
+
+        [Test]
+        public void ConcreteAdapter_LordNearTargetButAwayFromAttackerRejectsThatTarget()
+        {
+            MobileParty party = DummyParty();
+            Settlement threatened = DummySettlement();
+            Settlement safe = DummySettlement();
+            var operations = new BannerlordBesiegeClosestSettlementAdapter(_ => 5f,
+                _ => new RoamingPartyStrength[0], _ => new[]
+                {
+                    Candidate(threatened, SpawnSettlementType.Town, 1f, 10f),
+                    Candidate(safe, SpawnSettlementType.Town, 2f, 10f)
+                }, _ => new MobileParty[0], (_, target) => target == threatened
+                    ? new[] { LordThreat(5f, 200f) }
+                    : new RoamingPartyStrength[0]);
+
+            Settlement? result = operations.FindClosestSiegeTarget(party, 100f, 1f,
+                new[] { SpawnSettlementType.Town });
+
+            Assert.That(result, Is.SameAs(safe));
+        }
+
+        [Test]
+        public void ConcreteAdapter_LordNearAttackerButAwayFromTargetDoesNotRejectTarget()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            var operations = new BannerlordBesiegeClosestSettlementAdapter(_ => 5f,
+                _ => new[] { LordThreat(1f, 200f) }, _ => new[]
+                {
+                    Candidate(target, SpawnSettlementType.Town, 1f, 10f)
+                }, _ => new MobileParty[0], (_, _) => new RoamingPartyStrength[0]);
+
+            Settlement? result = operations.FindClosestSiegeTarget(party, 100f, 1f,
+                new[] { SpawnSettlementType.Town });
+
+            Assert.That(result, Is.SameAs(target));
+        }
+
+        [Test]
+        public void ConcreteAdapter_AlternativeTargetChoosesSafeCandidateOverCloserThreatenedOne()
+        {
+            MobileParty party = DummyParty();
+            Settlement heldTarget = DummySettlement();
+            Settlement threatened = DummySettlement();
+            Settlement safe = DummySettlement();
+            var operations = new BannerlordBesiegeClosestSettlementAdapter(_ => 5f,
+                _ => new RoamingPartyStrength[0], _ => new[]
+                {
+                    Candidate(heldTarget, SpawnSettlementType.Town, 1f, 10f),
+                    Candidate(threatened, SpawnSettlementType.Town, 2f, 10f),
+                    Candidate(safe, SpawnSettlementType.Town, 3f, 10f)
+                }, _ => new MobileParty[0], (_, target) => target == threatened
+                    ? new[] { LordThreat(5f, 200f) }
+                    : new RoamingPartyStrength[0]);
+
+            Settlement? result = operations.FindAlternativeSiegeTarget(party, heldTarget, 100f, 1f,
+                new[] { SpawnSettlementType.Town });
+
+            Assert.That(result, Is.SameAs(safe));
+        }
+
+        [Test]
         public void ConcreteAdapter_BeforeFirstCoastalConquestPrefersReachableCoastalTown()
         {
             MobileParty party = DummyParty();
@@ -84,7 +164,7 @@ namespace CustomSpawns.Tests.AI
                     Candidate(inlandTown, SpawnSettlementType.Town, 2f, 10f, true, "inland-town"),
                     Candidate(coastalTown, SpawnSettlementType.Town, 3f, 10f, true, "coastal-town")
                 }, _ => new MobileParty[0], _ => new InvasionCoastalTargeting(false,
-                    new[] { "coastal-town" }), (_, settlement) => settlement == coastalTown);
+                    settlementId => settlementId == "coastal-town"), (_, settlement) => settlement == coastalTown);
 
             Settlement? result = operations.FindClosestSiegeTarget(party, 100f, 1.5f,
                 new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle });
@@ -104,7 +184,7 @@ namespace CustomSpawns.Tests.AI
                     Candidate(inlandTown, SpawnSettlementType.Town, 1f, 10f, true, "inland-town"),
                     Candidate(coastalTown, SpawnSettlementType.Town, 2f, 10f, true, "coastal-town")
                 }, _ => new MobileParty[0], _ => new InvasionCoastalTargeting(false,
-                    new[] { "coastal-town" }), (_, _) => false);
+                    settlementId => settlementId == "coastal-town"), (_, _) => false);
 
             Settlement? result = operations.FindClosestSiegeTarget(party, 100f, 1.5f,
                 new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle });
@@ -129,7 +209,7 @@ namespace CustomSpawns.Tests.AI
                     Candidate(incompatibleTown, SpawnSettlementType.Town, 3f, 10f, false, "coastal-town"),
                     Candidate(viableTown, SpawnSettlementType.Town, 4f, 10f, true, "coastal-town")
                 }, _ => new MobileParty[0], _ => new InvasionCoastalTargeting(false,
-                    new[] { "coastal-town" }), (_, _) => true);
+                    settlementId => settlementId == "coastal-town"), (_, _) => true);
 
             Settlement? result = operations.FindClosestSiegeTarget(party, 100f, 1.5f,
                 new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle });
@@ -147,7 +227,7 @@ namespace CustomSpawns.Tests.AI
                 {
                     Candidate(inlandCastle, SpawnSettlementType.Castle, 1f, 10f, true, "inland-castle")
                 }, _ => new MobileParty[0], _ => new InvasionCoastalTargeting(true,
-                    new[] { "coastal-town" }), (_, _) => false);
+                    settlementId => settlementId == "coastal-town"), (_, _) => false);
 
             Settlement? result = operations.FindClosestSiegeTarget(party, 100f, 1.5f,
                 new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle });
@@ -243,12 +323,12 @@ namespace CustomSpawns.Tests.AI
             {
                 SiegeTarget = target,
                 PatrolTarget = patrol,
-                VisibleHostileStrength = 200f
+                HostileLordStrengthNearTarget = 200f
             };
             BesiegeClosestSettlementBehaviour provider = Provider(operations);
 
             PartyBehaviourResult unsafeResult = Evaluate(provider, party);
-            operations.VisibleHostileStrength = 0f;
+            operations.HostileLordStrengthNearTarget = 0f;
             PartyBehaviourResult safeResult = Evaluate(provider, party);
 
             Assert.That(unsafeResult.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.PatrolAroundPoint));
@@ -275,6 +355,23 @@ namespace CustomSpawns.Tests.AI
         }
 
         [Test]
+        public void ConcreteAdapter_HostileLordThreatNearTargetExcludesNonLordParties()
+        {
+            MobileParty observer = DummyParty();
+            Settlement target = DummySettlement();
+            var observations = new[]
+            {
+                new RoamingPartyStrength(false, true, true, null, 5f, 20f, true),
+                new RoamingPartyStrength(false, true, true, null, 5f, 100f)
+            };
+            var operations = new BannerlordBesiegeClosestSettlementAdapter(_ => 5f,
+                _ => new RoamingPartyStrength[0], _ => new SiegeTargetCandidate[0],
+                _ => new MobileParty[0], (_, _) => observations);
+
+            Assert.That(operations.GetHostileLordStrengthNearTarget(observer, target), Is.EqualTo(20f));
+        }
+
+        [Test]
         public void UnsafeApproach_ReturnsToReconInsteadOfForcingContact()
         {
             MobileParty party = DummyParty();
@@ -285,10 +382,105 @@ namespace CustomSpawns.Tests.AI
             Evaluate(provider, party);
             SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
             state.Phase = SettlementOffensivePhase.Approach;
-            operations.VisibleHostileStrength = 200f;
+            operations.HostileLordStrengthNearTarget = 200f;
 
             PartyBehaviourResult result = Evaluate(provider, party);
 
+            Assert.That(state.Target, Is.Null);
+            Assert.That(state.Phase, Is.EqualTo(SettlementOffensivePhase.Search));
+            Assert.That(state.AccumulatedClearReconDays, Is.Zero);
+            Assert.That(result.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.PatrolAroundPoint));
+        }
+
+        [Test]
+        public void HostileLordThreat_WithdrawsFromUnsafeReconWhenNoAlternativeExists()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            var operations = new OperationsStub { SiegeTarget = target, PatrolTarget = DummySettlement() };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+            Evaluate(provider, party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
+            state.Phase = SettlementOffensivePhase.Recon;
+            state.AccumulatedClearReconDays = 1f / 24f;
+            operations.HostileLordStrengthNearTarget = 200f;
+
+            Evaluate(provider, party);
+
+            Assert.That(state.Target, Is.Null);
+            Assert.That(state.Phase, Is.EqualTo(SettlementOffensivePhase.Search));
+            Assert.That(state.AccumulatedClearReconDays, Is.Zero);
+        }
+
+        [Test]
+        public void HostileLordThreatWithoutSafeAlternative_PatrolsThenRetriesWhenTargetIsSafe()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            var operations = new OperationsStub
+            {
+                SiegeTarget = target,
+                PatrolTarget = DummySettlement()
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+            Evaluate(provider, party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
+            state.Phase = SettlementOffensivePhase.Recon;
+            operations.HostileLordStrengthNearTarget = 200f;
+
+            PartyBehaviourResult unsafeResult = Evaluate(provider, party);
+            operations.HostileLordStrengthNearTarget = 0f;
+            PartyBehaviourResult retryResult = Evaluate(provider, party);
+
+            Assert.That(unsafeResult.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.PatrolAroundPoint));
+            Assert.That(state.Target, Is.SameAs(target));
+            Assert.That(state.Phase, Is.EqualTo(SettlementOffensivePhase.Approach));
+            Assert.That(retryResult.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.BesiegeSettlement));
+        }
+
+        [Test]
+        public void VisibleNonLordThreat_DoesNotResetReconProgress()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            var operations = new OperationsStub
+            {
+                SiegeTarget = target,
+                PatrolTarget = DummySettlement(),
+                VisibleHostileStrength = 200f,
+                TargetStrength = 100f
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+            Evaluate(provider, party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
+            state.Phase = SettlementOffensivePhase.Recon;
+            state.AccumulatedClearReconDays = 1f / 24f;
+
+            Evaluate(provider, party);
+
+            Assert.That(state.Phase, Is.EqualTo(SettlementOffensivePhase.Recon));
+            Assert.That(state.AccumulatedClearReconDays, Is.EqualTo(2f / 24f));
+        }
+
+        [Test]
+        public void HostileLordThreat_ReselectsAnEligibleAlternativeTarget()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            Settlement alternative = DummySettlement();
+            var operations = new OperationsStub
+            {
+                SiegeTarget = target,
+                AlternativeSiegeTarget = alternative,
+                PatrolTarget = DummySettlement(),
+                HostileLordStrengthNearTarget = 200f
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+
+            PartyBehaviourResult result = Evaluate(provider, party);
+
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
+            Assert.That(state.Target, Is.SameAs(alternative));
             Assert.That(state.Phase, Is.EqualTo(SettlementOffensivePhase.Recon));
             Assert.That(result.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.PatrolAroundPoint));
         }
@@ -548,6 +740,11 @@ namespace CustomSpawns.Tests.AI
                 targetId, hasPort);
         }
 
+        private static RoamingPartyStrength LordThreat(float distance, float strength)
+        {
+            return new RoamingPartyStrength(false, true, true, null, distance, strength, true);
+        }
+
         private BesiegeClosestSettlementBehaviour Provider(OperationsStub operations)
         {
             _states = new PartyStateStore<SettlementOffensiveBehaviourState>(BesiegeClosestSettlementBehaviour.SaveKey,
@@ -605,8 +802,10 @@ namespace CustomSpawns.Tests.AI
         {
             public float AttackerStrength { get; set; } = 100f;
             public float VisibleHostileStrength { get; set; }
+            public float HostileLordStrengthNearTarget { get; set; }
             public float TargetStrength { get; set; } = 10f;
             public Settlement? SiegeTarget { get; set; }
+            public Settlement? AlternativeSiegeTarget { get; set; }
             public Settlement? PatrolTarget { get; set; }
             public bool MatchingSiegeActive { get; set; }
             public bool MatchingAssaultActive { get; set; }
@@ -618,9 +817,15 @@ namespace CustomSpawns.Tests.AI
             public float GetAttackerStrength(MobileParty party) => AttackerStrength;
             public float GetVisibleHostileStrength(MobileParty party) => VisibleHostileStrength;
             public Settlement? FindClosestSiegeTarget(MobileParty party, float attackerStrength,
-                float minimumRatio, IReadOnlyList<SpawnSettlementType> targetTypes) => SiegeTarget;
+                float minimumTargetRatio, float minimumRoamingHostilesRatio,
+                IReadOnlyList<SpawnSettlementType> targetTypes) => SiegeTarget;
+            public Settlement? FindAlternativeSiegeTarget(MobileParty party, Settlement excludedTarget,
+                float attackerStrength, float minimumTargetRatio, float minimumRoamingHostilesRatio,
+                IReadOnlyList<SpawnSettlementType> targetTypes) => AlternativeSiegeTarget;
             public Settlement? FindClosestNonHostileSettlement(MobileParty party) => PatrolTarget;
             public float GetTargetStrength(MobileParty party, Settlement target) => TargetStrength;
+            public float GetHostileLordStrengthNearTarget(MobileParty party, Settlement target) =>
+                HostileLordStrengthNearTarget;
             public IFaction GetTargetMapFaction(Settlement target) => null!;
             public bool IsMatchingSiegeActive(MobileParty party, Settlement target) => MatchingSiegeActive;
             public bool IsMatchingAssaultActive(MobileParty party, Settlement target) => MatchingAssaultActive;

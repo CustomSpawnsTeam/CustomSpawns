@@ -13,8 +13,13 @@ namespace CustomSpawns.AI
     internal interface ISiegeOperations : IPartyStrengthObserver, IOffensiveOperationStatus, IPatrolOrders
     {
         Settlement? FindClosestSiegeTarget(MobileParty party, float attackerStrength,
-            float minimumRatio, IReadOnlyList<SpawnSettlementType> targetTypes);
+            float minimumTargetRatio, float minimumRoamingHostilesRatio,
+            IReadOnlyList<SpawnSettlementType> targetTypes);
+        Settlement? FindAlternativeSiegeTarget(MobileParty party, Settlement excludedTarget,
+            float attackerStrength, float minimumTargetRatio, float minimumRoamingHostilesRatio,
+            IReadOnlyList<SpawnSettlementType> targetTypes);
         float GetTargetStrength(MobileParty party, Settlement target);
+        float GetHostileLordStrengthNearTarget(MobileParty party, Settlement target);
         IFaction GetTargetMapFaction(Settlement target);
         bool IsMatchingSiegeActive(MobileParty party, Settlement target);
         bool IsMatchingAssaultActive(MobileParty party, Settlement target);

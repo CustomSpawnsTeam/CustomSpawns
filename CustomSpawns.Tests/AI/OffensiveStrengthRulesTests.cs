@@ -67,6 +67,22 @@ namespace CustomSpawns.Tests.AI
         }
 
         [Test]
+        public void VisibleHostileLordThreat_ExcludesCivilianAndOtherNonLordParties()
+        {
+            var parties = new[]
+            {
+                Strength(5f, 20f, isLordParty: true),
+                Strength(5f, 100f),
+                Strength(5.001f, 100f, isLordParty: true),
+                Strength(5f, 100f, isLordParty: true, isActive: false),
+                Strength(5f, 100f, isLordParty: true, isHostile: false)
+            };
+
+            Assert.That(OffensiveStrengthRules.SumVisibleHostileLordStrength(parties, 5f),
+                Is.EqualTo(20f));
+        }
+
+        [Test]
         public void ClosestQualifiedTarget_HandlesZeroDefendersAndRetargetsByDistance()
         {
             object weak = new();
@@ -87,10 +103,10 @@ namespace CustomSpawns.Tests.AI
 
         private static RoamingPartyStrength Strength(float distance, float partyStrength,
             object? armyIdentity = null, bool isSelf = false, bool isActive = true,
-            bool isHostile = true)
+            bool isHostile = true, bool isLordParty = false)
         {
             return new RoamingPartyStrength(isSelf, isActive, isHostile, armyIdentity,
-                distance, partyStrength);
+                distance, partyStrength, isLordParty);
         }
     }
 }

@@ -54,6 +54,8 @@ namespace CustomSpawns.AI
                 _getRoamingParties(observer), _getSeeingRange(observer));
         }
 
+        protected float GetSeeingRange(MobileParty observer) => _getSeeingRange(observer);
+
         public Settlement? FindClosestNonHostileSettlement(MobileParty party)
         {
             return Settlement.All.Where(s => s.IsActive && (s.IsTown || s.IsCastle || s.IsVillage) &&
@@ -76,7 +78,8 @@ namespace CustomSpawns.AI
                 .Where(p => p.CurrentSettlement is null && p.MapEvent is null)
                 .Select(p => new RoamingPartyStrength(p == observer, p.IsActive,
                     p.MapFaction.IsAtWarWith(observer.MapFaction), p.Army,
-                    observer.Position.Distance(p.Position), p.Party.CalculateCurrentStrength()));
+                    observer.Position.Distance(p.Position), p.Party.CalculateCurrentStrength(),
+                    p.IsLordParty));
         }
     }
 }

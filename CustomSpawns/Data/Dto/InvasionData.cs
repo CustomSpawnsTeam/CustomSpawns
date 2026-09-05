@@ -1,16 +1,12 @@
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-
 namespace CustomSpawns.Data.Dto
 {
     public sealed class InvasionData
     {
-        public InvasionData(IReadOnlyList<string> coastalTownIds, float foodStockFloor, float dailyFoodBonus,
-            int minimumGarrisonTroopCount, int maximumGarrisonTroopCount, float militiaStrengthRatio,
+        public InvasionData(float foodStockFloor, float dailyFoodBonus, int minimumGarrisonTroopCount,
+            int maximumGarrisonTroopCount, float militiaStrengthRatio,
             float maximumDonorLossFraction, string reinforcementPartyTemplateId, float reinforcementIntervalInDays,
             int reinforcementActivePartyCap)
         {
-            CoastalTownIds = new ReadOnlyCollection<string>(new List<string>(coastalTownIds));
             FoodStockFloor = foodStockFloor;
             DailyFoodBonus = dailyFoodBonus;
             MinimumGarrisonTroopCount = minimumGarrisonTroopCount;
@@ -22,8 +18,6 @@ namespace CustomSpawns.Data.Dto
             ReinforcementActivePartyCap = reinforcementActivePartyCap;
         }
 
-        public IReadOnlyList<string> CoastalTownIds { get; }
-        public bool UsesNativePortMetadata => CoastalTownIds.Count == 0;
         public float FoodStockFloor { get; }
         public float DailyFoodBonus { get; }
         public int MinimumGarrisonTroopCount { get; }

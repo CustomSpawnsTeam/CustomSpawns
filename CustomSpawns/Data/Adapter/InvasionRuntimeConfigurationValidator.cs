@@ -8,7 +8,7 @@ namespace CustomSpawns.Data.Adapter
     internal static class InvasionRuntimeConfigurationValidator
     {
         public static void ValidateReferences(InvasionData invasion, string spawnPartyTemplateId, bool spawnClanIsBandit,
-            bool reinforcementTemplateExists, IReadOnlyList<InvasionTownReference> coastalTowns)
+            bool reinforcementTemplateExists)
         {
             if (spawnClanIsBandit)
             {
@@ -18,17 +18,6 @@ namespace CustomSpawns.Data.Adapter
             {
                 throw new ArgumentException("Invasion spawn '" + spawnPartyTemplateId + "' references unknown reinforcement party template '" +
                                             invasion.ReinforcementPartyTemplateId + "'.");
-            }
-            foreach (InvasionTownReference town in coastalTowns)
-            {
-                if (!town.Exists)
-                {
-                    throw new ArgumentException("Invasion spawn '" + spawnPartyTemplateId + "' references unknown coastal town '" + town.Id + "'.");
-                }
-                if (!town.IsTown)
-                {
-                    throw new ArgumentException("Invasion spawn '" + spawnPartyTemplateId + "' coastal town '" + town.Id + "' must be a town.");
-                }
             }
         }
 
@@ -53,17 +42,4 @@ namespace CustomSpawns.Data.Adapter
         }
     }
 
-    internal sealed class InvasionTownReference
-    {
-        public InvasionTownReference(string id, bool exists, bool isTown)
-        {
-            Id = id;
-            Exists = exists;
-            IsTown = isTown;
-        }
-
-        public string Id { get; }
-        public bool Exists { get; }
-        public bool IsTown { get; }
-    }
 }

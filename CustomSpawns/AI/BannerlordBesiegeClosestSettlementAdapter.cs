@@ -20,17 +20,21 @@ namespace CustomSpawns.AI
         private readonly Func<MobileParty, IEnumerable<SiegeTargetCandidate>> _getCandidates;
         private readonly Func<MobileParty, InvasionCoastalTargeting?> _getCoastalTargeting;
         private readonly Func<MobileParty, Settlement, bool> _hasReachableLandGate;
+        private readonly Func<MobileParty, Settlement, IEnumerable<RoamingPartyStrength>>
+            _getTargetRoamingParties;
 
         public BannerlordBesiegeClosestSettlementAdapter(DynamicSpawnData dynamicSpawnData) : this(
             observer => observer.SeeingRange, ObserveRoamingParties, ObserveCandidates,
-            dynamicSpawnData.FindAccompanyingParties, _ => null, HasReachableLandGate)
+            dynamicSpawnData.FindAccompanyingParties, _ => null, HasReachableLandGate,
+            ObserveRoamingPartiesNearTarget)
         {
         }
 
         internal BannerlordBesiegeClosestSettlementAdapter(DynamicSpawnData dynamicSpawnData,
             Func<MobileParty, InvasionCoastalTargeting?> getCoastalTargeting) : this(
             observer => observer.SeeingRange, ObserveRoamingParties, ObserveCandidates,
-            dynamicSpawnData.FindAccompanyingParties, getCoastalTargeting, HasReachableLandGate)
+            dynamicSpawnData.FindAccompanyingParties, getCoastalTargeting, HasReachableLandGate,
+            ObserveRoamingPartiesNearTarget)
         {
         }
 
@@ -39,7 +43,17 @@ namespace CustomSpawns.AI
             Func<MobileParty, IEnumerable<SiegeTargetCandidate>> getCandidates,
             Func<MobileParty, IEnumerable<MobileParty>> getAccompanyingParties)
             : this(getSeeingRange, getRoamingParties, getCandidates, getAccompanyingParties,
-                _ => null, HasReachableLandGate)
+                _ => null, HasReachableLandGate, (_, _) => Enumerable.Empty<RoamingPartyStrength>())
+        {
+        }
+
+        internal BannerlordBesiegeClosestSettlementAdapter(Func<MobileParty, float> getSeeingRange,
+            Func<MobileParty, IEnumerable<RoamingPartyStrength>> getRoamingParties,
+            Func<MobileParty, IEnumerable<SiegeTargetCandidate>> getCandidates,
+            Func<MobileParty, IEnumerable<MobileParty>> getAccompanyingParties,
+            Func<MobileParty, Settlement, IEnumerable<RoamingPartyStrength>> getTargetRoamingParties)
+            : this(getSeeingRange, getRoamingParties, getCandidates, getAccompanyingParties,
+                _ => null, HasReachableLandGate, getTargetRoamingParties)
         {
         }
 
@@ -49,23 +63,71 @@ namespace CustomSpawns.AI
             Func<MobileParty, IEnumerable<MobileParty>> getAccompanyingParties,
             Func<MobileParty, InvasionCoastalTargeting?> getCoastalTargeting,
             Func<MobileParty, Settlement, bool> hasReachableLandGate)
+            : this(getSeeingRange, getRoamingParties, getCandidates, getAccompanyingParties,
+                getCoastalTargeting, hasReachableLandGate,
+                (_, _) => Enumerable.Empty<RoamingPartyStrength>())
+        {
+        }
+
+        private BannerlordBesiegeClosestSettlementAdapter(Func<MobileParty, float> getSeeingRange,
+            Func<MobileParty, IEnumerable<RoamingPartyStrength>> getRoamingParties,
+            Func<MobileParty, IEnumerable<SiegeTargetCandidate>> getCandidates,
+            Func<MobileParty, IEnumerable<MobileParty>> getAccompanyingParties,
+            Func<MobileParty, InvasionCoastalTargeting?> getCoastalTargeting,
+            Func<MobileParty, Settlement, bool> hasReachableLandGate,
+            Func<MobileParty, Settlement, IEnumerable<RoamingPartyStrength>> getTargetRoamingParties)
             : base(getSeeingRange, getRoamingParties, getAccompanyingParties)
         {
             _getCandidates = getCandidates;
             _getCoastalTargeting = getCoastalTargeting;
             _hasReachableLandGate = hasReachableLandGate;
+            _getTargetRoamingParties = getTargetRoamingParties;
         }
 
         public Settlement? FindClosestSiegeTarget(MobileParty party, float attackerStrength,
             float minimumRatio, IReadOnlyList<SpawnSettlementType> targetTypes)
         {
+            return FindClosestSiegeTarget(party, attackerStrength, minimumRatio, minimumRatio, targetTypes);
+        }
+
+        public Settlement? FindClosestSiegeTarget(MobileParty party, float attackerStrength,
+            float minimumTargetRatio, float minimumRoamingHostilesRatio,
+            IReadOnlyList<SpawnSettlementType> targetTypes)
+        {
+            return FindClosestSiegeTarget(party, null, attackerStrength, minimumTargetRatio,
+                minimumRoamingHostilesRatio, targetTypes);
+        }
+
+        public Settlement? FindAlternativeSiegeTarget(MobileParty party, Settlement excludedTarget,
+            float attackerStrength, float minimumRatio, IReadOnlyList<SpawnSettlementType> targetTypes)
+        {
+            return FindClosestSiegeTarget(party, excludedTarget, attackerStrength, minimumRatio,
+                minimumRatio, targetTypes);
+        }
+
+        public Settlement? FindAlternativeSiegeTarget(MobileParty party, Settlement excludedTarget,
+            float attackerStrength, float minimumTargetRatio, float minimumRoamingHostilesRatio,
+            IReadOnlyList<SpawnSettlementType> targetTypes)
+        {
+            return FindClosestSiegeTarget(party, excludedTarget, attackerStrength, minimumTargetRatio,
+                minimumRoamingHostilesRatio, targetTypes);
+        }
+
+        private Settlement? FindClosestSiegeTarget(MobileParty party, Settlement? excludedTarget,
+            float attackerStrength, float minimumTargetRatio, float minimumRoamingHostilesRatio,
+            IReadOnlyList<SpawnSettlementType> targetTypes)
+        {
             InvasionCoastalTargeting? coastalTargeting = _getCoastalTargeting(party);
             return _getCandidates(party)
                 .Where(candidate => candidate.IsActive && candidate.IsHostile &&
                                     candidate.HasCompatibleSiege && targetTypes.Contains(candidate.Type) &&
+                                    candidate.Target != excludedTarget &&
                                     OffensiveStrengthRules.MeetsStrengthRatio(attackerStrength,
-                                        candidate.DefenderStrength, minimumRatio))
+                                        candidate.DefenderStrength, minimumTargetRatio))
                 .Where(candidate => IsEligibleCoastalTarget(party, candidate, coastalTargeting))
+                .Where(candidate => OffensiveStrengthRules.MeetsStrengthRatio(attackerStrength,
+                    GetHostileLordStrengthNearTarget(party, candidate.Target),
+                    minimumRoamingHostilesRatio))
                 .OrderBy(candidate => candidate.Distance)
                 .Select(candidate => candidate.Target)
                 .FirstOrDefault();
@@ -73,6 +135,14 @@ namespace CustomSpawns.AI
 
         public float GetTargetStrength(MobileParty party, Settlement target) =>
             GetDefenderStrength(party, target);
+
+        public float GetHostileLordStrengthNearTarget(MobileParty party, Settlement target)
+        {
+            // Reconnaissance uses the party's established visibility radius, centred on the land gate
+            // it will use to approach this target rather than on the invasion party's current position.
+            return OffensiveStrengthRules.SumVisibleHostileLordStrength(
+                _getTargetRoamingParties(party, target), GetSeeingRange(party));
+        }
 
         public IFaction GetTargetMapFaction(Settlement target) => target.MapFaction;
 
@@ -155,6 +225,17 @@ namespace CustomSpawns.AI
                     settlement.SiegeEvent is null || IsMatchingCamp(party, settlement),
                     party.Position.Distance(settlement.GatePosition), GetDefenderStrength(party, settlement),
                     settlement.StringId, settlement.HasPort));
+        }
+
+        private static IEnumerable<RoamingPartyStrength> ObserveRoamingPartiesNearTarget(
+            MobileParty attacker, Settlement target)
+        {
+            return MobileParty.All
+                .Where(p => p.CurrentSettlement is null && p.MapEvent is null)
+                .Select(p => new RoamingPartyStrength(p == attacker, p.IsActive,
+                    p.MapFaction.IsAtWarWith(attacker.MapFaction), p.Army,
+                    target.GatePosition.Distance(p.Position), p.Party.CalculateCurrentStrength(),
+                    p.IsLordParty));
         }
 
         private bool IsEligibleCoastalTarget(MobileParty party, SiegeTargetCandidate candidate,

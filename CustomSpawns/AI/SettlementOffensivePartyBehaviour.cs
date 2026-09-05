@@ -51,8 +51,6 @@ namespace CustomSpawns.AI
 
             float attackerStrength = PartyStrength.GetAttackerStrength(party);
             float visibleHostileStrength = PartyStrength.GetVisibleHostileStrength(party);
-            bool safetyPasses = OffensiveStrengthRules.MeetsStrengthRatio(attackerStrength,
-                visibleHostileStrength, configuration.MinimumAttackerToRoamingHostilesRatio);
 
             if (state.Target is not null)
             {
@@ -100,10 +98,7 @@ namespace CustomSpawns.AI
                 if (state.Target is not null)
                 {
                     TrackTarget(state);
-                    float targetRatio = StrengthRatio(attackerStrength,
-                        GetTargetStrength(party, state.Target));
-                    offensive.AssignTarget(
-                        safetyPasses && targetRatio >= configuration.SkipWhenTargetStrengthRatio);
+                    offensive.AssignTarget(skipRecon: false);
                 }
             }
 
@@ -119,14 +114,35 @@ namespace CustomSpawns.AI
 
             float currentTargetRatio = StrengthRatio(attackerStrength,
                 GetTargetStrength(party, state.Target));
-            if (state.Phase == SettlementOffensivePhase.Approach && !safetyPasses)
+            float reconVisibleHostileStrength = GetReconVisibleHostileStrength(party, state.Target,
+                visibleHostileStrength);
+            bool reconSafetyPasses = OffensiveStrengthRules.MeetsStrengthRatio(attackerStrength,
+                reconVisibleHostileStrength, configuration.MinimumAttackerToRoamingHostilesRatio);
+            if (state.Phase == SettlementOffensivePhase.Approach && !reconSafetyPasses)
             {
                 offensive.ReturnApproachToRecon();
             }
             if (state.Phase == SettlementOffensivePhase.Recon)
             {
-                offensive.UpdateRecon(safetyPasses,
-                    safetyPasses && currentTargetRatio >= configuration.SkipWhenTargetStrengthRatio);
+                if (!reconSafetyPasses && ReselectTargetWhenUnsafe)
+                {
+                    Settlement? alternative = FindAlternativeTarget(party, state.Target,
+                        attackerStrength, configuration);
+                    offensive.ClearTarget();
+                    if (alternative is not null)
+                    {
+                        state.Target = alternative;
+                        TrackTarget(state);
+                        offensive.AssignTarget(skipRecon: false);
+                    }
+                    if (offensive.AdvanceOperationClock(configuration.CooldownInDays))
+                    {
+                        return PartyBehaviourResult.NotApplicable;
+                    }
+                    return PatrolOrRemainApplicable(party);
+                }
+                offensive.UpdateRecon(reconSafetyPasses,
+                    reconSafetyPasses && currentTargetRatio >= configuration.SkipWhenTargetStrengthRatio);
             }
 
             if (offensive.AdvanceOperationClock(configuration.CooldownInDays))
@@ -165,6 +181,20 @@ namespace CustomSpawns.AI
             float attackerStrength, TConfiguration configuration)
         {
             return false;
+        }
+
+        private protected virtual float GetReconVisibleHostileStrength(MobileParty party,
+            Settlement target, float visibleHostileStrength)
+        {
+            return visibleHostileStrength;
+        }
+
+        private protected virtual bool ReselectTargetWhenUnsafe => false;
+
+        private protected virtual Settlement? FindAlternativeTarget(MobileParty party, Settlement target,
+            float attackerStrength, TConfiguration configuration)
+        {
+            return null;
         }
 
         private protected abstract Settlement? FindTarget(MobileParty party, float attackerStrength,

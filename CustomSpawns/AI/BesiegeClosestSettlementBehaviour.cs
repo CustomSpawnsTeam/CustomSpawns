@@ -67,11 +67,28 @@ namespace CustomSpawns.AI
                 GetTargetStrength(party, target), configuration.MinimumAttackerToTargetRatio);
         }
 
+        private protected override float GetReconVisibleHostileStrength(MobileParty party,
+            Settlement target, float visibleHostileStrength)
+        {
+            return _siege.GetHostileLordStrengthNearTarget(party, target);
+        }
+
+        private protected override bool ReselectTargetWhenUnsafe => true;
+
+        private protected override Settlement? FindAlternativeTarget(MobileParty party,
+            Settlement target, float attackerStrength, BesiegeClosestSettlementData configuration)
+        {
+            return _siege.FindAlternativeSiegeTarget(party, target, attackerStrength,
+                configuration.MinimumAttackerToTargetRatio,
+                configuration.MinimumAttackerToRoamingHostilesRatio, configuration.TargetTypes);
+        }
+
         private protected override Settlement? FindTarget(MobileParty party, float attackerStrength,
             BesiegeClosestSettlementData configuration)
         {
             return _siege.FindClosestSiegeTarget(party, attackerStrength,
-                configuration.MinimumAttackerToTargetRatio, configuration.TargetTypes);
+                configuration.MinimumAttackerToTargetRatio,
+                configuration.MinimumAttackerToRoamingHostilesRatio, configuration.TargetTypes);
         }
 
         private protected override float GetTargetStrength(MobileParty party, Settlement target)

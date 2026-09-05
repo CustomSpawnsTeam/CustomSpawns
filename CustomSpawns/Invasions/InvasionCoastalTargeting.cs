@@ -1,24 +1,24 @@
-using System.Collections.Generic;
-using System.Linq;
+using System;
 
 namespace CustomSpawns.Invasions
 {
     // Pure first-conquest rule shared by capture credit and siege targeting.
     public sealed class InvasionCoastalTargeting
     {
-        private readonly IReadOnlyList<string> _coastalTownIds;
+        private readonly Func<string, bool>? _isCoastalTown;
 
-        public InvasionCoastalTargeting(bool hasFirstCoastalConquest, IReadOnlyList<string> coastalTownIds)
+        public InvasionCoastalTargeting(bool hasFirstCoastalConquest, Func<string, bool>? isCoastalTown = null)
         {
             RequiresFirstCoastalConquest = !hasFirstCoastalConquest;
-            _coastalTownIds = coastalTownIds ?? new string[0];
+            _isCoastalTown = isCoastalTown;
         }
 
         public bool RequiresFirstCoastalConquest { get; }
 
         public bool AllowsFirstConquestTarget(string settlementId, bool isTown, bool hasPort)
         {
-            return !RequiresFirstCoastalConquest || IsCoastalTown(_coastalTownIds, settlementId, isTown, hasPort);
+            return !RequiresFirstCoastalConquest || (_isCoastalTown?.Invoke(settlementId) ??
+                IsCoastalTown(isTown, hasPort));
         }
 
         public bool AllowsHeldTarget(string settlementId, bool isTown, bool hasPort,
@@ -28,10 +28,9 @@ namespace CustomSpawns.Invasions
                    (AllowsFirstConquestTarget(settlementId, isTown, hasPort) && hasReachableLandGate);
         }
 
-        public static bool IsCoastalTown(IReadOnlyList<string> coastalTownIds, string settlementId,
-            bool isTown, bool hasPort)
+        public static bool IsCoastalTown(bool isTown, bool hasPort, bool hasNearbyMaritimeCoast = false)
         {
-            return isTown && (coastalTownIds.Count == 0 ? hasPort : coastalTownIds.Contains(settlementId));
+            return InvasionCoastalTownClassification.IsCoastalTown(isTown, hasPort, hasNearbyMaritimeCoast);
         }
     }
 }
