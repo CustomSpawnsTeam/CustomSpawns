@@ -8,123 +8,118 @@ using TaleWorlds.Library;
 
 namespace CustomSpawns.Invasions.Adapters
 {
-    // Bannerlord-specific map-face enumeration and lookup for the pure coastal-town policy.
+    // Bannerlord-specific navmesh access for the pure coastal-town policy.
     internal sealed class InvasionCoastalTownResolver : IInvasionCoastalMapFaceQuery
     {
         private const string CoastalDiagnosticTownId = "town_V7";
+        private const int AdjacencyProbeCount = 360;
+        private const float AdjacencyProbeLength = 100f;
+        private const float BoundaryCrossingDistance = 0.05f;
 
         private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
-        private readonly Dictionary<string, MaritimeCoastQuery> _nearbyMaritimeCoastBySettlementId = new();
-        private IReadOnlyList<InvasionCoastalMapFace> _navigationMeshFaces = Array.Empty<InvasionCoastalMapFace>();
+        private readonly Dictionary<string, bool> _coastalBySettlementId = new();
+        private readonly Dictionary<int, IReadOnlyCollection<InvasionCoastalMapFace>> _adjacentFacesByFaceIndex = new();
         private object? _mapScene;
 
         public bool IsCoastalTown(Settlement? settlement)
         {
-            if (settlement == null) return false;
-            bool isDiagnosticTown = settlement.StringId == CoastalDiagnosticTownId;
-            bool requiresMapFallback = settlement.IsTown && !settlement.HasPort;
-            MaritimeCoastQuery? maritimeCoast = requiresMapFallback || isDiagnosticTown
-                ? GetNearbyMaritimeCoast(settlement)
-                : null;
-            var coastal = settlement.IsTown && (settlement.HasPort || maritimeCoast?.HasCoast == true);
-            if (isDiagnosticTown && maritimeCoast?.WasCalculated == true)
-                Logger.Info("Invasion coastal classification: town=" + CoastalDiagnosticTownId +
-                            " coastal=" + coastal + " has_port=" + settlement.HasPort +
-                            " nearest_maritime_face_distance=" + maritimeCoast.Value.NearestDistance +
-                            " radius=" + InvasionCoastalTownClassification.MaritimeScanRadius +
-                            " source=native_or_map");
-            return coastal;
-        }
+            if (settlement == null || !settlement.IsTown)
+                return false;
 
-        public bool IsCoastalTown(string settlementId)
-        {
-            return IsCoastalTown(Settlement.Find(settlementId));
+            EnsureMapSceneCache();
+            if (settlement.HasPort)
+                return true;
+
+            if (!_coastalBySettlementId.TryGetValue(settlement.StringId, out bool coastal))
+            {
+                PathFaceRecord currentFace = settlement.CurrentNavigationFace;
+                coastal = currentFace.IsValid() && InvasionCoastalTownClassification.IsSettlementAdjacentToSea(
+                    ToCoastalMapFace(currentFace), this);
+                _coastalBySettlementId[settlement.StringId] = coastal;
+
+                if (settlement.StringId == CoastalDiagnosticTownId)
+                    Logger.Info("Invasion coastal classification: town=" + CoastalDiagnosticTownId +
+                                " coastal=" + coastal + " has_port=" + settlement.HasPort +
+                                " source=current_navigation_face");
+            }
+
+            return coastal;
         }
 
         public void ClearCache()
         {
             _mapScene = null;
-            _nearbyMaritimeCoastBySettlementId.Clear();
-            _navigationMeshFaces = Array.Empty<InvasionCoastalMapFace>();
+            _coastalBySettlementId.Clear();
+            _adjacentFacesByFaceIndex.Clear();
         }
 
-        private MaritimeCoastQuery GetNearbyMaritimeCoast(Settlement settlement)
+        IReadOnlyCollection<InvasionCoastalMapFace> IInvasionCoastalMapFaceQuery.GetAdjacentFaces(
+            InvasionCoastalMapFace face)
         {
-            EnsureNavigationMeshFaceIndex();
-            if (_nearbyMaritimeCoastBySettlementId.TryGetValue(settlement.StringId, out MaritimeCoastQuery cached))
-                return cached.AsCached();
+            if (_adjacentFacesByFaceIndex.TryGetValue(face.FaceIndex,
+                    out IReadOnlyCollection<InvasionCoastalMapFace>? cached))
+                return cached;
 
-            var settlementPosition = ToCoastalPoint(settlement.Position.ToVec2());
-            var gatePosition = ToCoastalPoint(settlement.GatePosition.ToVec2());
-            bool hasCoast = InvasionCoastalTownClassification.IsSettlementAdjacentToSea(
-                _navigationMeshFaces, this, settlementPosition, gatePosition, out float nearestDistanceSquared);
-            var result = new MaritimeCoastQuery(hasCoast, float.IsPositiveInfinity(nearestDistanceSquared)
-                ? float.PositiveInfinity
-                : (float)Math.Sqrt(nearestDistanceSquared), wasCalculated: true);
-            _nearbyMaritimeCoastBySettlementId[settlement.StringId] = result;
+            var adjacentFaces = new Dictionary<int, InvasionCoastalMapFace>();
+            PathFaceRecord sourceFace = Campaign.Current.MapSceneWrapper.GetFaceAtIndex(face.FaceIndex);
+            Vec2 sourceCenter = Campaign.Current.MapSceneWrapper.GetNavigationMeshCenterPosition(sourceFace);
+
+            for (int probeIndex = 0; probeIndex < AdjacencyProbeCount; probeIndex++)
+            {
+                double angle = probeIndex * Math.PI * 2d / AdjacencyProbeCount;
+                var direction = new Vec2((float)Math.Cos(angle), (float)Math.Sin(angle));
+                Vec2 boundary = Campaign.Current.MapSceneWrapper.GetLastPositionOnNavMeshFaceForPointAndDirection(
+                    sourceFace, sourceCenter, direction * AdjacencyProbeLength);
+                Vec2 positionAcrossBoundary = boundary + direction * BoundaryCrossingDistance;
+
+                AddFaceAt(positionAcrossBoundary, isOnLand: true, face.FaceIndex, adjacentFaces);
+                AddFaceAt(positionAcrossBoundary, isOnLand: false, face.FaceIndex, adjacentFaces);
+            }
+
+            IReadOnlyCollection<InvasionCoastalMapFace> result =
+                new List<InvasionCoastalMapFace>(adjacentFaces.Values);
+            _adjacentFacesByFaceIndex[face.FaceIndex] = result;
             return result;
         }
 
-        private void EnsureNavigationMeshFaceIndex()
+        private static void AddFaceAt(Vec2 position, bool isOnLand, int sourceFaceIndex,
+            IDictionary<int, InvasionCoastalMapFace> adjacentFaces)
+        {
+            CampaignVec2 mapPosition = new CampaignVec2(position, isOnLand);
+            PathFaceRecord adjacentFace = Campaign.Current.MapSceneWrapper.GetFaceIndex(in mapPosition);
+            if (!adjacentFace.IsValid() || adjacentFace.FaceIndex == sourceFaceIndex ||
+                adjacentFaces.ContainsKey(adjacentFace.FaceIndex))
+                return;
+
+            adjacentFaces.Add(adjacentFace.FaceIndex, ToCoastalMapFace(adjacentFace));
+        }
+
+        private static InvasionCoastalMapFace ToCoastalMapFace(PathFaceRecord face)
+        {
+            TerrainType terrain = Campaign.Current.MapSceneWrapper.GetFaceTerrainType(face);
+            return new InvasionCoastalMapFace(ToCoastalFaceTerrain(terrain), face.FaceIndex);
+        }
+
+        private void EnsureMapSceneCache()
         {
             object mapScene = Campaign.Current.MapSceneWrapper;
-            if (ReferenceEquals(_mapScene, mapScene)) return;
+            if (ReferenceEquals(_mapScene, mapScene))
+                return;
 
             _mapScene = mapScene;
-            _nearbyMaritimeCoastBySettlementId.Clear();
-            var navigationMeshFaces = new List<InvasionCoastalMapFace>();
-            int faceCount = Campaign.Current.MapSceneWrapper.GetNumberOfNavigationMeshFaces();
-            for (int index = 0; index < faceCount; index++)
-            {
-                PathFaceRecord face = Campaign.Current.MapSceneWrapper.GetFaceAtIndex(index);
-                if (!face.IsValid()) continue;
-                InvasionCoastalFaceTerrain terrain = ToCoastalFaceTerrain(Campaign.Current.MapSceneWrapper.GetFaceTerrainType(face));
-                Vec2 faceCenter = Campaign.Current.MapSceneWrapper.GetNavigationMeshCenterPosition(index);
-                navigationMeshFaces.Add(new InvasionCoastalMapFace(terrain,
-                    ToCoastalPoint(faceCenter),
-                    face.FaceIndex));
-            }
-            _navigationMeshFaces = navigationMeshFaces;
+            _coastalBySettlementId.Clear();
+            _adjacentFacesByFaceIndex.Clear();
         }
-
-        InvasionCoastalMapFace? IInvasionCoastalMapFaceQuery.FindFaceAt(InvasionCoastalPoint position)
-        {
-            CampaignVec2 samplePosition = new CampaignVec2(new Vec2(position.X, position.Y), false);
-            PathFaceRecord sampledFace = Campaign.Current.MapSceneWrapper.GetFaceIndex(in samplePosition);
-            if (!sampledFace.IsValid())
-                return null;
-
-            InvasionCoastalFaceTerrain terrain = ToCoastalFaceTerrain(
-                Campaign.Current.MapSceneWrapper.GetFaceTerrainType(sampledFace));
-            return new InvasionCoastalMapFace(terrain, position, sampledFace.FaceIndex);
-        }
-
-        private static InvasionCoastalPoint ToCoastalPoint(Vec2 position) =>
-            new(position.x, position.y);
 
         private static InvasionCoastalFaceTerrain ToCoastalFaceTerrain(TerrainType terrain)
         {
-            return terrain == TerrainType.CoastalSea ? InvasionCoastalFaceTerrain.CoastalSea :
+            return terrain == TerrainType.RuralArea ? InvasionCoastalFaceTerrain.RuralArea :
+                terrain == TerrainType.Water ? InvasionCoastalFaceTerrain.Water :
+                terrain == TerrainType.CoastalSea ? InvasionCoastalFaceTerrain.CoastalSea :
                 terrain == TerrainType.OpenSea ? InvasionCoastalFaceTerrain.OpenSea :
                 terrain == TerrainType.Lake ? InvasionCoastalFaceTerrain.Lake :
                 terrain == TerrainType.River ? InvasionCoastalFaceTerrain.River :
                 InvasionCoastalFaceTerrain.Land;
-        }
-
-        private readonly struct MaritimeCoastQuery
-        {
-            public MaritimeCoastQuery(bool hasCoast, float nearestDistance, bool wasCalculated)
-            {
-                HasCoast = hasCoast;
-                NearestDistance = nearestDistance;
-                WasCalculated = wasCalculated;
-            }
-
-            public bool HasCoast { get; }
-            public float NearestDistance { get; }
-            public bool WasCalculated { get; }
-
-            public MaritimeCoastQuery AsCached() => new(HasCoast, NearestDistance, wasCalculated: false);
         }
     }
 }

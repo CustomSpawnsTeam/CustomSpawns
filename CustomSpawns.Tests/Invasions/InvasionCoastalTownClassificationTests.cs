@@ -1,4 +1,4 @@
-using System;
+using System.Collections.Generic;
 using CustomSpawns.Invasions;
 using NUnit.Framework;
 
@@ -6,117 +6,109 @@ namespace CustomSpawns.Tests.Invasions
 {
     public class InvasionCoastalTownClassificationTests
     {
-        [Test]
-        public void AnyCoveredNavMeshFaceAdjacentToSeaMakesSettlementCoastal()
+        [TestCase(InvasionCoastalFaceTerrain.Water)]
+        [TestCase(InvasionCoastalFaceTerrain.CoastalSea)]
+        [TestCase(InvasionCoastalFaceTerrain.OpenSea)]
+        public void SeaAdjacentToCurrentSettlementFaceMakesTownCoastal(InvasionCoastalFaceTerrain seaTerrain)
         {
-            var faces = new[]
-            {
-                Face(InvasionCoastalFaceTerrain.Land, -10f, 0f, 1),
-                Face(InvasionCoastalFaceTerrain.Land, 10f, 0f, 2)
-            };
-            var query = new StubFaceQuery(position => position.X == 16f && position.Y == 0f
-                ? Face(InvasionCoastalFaceTerrain.CoastalSea, position.X, position.Y, 3)
-                : null);
+            InvasionCoastalMapFace settlementFace = Face(InvasionCoastalFaceTerrain.RuralArea, 1);
+            var query = new StubFaceQuery().AdjacentTo(1, Face(seaTerrain, 2));
 
-            bool isCoastal = InvasionCoastalTownClassification.IsSettlementAdjacentToSea(
-                faces, query, Point(0f, 0f), Point(0f, 0f), out float nearestDistanceSquared);
+            bool isCoastal = InvasionCoastalTownClassification.IsSettlementAdjacentToSea(settlementFace, query);
 
             Assert.True(isCoastal);
-            Assert.That(nearestDistanceSquared, Is.EqualTo(100f));
         }
 
         [Test]
-        public void FaceCoveredByTheTownGateIsConsidered()
+        public void TraversesEveryConnectedSettlementFaceBeforeCheckingItsBoundary()
         {
-            var faces = new[] { Face(InvasionCoastalFaceTerrain.Land, 100f, 0f, 1) };
-            var query = new StubFaceQuery(position =>
-                Face(InvasionCoastalFaceTerrain.OpenSea, position.X, position.Y, 2));
+            InvasionCoastalMapFace firstSettlementFace = Face(InvasionCoastalFaceTerrain.RuralArea, 1);
+            var query = new StubFaceQuery()
+                .AdjacentTo(1, Face(InvasionCoastalFaceTerrain.Land, 10), Face(InvasionCoastalFaceTerrain.RuralArea, 2))
+                .AdjacentTo(2, Face(InvasionCoastalFaceTerrain.RuralArea, 1), Face(InvasionCoastalFaceTerrain.RuralArea, 3))
+                .AdjacentTo(3, Face(InvasionCoastalFaceTerrain.Water, 11));
 
-            bool isCoastal = InvasionCoastalTownClassification.IsSettlementAdjacentToSea(
-                faces, query, Point(0f, 0f), Point(100f, 0f), out float nearestDistanceSquared);
+            bool isCoastal = InvasionCoastalTownClassification.IsSettlementAdjacentToSea(firstSettlementFace, query);
 
             Assert.True(isCoastal);
-            Assert.That(nearestDistanceSquared, Is.Zero);
+            Assert.That(query.QueriedFaceIndices, Is.EquivalentTo(new[] { 1, 2, 3 }));
         }
 
         [TestCase(InvasionCoastalFaceTerrain.Land)]
         [TestCase(InvasionCoastalFaceTerrain.Lake)]
         [TestCase(InvasionCoastalFaceTerrain.River)]
-        public void NonSeaAdjacentFacesDoNotMakeSettlementCoastal(InvasionCoastalFaceTerrain terrain)
+        public void NonSeaBoundaryDoesNotMakeTownCoastal(InvasionCoastalFaceTerrain terrain)
         {
-            var faces = new[] { Face(InvasionCoastalFaceTerrain.Land, 0f, 0f, 1) };
-            var query = new StubFaceQuery(position => Face(terrain, position.X, position.Y, 2));
+            InvasionCoastalMapFace settlementFace = Face(InvasionCoastalFaceTerrain.RuralArea, 1);
+            var query = new StubFaceQuery().AdjacentTo(1, Face(terrain, 2));
 
-            bool isCoastal = InvasionCoastalTownClassification.IsSettlementAdjacentToSea(
-                faces, query, Point(0f, 0f), Point(0f, 0f), out float nearestDistanceSquared);
+            bool isCoastal = InvasionCoastalTownClassification.IsSettlementAdjacentToSea(settlementFace, query);
 
             Assert.False(isCoastal);
-            Assert.That(nearestDistanceSquared, Is.EqualTo(float.PositiveInfinity));
         }
 
         [Test]
-        public void AdjacentSeaOutsideTownCoverageDoesNotCount()
+        public void DisconnectedSettlementFaceIsNotPartOfTheTown()
         {
-            var faces = new[] { Face(InvasionCoastalFaceTerrain.Land, 31f, 0f, 1) };
-            var query = new StubFaceQuery(position =>
-                Face(InvasionCoastalFaceTerrain.CoastalSea, position.X, position.Y, 2));
+            InvasionCoastalMapFace settlementFace = Face(InvasionCoastalFaceTerrain.RuralArea, 1);
+            var query = new StubFaceQuery()
+                .AdjacentTo(1, Face(InvasionCoastalFaceTerrain.Land, 10))
+                .AdjacentTo(2, Face(InvasionCoastalFaceTerrain.Water, 11));
 
-            bool isCoastal = InvasionCoastalTownClassification.IsSettlementAdjacentToSea(
-                faces, query, Point(0f, 0f), Point(0f, 0f), out float nearestDistanceSquared);
+            bool isCoastal = InvasionCoastalTownClassification.IsSettlementAdjacentToSea(settlementFace, query);
 
             Assert.False(isCoastal);
-            Assert.That(nearestDistanceSquared, Is.EqualTo(float.PositiveInfinity));
-            Assert.That(query.CallCount, Is.Zero);
-        }
-
-        [TestCase(InvasionCoastalFaceTerrain.CoastalSea)]
-        [TestCase(InvasionCoastalFaceTerrain.OpenSea)]
-        public void CoveredMaritimeFaceCountsWithoutProbing(InvasionCoastalFaceTerrain terrain)
-        {
-            var faces = new[] { Face(terrain, 3f, 4f, 1) };
-            var query = new StubFaceQuery(_ => null);
-
-            bool isCoastal = InvasionCoastalTownClassification.IsSettlementAdjacentToSea(
-                faces, query, Point(0f, 0f), Point(0f, 0f), out float nearestDistanceSquared);
-
-            Assert.True(isCoastal);
-            Assert.That(nearestDistanceSquared, Is.EqualTo(25f));
-            Assert.That(query.CallCount, Is.Zero);
+            Assert.That(query.QueriedFaceIndices, Is.EqualTo(new[] { 1 }));
         }
 
         [Test]
-        public void SourceFaceDoesNotCountAsItsOwnAdjacentSeaFace()
+        public void CyclicSettlementFacesAreVisitedOnce()
         {
-            var faces = new[] { Face(InvasionCoastalFaceTerrain.Land, 0f, 0f, 1) };
-            var query = new StubFaceQuery(position =>
-                Face(InvasionCoastalFaceTerrain.CoastalSea, position.X, position.Y, 1));
+            InvasionCoastalMapFace settlementFace = Face(InvasionCoastalFaceTerrain.RuralArea, 1);
+            var query = new StubFaceQuery()
+                .AdjacentTo(1, Face(InvasionCoastalFaceTerrain.RuralArea, 2))
+                .AdjacentTo(2, Face(InvasionCoastalFaceTerrain.RuralArea, 1));
 
-            bool isCoastal = InvasionCoastalTownClassification.IsSettlementAdjacentToSea(
-                faces, query, Point(0f, 0f), Point(0f, 0f), out _);
+            bool isCoastal = InvasionCoastalTownClassification.IsSettlementAdjacentToSea(settlementFace, query);
 
             Assert.False(isCoastal);
+            Assert.That(query.QueriedFaceIndices, Is.EquivalentTo(new[] { 1, 2 }));
         }
 
-        private static InvasionCoastalPoint Point(float x, float y) => new(x, y);
+        [Test]
+        public void NonSettlementSeedIsRejectedWithoutQueryingAdjacentFaces()
+        {
+            var query = new StubFaceQuery();
 
-        private static InvasionCoastalMapFace Face(InvasionCoastalFaceTerrain terrain, float x, float y,
-            int faceIndex) => new(terrain, Point(x, y), faceIndex);
+            bool isCoastal = InvasionCoastalTownClassification.IsSettlementAdjacentToSea(
+                Face(InvasionCoastalFaceTerrain.Land, 1), query);
+
+            Assert.False(isCoastal);
+            Assert.That(query.QueriedFaceIndices, Is.Empty);
+        }
+
+        private static InvasionCoastalMapFace Face(InvasionCoastalFaceTerrain terrain, int faceIndex) =>
+            new(terrain, faceIndex);
 
         private sealed class StubFaceQuery : IInvasionCoastalMapFaceQuery
         {
-            private readonly Func<InvasionCoastalPoint, InvasionCoastalMapFace?> _findFace;
+            private readonly Dictionary<int, IReadOnlyCollection<InvasionCoastalMapFace>> _adjacentFaces = new();
 
-            public StubFaceQuery(Func<InvasionCoastalPoint, InvasionCoastalMapFace?> findFace)
+            public List<int> QueriedFaceIndices { get; } = new();
+
+            public StubFaceQuery AdjacentTo(int faceIndex, params InvasionCoastalMapFace[] adjacentFaces)
             {
-                _findFace = findFace;
+                _adjacentFaces[faceIndex] = adjacentFaces;
+                return this;
             }
 
-            public int CallCount { get; private set; }
-
-            public InvasionCoastalMapFace? FindFaceAt(InvasionCoastalPoint position)
+            public IReadOnlyCollection<InvasionCoastalMapFace> GetAdjacentFaces(InvasionCoastalMapFace face)
             {
-                CallCount++;
-                return _findFace(position);
+                QueriedFaceIndices.Add(face.FaceIndex);
+                return _adjacentFaces.TryGetValue(face.FaceIndex,
+                    out IReadOnlyCollection<InvasionCoastalMapFace>? adjacentFaces)
+                    ? adjacentFaces
+                    : new InvasionCoastalMapFace[0];
             }
         }
     }
