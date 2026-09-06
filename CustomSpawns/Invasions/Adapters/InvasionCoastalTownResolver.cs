@@ -145,7 +145,7 @@ namespace CustomSpawns.Invasions.Adapters
                     float sampleX = sourceX + direction.x * distance;
                     float sampleY = sourceY + direction.y * distance;
                     CampaignVec2 samplePosition = new CampaignVec2(new Vec2(sampleX, sampleY), false);
-                    PathFaceRecord sampledFace = Campaign.Current.MapSceneWrapper.GetFaceIndex(ref samplePosition);
+                    PathFaceRecord sampledFace = Campaign.Current.MapSceneWrapper.GetFaceIndex(in samplePosition);
 
                     if (!sampledFace.IsValid() || sampledFace.FaceIndex == sourceFaceIndex)
                         continue;
