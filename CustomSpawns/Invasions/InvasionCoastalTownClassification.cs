@@ -35,13 +35,20 @@ namespace CustomSpawns.Invasions
     public readonly struct InvasionCoastalMapFace
     {
         public InvasionCoastalMapFace(InvasionCoastalFaceTerrain terrain, InvasionCoastalPoint center)
+            : this(terrain, center, -1)
+        {
+        }
+
+        public InvasionCoastalMapFace(InvasionCoastalFaceTerrain terrain, InvasionCoastalPoint center, int faceIndex)
         {
             Terrain = terrain;
             Center = center;
+            FaceIndex = faceIndex;
         }
 
         public InvasionCoastalFaceTerrain Terrain { get; }
         public InvasionCoastalPoint Center { get; }
+        public int FaceIndex { get; }
     }
 
     // Pure policy shared by the campaign-map adapter and invasion lifecycle rules.
