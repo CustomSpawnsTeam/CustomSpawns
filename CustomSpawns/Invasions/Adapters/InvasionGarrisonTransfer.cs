@@ -130,7 +130,7 @@ namespace CustomSpawns.Invasions.Adapters
                             destinationElement.Number, destinationElement.Xp, destinationCap));
                     }
                     bindings.Add((entry.Key, character.StringId), new TransferBinding(party, character,
-                        element.WoundedNumber, GetElement(destinationRoster, character).WoundedNumber));
+                        element.WoundedNumber, GetWoundedCount(destinationRoster, character)));
                 }
                 donors.Add(new OccupationGarrisonDonorSnapshot(entry.Key, healthyTotal,
                     configuration.MaximumDonorLossFraction, candidates));
@@ -160,10 +160,18 @@ namespace CustomSpawns.Invasions.Adapters
             return index >= 0 ? roster.GetElementCopyAtIndex(index) : default;
         }
 
+        private static int GetWoundedCount(TroopRoster roster, CharacterObject character)
+        {
+            int index = roster.FindIndexOfTroop(character);
+            return index >= 0 ? roster.GetElementCopyAtIndex(index).WoundedNumber : 0;
+        }
+
         private static bool Matches(TroopRoster roster, CharacterObject character, int expectedCount,
             int expectedXp, int expectedWounded)
         {
-            TroopRosterElement element = GetElement(roster, character);
+            int index = roster.FindIndexOfTroop(character);
+            if (index < 0) return expectedCount == 0 && expectedXp == 0 && expectedWounded == 0;
+            TroopRosterElement element = roster.GetElementCopyAtIndex(index);
             return element.Number == expectedCount && element.Xp == expectedXp && element.WoundedNumber == expectedWounded;
         }
 
