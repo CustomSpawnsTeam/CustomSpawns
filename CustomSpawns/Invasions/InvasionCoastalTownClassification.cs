@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace CustomSpawns.Invasions
 {
     public enum InvasionCoastalFaceTerrain
@@ -51,36 +47,12 @@ namespace CustomSpawns.Invasions
         public int FaceIndex { get; }
     }
 
-    // Pure policy shared by the campaign-map adapter and invasion lifecycle rules.
+    // Pure terrain classification used by the campaign-map adapter.
     public static class InvasionCoastalTownClassification
     {
-        public static bool IsCoastalTown(bool isTown, bool hasPort, bool hasNearbyMaritimeCoast)
-        {
-            return isTown && (hasPort || hasNearbyMaritimeCoast);
-        }
-
-        public static IReadOnlyList<InvasionCoastalPoint> IndexMaritimeFaceCenters(
-            IEnumerable<InvasionCoastalMapFace> faces)
-        {
-            return faces.Where(face => IsMaritimeFace(face.Terrain)).Select(face => face.Center).ToList();
-        }
-
         public static bool IsMaritimeFace(InvasionCoastalFaceTerrain terrain)
         {
             return terrain == InvasionCoastalFaceTerrain.CoastalSea || terrain == InvasionCoastalFaceTerrain.OpenSea;
-        }
-
-        public static bool HasMaritimeFaceWithinRadius(IEnumerable<InvasionCoastalPoint> maritimeFaceCenters,
-            InvasionCoastalPoint settlementPosition, InvasionCoastalPoint gatePosition, float radius,
-            out float nearestDistanceSquared)
-        {
-            nearestDistanceSquared = float.PositiveInfinity;
-            foreach (InvasionCoastalPoint faceCenter in maritimeFaceCenters)
-            {
-                nearestDistanceSquared = Math.Min(nearestDistanceSquared,
-                    Math.Min(faceCenter.DistanceSquared(settlementPosition), faceCenter.DistanceSquared(gatePosition)));
-            }
-            return nearestDistanceSquared <= radius * radius;
         }
     }
 }
