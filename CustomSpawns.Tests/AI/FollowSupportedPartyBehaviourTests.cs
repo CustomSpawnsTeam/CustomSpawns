@@ -9,6 +9,15 @@ namespace CustomSpawns.Tests.AI
 {
     public class FollowSupportedPartyBehaviourTests
     {
+        [TestCase(4f, 2f, true)]
+        [TestCase(4.01f, 2f, false)]
+        public void IsWithinSupportRange_UsesEscortSeeingRange(float distanceSquared,
+            float seeingRange, bool expected)
+        {
+            Assert.That(FollowSupportedPartyBehaviour.IsWithinSupportRange(distanceSquared, seeingRange),
+                Is.EqualTo(expected));
+        }
+
         [Test]
         public void Behaviour_EscortsTheMainPartyItSpawnedWith()
         {

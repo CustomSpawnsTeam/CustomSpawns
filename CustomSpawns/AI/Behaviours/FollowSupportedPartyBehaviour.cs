@@ -26,6 +26,11 @@ namespace CustomSpawns.AI.Behaviours
             _getNavigationCapability = getNavigationCapability;
         }
 
+        internal static bool IsWithinSupportRange(float distanceSquared, float seeingRange)
+        {
+            return distanceSquared <= seeingRange * seeingRange;
+        }
+
         public PartyBehaviourResult GetPriorityBehaviour(MobileParty party, CsPartyData partyData)
         {
             MobileParty? supportedParty = partyData.SupportedParty;

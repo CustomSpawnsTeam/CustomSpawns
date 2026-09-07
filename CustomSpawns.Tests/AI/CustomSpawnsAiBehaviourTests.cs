@@ -37,6 +37,24 @@ namespace CustomSpawns.Tests.AI
         }
 
         [Test]
+        public void GetEscortDecisionLockAction_OnlyReleasesOwnedLocks()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(CustomSpawnsAiBehaviour.GetEscortDecisionLockAction(true, false, false),
+                    Is.EqualTo(CustomSpawnsAiBehaviour.EscortDecisionLockAction.Acquire));
+                Assert.That(CustomSpawnsAiBehaviour.GetEscortDecisionLockAction(true, false, true),
+                    Is.EqualTo(CustomSpawnsAiBehaviour.EscortDecisionLockAction.Acquire));
+                Assert.That(CustomSpawnsAiBehaviour.GetEscortDecisionLockAction(true, true, false),
+                    Is.EqualTo(CustomSpawnsAiBehaviour.EscortDecisionLockAction.None));
+                Assert.That(CustomSpawnsAiBehaviour.GetEscortDecisionLockAction(false, true, true),
+                    Is.EqualTo(CustomSpawnsAiBehaviour.EscortDecisionLockAction.Release));
+                Assert.That(CustomSpawnsAiBehaviour.GetEscortDecisionLockAction(false, true, false),
+                    Is.EqualTo(CustomSpawnsAiBehaviour.EscortDecisionLockAction.None));
+            });
+        }
+
+        [Test]
         public void SyncData_DelegatesExactlyOnceToEverySyncTarget()
         {
             SyncStub patrol = new();
@@ -47,7 +65,7 @@ namespace CustomSpawns.Tests.AI
                 patrol, raid, fallback
             });
 
-            behaviour.SyncData(null!);
+            behaviour.SyncData(new NonSavingDataStore());
 
             Assert.That(patrol.SyncCount, Is.EqualTo(1));
             Assert.That(raid.SyncCount, Is.EqualTo(1));
@@ -60,7 +78,7 @@ namespace CustomSpawns.Tests.AI
             SyncStub shared = new();
             CustomSpawnsAiBehaviour behaviour = new(null!, null!, new ISyncsCampaignData[] { shared, shared });
 
-            behaviour.SyncData(null!);
+            behaviour.SyncData(new NonSavingDataStore());
 
             Assert.That(shared.SyncCount, Is.EqualTo(1));
         }
@@ -72,6 +90,17 @@ namespace CustomSpawns.Tests.AI
             public void SyncData(IDataStore dataStore)
             {
                 SyncCount++;
+            }
+        }
+
+        private sealed class NonSavingDataStore : IDataStore
+        {
+            public bool IsSaving => false;
+            public bool IsLoading => false;
+
+            public bool SyncData<T>(string key, ref T data)
+            {
+                return false;
             }
         }
 
