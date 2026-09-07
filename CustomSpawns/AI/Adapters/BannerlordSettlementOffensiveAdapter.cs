@@ -57,6 +57,9 @@ namespace CustomSpawns.AI.Adapters
 
         protected float GetSeeingRange(MobileParty observer) => _getSeeingRange(observer);
 
+        protected IEnumerable<MobileParty> GetAccompanyingParties(MobileParty party) =>
+            _getAccompanyingParties(party);
+
         protected float GetActiveSiegeDefenderStrength(MobileParty observer, float garrisonStrength)
         {
             return OffensiveStrengthRules.CalculateActiveSiegeDefenderStrength(garrisonStrength,

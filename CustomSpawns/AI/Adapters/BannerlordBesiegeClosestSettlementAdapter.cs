@@ -189,7 +189,15 @@ namespace CustomSpawns.AI.Adapters
         public AIBehaviorData? AbandonSiegeAndCreateRetreatBehavior(MobileParty party,
             Settlement target)
         {
-            party.BesiegerCamp = null;
+            var camp = party.BesiegerCamp;
+            if (camp is not null)
+            {
+                foreach (MobileParty accompanyingParty in GetAccompanyingParties(party)
+                             .Where(candidate => candidate.BesiegerCamp == camp).ToList())
+                    accompanyingParty.BesiegerCamp = null;
+                party.BesiegerCamp = null;
+            }
+
             MobileParty? threat = MobileParty.All
                 .Where(candidate => candidate != party && candidate.IsActive &&
                                     candidate.CurrentSettlement is null && candidate.MapEvent is null &&
