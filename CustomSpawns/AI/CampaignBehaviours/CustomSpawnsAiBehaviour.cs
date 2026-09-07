@@ -5,6 +5,7 @@ using CustomSpawns.AI.Behaviours;
 using CustomSpawns.Spawn;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Party.PartyComponents;
 
 namespace CustomSpawns.AI
 {
@@ -108,6 +109,11 @@ namespace CustomSpawns.AI
 
             public void AddBehaviorScore(MobileParty party, PartyThinkParams thinkParams)
             {
+                if (party.PartyComponent is LordPartyComponent)
+                {
+                    return;
+                }
+
                 CsPartyData? partyData = _dynamicSpawnData.GetDynamicSpawnData(party);
                 if (partyData is null)
                 {

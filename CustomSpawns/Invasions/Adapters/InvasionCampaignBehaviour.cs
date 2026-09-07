@@ -10,6 +10,7 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.MapEvents;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Party.PartyComponents;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
@@ -362,9 +363,31 @@ namespace CustomSpawns.Invasions.Adapters
 
                 if (IsEligibleForFood(town, group, configuration))
                     InvasionOccupationFood.Apply(town, configuration.FoodStockFloor);
+                if (!PromoteCapturer(capture, town, group))
+                    continue;
                 if (State.CompleteOccupation(capture.Id, town.Settlement.OwnerClan?.StringId ?? ""))
                     Logger.Info("Invasion occupation applied: group=" + group.Id + " town=" + town.Settlement.StringId);
             }
+        }
+
+        private static bool PromoteCapturer(InvasionCaptureContext capture, Town town, InvasionGroupState group)
+        {
+            Clan? clan = Clan.FindFirst(candidate => candidate.StringId == group.ClanId);
+            MobileParty? party = MobileParty.All.FirstOrDefault(candidate => candidate.IsActive &&
+                candidate.StringId == capture.CapturerId);
+            Hero? leader = party?.LeaderHero;
+            if (clan == null || party == null || leader == null || party.ActualClan != clan || leader.Clan != clan)
+                return false;
+
+            if (party.PartyComponent is not LordPartyComponent)
+                LordPartyComponent.ConvertPartyToLordParty(party, leader, leader);
+            if (clan.Kingdom == null)
+            {
+                clan.SetInitialHomeSettlement(town.Settlement);
+                Campaign.Current.KingdomManager.CreateKingdom(clan.Name, clan.InformalName, clan.Culture, clan);
+            }
+
+            return true;
         }
 
         private bool IsEligibleForFood(Town town, InvasionGroupState? group, InvasionData? configuration)
