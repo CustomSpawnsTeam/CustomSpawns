@@ -56,7 +56,6 @@ namespace CustomSpawns
         private NameSignifierDataReader _nameSignifierDataReader;
         private DynamicSpawnData _dynamicSpawnData;
         private InvasionCampaignBehaviour _invasionCampaignBehaviour;
-        private InvasionGarrisonTransfer _invasionGarrisonTransfer;
         private SpawnDtoAdapter _spawnDtoAdapter;
         private SpawnDao _spawnDao;
         private CampaignDataConfigLoader _campaignDataConfigLoader;
@@ -126,9 +125,8 @@ namespace CustomSpawns
             _mobilePartyTrackingBehaviour = new MobilePartyTrackingBehaviour(_saveInitialiser, _modDebug);
             _dynamicSpawnData = new (_spawnDao, _saveInitialiser);
             _spawnGroupService = new SpawnGroupService(_spawner, _dynamicSpawnData);
-            _invasionGarrisonTransfer = new InvasionGarrisonTransfer(_dynamicSpawnData);
             _invasionCampaignBehaviour = new InvasionCampaignBehaviour(_spawnDao, _dynamicSpawnData,
-                _spawnGroupService, _invasionGarrisonTransfer, _saveInitialiser);
+                _spawnGroupService, _saveInitialiser);
             _devestationMetricData = new DevestationMetricData(_mobilePartyTrackingBehaviour, _campaignDataConfigLoader, _saveInitialiser, _messageBoxService, _modDebug);
             _dailyLogger = new DailyLogger(_devestationMetricData, _messageBoxService);
             IPriorityPartyBehaviour[] priorityPartyBehaviours =

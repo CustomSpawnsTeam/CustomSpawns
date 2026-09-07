@@ -22,7 +22,6 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly SpawnDao _spawns;
         private readonly DynamicSpawnData _parties;
         private readonly SpawnGroupService _spawnGroups;
-        private readonly InvasionGarrisonTransfer _garrisonTransfer;
         private readonly InvasionCoastalTownResolver _coastalTownResolver = new();
         private readonly Func<int, int> _randomIndex;
         private InvasionCaptureCorrelation _correlation;
@@ -30,12 +29,11 @@ namespace CustomSpawns.Invasions.Adapters
         public InvasionState State { get; private set; } = new();
 
         internal InvasionCampaignBehaviour(SpawnDao spawns, DynamicSpawnData parties, SpawnGroupService spawnGroups,
-            InvasionGarrisonTransfer garrisonTransfer, SaveInitialiser initialiser, Func<int, int>? randomIndex = null)
+            SaveInitialiser initialiser, Func<int, int>? randomIndex = null)
         {
             _spawns = spawns;
             _parties = parties;
             _spawnGroups = spawnGroups;
-            _garrisonTransfer = garrisonTransfer;
             _randomIndex = randomIndex ?? MBRandom.RandomInt;
             _correlation = new InvasionCaptureCorrelation(State);
             // DynamicSpawnData registers its discovery callback first; scheduling/AI are composed later.
@@ -351,9 +349,16 @@ namespace CustomSpawns.Invasions.Adapters
                 Town? town = Settlement.Find(capture.SettlementId)?.Town;
                 InvasionGroupState? group = State.FindGroup(capture.OwnershipGroupId);
                 InvasionData? configuration = group == null ? null : GetConfiguration(group);
-                if (town == null || group == null || configuration == null ||
-                    !_garrisonTransfer.TryApply(capture, town, group, configuration))
+                if (town?.GarrisonParty == null || group == null || configuration == null)
                     continue;
+
+                foreach (MobileParty party in MobileParty.All.Where(p => p.IsActive &&
+                             capture.ParticipantPartyIds.Contains(p.StringId) &&
+                             _parties.GetDynamicSpawnData(p)?.IsEscort == true).ToList())
+                {
+                    town.GarrisonParty.MemberRoster.Add(party.MemberRoster);
+                    DestroyPartyAction.Apply(null, party);
+                }
 
                 if (IsEligibleForFood(town, group, configuration))
                     InvasionOccupationFood.Apply(town, configuration.FoodStockFloor);
@@ -373,7 +378,7 @@ namespace CustomSpawns.Invasions.Adapters
                 clan?.IsEliminated == false, town.Settlement.SiegeEvent != null);
         }
 
-        // A later occupation adapter consumes this readiness seam on an hourly tick, never in capture callbacks.
+        // Occupation is applied on the hourly tick after Bannerlord has finished the capture callbacks.
         public IReadOnlyList<InvasionCaptureContext> GetReadyOccupations()
         {
             Initialize();
