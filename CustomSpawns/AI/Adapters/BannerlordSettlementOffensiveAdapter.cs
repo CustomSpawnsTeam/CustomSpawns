@@ -57,6 +57,12 @@ namespace CustomSpawns.AI.Adapters
 
         protected float GetSeeingRange(MobileParty observer) => _getSeeingRange(observer);
 
+        protected float GetActiveSiegeDefenderStrength(MobileParty observer, float garrisonStrength)
+        {
+            return OffensiveStrengthRules.CalculateActiveSiegeDefenderStrength(garrisonStrength,
+                _getRoamingParties(observer), _getSeeingRange(observer));
+        }
+
         public Settlement? FindClosestNonHostileSettlement(MobileParty party)
         {
             return Settlement.All.Where(s => s.IsActive && (s.IsTown || s.IsCastle || s.IsVillage) &&
@@ -80,7 +86,7 @@ namespace CustomSpawns.AI.Adapters
                 .Select(p => new RoamingPartyStrength(p == observer, p.IsActive,
                     p.MapFaction.IsAtWarWith(observer.MapFaction), p.Army,
                     observer.Position.Distance(p.Position), p.Party.CalculateCurrentStrength(),
-                    p.IsLordParty));
+                    p.IsLordParty, p.IsFleeing()));
         }
     }
 }

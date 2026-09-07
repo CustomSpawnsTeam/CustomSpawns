@@ -73,7 +73,13 @@ namespace CustomSpawns.AI.Offensives
             if (state.Target is not null &&
                 ShouldAbandonTarget(party, state.Target, attackerStrength, configuration))
             {
+                AIBehaviorData? abandonBehavior = CreateTargetAbandonmentBehavior(
+                    party, state.Target, configuration);
                 offensive.ClearTarget();
+                if (abandonBehavior.HasValue)
+                {
+                    return PartyBehaviourResult.From(abandonBehavior.Value);
+                }
             }
 
             if (state.Phase == SettlementOffensivePhase.Active)
@@ -183,6 +189,12 @@ namespace CustomSpawns.AI.Offensives
             float attackerStrength, TConfiguration configuration)
         {
             return false;
+        }
+
+        private protected virtual AIBehaviorData? CreateTargetAbandonmentBehavior(
+            MobileParty party, Settlement target, TConfiguration configuration)
+        {
+            return null;
         }
 
         private protected virtual float GetReconVisibleHostileStrength(MobileParty party,

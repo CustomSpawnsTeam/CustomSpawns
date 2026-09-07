@@ -19,6 +19,7 @@ namespace CustomSpawns.AI.Offensives
             float attackerStrength, float minimumTargetRatio, float minimumRoamingHostilesRatio,
             IReadOnlyList<SpawnSettlementType> targetTypes);
         float GetTargetStrength(MobileParty party, Settlement target);
+        float GetActiveSiegeDefenderStrength(MobileParty party, Settlement target);
         float GetHostileLordStrengthNearTarget(MobileParty party, Settlement target);
         IFaction GetTargetMapFaction(Settlement target);
         bool IsMatchingSiegeActive(MobileParty party, Settlement target);
@@ -27,5 +28,6 @@ namespace CustomSpawns.AI.Offensives
             IFaction? intendedTargetFaction);
         bool IsTargetComplete(MobileParty party, Settlement target);
         AIBehaviorData CreateSiegeBehavior(MobileParty party, Settlement target);
+        AIBehaviorData? AbandonSiegeAndCreateRetreatBehavior(MobileParty party, Settlement target);
     }
 }

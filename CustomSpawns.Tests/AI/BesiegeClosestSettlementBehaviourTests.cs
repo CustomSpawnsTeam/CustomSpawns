@@ -515,7 +515,7 @@ namespace CustomSpawns.Tests.AI
             Evaluate(provider, party);
             SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
             operations.MatchingSiegeActive = true;
-            operations.TargetStrength = 200f;
+            operations.ActiveSiegeDefenderStrength = 200f;
             operations.SiegeTarget = null;
 
             PartyBehaviourResult result = Evaluate(provider, party);
@@ -578,7 +578,7 @@ namespace CustomSpawns.Tests.AI
             state.Target = target;
             state.Phase = SettlementOffensivePhase.Approach;
             state.ElapsedOperationDays = 10f;
-            operations.MatchingSiegeActive = !assault;
+            operations.MatchingSiegeActive = true;
             operations.MatchingAssaultActive = assault;
 
             PartyBehaviourResult result = Evaluate(provider, party);
@@ -586,6 +586,52 @@ namespace CustomSpawns.Tests.AI
             Assert.That(result.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.BesiegeSettlement));
             Assert.That(state.Phase, Is.EqualTo(SettlementOffensivePhase.Active));
             Assert.That(state.ElapsedOperationDays, Is.EqualTo(10f));
+        }
+
+        [Test]
+        public void ReinforcedActiveSiege_AbandonsTargetAndRetreats()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            var retreat = new AIBehaviorData(DummyParty(), AiBehavior.FleeToPoint,
+                MobileParty.NavigationType.Default, false, false, false);
+            var operations = new OperationsStub
+            {
+                SiegeTarget = target,
+                MatchingSiegeActive = true,
+                ActiveSiegeDefenderStrength = 101f,
+                RetreatBehavior = retreat
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+            Evaluate(provider, party);
+
+            PartyBehaviourResult result = Evaluate(provider, party);
+
+            Assert.That(result.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.FleeToPoint));
+            Assert.That(_states.GetOrAdd(party).Target, Is.Null);
+            Assert.That(operations.AbandonSiegeCalls, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void DangerousStrengthDuringAssault_DoesNotInterruptBattleUnderway()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            var operations = new OperationsStub
+            {
+                SiegeTarget = target,
+                MatchingSiegeActive = true,
+                MatchingAssaultActive = true,
+                ActiveSiegeDefenderStrength = 200f
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+            Evaluate(provider, party);
+
+            PartyBehaviourResult result = Evaluate(provider, party);
+
+            Assert.That(result.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.BesiegeSettlement));
+            Assert.That(_states.GetOrAdd(party).Target, Is.SameAs(target));
+            Assert.That(operations.AbandonSiegeCalls, Is.Zero);
         }
 
         [Test]
@@ -802,6 +848,7 @@ namespace CustomSpawns.Tests.AI
             public float VisibleHostileStrength { get; set; }
             public float HostileLordStrengthNearTarget { get; set; }
             public float TargetStrength { get; set; } = 10f;
+            public float ActiveSiegeDefenderStrength { get; set; } = 10f;
             public Settlement? SiegeTarget { get; set; }
             public Settlement? AlternativeSiegeTarget { get; set; }
             public Settlement? PatrolTarget { get; set; }
@@ -811,6 +858,8 @@ namespace CustomSpawns.Tests.AI
             public bool TargetComplete { get; set; }
             public bool NativeContinuation { get; set; }
             public AiBehavior ShortTermBehavior { get; set; }
+            public AIBehaviorData? RetreatBehavior { get; set; }
+            public int AbandonSiegeCalls { get; private set; }
 
             public float GetAttackerStrength(MobileParty party) => AttackerStrength;
             public float GetVisibleHostileStrength(MobileParty party) => VisibleHostileStrength;
@@ -822,6 +871,8 @@ namespace CustomSpawns.Tests.AI
                 IReadOnlyList<SpawnSettlementType> targetTypes) => AlternativeSiegeTarget;
             public Settlement? FindClosestNonHostileSettlement(MobileParty party) => PatrolTarget;
             public float GetTargetStrength(MobileParty party, Settlement target) => TargetStrength;
+            public float GetActiveSiegeDefenderStrength(MobileParty party, Settlement target) =>
+                ActiveSiegeDefenderStrength;
             public float GetHostileLordStrengthNearTarget(MobileParty party, Settlement target) =>
                 HostileLordStrengthNearTarget;
             public IFaction GetTargetMapFaction(Settlement target) => null!;
@@ -843,6 +894,13 @@ namespace CustomSpawns.Tests.AI
             {
                 return new AIBehaviorData(target, AiBehavior.BesiegeSettlement,
                     MobileParty.NavigationType.Default, false, false, false);
+            }
+
+            public AIBehaviorData? AbandonSiegeAndCreateRetreatBehavior(MobileParty party,
+                Settlement target)
+            {
+                AbandonSiegeCalls++;
+                return RetreatBehavior;
             }
         }
 

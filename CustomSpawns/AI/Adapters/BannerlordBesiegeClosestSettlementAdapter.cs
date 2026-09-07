@@ -133,6 +133,11 @@ namespace CustomSpawns.AI.Adapters
         public float GetTargetStrength(MobileParty party, Settlement target) =>
             GetDefenderStrength(party, target);
 
+        public float GetActiveSiegeDefenderStrength(MobileParty party, Settlement target)
+        {
+            return GetActiveSiegeDefenderStrength(party, GetGarrisonStrength(target));
+        }
+
         public float GetHostileLordStrengthNearTarget(MobileParty party, Settlement target)
         {
             // Reconnaissance uses the party's established visibility radius, centred on the land gate
@@ -188,6 +193,32 @@ namespace CustomSpawns.AI.Adapters
                 party.NavigationCapability, false, false, false);
         }
 
+        public AIBehaviorData? AbandonSiegeAndCreateRetreatBehavior(MobileParty party,
+            Settlement target)
+        {
+            party.BesiegerCamp = null;
+            MobileParty? threat = MobileParty.All
+                .Where(candidate => candidate != party && candidate.IsActive &&
+                                    candidate.CurrentSettlement is null && candidate.MapEvent is null &&
+                                    candidate.MapFaction.IsAtWarWith(party.MapFaction) &&
+                                    !candidate.IsFleeing() &&
+                                    OffensiveStrengthRules.IsWithinSeeingRange(
+                                        party.Position.Distance(candidate.Position), GetSeeingRange(party)))
+                .OrderBy(candidate => party.Position.Distance(candidate.Position))
+                .FirstOrDefault();
+            if (threat is not null)
+            {
+                return new AIBehaviorData(threat, AiBehavior.FleeToPoint,
+                    party.NavigationCapability, false, false, false);
+            }
+
+            Settlement? fallback = FindClosestNonHostileSettlement(party);
+            return fallback is null
+                ? null
+                : new AIBehaviorData(fallback, AiBehavior.GoToSettlement,
+                    party.NavigationCapability, false, false, false);
+        }
+
         internal static bool IsIntendedTargetFaction(IFaction currentFaction,
             IFaction? intendedTargetFaction)
         {
@@ -213,7 +244,7 @@ namespace CustomSpawns.AI.Adapters
                 .Select(p => new RoamingPartyStrength(p == attacker, p.IsActive,
                     p.MapFaction.IsAtWarWith(attacker.MapFaction), p.Army,
                     target.GatePosition.Distance(p.Position), p.Party.CalculateCurrentStrength(),
-                    p.IsLordParty));
+                    p.IsLordParty, p.IsFleeing()));
         }
 
         private static bool IsMatchingCamp(MobileParty party, Settlement settlement)
@@ -232,6 +263,11 @@ namespace CustomSpawns.AI.Adapters
                     p.MapFaction.IsAtWarWith(attacker.MapFaction), p.IsVillager, p.IsCaravan,
                     p.IsGarrison, p.IsMilitia));
             return CalculateDefenderStrength(settlement.Militia, garrisonStrength, occupants);
+        }
+
+        private static float GetGarrisonStrength(Settlement settlement)
+        {
+            return settlement.Town.GarrisonParty?.Party.CalculateCurrentStrength() ?? 0f;
         }
 
         internal static float CalculateDefenderStrength(float militiaStrength, float garrisonStrength,

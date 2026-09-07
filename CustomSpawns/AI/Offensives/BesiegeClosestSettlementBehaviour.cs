@@ -57,15 +57,36 @@ namespace CustomSpawns.AI.Offensives
         }
 
         /**
-         * The strength requirement that qualified the target when it was selected is re-checked every tick,
-         * so a force weakened by losses or facing reinforced defenders abandons a target it can no longer take.
-         * Re-selection filters on the same ratio, hence the dropped target cannot be picked again while too strong.
+         * The strength requirement that qualified the target when it was selected is re-checked every tick.
+         * While a siege camp is active, the assessment instead combines the garrison with nearby non-fleeing
+         * hostile parties so that reinforcements can make the besieger withdraw before an assault starts.
          */
         private protected override bool ShouldAbandonTarget(MobileParty party, Settlement target,
             float attackerStrength, BesiegeClosestSettlementData configuration)
         {
+            if (IsActiveSiegeCamp(party, target))
+            {
+                return !OffensiveStrengthRules.MeetsStrengthRatio(attackerStrength,
+                    _siege.GetActiveSiegeDefenderStrength(party, target),
+                    configuration.MinimumAttackerToTargetRatio);
+            }
+
             return !OffensiveStrengthRules.MeetsStrengthRatio(attackerStrength,
                 GetTargetStrength(party, target), configuration.MinimumAttackerToTargetRatio);
+        }
+
+        private protected override AIBehaviorData? CreateTargetAbandonmentBehavior(
+            MobileParty party, Settlement target, BesiegeClosestSettlementData configuration)
+        {
+            return IsActiveSiegeCamp(party, target)
+                ? _siege.AbandonSiegeAndCreateRetreatBehavior(party, target)
+                : null;
+        }
+
+        private bool IsActiveSiegeCamp(MobileParty party, Settlement target)
+        {
+            return _siege.IsMatchingSiegeActive(party, target) &&
+                   !_siege.IsMatchingAssaultActive(party, target);
         }
 
         private protected override float GetReconVisibleHostileStrength(MobileParty party,

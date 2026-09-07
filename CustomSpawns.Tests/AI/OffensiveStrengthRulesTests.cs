@@ -83,6 +83,21 @@ namespace CustomSpawns.Tests.AI
         }
 
         [Test]
+        public void ActiveSiegeThreat_AddsGarrisonAndExcludesFleeingOrOutOfRangeParties()
+        {
+            var parties = new[]
+            {
+                Strength(5f, 20f),
+                Strength(5f, 100f, isFleeing: true),
+                Strength(5.001f, 100f),
+                Strength(1f, 100f, isHostile: false)
+            };
+
+            Assert.That(OffensiveStrengthRules.CalculateActiveSiegeDefenderStrength(
+                30f, parties, 5f), Is.EqualTo(50f));
+        }
+
+        [Test]
         public void ClosestQualifiedTarget_HandlesZeroDefendersAndRetargetsByDistance()
         {
             object weak = new();
@@ -103,10 +118,10 @@ namespace CustomSpawns.Tests.AI
 
         private static RoamingPartyStrength Strength(float distance, float partyStrength,
             object? armyIdentity = null, bool isSelf = false, bool isActive = true,
-            bool isHostile = true, bool isLordParty = false)
+            bool isHostile = true, bool isLordParty = false, bool isFleeing = false)
         {
             return new RoamingPartyStrength(isSelf, isActive, isHostile, armyIdentity,
-                distance, partyStrength, isLordParty);
+                distance, partyStrength, isLordParty, isFleeing);
         }
     }
 }

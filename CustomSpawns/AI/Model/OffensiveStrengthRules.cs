@@ -32,6 +32,15 @@ namespace CustomSpawns.AI.Model
                 .Sum(army => army.Sum(p => p.PartyStrength));
         }
 
+        internal static float CalculateActiveSiegeDefenderStrength(float garrisonStrength,
+            IEnumerable<RoamingPartyStrength> parties, float observerSeeingRange)
+        {
+            return garrisonStrength + parties
+                .Where(p => !p.IsSelf && p.IsActive && p.IsHostile && !p.IsFleeing &&
+                            IsWithinSeeingRange(p.Distance, observerSeeingRange))
+                .Sum(p => p.PartyStrength);
+        }
+
         internal static bool MeetsStrengthRatio(float attackerStrength, float defenderStrength,
             float minimumRatio)
         {
