@@ -55,7 +55,6 @@ namespace CustomSpawns.Invasions.Adapters
         [SaveableField(1)] public string Id = "";
         [SaveableField(2)] public string SpawnTemplateId = "";
         [SaveableField(3)] public string ClanId = "";
-        [SaveableField(4)] public bool HasFirstCoastalConquest;
         [SaveableField(5)] public bool IsSuspended;
         [SaveableField(6)] public double NextReinforcementDeadlineDays;
         [SaveableField(7)] public List<string> Members = new();
@@ -66,7 +65,6 @@ namespace CustomSpawns.Invasions.Adapters
             Id = value.Id,
             SpawnTemplateId = value.SpawnTemplateId,
             ClanId = value.ClanId,
-            HasFirstCoastalConquest = value.HasFirstCoastalConquest,
             IsSuspended = value.IsSuspended,
             NextReinforcementDeadlineDays = value.NextReinforcementDeadlineDays,
             ReinforcementIntervalDays = value.ReinforcementIntervalDays,
@@ -75,7 +73,6 @@ namespace CustomSpawns.Invasions.Adapters
 
         internal InvasionGroupState ToState() => new(Id, SpawnTemplateId, ClanId)
         {
-            HasFirstCoastalConquest = HasFirstCoastalConquest,
             IsSuspended = IsSuspended,
             NextReinforcementDeadlineDays = NextReinforcementDeadlineDays,
             ReinforcementIntervalDays = ReinforcementIntervalDays,

@@ -2,11 +2,13 @@ namespace CustomSpawns.Data.Dto
 {
     public sealed class InvasionData
     {
-        public InvasionData(float foodStockFloor, float dailyFoodBonus, int minimumGarrisonTroopCount,
+        public InvasionData(bool requiresFirstCoastalConquest, float foodStockFloor, float dailyFoodBonus,
+            int minimumGarrisonTroopCount,
             int maximumGarrisonTroopCount, float militiaStrengthRatio,
             float maximumDonorLossFraction, string reinforcementPartyTemplateId, float reinforcementIntervalInDays,
             int reinforcementActivePartyCap)
         {
+            RequiresFirstCoastalConquest = requiresFirstCoastalConquest;
             FoodStockFloor = foodStockFloor;
             DailyFoodBonus = dailyFoodBonus;
             MinimumGarrisonTroopCount = minimumGarrisonTroopCount;
@@ -18,6 +20,7 @@ namespace CustomSpawns.Data.Dto
             ReinforcementActivePartyCap = reinforcementActivePartyCap;
         }
 
+        public bool RequiresFirstCoastalConquest { get; }
         public float FoodStockFloor { get; }
         public float DailyFoodBonus { get; }
         public int MinimumGarrisonTroopCount { get; }

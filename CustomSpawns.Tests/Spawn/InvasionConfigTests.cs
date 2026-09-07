@@ -43,6 +43,7 @@ namespace CustomSpawns.Tests.Spawn
             Assert.Multiple(() =>
             {
                 Assert.That(errors, Is.Empty);
+                Assert.That(data.RequiresFirstCoastalConquest, Is.False);
                 Assert.That(data.FoodStockFloor, Is.EqualTo(30f));
                 Assert.That(data.DailyFoodBonus, Is.EqualTo(5f));
                 Assert.That(data.MinimumGarrisonTroopCount, Is.EqualTo(10));
@@ -52,6 +53,24 @@ namespace CustomSpawns.Tests.Spawn
                 Assert.That(data.ReinforcementPartyTemplateId, Is.EqualTo("PartyTemplate.reinforcements"));
                 Assert.That(data.ReinforcementIntervalInDays, Is.EqualTo(7f));
                 Assert.That(data.ReinforcementActivePartyCap, Is.EqualTo(2));
+            });
+        }
+
+        [Test]
+        public void Adapt_ExplicitCoastalConquestRequirementEnablesInitialCoastalTargeting()
+        {
+            const string invasion = "<Invasion><RequiresFirstCoastalConquest>true</RequiresFirstCoastalConquest>" +
+                                    "<Reinforcements><PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId>" +
+                                    "</Reinforcements></Invasion>";
+            Spawns spawns = Read("<RegularBanditDailySpawnData party_template=\"PartyTemplate.invasion\">" +
+                                 invasion + "</RegularBanditDailySpawnData>", out List<System.Exception> errors);
+
+            InvasionData data = InvasionDtoAdapter.Adapt(spawns.AllSpawns.Single().Invasion!);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(errors, Is.Empty);
+                Assert.That(data.RequiresFirstCoastalConquest, Is.True);
             });
         }
 

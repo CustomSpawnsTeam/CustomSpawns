@@ -5,6 +5,9 @@ namespace CustomSpawns.Data.Model
 {
     public sealed class InvasionConfig
     {
+        [XmlElement("RequiresFirstCoastalConquest")]
+        public bool RequiresFirstCoastalConquest { get; set; }
+
         [XmlElement("Supplies")]
         public InvasionSuppliesConfig Supplies { get; set; } = new();
 

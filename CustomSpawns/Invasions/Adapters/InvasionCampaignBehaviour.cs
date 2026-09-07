@@ -155,10 +155,13 @@ namespace CustomSpawns.Invasions.Adapters
         {
             Initialize();
             InvasionGroupState? group = State.FindMemberGroup(party.StringId);
-            if (group == null || group.IsSuspended || group.HasFirstCoastalConquest ||
+            if (group == null || group.IsSuspended ||
                 party.ActualClan?.StringId != group.ClanId) return null;
             InvasionData? configuration = GetConfiguration(group);
-            return configuration == null ? null : _coastalTownResolver.IsCoastalTown;
+            if (configuration?.RequiresFirstCoastalConquest != true) return null;
+            bool factionHasCoastalTown = Settlement.All.Any(settlement => settlement.IsTown &&
+                settlement.MapFaction == party.MapFaction && _coastalTownResolver.IsCoastalTown(settlement));
+            return factionHasCoastalTown ? null : _coastalTownResolver.IsCoastalTown;
         }
 
         private void OnMapEventStarted(MapEvent mapEvent, PartyBase attacker, PartyBase defender)

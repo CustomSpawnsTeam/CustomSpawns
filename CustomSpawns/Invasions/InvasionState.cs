@@ -93,7 +93,6 @@ namespace CustomSpawns.Invasions
                 if (previousCapture != null) previousCapture.Cancelled = true;
             }
             CreditIndex[context.SettlementId] = new InvasionTownCredit(context.SettlementId, group.Id, context.Id, context.IsCoastalTown);
-            group.HasFirstCoastalConquest |= context.IsCoastalTown;
         }
 
         public void ObserveOwner(string settlementId, string? ownerClanId)
@@ -187,7 +186,6 @@ namespace CustomSpawns.Invasions
         public string Id { get; }
         public string SpawnTemplateId { get; }
         public string ClanId { get; }
-        public bool HasFirstCoastalConquest { get; internal set; }
         public bool IsSuspended { get; internal set; }
         // Zero means no deadline has been established yet. Scheduling is a separate feature.
         public double NextReinforcementDeadlineDays { get; internal set; }

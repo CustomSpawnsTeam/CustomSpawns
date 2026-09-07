@@ -94,14 +94,9 @@ namespace CustomSpawns.Tests.Invasions
             Ownership(capture);
             Assert.AreEqual(_group.Id, _state.Credits.Single().GroupId);
             Assert.That(capture.ParticipantPartyIds, Is.EquivalentTo(new[] { "capturer", "escort" }));
-            Assert.True(_group.HasFirstCoastalConquest);
-            Assert.True(_state.FindMemberGroup("escort")!.HasFirstCoastalConquest);
-            Assert.False(leaderGroup.HasFirstCoastalConquest);
             Assert.True(_state.CompleteOccupation(capture.Id, "clan"));
             Assert.False(_state.CompleteOccupation(capture.Id, "clan"));
             _state = RoundTrip();
-            Assert.True(_state.FindMemberGroup("capturer")!.HasFirstCoastalConquest);
-            Assert.True(_state.FindMemberGroup("escort")!.HasFirstCoastalConquest);
         }
 
         [TestCase("ally", "capturer", true)]
@@ -149,7 +144,6 @@ namespace CustomSpawns.Tests.Invasions
             Assert.False(_state.CanApplyOccupation(first.Id, "clan"));
             _state.ObserveOwner("town", "clan");
             Assert.That(_state.Credits, Is.Empty);
-            Assert.True(_group.HasFirstCoastalConquest);
             var second = Conquer(200);
             Assert.AreNotEqual(first.Id, second.Id);
             Assert.True(_state.CanApplyOccupation(second.Id, "clan"));
@@ -176,7 +170,6 @@ namespace CustomSpawns.Tests.Invasions
             Assert.That(_state.Groups, Is.Empty);
             var fresh = _state.RegisterMember("invasion", "clan", "new-invasion");
             Assert.AreNotEqual(_group.Id, fresh.Id);
-            Assert.False(fresh.HasFirstCoastalConquest);
         }
 
         [Test]
@@ -263,7 +256,6 @@ namespace CustomSpawns.Tests.Invasions
             empty.RegisterMember("invasion", "clan", "existing");
             empty.Reconcile(new[] { "existing" }, _ => "clan", _ => true);
             Assert.That(empty.Credits, Is.Empty);
-            Assert.False(empty.Groups.Single().HasFirstCoastalConquest);
             var party = new CsPartyData("primary", "primary", true, null);
             Assert.IsNull(party.InvasionGroupId);
             Assert.IsNull(party.InvasionRole);

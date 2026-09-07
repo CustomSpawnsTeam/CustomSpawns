@@ -121,7 +121,6 @@ namespace CustomSpawns.Tests.Invasions
             var stale = _correlation.ResolveOwnership(inlandEvent, true, "coastal-a", _hero, "enemy", "clan", "clan");
             Assert.IsNull(stale);
             Assert.False(inlandCapture.OwnershipObserved);
-            Assert.False(_group.HasFirstCoastalConquest);
             Assert.That(_state.Credits, Is.Empty);
 
             var actual = _correlation.ResolveOwnership(inlandEvent, true, "inland-b", _hero, "enemy", "clan", "clan");
@@ -130,7 +129,6 @@ namespace CustomSpawns.Tests.Invasions
             _state.ObserveAftermath(actual.Id, "leader", "enemy", new Dictionary<string, string> { ["leader"] = _group.Id });
             Assert.AreEqual("inland-b", _state.Credits.Single().SettlementId);
             Assert.False(_state.Credits.Single().SupplyPortEligible);
-            Assert.False(_group.HasFirstCoastalConquest);
         }
 
         [Test]

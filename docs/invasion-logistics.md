@@ -1,9 +1,10 @@
 # Invasion logistics
 
-An optional, element-only `Invasion` block in a spawn definition enables coastal footholds, overseas food, a bounded occupation garrison and independent reinforcements. Omitting it preserves existing spawn behaviour. The block belongs to the spawn, not its shared party-behaviour template.
+An optional, element-only `Invasion` block in a spawn definition enables invasion occupation and logistics. `RequiresFirstCoastalConquest` separately opts that spawn into coastal-first targeting. Omitting the `Invasion` block preserves existing spawn behaviour. The block belongs to the spawn, not its shared party-behaviour template.
 
 ```xml
 <Invasion>
+  <RequiresFirstCoastalConquest>true</RequiresFirstCoastalConquest>
   <Supplies>
     <FoodStockFloor>100</FoodStockFloor>
     <DailyFoodBonus>5</DailyFoodBonus>
@@ -28,6 +29,7 @@ These are initial sample balance values, not a guarantee of positive food, rebel
 
 | Element | Meaning / omitted default |
 | --- | --- |
+| `RequiresFirstCoastalConquest` | When `true`, restricts the invasion to coastal towns while its current faction owns no coastal town; default `false`. |
 | `Supplies/FoodStockFloor` | One-time minimum food stock after occupation, limited by actual capacity; default 0. Existing stock is never reduced. |
 | `Supplies/DailyFoodBonus` | Additive daily `Overseas supplies` food-model contribution; default 0. |
 | `OccupationGarrison/MinimumTroopCount` | Minimum desired total native garrison count, not the size of an additional donation; default 0. |
@@ -44,9 +46,9 @@ All quantities must be finite and nonnegative, with maximum garrison count at le
 
 One logistics group belongs to an original spawn-template ID and actual clan. Several original armies and their escorts can share it. Each town's credit belongs exclusively to the verified capturing party's group; allied conquests and other same-clan groups do not receive duplicate credit or supply.
 
-Before the first credited coastal conquest, the group may begin a siege only at an eligible coastal town with a reachable land gate. A town is coastal when Bannerlord marks it with `HasPort`, or when a `CoastalSea` or `OpenSea` navigation face lies within 30 campaign units of its settlement position or gate; lake and river faces do not qualify. Existing hostility, defender-strength, reconnaissance and siege-compatibility checks still apply. No viable coast means the normal raid/patrol fallback, not an inland exception. A native assault already running when a legacy save adopts the rule is allowed to finish. Coastal success permanently unlocks the configured town/castle targets across the group; losing ports does not re-lock expansion or create defence/retaking orders.
+When `RequiresFirstCoastalConquest` is enabled and the invasion party's current faction owns no coastal town, the group may begin a siege only at an eligible coastal town with a reachable land gate. Existing hostility, defender-strength, reconnaissance and siege-compatibility checks still apply. No viable coast means the normal raid/patrol fallback, not an inland exception. Owning any coastal town unlocks the configured town/castle targets; losing the faction's last coastal town enables the restriction again. This is calculated from live ownership and is not saved as invasion state.
 
-Ownership loss deletes credit and pending occupation effects. Peaceful reacquisition does not restore them. A new attributable siege capture creates a new transition. Assault victories and winning besieger-side sally-out results use native ownership handling; the feature never force-transfers a settlement or creates a kingdom.
+Ownership loss deletes credit and pending occupation effects. Peaceful reacquisition does not restore them. A new attributable siege capture creates a new transition. Assault victories and winning besieger-side sally-out results use native ownership handling; successful occupation promotes the capturing invasion clan into its own kingdom.
 
 Only credited, currently eligible coastal towns receive overseas food. Siege pauses deliveries without deleting credit; they resume when it ends. Later inland town conquests may receive garrison troops but no overseas food. The food decorator preserves the selected underlying model and adds its bonus once through that model. UI/model queries do not replenish stocks or advance timers. A later mod replacing the decorator is diagnosed and requires checking load/model order.
 
