@@ -485,14 +485,14 @@ namespace CustomSpawns.Tests.AI
 
         private static RaidClosestVillageData RaidConfiguration()
         {
-            return new RaidClosestVillageData(1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1, 1f);
+            return new RaidClosestVillageData(1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f);
         }
 
         private static BesiegeClosestSettlementData SiegeConfiguration()
         {
             return new BesiegeClosestSettlementData(
                 new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle },
-                1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1, 1f);
+                1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f);
         }
 
         private static PartyBehaviourDto XmlTemplate(string id, params string[] elements)

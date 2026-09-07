@@ -12,12 +12,11 @@ namespace CustomSpawns.Data.Dto
             float minimumAttackerToTargetRatio, float minimumAttackerToRoamingHostilesRatio,
             float minimumRequiredClearTimeInDays, float maximumRequiredClearTimeInDays,
             float skipWhenTargetStrengthRatio, float minimumOperationWindowInDays,
-            float maximumOperationWindowInDays, float gracePeriodInDays, int maximumFailedAttempts,
-            float cooldownInDays)
+            float maximumOperationWindowInDays, float cooldownInDays)
             : base(minimumAttackerToTargetRatio, minimumAttackerToRoamingHostilesRatio,
                 minimumRequiredClearTimeInDays, maximumRequiredClearTimeInDays,
                 skipWhenTargetStrengthRatio, minimumOperationWindowInDays,
-                maximumOperationWindowInDays, gracePeriodInDays, maximumFailedAttempts, cooldownInDays)
+                maximumOperationWindowInDays, cooldownInDays)
         {
             TargetTypes = new ReadOnlyCollection<SpawnSettlementType>(
                 new List<SpawnSettlementType>(targetTypes));

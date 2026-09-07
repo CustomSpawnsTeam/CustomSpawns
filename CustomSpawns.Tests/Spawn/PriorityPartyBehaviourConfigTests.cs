@@ -24,8 +24,7 @@ namespace CustomSpawns.Tests.Spawn
                                       "<Reconnaissance><RequiredClearTimeInDays><Minimum>0.5</Minimum><Maximum>1.0</Maximum>" +
                                       "</RequiredClearTimeInDays><SkipWhenTargetStrengthRatio>3.0</SkipWhenTargetStrengthRatio>" +
                                       "</Reconnaissance><OperationWindowInDays><Minimum>5</Minimum><Maximum>10</Maximum>" +
-                                      "</OperationWindowInDays><Recovery><GracePeriodInDays>2</GracePeriodInDays>" +
-                                      "<MaximumFailedAttempts>2</MaximumFailedAttempts></Recovery><CooldownInDays>2</CooldownInDays>" +
+                                      "</OperationWindowInDays><CooldownInDays>2</CooldownInDays>" +
                                       "</BesiegeClosestSettlement>" +
                                       "<RaidClosestVillage><StrengthAssessment><MinimumAttackerToTargetRatio>1.25" +
                                       "</MinimumAttackerToTargetRatio><MinimumAttackerToRoamingHostilesRatio>1.10" +
@@ -33,8 +32,7 @@ namespace CustomSpawns.Tests.Spawn
                                       "<Reconnaissance><RequiredClearTimeInDays><Minimum>0.5</Minimum><Maximum>1</Maximum>" +
                                       "</RequiredClearTimeInDays><SkipWhenTargetStrengthRatio>3</SkipWhenTargetStrengthRatio>" +
                                       "</Reconnaissance><OperationWindowInDays><Minimum>3</Minimum><Maximum>6</Maximum>" +
-                                      "</OperationWindowInDays><Recovery><GracePeriodInDays>1</GracePeriodInDays>" +
-                                      "<MaximumFailedAttempts>2</MaximumFailedAttempts></Recovery><CooldownInDays>2</CooldownInDays>" +
+                                      "</OperationWindowInDays><CooldownInDays>2</CooldownInDays>" +
                                       "</RaidClosestVillage>" +
                                       "<PatrolAroundClosestLestInterruptedAndSwitch><TargetTypes><TargetType>Village</TargetType>" +
                                       "<TargetType>Town</TargetType></TargetTypes><StableTimeInDays><Minimum>2</Minimum>" +
@@ -94,14 +92,12 @@ namespace CustomSpawns.Tests.Spawn
                 "<StrengthAssessment><MinimumAttackerToTargetRatio>2</MinimumAttackerToTargetRatio></StrengthAssessment>" +
                 "<Reconnaissance><RequiredClearTimeInDays><Minimum>0.75</Minimum></RequiredClearTimeInDays></Reconnaissance>" +
                 "<OperationWindowInDays><Minimum>7</Minimum></OperationWindowInDays>" +
-                "<Recovery><MaximumFailedAttempts>3</MaximumFailedAttempts></Recovery>" +
                 "</BesiegeClosestSettlement>")[0];
             RaidClosestVillageData raid = (RaidClosestVillageData)AdaptXml(
                 "<RaidClosestVillage>" +
                 "<StrengthAssessment><MinimumAttackerToRoamingHostilesRatio>1.4</MinimumAttackerToRoamingHostilesRatio></StrengthAssessment>" +
                 "<Reconnaissance><RequiredClearTimeInDays><Maximum>0.9</Maximum></RequiredClearTimeInDays></Reconnaissance>" +
                 "<OperationWindowInDays><Maximum>5</Maximum></OperationWindowInDays>" +
-                "<Recovery><GracePeriodInDays>1.5</GracePeriodInDays></Recovery>" +
                 "</RaidClosestVillage>")[0];
             PatrolAroundClosestLestInterruptedAndSwitchData patrolWithMinimum =
                 (PatrolAroundClosestLestInterruptedAndSwitchData)AdaptXml(
@@ -122,16 +118,12 @@ namespace CustomSpawns.Tests.Spawn
                 Assert.That(siege.MaximumRequiredClearTimeInDays, Is.EqualTo(1f));
                 Assert.That(siege.MinimumOperationWindowInDays, Is.EqualTo(7f));
                 Assert.That(siege.MaximumOperationWindowInDays, Is.EqualTo(10f));
-                Assert.That(siege.GracePeriodInDays, Is.EqualTo(2f));
-                Assert.That(siege.MaximumFailedAttempts, Is.EqualTo(3));
                 Assert.That(raid.MinimumAttackerToTargetRatio, Is.EqualTo(1.25f));
                 Assert.That(raid.MinimumAttackerToRoamingHostilesRatio, Is.EqualTo(1.4f));
                 Assert.That(raid.MinimumRequiredClearTimeInDays, Is.EqualTo(0.5f));
                 Assert.That(raid.MaximumRequiredClearTimeInDays, Is.EqualTo(0.9f));
                 Assert.That(raid.MinimumOperationWindowInDays, Is.EqualTo(3f));
                 Assert.That(raid.MaximumOperationWindowInDays, Is.EqualTo(5f));
-                Assert.That(raid.GracePeriodInDays, Is.EqualTo(1.5f));
-                Assert.That(raid.MaximumFailedAttempts, Is.EqualTo(2));
                 Assert.That(patrolWithMinimum.MinStableDays, Is.EqualTo(4f));
                 Assert.That(patrolWithMinimum.MaxStableDays, Is.EqualTo(10f));
                 Assert.That(patrolWithMaximum.MinStableDays, Is.Zero);
@@ -223,9 +215,6 @@ namespace CustomSpawns.Tests.Spawn
         [TestCase("cooldown", "NaN")]
         [TestCase("cooldown", "INF")]
         [TestCase("cooldown", "-INF")]
-        [TestCase("grace", "NaN")]
-        [TestCase("grace", "INF")]
-        [TestCase("grace", "-INF")]
         public void Template_RejectsNonFiniteNestedNumbers(string valueKind, string literal)
         {
             string nestedValue = valueKind switch
@@ -233,8 +222,7 @@ namespace CustomSpawns.Tests.Spawn
                 "range" => "<OperationWindowInDays><Maximum>" + literal + "</Maximum></OperationWindowInDays>",
                 "ratio" => "<StrengthAssessment><MinimumAttackerToTargetRatio>" + literal +
                            "</MinimumAttackerToTargetRatio></StrengthAssessment>",
-                "cooldown" => "<CooldownInDays>" + literal + "</CooldownInDays>",
-                _ => "<Recovery><GracePeriodInDays>" + literal + "</GracePeriodInDays></Recovery>"
+                _ => "<CooldownInDays>" + literal + "</CooldownInDays>"
             };
 
             ArgumentException error = Assert.Throws<ArgumentException>(() =>

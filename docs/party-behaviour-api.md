@@ -23,14 +23,12 @@ Definitions live in `<submod>/CustomSpawns/PartyBehaviours.xml`, whose root is `
         <StrengthAssessment><MinimumAttackerToTargetRatio>1.5</MinimumAttackerToTargetRatio><MinimumAttackerToRoamingHostilesRatio>1.2</MinimumAttackerToRoamingHostilesRatio></StrengthAssessment>
         <Reconnaissance><RequiredClearTimeInDays><Minimum>0.5</Minimum><Maximum>1</Maximum></RequiredClearTimeInDays><SkipWhenTargetStrengthRatio>3</SkipWhenTargetStrengthRatio></Reconnaissance>
         <OperationWindowInDays><Minimum>5</Minimum><Maximum>10</Maximum></OperationWindowInDays>
-        <Recovery><GracePeriodInDays>2</GracePeriodInDays><MaximumFailedAttempts>2</MaximumFailedAttempts></Recovery>
         <CooldownInDays>2</CooldownInDays>
       </BesiegeClosestSettlement>
       <RaidClosestVillage>
         <StrengthAssessment><MinimumAttackerToTargetRatio>1.25</MinimumAttackerToTargetRatio><MinimumAttackerToRoamingHostilesRatio>1.1</MinimumAttackerToRoamingHostilesRatio></StrengthAssessment>
         <Reconnaissance><RequiredClearTimeInDays><Minimum>0.5</Minimum><Maximum>1</Maximum></RequiredClearTimeInDays><SkipWhenTargetStrengthRatio>3</SkipWhenTargetStrengthRatio></Reconnaissance>
         <OperationWindowInDays><Minimum>3</Minimum><Maximum>6</Maximum></OperationWindowInDays>
-        <Recovery><GracePeriodInDays>1</GracePeriodInDays><MaximumFailedAttempts>2</MaximumFailedAttempts></Recovery>
         <CooldownInDays>2</CooldownInDays>
       </RaidClosestVillage>
       <PatrolAroundClosestLestInterruptedAndSwitch>
@@ -71,7 +69,6 @@ The two files are read independently, so a blank or unknown ID cannot be caught 
 | Raid | `Reconnaissance/RequiredClearTimeInDays/Minimum`, `Maximum` | `0.5`, `1` days |
 | Raid | `Reconnaissance/SkipWhenTargetStrengthRatio` | `3` |
 | Raid | `OperationWindowInDays/Minimum`, `Maximum` | `3`, `6` days |
-| Raid | `Recovery/GracePeriodInDays`, `Recovery/MaximumFailedAttempts` | `1` day, `2` |
 | Raid | `CooldownInDays` | `2` days |
 | Siege | `TargetTypes/TargetType` | `Town`, `Castle` |
 | Siege | `StrengthAssessment/MinimumAttackerToTargetRatio` | `1.5` |
@@ -79,7 +76,6 @@ The two files are read independently, so a blank or unknown ID cannot be caught 
 | Siege | `Reconnaissance/RequiredClearTimeInDays/Minimum`, `Maximum` | `0.5`, `1` days |
 | Siege | `Reconnaissance/SkipWhenTargetStrengthRatio` | `3` |
 | Siege | `OperationWindowInDays/Minimum`, `Maximum` | `5`, `10` days |
-| Siege | `Recovery/GracePeriodInDays`, `Recovery/MaximumFailedAttempts` | `2` days, `2` |
 | Siege | `CooldownInDays` | `2` days |
 
 `TargetTypes` syntax is repeated `<TargetType>Village|Town|Castle</TargetType>`. Omit patrol targets for all three. Siege supports only `Town`/`Castle`; omission selects both, while an explicitly empty list is invalid. Raid always targets villages and has no target-types field. An omitted individual nested `Minimum`/`Maximum` retains that behaviour's default.
@@ -92,12 +88,12 @@ Strength ratios use attacker strength (the party, or its army when it is army le
 
 `SkipWhenTargetStrengthRatio` is attacker/target defenders. When it and the roaming-hostile safety ratio pass, recon is skipped; otherwise clear reconnaissance must accumulate. Safety loss resets recon, and safety loss during approach returns to recon.
 
-Raid/siege runs search, recon, approach, then actual native raid or siege/assault. Search, recon, and approach consume the rolled operation window; Active and Recovery freeze that clock. Recovery has its own bounded `GracePeriodInDays` clock for retrying an interrupted active operation; failed attempts reaching `MaximumFailedAttempts` clear the target. Invalid targets clear immediately. Completion or an expired operation window enters Cooldown, which is outside and freezes the completed episode's operation clock. During the configured `CooldownInDays`, this behaviour is not applicable, so resolution falls through to a later behaviour or fallback; a new episode can start after cooldown ends.
+Raid/siege runs search, recon, approach, then the native raid or siege/assault. Search, recon, and approach consume the rolled operation window; an active operation freezes that clock. If Bannerlord interrupts an operation while its target remains valid, the party immediately issues the same attack again. Invalid targets clear immediately. Completion or an expired operation window enters Cooldown, which freezes the completed episode's operation clock. During the configured `CooldownInDays`, this behaviour is not applicable, so resolution falls through to a later behaviour or fallback; a new episode can start after cooldown ends.
 
 Bannerlord only lets a party besiege a settlement when a hero leads it, so a party spawned against a template containing `BesiegeClosestSettlement` is given a lord generated on the fly from its clan culture's lord template, enrolled at the front of its member roster and persisted with the party. Original spawns and independent invasion reinforcements receive their own leader; `SpawnAlongWith` companions stay leaderless, since they escort rather than besiege on their own. A clan culture with no lord template is reported once per clan and the party is left leaderless. A bandit-faction spawn never gets a lord, because its party component cannot carry a leader, so do not give bandit spawns a siege template.
 
-A successful siege uses native Bannerlord ownership handling: the settlement goes to the capturing clan/map faction. CustomSpawns does not create or promote a kingdom; kingdom progression is not part of this API.
+A successful first invasion occupation promotes the configured clan to a native kingdom and converts the capturing party to a native lord party. Bannerlord then handles later ownership and kingdom behavior through its normal systems.
 
 ## Validation
 
-All numeric values must be finite. Ratios are positive. Ranges, grace periods, and cooldowns are non-negative; every range requires `Maximum >= Minimum`; `MaximumFailedAttempts >= 1`; and duplicate behaviour types in one priority list are prohibited.
+All numeric values must be finite. Ratios are positive. Ranges and cooldowns are non-negative; every range requires `Maximum >= Minimum`; duplicate behaviour types in one priority list are prohibited.

@@ -10,7 +10,7 @@ namespace CustomSpawns.AI.Offensives
      * Everything a besieging offensive needs from the game on top of the roles every offensive uses:
      * picking a settlement it can take, sizing up its defenders, and following the siege it started.
      */
-    internal interface ISiegeOperations : IPartyStrengthObserver, IOffensiveOperationStatus, IPatrolOrders
+    internal interface ISiegeOperations : IPartyStrengthObserver, IPatrolOrders
     {
         Settlement? FindClosestSiegeTarget(MobileParty party, float attackerStrength,
             float minimumTargetRatio, float minimumRoamingHostilesRatio,

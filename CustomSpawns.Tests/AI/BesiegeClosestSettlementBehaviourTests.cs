@@ -651,7 +651,6 @@ namespace CustomSpawns.Tests.AI
 
             Assert.That(result.IsApplicable, Is.False);
             Assert.That(state.Phase, Is.EqualTo(SettlementOffensivePhase.Cooldown));
-            Assert.That(state.FailedAttempts, Is.Zero);
         }
 
         [Test]
@@ -672,12 +671,11 @@ namespace CustomSpawns.Tests.AI
             PartyBehaviourResult result = Evaluate(provider, party);
 
             Assert.That(state.Target, Is.SameAs(replacement));
-            Assert.That(state.FailedAttempts, Is.Zero);
             Assert.That(result.AIBehavior?.Party, Is.SameAs(replacement));
         }
 
         [Test]
-        public void InterruptedActiveSiege_UsesSameTargetGraceAndDeduplicatesFailure()
+        public void InterruptedActiveSiege_ImmediatelyRetriesSameTarget()
         {
             MobileParty party = DummyParty();
             Settlement target = DummySettlement();
@@ -687,59 +685,13 @@ namespace CustomSpawns.Tests.AI
             SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
             state.Target = target;
             state.Phase = SettlementOffensivePhase.Active;
-            state.RecoveryGraceDays = 1f;
             state.ElapsedOperationDays = 2f;
 
-            PartyBehaviourResult first = Evaluate(provider, party);
-            PartyBehaviourResult duplicate = Evaluate(provider, party);
-
-            Assert.That(first.AIBehavior?.Party, Is.SameAs(target));
-            Assert.That(duplicate.AIBehavior?.Party, Is.SameAs(target));
-            Assert.That(state.Phase, Is.EqualTo(SettlementOffensivePhase.Recovery));
-            Assert.That(state.FailedAttempts, Is.EqualTo(1));
-            Assert.That(state.ElapsedOperationDays, Is.EqualTo(2f));
-        }
-
-        [Test]
-        public void InterruptionAfterFinalAllowedResume_DiscardsAndRetargetsImmediately()
-        {
-            MobileParty party = DummyParty();
-            Settlement oldTarget = DummySettlement();
-            Settlement replacement = DummySettlement();
-            var operations = new OperationsStub { SiegeTarget = oldTarget };
-            BesiegeClosestSettlementBehaviour provider = Provider(operations);
-            Evaluate(provider, party);
-            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
-            state.Target = oldTarget;
-            state.Phase = SettlementOffensivePhase.Active;
-            state.FailedAttempts = 2;
-            operations.SiegeTarget = replacement;
-
             PartyBehaviourResult result = Evaluate(provider, party);
 
-            Assert.That(state.Target, Is.SameAs(replacement));
-            Assert.That(result.AIBehavior?.Party, Is.SameAs(replacement));
-        }
-
-        [Test]
-        public void RecoveryGraceExpiry_DiscardsAndRetargets()
-        {
-            MobileParty party = DummyParty();
-            Settlement oldTarget = DummySettlement();
-            Settlement replacement = DummySettlement();
-            var operations = new OperationsStub { SiegeTarget = oldTarget };
-            BesiegeClosestSettlementBehaviour provider = Provider(operations);
-            Evaluate(provider, party);
-            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
-            state.Target = oldTarget;
-            state.Phase = SettlementOffensivePhase.Recovery;
-            state.RecoveryGraceDays = 0f;
-            operations.SiegeTarget = replacement;
-
-            PartyBehaviourResult result = Evaluate(provider, party);
-
-            Assert.That(state.Target, Is.SameAs(replacement));
-            Assert.That(result.AIBehavior?.Party, Is.SameAs(replacement));
+            Assert.That(result.AIBehavior?.Party, Is.SameAs(target));
+            Assert.That(state.Phase, Is.EqualTo(SettlementOffensivePhase.Approach));
+            Assert.That(state.ElapsedOperationDays, Is.EqualTo(2f + 1f / 24f));
         }
 
         [Test]
@@ -764,7 +716,7 @@ namespace CustomSpawns.Tests.AI
         public void SyncData_UsesSiegeSpecificKeyAndRestoresSharedStateDictionary()
         {
             MobileParty party = DummyParty();
-            var loadedState = new SettlementOffensiveBehaviourState { FailedAttempts = 2 };
+            var loadedState = new SettlementOffensiveBehaviourState { Phase = SettlementOffensivePhase.Approach };
             var store = new DataStoreStub(new Dictionary<MobileParty, SettlementOffensiveBehaviourState>
             {
                 [party] = loadedState
@@ -805,7 +757,7 @@ namespace CustomSpawns.Tests.AI
         private static BesiegeClosestSettlementData Configuration()
         {
             return new BesiegeClosestSettlementData(new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle },
-                1f, 1f, 1f, 1f, 2f, 10f, 10f, 1f, 2, 3f);
+                1f, 1f, 1f, 1f, 2f, 10f, 10f, 3f);
         }
 
         private static IEnumerable<MobileParty> Counted(MobileParty party, ICollection<MobileParty> counted)
@@ -856,8 +808,6 @@ namespace CustomSpawns.Tests.AI
             public bool MatchingAssaultActive { get; set; }
             public bool CurrentTargetValid { get; set; } = true;
             public bool TargetComplete { get; set; }
-            public bool NativeContinuation { get; set; }
-            public AiBehavior ShortTermBehavior { get; set; }
             public AIBehaviorData? RetreatBehavior { get; set; }
             public int AbandonSiegeCalls { get; private set; }
 
@@ -881,9 +831,6 @@ namespace CustomSpawns.Tests.AI
             public bool IsCurrentTargetValid(MobileParty party, Settlement target,
                 bool matchingOperationActive, IFaction? intendedTargetFaction) => CurrentTargetValid;
             public bool IsTargetComplete(MobileParty party, Settlement target) => TargetComplete;
-            public bool HasNativeContinuation(MobileParty party, Settlement target) => NativeContinuation;
-            public AiBehavior GetShortTermBehavior(MobileParty party) => ShortTermBehavior;
-
             public AIBehaviorData CreatePatrolBehavior(MobileParty party, Settlement target)
             {
                 return new AIBehaviorData(target, AiBehavior.PatrolAroundPoint,

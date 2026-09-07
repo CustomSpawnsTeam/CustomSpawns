@@ -138,37 +138,8 @@ namespace CustomSpawns.Tests.AI
             Assert.That(state.ElapsedOperationDays, Is.EqualTo(2f));
         }
 
-        [TestCase(AiBehavior.EngageParty)]
-        [TestCase(AiBehavior.FleeToPoint)]
-        public void Recovery_NativeFleeOrEngageTakesPrecedence(AiBehavior shortTermBehavior)
-        {
-            MobileParty party = DummyParty();
-            Settlement target = DummySettlement();
-            var operations = new OperationsStub
-            {
-                RaidTarget = target,
-                ShortTermBehavior = shortTermBehavior
-            };
-            RaidClosestVillageBehaviour provider = Provider(operations);
-            Evaluate(provider, party);
-            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
-            state.Phase = SettlementOffensivePhase.Recovery;
-            state.Target = target;
-            state.RecoveryGraceDays = 1f;
-            state.RecoveryElapsedDays = 0f;
-            state.ElapsedOperationDays = 2f;
-
-            PartyBehaviourResult result = Evaluate(provider, party);
-
-            Assert.That(result.IsApplicable, Is.True);
-            Assert.That(result.AIBehavior, Is.Null);
-            Assert.That(state.Target, Is.SameAs(target));
-            Assert.That(state.ElapsedOperationDays, Is.EqualTo(2f));
-            Assert.That(state.RecoveryElapsedDays, Is.EqualTo(1f / 24f));
-        }
-
         [Test]
-        public void Recovery_WithoutNativeSafetyInterruptionRepushesSameTarget()
+        public void InterruptedActiveRaid_ImmediatelyRetriesSameTarget()
         {
             MobileParty party = DummyParty();
             Settlement target = DummySettlement();
@@ -176,15 +147,35 @@ namespace CustomSpawns.Tests.AI
             RaidClosestVillageBehaviour provider = Provider(operations);
             Evaluate(provider, party);
             SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
-            state.Phase = SettlementOffensivePhase.Recovery;
+            state.Phase = SettlementOffensivePhase.Active;
             state.Target = target;
-            state.RecoveryGraceDays = 1f;
+            state.ElapsedOperationDays = 2f;
 
             PartyBehaviourResult result = Evaluate(provider, party);
 
             Assert.That(result.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.RaidSettlement));
             Assert.That(result.AIBehavior?.Party, Is.SameAs(target));
             Assert.That(state.Target, Is.SameAs(target));
+            Assert.That(state.Phase, Is.EqualTo(SettlementOffensivePhase.Approach));
+            Assert.That(state.ElapsedOperationDays, Is.EqualTo(2f + 1f / 24f));
+        }
+
+        [Test]
+        public void LegacyRecoverySave_ImmediatelyRetriesSameTarget()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            var operations = new OperationsStub { RaidTarget = target };
+            RaidClosestVillageBehaviour provider = Provider(operations);
+            Evaluate(provider, party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
+            state.Phase = (SettlementOffensivePhase)5;
+            state.Target = target;
+
+            PartyBehaviourResult result = Evaluate(provider, party);
+
+            Assert.That(result.AIBehavior?.Party, Is.SameAs(target));
+            Assert.That(state.Phase, Is.EqualTo(SettlementOffensivePhase.Approach));
         }
 
         [Test]
@@ -205,7 +196,6 @@ namespace CustomSpawns.Tests.AI
             PartyBehaviourResult result = Evaluate(provider, party);
 
             Assert.That(state.Target, Is.SameAs(replacement));
-            Assert.That(state.FailedAttempts, Is.Zero);
             Assert.That(result.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.RaidSettlement));
             Assert.That(result.AIBehavior?.Party, Is.SameAs(replacement));
         }
@@ -216,8 +206,7 @@ namespace CustomSpawns.Tests.AI
             MobileParty party = DummyParty();
             var loadedState = new SettlementOffensiveBehaviourState
             {
-                Phase = SettlementOffensivePhase.Recovery,
-                FailedAttempts = 2
+                Phase = SettlementOffensivePhase.Approach
             };
             var loaded = new Dictionary<MobileParty, SettlementOffensiveBehaviourState>
             {
@@ -341,7 +330,7 @@ namespace CustomSpawns.Tests.AI
         private static RaidClosestVillageData Configuration()
         {
             return new RaidClosestVillageData(1f, 1f, 1f, 1f, 2f,
-                10f, 10f, 1f, 2, 3f);
+                10f, 10f, 3f);
         }
 
         private static IEnumerable<MobileParty> Counted(MobileParty party, ICollection<MobileParty> counted)
@@ -402,8 +391,6 @@ namespace CustomSpawns.Tests.AI
             public float? RaidTargetDefenderStrength { get; set; }
             public bool CurrentTargetValid { get; set; } = true;
             public bool TargetComplete { get; set; }
-            public bool NativeContinuation { get; set; }
-            public AiBehavior ShortTermBehavior { get; set; }
             public int AttackerStrengthCalls { get; private set; }
             public int VisibleHostileStrengthCalls { get; private set; }
             public int FindRaidTargetCalls { get; private set; }
@@ -450,10 +437,6 @@ namespace CustomSpawns.Tests.AI
                 bool matchingRaidActive) => CurrentTargetValid;
 
             public bool IsTargetComplete(Settlement target) => TargetComplete;
-
-            public bool HasNativeContinuation(MobileParty party, Settlement target) => NativeContinuation;
-
-            public AiBehavior GetShortTermBehavior(MobileParty party) => ShortTermBehavior;
 
             public AIBehaviorData CreatePatrolBehavior(MobileParty party, Settlement target)
             {

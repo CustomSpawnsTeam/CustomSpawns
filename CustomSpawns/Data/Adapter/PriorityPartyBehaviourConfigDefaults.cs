@@ -29,14 +29,6 @@ namespace CustomSpawns.Data.Adapter
             };
         }
 
-        public static RecoveryConfig ApplyRecoveryDefaults(RecoveryConfig config,
-            float gracePeriodInDays, int maximumFailedAttempts)
-        {
-            return new RecoveryConfig(
-                config.GracePeriodInDaysSpecified ? config.GracePeriodInDays : gracePeriodInDays,
-                config.MaximumFailedAttemptsSpecified ? config.MaximumFailedAttempts : maximumFailedAttempts);
-        }
-
         public static FloatRangeConfig ApplyRangeDefaults(FloatRangeConfig config,
             float minimum, float maximum)
         {

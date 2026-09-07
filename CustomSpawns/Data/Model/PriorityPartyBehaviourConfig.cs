@@ -42,9 +42,6 @@ namespace CustomSpawns.Data.Model
         [XmlElement("OperationWindowInDays")]
         public FloatRangeConfig OperationWindowInDays { get; set; } = new(5f, 10f);
 
-        [XmlElement("Recovery")]
-        public RecoveryConfig Recovery { get; set; } = new(2f, 2);
-
         [XmlElement("CooldownInDays")]
         public float CooldownInDays { get; set; } = 2f;
     }
@@ -59,9 +56,6 @@ namespace CustomSpawns.Data.Model
 
         [XmlElement("OperationWindowInDays")]
         public FloatRangeConfig OperationWindowInDays { get; set; } = new(3f, 6f);
-
-        [XmlElement("Recovery")]
-        public RecoveryConfig Recovery { get; set; } = new(1f, 2);
 
         [XmlElement("CooldownInDays")]
         public float CooldownInDays { get; set; } = 2f;
@@ -145,50 +139,6 @@ namespace CustomSpawns.Data.Model
 
         [XmlElement("SkipWhenTargetStrengthRatio")]
         public float SkipWhenTargetStrengthRatio { get; set; } = 3f;
-    }
-
-    public sealed class RecoveryConfig
-    {
-        private float _gracePeriodInDays;
-        private int _maximumFailedAttempts;
-
-        public RecoveryConfig()
-        {
-        }
-
-        public RecoveryConfig(float gracePeriodInDays, int maximumFailedAttempts)
-        {
-            GracePeriodInDays = gracePeriodInDays;
-            MaximumFailedAttempts = maximumFailedAttempts;
-        }
-
-        [XmlElement("GracePeriodInDays")]
-        public float GracePeriodInDays
-        {
-            get => _gracePeriodInDays;
-            set
-            {
-                _gracePeriodInDays = value;
-                GracePeriodInDaysSpecified = true;
-            }
-        }
-
-        [XmlIgnore]
-        public bool GracePeriodInDaysSpecified { get; set; }
-
-        [XmlElement("MaximumFailedAttempts")]
-        public int MaximumFailedAttempts
-        {
-            get => _maximumFailedAttempts;
-            set
-            {
-                _maximumFailedAttempts = value;
-                MaximumFailedAttemptsSpecified = true;
-            }
-        }
-
-        [XmlIgnore]
-        public bool MaximumFailedAttemptsSpecified { get; set; }
     }
 
     public sealed class FloatRangeConfig

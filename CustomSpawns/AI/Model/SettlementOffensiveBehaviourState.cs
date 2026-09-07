@@ -24,15 +24,6 @@ namespace CustomSpawns.AI.Model
         [SaveableField(6)]
         private float _elapsedOperationDays;
 
-        [SaveableField(7)]
-        private float _recoveryGraceDays;
-
-        [SaveableField(8)]
-        private float _recoveryElapsedDays;
-
-        [SaveableField(9)]
-        private int _failedAttempts;
-
         [SaveableField(10)]
         private float _cooldownRemainingDays;
 
@@ -45,9 +36,6 @@ namespace CustomSpawns.AI.Model
         public float AccumulatedClearReconDays { get => _accumulatedClearReconDays; set => _accumulatedClearReconDays = value; }
         public float OperationWindowDays { get => _operationWindowDays; set => _operationWindowDays = value; }
         public float ElapsedOperationDays { get => _elapsedOperationDays; set => _elapsedOperationDays = value; }
-        public float RecoveryGraceDays { get => _recoveryGraceDays; set => _recoveryGraceDays = value; }
-        public float RecoveryElapsedDays { get => _recoveryElapsedDays; set => _recoveryElapsedDays = value; }
-        public int FailedAttempts { get => _failedAttempts; set => _failedAttempts = value; }
         public float CooldownRemainingDays { get => _cooldownRemainingDays; set => _cooldownRemainingDays = value; }
         public IFaction? TargetMapFaction { get => _targetMapFaction; set => _targetMapFaction = value; }
     }

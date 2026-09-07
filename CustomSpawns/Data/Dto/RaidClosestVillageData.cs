@@ -6,11 +6,11 @@ namespace CustomSpawns.Data.Dto
             float minimumAttackerToRoamingHostilesRatio, float minimumRequiredClearTimeInDays,
             float maximumRequiredClearTimeInDays, float skipWhenTargetStrengthRatio,
             float minimumOperationWindowInDays, float maximumOperationWindowInDays,
-            float gracePeriodInDays, int maximumFailedAttempts, float cooldownInDays)
+            float cooldownInDays)
             : base(minimumAttackerToTargetRatio, minimumAttackerToRoamingHostilesRatio,
                 minimumRequiredClearTimeInDays, maximumRequiredClearTimeInDays,
                 skipWhenTargetStrengthRatio, minimumOperationWindowInDays,
-                maximumOperationWindowInDays, gracePeriodInDays, maximumFailedAttempts, cooldownInDays)
+                maximumOperationWindowInDays, cooldownInDays)
         {
         }
     }

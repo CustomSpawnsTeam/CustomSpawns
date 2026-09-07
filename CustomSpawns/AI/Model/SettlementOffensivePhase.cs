@@ -2,12 +2,11 @@ namespace CustomSpawns.AI.Model
 {
     internal enum SettlementOffensivePhase
     {
-        Idle,
-        Search,
-        Recon,
-        Approach,
-        Active,
-        Recovery,
-        Cooldown
+        Idle = 0,
+        Search = 1,
+        Recon = 2,
+        Approach = 3,
+        Active = 4,
+        Cooldown = 6
     }
 }

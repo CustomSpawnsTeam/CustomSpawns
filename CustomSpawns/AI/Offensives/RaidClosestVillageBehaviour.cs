@@ -29,8 +29,6 @@ namespace CustomSpawns.AI.Offensives
 
         private protected override IPartyStrengthObserver PartyStrength => _raid;
 
-        private protected override IOffensiveOperationStatus OperationStatus => _raid;
-
         private protected override IPatrolOrders PatrolOrders => _raid;
 
         private protected override bool IsMatchingOperationActive(MobileParty party, Settlement target)

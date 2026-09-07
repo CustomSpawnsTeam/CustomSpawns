@@ -16,18 +16,15 @@ namespace CustomSpawns.Data.Adapter
                 .ApplyReconnaissanceDefaults(config.Reconnaissance);
             FloatRangeConfig operationWindow = PriorityPartyBehaviourConfigDefaults
                 .ApplyRangeDefaults(config.OperationWindowInDays, 3f, 6f);
-            RecoveryConfig recovery = PriorityPartyBehaviourConfigDefaults
-                .ApplyRecoveryDefaults(config.Recovery, 1f, 2);
             PriorityPartyBehaviourConfigValidator.ValidateOffensiveValues(BehaviourName, strengthAssessment,
-                reconnaissance, operationWindow, recovery, config.CooldownInDays);
+                reconnaissance, operationWindow, config.CooldownInDays);
 
             return new RaidClosestVillageData(strengthAssessment.MinimumAttackerToTargetRatio,
                 strengthAssessment.MinimumAttackerToRoamingHostilesRatio,
                 reconnaissance.RequiredClearTimeInDays.Minimum,
                 reconnaissance.RequiredClearTimeInDays.Maximum,
                 reconnaissance.SkipWhenTargetStrengthRatio, operationWindow.Minimum,
-                operationWindow.Maximum, recovery.GracePeriodInDays,
-                recovery.MaximumFailedAttempts, config.CooldownInDays);
+                operationWindow.Maximum, config.CooldownInDays);
         }
     }
 }

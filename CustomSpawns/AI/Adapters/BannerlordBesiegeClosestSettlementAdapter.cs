@@ -180,13 +180,6 @@ namespace CustomSpawns.AI.Adapters
             return target.MapFaction == party.MapFaction;
         }
 
-        public bool HasNativeContinuation(MobileParty party, Settlement target)
-        {
-            return (party.DefaultBehavior == AiBehavior.BesiegeSettlement ||
-                    party.DefaultBehavior == AiBehavior.AssaultSettlement) &&
-                   party.TargetSettlement == target;
-        }
-
         public AIBehaviorData CreateSiegeBehavior(MobileParty party, Settlement target)
         {
             return new AIBehaviorData(target, AiBehavior.BesiegeSettlement,

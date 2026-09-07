@@ -12,12 +12,14 @@ namespace CustomSpawns.AI.Offensives
 {
     /**
      * The phase sequencing every settlement offensive follows, whichever settlement it attacks and however
-     * it attacks it: cooldown, target observation, recon, approach, the operation itself and its recovery.
+     * it attacks it: cooldown, target observation, recon, approach and the operation itself.
      * Only the steps that depend on what is being attacked are left to the concrete behaviours.
      */
     public abstract class SettlementOffensivePartyBehaviour<TConfiguration>
         : PriorityPartyBehaviour<TConfiguration> where TConfiguration : SettlementOffensiveData
     {
+        private const float DaysPerHour = 1f / 24f;
+        private const int LegacyRecoveryPhase = 5;
         private readonly Func<float, float, float> _roll;
         private readonly PartyStateStore<SettlementOffensiveBehaviourState> _states;
 
@@ -30,26 +32,24 @@ namespace CustomSpawns.AI.Offensives
 
         private protected abstract IPartyStrengthObserver PartyStrength { get; }
 
-        private protected abstract IOffensiveOperationStatus OperationStatus { get; }
-
         private protected abstract IPatrolOrders PatrolOrders { get; }
 
         public override PartyBehaviourResult GetPriorityBehaviour(MobileParty party, CsPartyData partyData,
             TConfiguration configuration)
         {
             SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
-            var offensive = new SettlementOffensiveStateMachine(state);
-
-            if (offensive.TickCooldown())
+            if ((int)state.Phase == LegacyRecoveryPhase)
+            {
+                state.Phase = state.Target is null
+                    ? SettlementOffensivePhase.Search
+                    : SettlementOffensivePhase.Approach;
+            }
+            if (TickCooldown(state))
             {
                 return PartyBehaviourResult.NotApplicable;
             }
 
-            var settings = new SettlementOffensiveSettings(configuration.MinimumRequiredClearTimeInDays,
-                configuration.MaximumRequiredClearTimeInDays, configuration.MinimumOperationWindowInDays,
-                configuration.MaximumOperationWindowInDays, configuration.GracePeriodInDays,
-                configuration.MaximumFailedAttempts, configuration.CooldownInDays);
-            offensive.BeginEpisode(settings, _roll);
+            BeginEpisode(state, configuration);
 
             float attackerStrength = PartyStrength.GetAttackerStrength(party);
             float visibleHostileStrength = PartyStrength.GetVisibleHostileStrength(party);
@@ -59,14 +59,23 @@ namespace CustomSpawns.AI.Offensives
                 Settlement observedTarget = state.Target;
                 TrackTarget(state);
                 bool matchingOperationActive = IsMatchingOperationActive(party, observedTarget);
-                ActiveTargetObservation observation = offensive.ObserveTarget(
-                    IsCurrentTargetValid(party, state, matchingOperationActive),
-                    IsTargetComplete(party, observedTarget), matchingOperationActive,
-                    OperationStatus.HasNativeContinuation(party, observedTarget),
-                    configuration.MaximumFailedAttempts, configuration.CooldownInDays);
-                if (observation == ActiveTargetObservation.EnteredCooldown)
+                if (state.Phase == SettlementOffensivePhase.Active && IsTargetComplete(party, observedTarget))
                 {
+                    EnterCooldown(state, configuration.CooldownInDays);
                     return PartyBehaviourResult.NotApplicable;
+                }
+
+                if (!IsCurrentTargetValid(party, state, matchingOperationActive))
+                {
+                    ClearTarget(state);
+                }
+                else if (matchingOperationActive)
+                {
+                    state.Phase = SettlementOffensivePhase.Active;
+                }
+                else if (state.Phase == SettlementOffensivePhase.Active)
+                {
+                    state.Phase = SettlementOffensivePhase.Approach;
                 }
             }
 
@@ -75,7 +84,7 @@ namespace CustomSpawns.AI.Offensives
             {
                 AIBehaviorData? abandonBehavior = CreateTargetAbandonmentBehavior(
                     party, state.Target, configuration);
-                offensive.ClearTarget();
+                ClearTarget(state);
                 if (abandonBehavior.HasValue)
                 {
                     return PartyBehaviourResult.From(abandonBehavior.Value);
@@ -87,33 +96,20 @@ namespace CustomSpawns.AI.Offensives
                 return Attack(state.Target!, party);
             }
 
-            if (state.Phase == SettlementOffensivePhase.Recovery)
-            {
-                Settlement? recoveryTarget = state.Target;
-                if (!offensive.TickRecovery())
-                {
-                    if (IsNativeSafetyInterruption(OperationStatus.GetShortTermBehavior(party)))
-                    {
-                        return PartyBehaviourResult.ApplicableWithoutBehavior;
-                    }
-                    return Attack(recoveryTarget!, party);
-                }
-            }
-
             if (state.Target is null)
             {
                 state.Target = FindTarget(party, attackerStrength, configuration);
                 if (state.Target is not null)
                 {
                     TrackTarget(state);
-                    offensive.AssignTarget(skipRecon: false);
+                    AssignTarget(state);
                 }
             }
 
             if (state.Target is null)
             {
                 state.Phase = SettlementOffensivePhase.Search;
-                if (offensive.AdvanceOperationClock(configuration.CooldownInDays))
+                if (AdvanceOperationClock(state, configuration.CooldownInDays))
                 {
                     return PartyBehaviourResult.NotApplicable;
                 }
@@ -128,7 +124,8 @@ namespace CustomSpawns.AI.Offensives
                 reconVisibleHostileStrength, configuration.MinimumAttackerToRoamingHostilesRatio);
             if (state.Phase == SettlementOffensivePhase.Approach && !reconSafetyPasses)
             {
-                offensive.ReturnApproachToRecon();
+                state.Phase = SettlementOffensivePhase.Recon;
+                state.AccumulatedClearReconDays = 0f;
             }
             if (state.Phase == SettlementOffensivePhase.Recon)
             {
@@ -136,24 +133,24 @@ namespace CustomSpawns.AI.Offensives
                 {
                     Settlement? alternative = FindAlternativeTarget(party, state.Target,
                         attackerStrength, configuration);
-                    offensive.ClearTarget();
+                    ClearTarget(state);
                     if (alternative is not null)
                     {
                         state.Target = alternative;
                         TrackTarget(state);
-                        offensive.AssignTarget(skipRecon: false);
+                        AssignTarget(state);
                     }
-                    if (offensive.AdvanceOperationClock(configuration.CooldownInDays))
+                    if (AdvanceOperationClock(state, configuration.CooldownInDays))
                     {
                         return PartyBehaviourResult.NotApplicable;
                     }
                     return PatrolOrRemainApplicable(party);
                 }
-                offensive.UpdateRecon(reconSafetyPasses,
+                UpdateRecon(state, reconSafetyPasses,
                     reconSafetyPasses && currentTargetRatio >= configuration.SkipWhenTargetStrengthRatio);
             }
 
-            if (offensive.AdvanceOperationClock(configuration.CooldownInDays))
+            if (AdvanceOperationClock(state, configuration.CooldownInDays))
             {
                 return PartyBehaviourResult.NotApplicable;
             }
@@ -219,10 +216,87 @@ namespace CustomSpawns.AI.Offensives
         private protected abstract AIBehaviorData CreateOffensiveBehavior(MobileParty party,
             Settlement target);
 
-        private static bool IsNativeSafetyInterruption(AiBehavior shortTermBehavior)
+        private void BeginEpisode(SettlementOffensiveBehaviourState state, TConfiguration configuration)
         {
-            return shortTermBehavior == AiBehavior.EngageParty ||
-                   shortTermBehavior == AiBehavior.FleeToPoint;
+            if (state.Phase != SettlementOffensivePhase.Idle)
+                return;
+
+            state.Target = null;
+            state.TargetMapFaction = null;
+            state.Phase = SettlementOffensivePhase.Search;
+            state.RequiredClearReconDays = _roll(configuration.MinimumRequiredClearTimeInDays,
+                configuration.MaximumRequiredClearTimeInDays);
+            state.AccumulatedClearReconDays = 0f;
+            state.OperationWindowDays = _roll(configuration.MinimumOperationWindowInDays,
+                configuration.MaximumOperationWindowInDays);
+            state.ElapsedOperationDays = 0f;
+            state.CooldownRemainingDays = 0f;
+        }
+
+        private static bool TickCooldown(SettlementOffensiveBehaviourState state)
+        {
+            if (state.Phase != SettlementOffensivePhase.Cooldown)
+                return false;
+
+            state.CooldownRemainingDays = Math.Max(0f, state.CooldownRemainingDays - DaysPerHour);
+            if (state.CooldownRemainingDays <= 0f)
+                state.Phase = SettlementOffensivePhase.Idle;
+            return true;
+        }
+
+        private static void AssignTarget(SettlementOffensiveBehaviourState state)
+        {
+            state.AccumulatedClearReconDays = 0f;
+            state.Phase = SettlementOffensivePhase.Recon;
+        }
+
+        private static void UpdateRecon(SettlementOffensiveBehaviourState state, bool safetyRatioPasses,
+            bool skipRecon)
+        {
+            if (!safetyRatioPasses)
+            {
+                state.AccumulatedClearReconDays = 0f;
+                return;
+            }
+
+            if (skipRecon)
+            {
+                state.Phase = SettlementOffensivePhase.Approach;
+                return;
+            }
+
+            state.AccumulatedClearReconDays += DaysPerHour;
+            if (state.AccumulatedClearReconDays >= state.RequiredClearReconDays)
+                state.Phase = SettlementOffensivePhase.Approach;
+        }
+
+        private static bool AdvanceOperationClock(SettlementOffensiveBehaviourState state, float cooldownInDays)
+        {
+            if (state.Phase == SettlementOffensivePhase.Active || state.Phase == SettlementOffensivePhase.Cooldown)
+                return false;
+
+            state.ElapsedOperationDays += DaysPerHour;
+            if (state.ElapsedOperationDays < state.OperationWindowDays)
+                return false;
+
+            EnterCooldown(state, cooldownInDays);
+            return true;
+        }
+
+        private static void ClearTarget(SettlementOffensiveBehaviourState state)
+        {
+            state.Target = null;
+            state.TargetMapFaction = null;
+            state.Phase = SettlementOffensivePhase.Search;
+            state.AccumulatedClearReconDays = 0f;
+        }
+
+        private static void EnterCooldown(SettlementOffensiveBehaviourState state, float cooldownInDays)
+        {
+            state.Target = null;
+            state.TargetMapFaction = null;
+            state.Phase = SettlementOffensivePhase.Cooldown;
+            state.CooldownRemainingDays = cooldownInDays;
         }
 
         private static float StrengthRatio(float attackerStrength, float defenderStrength)

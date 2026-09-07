@@ -59,12 +59,6 @@ namespace CustomSpawns.AI.Adapters
             return target.IsRaided;
         }
 
-        public bool HasNativeContinuation(MobileParty party, Settlement target)
-        {
-            return party.DefaultBehavior == AiBehavior.RaidSettlement &&
-                   party.TargetSettlement == target;
-        }
-
         public AIBehaviorData CreateRaidBehavior(MobileParty party, Settlement target)
         {
             return new AIBehaviorData(target, AiBehavior.RaidSettlement,

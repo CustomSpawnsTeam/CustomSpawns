@@ -20,18 +20,15 @@ namespace CustomSpawns.Data.Adapter
                 .ApplyReconnaissanceDefaults(config.Reconnaissance);
             FloatRangeConfig operationWindow = PriorityPartyBehaviourConfigDefaults
                 .ApplyRangeDefaults(config.OperationWindowInDays, 5f, 10f);
-            RecoveryConfig recovery = PriorityPartyBehaviourConfigDefaults
-                .ApplyRecoveryDefaults(config.Recovery, 2f, 2);
             PriorityPartyBehaviourConfigValidator.ValidateOffensiveValues(BehaviourName, strengthAssessment,
-                reconnaissance, operationWindow, recovery, config.CooldownInDays);
+                reconnaissance, operationWindow, config.CooldownInDays);
 
             return new BesiegeClosestSettlementData(targetTypes, strengthAssessment.MinimumAttackerToTargetRatio,
                 strengthAssessment.MinimumAttackerToRoamingHostilesRatio,
                 reconnaissance.RequiredClearTimeInDays.Minimum,
                 reconnaissance.RequiredClearTimeInDays.Maximum,
                 reconnaissance.SkipWhenTargetStrengthRatio, operationWindow.Minimum,
-                operationWindow.Maximum, recovery.GracePeriodInDays,
-                recovery.MaximumFailedAttempts, config.CooldownInDays);
+                operationWindow.Maximum, config.CooldownInDays);
         }
 
         private static List<SpawnSettlementType> ResolveTargetTypes(BesiegeClosestSettlementConfig config)

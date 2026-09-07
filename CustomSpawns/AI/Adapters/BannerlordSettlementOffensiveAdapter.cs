@@ -71,8 +71,6 @@ namespace CustomSpawns.AI.Adapters
                 .FirstOrDefault();
         }
 
-        public AiBehavior GetShortTermBehavior(MobileParty party) => party.ShortTermBehavior;
-
         public AIBehaviorData CreatePatrolBehavior(MobileParty party, Settlement target)
         {
             return new AIBehaviorData(target, AiBehavior.PatrolAroundPoint,

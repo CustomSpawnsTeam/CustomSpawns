@@ -10,8 +10,7 @@ namespace CustomSpawns.Data.Adapter
     internal static class PriorityPartyBehaviourConfigValidator
     {
         public static void ValidateOffensiveValues(string behaviourName, StrengthAssessmentConfig strengthAssessment,
-            ReconnaissanceConfig reconnaissance, FloatRangeConfig operationWindow, RecoveryConfig recovery,
-            float cooldownInDays)
+            ReconnaissanceConfig reconnaissance, FloatRangeConfig operationWindow, float cooldownInDays)
         {
             if (!IsFinite(strengthAssessment.MinimumAttackerToTargetRatio) ||
                 !IsFinite(strengthAssessment.MinimumAttackerToRoamingHostilesRatio) ||
@@ -28,18 +27,6 @@ namespace CustomSpawns.Data.Adapter
             ValidateRange(behaviourName + " reconnaissance clear time",
                 reconnaissance.RequiredClearTimeInDays.Minimum, reconnaissance.RequiredClearTimeInDays.Maximum);
             ValidateRange(behaviourName + " operation window", operationWindow.Minimum, operationWindow.Maximum);
-            if (!IsFinite(recovery.GracePeriodInDays))
-            {
-                throw new ArgumentException(behaviourName + " grace period must be finite.");
-            }
-            if (recovery.GracePeriodInDays < 0f)
-            {
-                throw new ArgumentException(behaviourName + " grace period cannot be negative.");
-            }
-            if (recovery.MaximumFailedAttempts < 1)
-            {
-                throw new ArgumentException(behaviourName + " maximum failed attempts must be at least one.");
-            }
             if (!IsFinite(cooldownInDays))
             {
                 throw new ArgumentException(behaviourName + " cooldown must be finite.");

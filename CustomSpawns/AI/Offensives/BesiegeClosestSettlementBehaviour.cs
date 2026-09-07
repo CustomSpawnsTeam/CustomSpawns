@@ -29,8 +29,6 @@ namespace CustomSpawns.AI.Offensives
 
         private protected override IPartyStrengthObserver PartyStrength => _siege;
 
-        private protected override IOffensiveOperationStatus OperationStatus => _siege;
-
         private protected override IPatrolOrders PatrolOrders => _siege;
 
         private protected override void TrackTarget(SettlementOffensiveBehaviourState state)

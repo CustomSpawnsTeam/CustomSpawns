@@ -132,7 +132,7 @@ namespace CustomSpawns.Tests.Spawn
         public void ValidateEffectiveSiegeTemplate_RejectsCastleOnlyWithoutMutatingSharedBehaviour()
         {
             BesiegeClosestSettlementData castleOnly = new(new[] { SpawnSettlementType.Castle }, 1f, 1f,
-                0f, 0f, 1f, 0f, 0f, 0f, 1, 0f);
+                0f, 0f, 1f, 0f, 0f, 0f);
 
             ArgumentException error = Assert.Throws<ArgumentException>(() =>
                 InvasionRuntimeConfigurationValidator.ValidateEffectiveSiegeTemplate("PartyTemplate.origin", "siege",
@@ -150,7 +150,7 @@ namespace CustomSpawns.Tests.Spawn
         {
             InvasionData invasion = AdaptValidConfig();
             BesiegeClosestSettlementData townTargeting = new(new[] { SpawnSettlementType.Town }, 1f, 1f,
-                0f, 0f, 1f, 0f, 0f, 0f, 1, 0f);
+                0f, 0f, 1f, 0f, 0f, 0f);
 
             Assert.DoesNotThrow(() => InvasionRuntimeConfigurationValidator.ValidateReferences(invasion,
                 "PartyTemplate.origin", false, true));
