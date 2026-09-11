@@ -10,8 +10,6 @@ namespace CustomSpawns.Data.Adapter
             InvasionConfigValidator.Validate(config);
             return new InvasionData(config.RequiresFirstCoastalConquest, config.Supplies.FoodStockFloor,
                 config.Supplies.DailyFoodBonus,
-                config.OccupationGarrison.MinimumTroopCount, config.OccupationGarrison.MaximumTroopCount,
-                config.OccupationGarrison.MilitiaStrengthRatio, config.OccupationGarrison.MaximumDonorLossFraction,
                 config.Reinforcements.PartyTemplateId!, config.Reinforcements.IntervalInDays,
                 config.Reinforcements.ActivePartyCap);
         }

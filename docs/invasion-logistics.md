@@ -9,12 +9,6 @@ An optional, element-only `Invasion` block in a spawn definition enables invasio
     <FoodStockFloor>100</FoodStockFloor>
     <DailyFoodBonus>5</DailyFoodBonus>
   </Supplies>
-  <OccupationGarrison>
-    <MinimumTroopCount>90</MinimumTroopCount>
-    <MaximumTroopCount>140</MaximumTroopCount>
-    <MilitiaStrengthRatio>1</MilitiaStrengthRatio>
-    <MaximumDonorLossFraction>0.2</MaximumDonorLossFraction>
-  </OccupationGarrison>
   <Reinforcements>
     <PartyTemplateId>cs_makko_invasion_reinforcement</PartyTemplateId>
     <IntervalInDays>7</IntervalInDays>
@@ -32,15 +26,11 @@ These are initial sample balance values, not a guarantee of positive food, rebel
 | `RequiresFirstCoastalConquest` | When `true`, restricts the invasion to coastal towns while its current faction owns no coastal town; default `false`. |
 | `Supplies/FoodStockFloor` | One-time minimum food stock after occupation, limited by actual capacity; default 0. Existing stock is never reduced. |
 | `Supplies/DailyFoodBonus` | Additive daily `Overseas supplies` food-model contribution; default 0. |
-| `OccupationGarrison/MinimumTroopCount` | Minimum desired total native garrison count, not the size of an additional donation; default 0. |
-| `OccupationGarrison/MaximumTroopCount` | Upper bound on desired total count, also limited by actual garrison capacity; default 0. |
-| `OccupationGarrison/MilitiaStrengthRatio` | Desired garrison defensive strength relative to observed militia strength; default 0. Count bounds still apply. |
-| `OccupationGarrison/MaximumDonorLossFraction` | Maximum fraction of each participating donor's healthy troop budget; 0–1, default 0. |
 | `Reinforcements/PartyTemplateId` | Required raw troop-template ID, without the `PartyTemplate.` prefix. |
 | `Reinforcements/IntervalInDays` | Positive interval for both the first and later arrivals; default 7. |
 | `Reinforcements/ActivePartyCap` | Positive cap on surviving registered reinforcements in this group; default 1. The sample explicitly uses 3. |
 
-All quantities must be finite and nonnegative, with maximum garrison count at least its minimum. Runtime validation checks troop-template references, non-bandit ownership and an effective behaviour template able to besiege towns. Invalid opt-ins are diagnosed without breaking unrelated valid spawn definitions. Reinforcements inherit the original `PriorityPartyBehaviourTemplateId`; there is no second behaviour configuration.
+All quantities must be finite and nonnegative. Runtime validation checks troop-template references, non-bandit ownership and an effective behaviour template able to besiege towns. Invalid opt-ins are diagnosed without breaking unrelated valid spawn definitions. Reinforcements inherit the original `PriorityPartyBehaviourTemplateId`; there is no second behaviour configuration.
 
 ## Groups, conquests and supply
 
@@ -54,9 +44,9 @@ Only credited, currently eligible coastal towns receive overseas food. Siege pau
 
 ## Occupation and reinforcement lifecycle
 
-Occupation waits until ownership and the actual battle participant snapshot agree, the native garrison is active, and the town and donors have left their map events. One guarded hourly operation observes the native donation first, transfers only the remaining bounded deficit, applies eligible initial food relief, then records completion. Duplicate callbacks and save/load must not repeat the package.
+Occupation waits until ownership and the actual battle participant snapshot agree, the native garrison is active, and the town and donors have left their map events. One guarded hourly operation merges the escorts into the garrison, applies eligible initial food relief, then records completion. Duplicate callbacks and save/load must not repeat the package.
 
-Garrison troops come only from healthy nonhero survivors in the credited group's actual participants, including participating escorts. Wounded troops, prisoners, generated leaders, distant parties and other groups are excluded. Selection is deterministic and mixed where ranged and melee troops are available; counts and stack XP are conserved using both rosters' native XP limits. Scarcity gives a smaller contribution and a diagnostic. Native wages, recruitment and desertion remain in force; there is no wage subsidy or weekly garrison top-up. An unexpected failure after roster mutation begins is terminal for that occupation and diagnosed rather than replaying the donor allowance.
+The transfer is unconditional: every still-active escort party among the capture's recorded participants has its whole `MemberRoster` added to the town's garrison, and the emptied party is then destroyed. There is no configured or capacity-derived bound on the resulting garrison, and no filtering of wounded troops or heroes — the roster moves as it stands. Non-escort participants, parties that are no longer active and other groups are excluded. Native wages, recruitment and desertion remain in force; there is no wage subsidy or weekly garrison top-up.
 
 The group's first arrival is due at its first credited coastal conquest plus the configured interval. A daily check considers the group once and chooses one held, eligible, non-besieged port. An arrival uses the land gate, its own troop template and generated leader, fresh AI state, and the original behaviour configuration. It has no `SupportedParty` and creates no escorts. Its creation/death does not change original `MaximumOnMap` accounting.
 

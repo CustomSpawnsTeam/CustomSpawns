@@ -30,9 +30,7 @@ namespace CustomSpawns.Tests.Spawn
         public void Adapt_ValidInvasionPreservesConfigurationAndDefaultSevenDayInterval()
         {
             const string invasion = "<Invasion><Supplies><FoodStockFloor>30</FoodStockFloor><DailyFoodBonus>5</DailyFoodBonus>" +
-                                    "</Supplies><OccupationGarrison><MinimumTroopCount>10</MinimumTroopCount>" +
-                                    "<MaximumTroopCount>25</MaximumTroopCount><MilitiaStrengthRatio>1.5</MilitiaStrengthRatio>" +
-                                    "<MaximumDonorLossFraction>0.25</MaximumDonorLossFraction></OccupationGarrison>" +
+                                    "</Supplies>" +
                                     "<Reinforcements><PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId>" +
                                     "<ActivePartyCap>2</ActivePartyCap></Reinforcements></Invasion>";
             Spawns spawns = Read("<RegularBanditDailySpawnData party_template=\"PartyTemplate.invasion\">" + invasion +
@@ -46,10 +44,6 @@ namespace CustomSpawns.Tests.Spawn
                 Assert.That(data.RequiresFirstCoastalConquest, Is.False);
                 Assert.That(data.FoodStockFloor, Is.EqualTo(30f));
                 Assert.That(data.DailyFoodBonus, Is.EqualTo(5f));
-                Assert.That(data.MinimumGarrisonTroopCount, Is.EqualTo(10));
-                Assert.That(data.MaximumGarrisonTroopCount, Is.EqualTo(25));
-                Assert.That(data.MilitiaStrengthRatio, Is.EqualTo(1.5f));
-                Assert.That(data.MaximumDonorLossFraction, Is.EqualTo(0.25f));
                 Assert.That(data.ReinforcementPartyTemplateId, Is.EqualTo("PartyTemplate.reinforcements"));
                 Assert.That(data.ReinforcementIntervalInDays, Is.EqualTo(7f));
                 Assert.That(data.ReinforcementActivePartyCap, Is.EqualTo(2));
@@ -98,8 +92,7 @@ namespace CustomSpawns.Tests.Spawn
         public void DeserializeAndResolve_InvalidInvasionReportsItsSpawnAndKeepsUnrelatedSpawns()
         {
             const string invalid = "<RegularBanditDailySpawnData party_template=\"PartyTemplate.invalid\"><Invasion>" +
-                                   "<OccupationGarrison><MinimumTroopCount>3</MinimumTroopCount>" +
-                                   "<MaximumTroopCount>2</MaximumTroopCount></OccupationGarrison>" +
+                                   "<Supplies><FoodStockFloor>-1</FoodStockFloor></Supplies>" +
                                    "<Reinforcements><PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId></Reinforcements>" +
                                    "</Invasion></RegularBanditDailySpawnData>";
             const string valid = "<RegularBanditDailySpawnData party_template=\"PartyTemplate.legacy\" />";
@@ -111,7 +104,7 @@ namespace CustomSpawns.Tests.Spawn
                 Assert.That(spawns.AllSpawns.Select(spawn => spawn.PartyTemplate), Is.EqualTo(new[] { "PartyTemplate.legacy" }));
                 Assert.That(errors, Has.Count.EqualTo(1));
                 Assert.That(errors[0].Message, Does.Contain("PartyTemplate.invalid"));
-                Assert.That(errors[0].Message, Does.Contain("MinimumTroopCount"));
+                Assert.That(errors[0].Message, Does.Contain("FoodStockFloor"));
             });
         }
 

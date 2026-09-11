@@ -11,9 +11,6 @@ namespace CustomSpawns.Data.Model
         [XmlElement("Supplies")]
         public InvasionSuppliesConfig Supplies { get; set; } = new();
 
-        [XmlElement("OccupationGarrison")]
-        public InvasionOccupationGarrisonConfig OccupationGarrison { get; set; } = new();
-
         [XmlElement("Reinforcements")]
         public InvasionReinforcementsConfig Reinforcements { get; set; } = new();
     }
@@ -25,21 +22,6 @@ namespace CustomSpawns.Data.Model
 
         [XmlElement("DailyFoodBonus")]
         public float DailyFoodBonus { get; set; }
-    }
-
-    public sealed class InvasionOccupationGarrisonConfig
-    {
-        [XmlElement("MinimumTroopCount")]
-        public int MinimumTroopCount { get; set; }
-
-        [XmlElement("MaximumTroopCount")]
-        public int MaximumTroopCount { get; set; }
-
-        [XmlElement("MilitiaStrengthRatio")]
-        public float MilitiaStrengthRatio { get; set; }
-
-        [XmlElement("MaximumDonorLossFraction")]
-        public float MaximumDonorLossFraction { get; set; }
     }
 
     public sealed class InvasionReinforcementsConfig
@@ -62,29 +44,13 @@ namespace CustomSpawns.Data.Model
             {
                 throw new ArgumentNullException(nameof(config));
             }
-            if (config.Supplies == null || config.OccupationGarrison == null || config.Reinforcements == null)
+            if (config.Supplies == null || config.Reinforcements == null)
             {
                 throw new ArgumentException("Invasion configuration groups cannot be null.");
             }
 
             ValidateNonNegativeFinite("Invasion Supplies FoodStockFloor", config.Supplies.FoodStockFloor);
             ValidateNonNegativeFinite("Invasion Supplies DailyFoodBonus", config.Supplies.DailyFoodBonus);
-            if (config.OccupationGarrison.MinimumTroopCount < 0 || config.OccupationGarrison.MaximumTroopCount < 0)
-            {
-                throw new ArgumentException("Invasion OccupationGarrison troop counts cannot be negative.");
-            }
-            if (config.OccupationGarrison.MinimumTroopCount > config.OccupationGarrison.MaximumTroopCount)
-            {
-                throw new ArgumentException("Invasion OccupationGarrison MinimumTroopCount cannot exceed MaximumTroopCount.");
-            }
-            ValidateNonNegativeFinite("Invasion OccupationGarrison MilitiaStrengthRatio",
-                config.OccupationGarrison.MilitiaStrengthRatio);
-            ValidateNonNegativeFinite("Invasion OccupationGarrison MaximumDonorLossFraction",
-                config.OccupationGarrison.MaximumDonorLossFraction);
-            if (config.OccupationGarrison.MaximumDonorLossFraction > 1f)
-            {
-                throw new ArgumentException("Invasion OccupationGarrison MaximumDonorLossFraction cannot exceed one.");
-            }
             if (string.IsNullOrWhiteSpace(config.Reinforcements.PartyTemplateId))
             {
                 throw new ArgumentException("Invasion Reinforcements PartyTemplateId is required.");
