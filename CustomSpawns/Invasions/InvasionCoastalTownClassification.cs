@@ -33,7 +33,7 @@ namespace CustomSpawns.Invasions
     // Pure coastal rules. Bannerlord map access stays behind IInvasionCoastalMapFaceQuery.
     public static class InvasionCoastalTownClassification
     {
-        public static bool IsMaritimeFace(InvasionCoastalFaceTerrain terrain)
+        private static bool IsMaritimeFace(InvasionCoastalFaceTerrain terrain)
         {
             return terrain == InvasionCoastalFaceTerrain.Water ||
                    terrain == InvasionCoastalFaceTerrain.CoastalSea ||

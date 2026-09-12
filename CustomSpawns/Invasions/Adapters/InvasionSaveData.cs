@@ -91,7 +91,6 @@ namespace CustomSpawns.Invasions.Adapters
         [SaveableField(7)] public string? ExpectedOwnerClanId;
         [SaveableField(8)] public bool OwnershipObserved;
         [SaveableField(9)] public string StartingAttackerId = "";
-        [SaveableField(10)] public string? AftermathAttackerId;
         [SaveableField(11)] public string? AftermathPreviousOwnerClanId;
         [SaveableField(12)] public bool ParticipantSnapshotCaptured;
         [SaveableField(13)] public Dictionary<string, string> Participants = new();
@@ -111,7 +110,6 @@ namespace CustomSpawns.Invasions.Adapters
             ExpectedOwnerClanId = value.ExpectedOwnerClanId,
             OwnershipObserved = value.OwnershipObserved,
             StartingAttackerId = value.StartingAttackerId,
-            AftermathAttackerId = value.AftermathAttackerId,
             AftermathPreviousOwnerClanId = value.AftermathPreviousOwnerClanId,
             ParticipantSnapshotCaptured = value.ParticipantSnapshotCaptured,
             Participants = new Dictionary<string, string>(value.Participants, StringComparer.Ordinal),
@@ -128,7 +126,6 @@ namespace CustomSpawns.Invasions.Adapters
             PreviousOwnerClanId = PreviousOwnerClanId,
             ExpectedOwnerClanId = ExpectedOwnerClanId,
             OwnershipObserved = OwnershipObserved,
-            AftermathAttackerId = AftermathAttackerId,
             AftermathPreviousOwnerClanId = AftermathPreviousOwnerClanId,
             ParticipantSnapshotCaptured = ParticipantSnapshotCaptured,
             Participants = new Dictionary<string, string>(Participants ?? new Dictionary<string, string>(), StringComparer.Ordinal),

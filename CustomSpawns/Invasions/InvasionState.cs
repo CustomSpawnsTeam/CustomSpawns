@@ -49,7 +49,6 @@ namespace CustomSpawns.Invasions
             var context = FindCapture(contextId);
             if (context == null || context.Cancelled || context.Joined || context.StartingAttackerId != attackerId) return false;
             if (context.ParticipantSnapshotCaptured) return false;
-            context.AftermathAttackerId = attackerId;
             context.AftermathPreviousOwnerClanId = previousOwnerClanId;
             context.Participants = participantGroups.Where(p => FindGroup(p.Value)?.Members.Contains(p.Key) == true)
                 .ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
@@ -219,7 +218,6 @@ namespace CustomSpawns.Invasions
         public string? PreviousOwnerClanId { get; internal set; }
         public string? ExpectedOwnerClanId { get; internal set; }
         public bool OwnershipObserved { get; internal set; }
-        public string? AftermathAttackerId { get; internal set; }
         public string? AftermathPreviousOwnerClanId { get; internal set; }
         public bool ParticipantSnapshotCaptured { get; internal set; }
         internal Dictionary<string, string> Participants = new(StringComparer.Ordinal);

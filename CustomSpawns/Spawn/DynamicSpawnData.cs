@@ -240,7 +240,6 @@ namespace CustomSpawns.Spawn
 
         public string? InvasionGroupId => _invasionGroupId;
         public string? InvasionRole => _invasionRole;
-        public string? PartyRole => _partyRole;
 
         public void SetInvasionIdentity(string? groupId, string? role)
         {
