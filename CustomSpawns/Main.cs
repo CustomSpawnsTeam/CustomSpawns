@@ -131,7 +131,7 @@ namespace CustomSpawns
             _dailyLogger = new DailyLogger(_devestationMetricData, _messageBoxService);
             IPriorityPartyBehaviour[] priorityPartyBehaviours =
                 PartyBehaviourRegistrations.CreateBehaviours(_dynamicSpawnData,
-                    _invasionCampaignBehaviour.GetInitialCoastalTargetFilter);
+                    _invasionCampaignBehaviour);
             var partyBehaviourLookup = new SpawnPartyBehaviourLookup(_spawnDao, _partyBehaviourDao,
                 _messageBoxService);
             var priorityPartyBehaviourRegistry = new PriorityPartyBehaviourRegistry(priorityPartyBehaviours);
@@ -141,6 +141,7 @@ namespace CustomSpawns
                 partyBehaviourLookup, priorityPartyBehaviourRegistry, homeSettlementPatrolBehaviour,
                 new FollowSupportedPartyBehaviour());
             _customSpawnsAiBehaviour = new CustomSpawnsAiBehaviour(_dynamicSpawnData, partyBehaviourResolver,
+                _invasionCampaignBehaviour,
                 new List<ISyncsCampaignData>(priorityPartyBehaviours) { homeSettlementPatrolBehaviour });
             _accompanyingPartySiegeBehaviour = new AccompanyingPartySiegeBehaviour(_dynamicSpawnData);
             _aiDecisionLoggerBehaviour = new AiDecisionLoggerBehaviour(_dailyLogger);

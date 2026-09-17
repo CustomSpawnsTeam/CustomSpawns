@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CustomSpawns.AI;
+using CustomSpawns.AI.Offensives;
 using CustomSpawns.Data.Dao;
 using CustomSpawns.Data.Dto;
 using CustomSpawns.Spawn;
@@ -17,7 +19,8 @@ using TaleWorlds.Library;
 
 namespace CustomSpawns.Invasions.Adapters
 {
-    public sealed class InvasionCampaignBehaviour : CampaignBehaviorBase
+    public sealed class InvasionCampaignBehaviour : CampaignBehaviorBase, IInvasionFootholdQuery,
+        IInvasionLandingQuery
     {
         private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         private readonly SpawnDao _spawns;
@@ -49,6 +52,7 @@ namespace CustomSpawns.Invasions.Adapters
             CampaignEvents.MapEventEnded.AddNonSerializedListener(this, OnMapEventEnded);
             CampaignEvents.OnSiegeAftermathAppliedEvent.AddNonSerializedListener(this, OnAftermath);
             CampaignEvents.OnSettlementOwnerChangedEvent.AddNonSerializedListener(this, OnOwnerChanged);
+            CampaignEvents.CanKingdomBeDiscontinuedEvent.AddNonSerializedListener(this, CanKingdomBeDiscontinued);
             CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, OnHourlyTick);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, ScheduleReinforcements);
         }
@@ -151,7 +155,7 @@ namespace CustomSpawns.Invasions.Adapters
 
         public bool HasPersistentInvasionGroup(CsPartyData partyData) => State.FindGroup(partyData.InvasionGroupId) != null;
 
-        public Func<Settlement, bool>? GetInitialCoastalTargetFilter(MobileParty party)
+        Func<Settlement, bool>? IInvasionLandingQuery.GetInitialCoastalTargetFilter(MobileParty party)
         {
             Initialize();
             InvasionGroupState? group = State.FindMemberGroup(party.StringId);
@@ -162,6 +166,15 @@ namespace CustomSpawns.Invasions.Adapters
             bool factionHasCoastalTown = Settlement.All.Any(settlement => settlement.IsTown &&
                 settlement.MapFaction == party.MapFaction && _coastalTownResolver.IsCoastalTown(settlement));
             return factionHasCoastalTown ? null : _coastalTownResolver.IsCoastalTown;
+        }
+
+        IReadOnlyList<MobileParty> IInvasionLandingQuery.GetLandingParties(MobileParty party)
+        {
+            Initialize();
+            InvasionGroupState? group = State.FindMemberGroup(party.StringId);
+            if (group == null) return new[] { party };
+            return MobileParty.All.Where(member => member.IsActive && group.Members.Contains(member.StringId))
+                .ToList();
         }
 
         private void OnMapEventStarted(MapEvent mapEvent, PartyBase attacker, PartyBase defender)
@@ -254,6 +267,18 @@ namespace CustomSpawns.Invasions.Adapters
             State.ObserveOwnership(context.Id, group.Id, party.StringId, oldOwner?.Clan?.StringId ?? "",
                 newOwner?.Clan?.StringId ?? "", true, coastal);
             StartReinforcementSchedule(context.Id);
+        }
+
+        bool IInvasionFootholdQuery.IsGroupWithoutTown(string? invasionGroupId)
+        {
+            Initialize();
+            return State.IsGroupWithoutTown(invasionGroupId);
+        }
+
+        private void CanKingdomBeDiscontinued(Kingdom kingdom, ref bool result)
+        {
+            Initialize();
+            if (State.ProtectsKingdomOf(kingdom.Clans.Select(clan => clan.StringId))) result = false;
         }
 
         private void StartReinforcementSchedule(long contextId)

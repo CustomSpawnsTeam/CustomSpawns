@@ -8,14 +8,12 @@ using CustomSpawns.Spawn;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
-using TaleWorlds.Library;
 
 namespace CustomSpawns.AI.Adapters
 {
     internal sealed class BannerlordBesiegeClosestSettlementAdapter
         : BannerlordSettlementOffensiveAdapter, ISiegeOperations
     {
-        private const float UnboundedLandPathDistance = float.MaxValue;
         private readonly Func<MobileParty, IEnumerable<SiegeTargetCandidate>> _getCandidates;
         private readonly Func<MobileParty, Settlement, IEnumerable<RoamingPartyStrength>>
             _getTargetRoamingParties;
@@ -29,10 +27,10 @@ namespace CustomSpawns.AI.Adapters
         }
 
         internal BannerlordBesiegeClosestSettlementAdapter(DynamicSpawnData dynamicSpawnData,
-            Func<MobileParty, Func<Settlement, bool>?> getInitialCoastalTargetFilter) : this(
+            IInvasionLandingQuery landing) : this(
             observer => observer.SeeingRange, ObserveRoamingParties, ObserveCandidates,
             dynamicSpawnData.FindAccompanyingParties,
-            new InvasionCoastalSiegeTargetPolicy(getInitialCoastalTargetFilter, HasReachableLandGate),
+            new InvasionCoastalSiegeTargetPolicy(landing, new BannerlordMapPathQuery()),
             ObserveRoamingPartiesNearTarget)
         {
         }
@@ -60,10 +58,9 @@ namespace CustomSpawns.AI.Adapters
             Func<MobileParty, IEnumerable<RoamingPartyStrength>> getRoamingParties,
             Func<MobileParty, IEnumerable<SiegeTargetCandidate>> getCandidates,
             Func<MobileParty, IEnumerable<MobileParty>> getAccompanyingParties,
-            Func<MobileParty, Func<Settlement, bool>?> getInitialCoastalTargetFilter,
-            Func<MobileParty, Settlement, bool> hasReachableLandGate)
+            IInvasionLandingQuery landing, IMapPathQuery mapPaths)
             : this(getSeeingRange, getRoamingParties, getCandidates, getAccompanyingParties,
-                new InvasionCoastalSiegeTargetPolicy(getInitialCoastalTargetFilter, hasReachableLandGate),
+                new InvasionCoastalSiegeTargetPolicy(landing, mapPaths),
                 (_, _) => Enumerable.Empty<RoamingPartyStrength>())
         {
         }
@@ -115,6 +112,7 @@ namespace CustomSpawns.AI.Adapters
             float attackerStrength, float minimumTargetRatio, float minimumRoamingHostilesRatio,
             IReadOnlyList<SpawnSettlementType> targetTypes)
         {
+            Func<SiegeTargetCandidate, float> targetDistance = _siegeTargetPolicy.GetTargetDistance(party);
             return _getCandidates(party)
                 .Where(candidate => candidate.IsActive && candidate.IsHostile &&
                                     candidate.HasCompatibleSiege && targetTypes.Contains(candidate.Type) &&
@@ -125,7 +123,7 @@ namespace CustomSpawns.AI.Adapters
                 .Where(candidate => OffensiveStrengthRules.MeetsStrengthRatio(attackerStrength,
                     GetHostileLordStrengthNearTarget(party, candidate.Target),
                     minimumRoamingHostilesRatio))
-                .OrderBy(candidate => candidate.Distance)
+                .OrderBy(targetDistance)
                 .Select(candidate => candidate.Target)
                 .FirstOrDefault();
         }
@@ -278,30 +276,6 @@ namespace CustomSpawns.AI.Adapters
                 .Where(p => p.IsActive && p.IsHostileToAttacker && !p.IsVillager && !p.IsCaravan &&
                             !p.IsGarrison && !p.IsMilitia)
                 .Sum(p => p.Strength);
-        }
-
-        private static bool HasReachableLandGate(MobileParty party, Settlement settlement)
-        {
-            if (party.IsCurrentlyAtSea)
-            {
-                return false;
-            }
-
-            PathFaceRecord fromFace = party.CurrentNavigationFace;
-            PathFaceRecord toFace = settlement.GatePosition.Face;
-            if (!settlement.GatePosition.IsOnLand || fromFace.FaceIndex < 0 || toFace.FaceIndex < 0)
-            {
-                return false;
-            }
-            int[] invalidTerrainTypes = Campaign.Current.Models.PartyNavigationModel
-                .GetInvalidTerrainTypesForNavigationType(party.NavigationCapability);
-            bool hasPath = Campaign.Current.MapSceneWrapper.GetPathDistanceBetweenAIFaces(fromFace, toFace,
-                party.Position.ToVec2(), settlement.GatePosition.ToVec2(), 0.3f, UnboundedLandPathDistance,
-                out float pathDistance, invalidTerrainTypes,
-                Campaign.Current.Models.MapDistanceModel.RegionSwitchCostFromLandToSea,
-                Campaign.Current.Models.MapDistanceModel.RegionSwitchCostFromSeaToLand);
-            return hasPath && !float.IsNaN(pathDistance) && !float.IsInfinity(pathDistance) &&
-                pathDistance >= 0f;
         }
     }
 }

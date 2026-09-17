@@ -60,7 +60,7 @@ namespace CustomSpawns.Tests.AI
             SyncStub patrol = new();
             SyncStub raid = new();
             SyncStub fallback = new();
-            CustomSpawnsAiBehaviour behaviour = new(null!, null!, new ISyncsCampaignData[]
+            CustomSpawnsAiBehaviour behaviour = new(null!, null!, null!, new ISyncsCampaignData[]
             {
                 patrol, raid, fallback
             });
@@ -76,11 +76,19 @@ namespace CustomSpawns.Tests.AI
         public void SyncData_SyncsATargetRegisteredTwiceOnlyOnce()
         {
             SyncStub shared = new();
-            CustomSpawnsAiBehaviour behaviour = new(null!, null!, new ISyncsCampaignData[] { shared, shared });
+            CustomSpawnsAiBehaviour behaviour = new(null!, null!, null!, new ISyncsCampaignData[] { shared, shared });
 
             behaviour.SyncData(new NonSavingDataStore());
 
             Assert.That(shared.SyncCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void LordPartiesAreLeftToVanillaUnlessTheirInvasionHoldsNoTown()
+        {
+            Assert.True(CustomSpawnsAiBehaviour.IsSteeredByCustomSpawns(false, false));
+            Assert.False(CustomSpawnsAiBehaviour.IsSteeredByCustomSpawns(true, false));
+            Assert.True(CustomSpawnsAiBehaviour.IsSteeredByCustomSpawns(true, true));
         }
 
         private sealed class SyncStub : ISyncsCampaignData

@@ -290,6 +290,45 @@ namespace CustomSpawns.Tests.Invasions
             Assert.That(restored.FindCapture(capture.Id)!.ParticipantPartyIds, Contains.Item("capturer"));
         }
 
+        [Test]
+        public void LiveInvasionProtectsItsKingdomButAForeignOrSuspendedOneDoesNot()
+        {
+            Assert.True(_state.ProtectsKingdomOf(new[] { "other-clan", "clan" }));
+            Assert.False(_state.ProtectsKingdomOf(new[] { "other-clan" }));
+
+            _state.Reconcile(new[] { "capturer" }, _ => "clan", _ => false);
+            Assert.False(_state.ProtectsKingdomOf(new[] { "clan" }));
+        }
+
+        [Test]
+        public void AGroupIsBackOnTheOffensiveOnlyOnceItHoldsNoTownAtAll()
+        {
+            Assert.True(_state.IsGroupWithoutTown(_group.Id));
+            Assert.False(_state.IsGroupWithoutTown("absent"));
+
+            Conquer();
+            Assert.False(_state.IsGroupWithoutTown(_group.Id));
+
+            _state.ObserveOwner("town", "enemy");
+            Assert.True(_state.IsGroupWithoutTown(_group.Id));
+
+            _state.Reconcile(new[] { "capturer" }, _ => "clan", _ => false);
+            Assert.False(_state.IsGroupWithoutTown(_group.Id));
+        }
+
+        [Test]
+        public void LosingOneOfTwoTownsLeavesTheGroupHoldingAFoothold()
+        {
+            Conquer();
+            var second = _state.StartCapture("second-town", 300, "capturer");
+            _state.ObserveOwnership(second.Id, _group.Id, "capturer", "enemy", "clan", true, true);
+            Aftermath(second);
+            Assert.That(_state.Credits.Count, Is.EqualTo(2));
+
+            _state.ObserveOwner("town", "enemy");
+            Assert.False(_state.IsGroupWithoutTown(_group.Id));
+        }
+
         private InvasionCaptureContext Start(long ticks = 100) => _state.StartCapture("town", ticks, "capturer");
         private Dictionary<string, string> Participants() => new() { ["capturer"] = _group.Id };
         private void Ownership(InvasionCaptureContext c) => _state.ObserveOwnership(c.Id, _group.Id, "capturer", "enemy", "clan", true, true);

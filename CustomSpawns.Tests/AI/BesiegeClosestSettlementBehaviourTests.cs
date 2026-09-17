@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+using System;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.Serialization;
 using CustomSpawns.AI.Adapters;
@@ -164,8 +165,8 @@ namespace CustomSpawns.Tests.AI
                     Candidate(inlandCastle, SpawnSettlementType.Castle, 1f, 10f, true, "inland-castle"),
                     Candidate(inlandTown, SpawnSettlementType.Town, 2f, 10f, true, "inland-town"),
                     Candidate(coastalTown, SpawnSettlementType.Town, 3f, 10f, true, "coastal-town")
-                }, _ => new MobileParty[0], _ => settlement => settlement == coastalTown,
-                (_, settlement) => settlement == coastalTown);
+                }, _ => new MobileParty[0], Landing(_ => settlement => settlement == coastalTown, party),
+                MapPaths(settlement => settlement == coastalTown));
 
             Settlement? result = operations.FindClosestSiegeTarget(party, 100f, 1.5f,
                 new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle });
@@ -184,12 +185,41 @@ namespace CustomSpawns.Tests.AI
                 {
                     Candidate(inlandTown, SpawnSettlementType.Town, 1f, 10f, true, "inland-town"),
                     Candidate(coastalTown, SpawnSettlementType.Town, 2f, 10f, true, "coastal-town")
-                }, _ => new MobileParty[0], _ => settlement => settlement == coastalTown, (_, _) => false);
+                }, _ => new MobileParty[0], Landing(_ => settlement => settlement == coastalTown, party),
+                MapPaths(_ => false));
 
             Settlement? result = operations.FindClosestSiegeTarget(party, 100f, 1.5f,
                 new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle });
 
             Assert.That(result, Is.Null);
+        }
+
+        [Test]
+        public void ConcreteAdapter_BeforeFirstCoastalConquestTakesTheTownNearestToTheWholeInvasion()
+        {
+            MobileParty party = DummyParty();
+            MobileParty comrade = DummyParty();
+            Settlement nearestToParty = DummySettlement();
+            Settlement nearestToBoth = DummySettlement();
+            var candidates = new[]
+            {
+                Candidate(nearestToParty, SpawnSettlementType.Town, 1f, 10f, true, "coastal-town"),
+                Candidate(nearestToBoth, SpawnSettlementType.Town, 4f, 10f, true, "coastal-town")
+            };
+            Func<MobileParty, Settlement, float> comradeDistance =
+                (_, settlement) => settlement == nearestToParty ? 20f : 2f;
+
+            Settlement? alone = new BannerlordBesiegeClosestSettlementAdapter(_ => 5f,
+                    _ => new RoamingPartyStrength[0], _ => candidates, _ => new MobileParty[0],
+                    Landing(_ => _ => true, party), MapPaths(_ => true, comradeDistance))
+                .FindClosestSiegeTarget(party, 100f, 1.5f, new[] { SpawnSettlementType.Town });
+            Settlement? together = new BannerlordBesiegeClosestSettlementAdapter(_ => 5f,
+                    _ => new RoamingPartyStrength[0], _ => candidates, _ => new MobileParty[0],
+                    Landing(_ => _ => true, party, comrade), MapPaths(_ => true, comradeDistance))
+                .FindClosestSiegeTarget(party, 100f, 1.5f, new[] { SpawnSettlementType.Town });
+
+            Assert.That(alone, Is.SameAs(nearestToParty));
+            Assert.That(together, Is.SameAs(nearestToBoth));
         }
 
         [Test]
@@ -208,7 +238,7 @@ namespace CustomSpawns.Tests.AI
                     Candidate(strongTown, SpawnSettlementType.Town, 2f, 200f, true, "coastal-town"),
                     Candidate(incompatibleTown, SpawnSettlementType.Town, 3f, 10f, false, "coastal-town"),
                     Candidate(viableTown, SpawnSettlementType.Town, 4f, 10f, true, "coastal-town")
-                }, _ => new MobileParty[0], _ => _ => true, (_, _) => true);
+                }, _ => new MobileParty[0], Landing(_ => _ => true, party), MapPaths(_ => true));
 
             Settlement? result = operations.FindClosestSiegeTarget(party, 100f, 1.5f,
                 new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle });
@@ -225,7 +255,7 @@ namespace CustomSpawns.Tests.AI
                 _ => new RoamingPartyStrength[0], _ => new[]
                 {
                     Candidate(inlandCastle, SpawnSettlementType.Castle, 1f, 10f, true, "inland-castle")
-                }, _ => new MobileParty[0], _ => null, (_, _) => false);
+                }, _ => new MobileParty[0], Landing(_ => null, party), MapPaths(_ => false));
 
             Settlement? result = operations.FindClosestSiegeTarget(party, 100f, 1.5f,
                 new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle });
@@ -244,7 +274,7 @@ namespace CustomSpawns.Tests.AI
                 {
                     Candidate(nearestCastle, SpawnSettlementType.Castle, 1f, 10f),
                     Candidate(town, SpawnSettlementType.Town, 2f, 10f)
-                }, _ => new MobileParty[0], _ => null, (_, _) => false);
+                }, _ => new MobileParty[0], Landing(_ => null, party), MapPaths(_ => false));
 
             Settlement? result = operations.FindClosestSiegeTarget(party, 100f, 1.5f,
                 new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle });
@@ -764,6 +794,54 @@ namespace CustomSpawns.Tests.AI
         {
             counted.Add(party);
             yield return party;
+        }
+
+        private static IInvasionLandingQuery Landing(Func<MobileParty, Func<Settlement, bool>?> filter,
+            params MobileParty[] landingParties)
+        {
+            return new LandingStub(filter, landingParties);
+        }
+
+        private sealed class LandingStub : IInvasionLandingQuery
+        {
+            private readonly Func<MobileParty, Func<Settlement, bool>?> _filter;
+            private readonly IReadOnlyList<MobileParty> _landingParties;
+
+            internal LandingStub(Func<MobileParty, Func<Settlement, bool>?> filter,
+                IReadOnlyList<MobileParty> landingParties)
+            {
+                _filter = filter;
+                _landingParties = landingParties;
+            }
+
+            public Func<Settlement, bool>? GetInitialCoastalTargetFilter(MobileParty party) => _filter(party);
+
+            public IReadOnlyList<MobileParty> GetLandingParties(MobileParty party) => _landingParties;
+        }
+
+        private static IMapPathQuery MapPaths(Func<Settlement, bool> hasReachableLandGate,
+            Func<MobileParty, Settlement, float>? getDistanceToGate = null)
+        {
+            return new MapPathStub(hasReachableLandGate, getDistanceToGate);
+        }
+
+        private sealed class MapPathStub : IMapPathQuery
+        {
+            private readonly Func<Settlement, bool> _hasReachableLandGate;
+            private readonly Func<MobileParty, Settlement, float> _getDistanceToGate;
+
+            internal MapPathStub(Func<Settlement, bool> hasReachableLandGate,
+                Func<MobileParty, Settlement, float>? getDistanceToGate)
+            {
+                _hasReachableLandGate = hasReachableLandGate;
+                _getDistanceToGate = getDistanceToGate ?? ((_, _) => 0f);
+            }
+
+            public bool HasReachableLandGate(MobileParty party, Settlement target) =>
+                _hasReachableLandGate(target);
+
+            public float GetDistanceToGate(MobileParty party, Settlement settlement) =>
+                _getDistanceToGate(party, settlement);
         }
 
         private static MobileParty DummyParty()

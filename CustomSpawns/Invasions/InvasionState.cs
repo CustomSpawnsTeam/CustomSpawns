@@ -34,6 +34,17 @@ namespace CustomSpawns.Invasions
         public InvasionTownCredit? FindCredit(string settlementId) => CreditIndex.TryGetValue(settlementId, out var credit) ? credit : null;
         public InvasionCaptureContext? FindCapture(long id) => CaptureIndex.TryGetValue(id, out var capture) ? capture : null;
 
+        // A kingdom carrying a live invasion must outlive the loss of its last settlement so the invasion can retake one.
+        public bool ProtectsKingdomOf(IEnumerable<string> clanIds) =>
+            clanIds.Any(clanId => Groups.Any(group => !group.IsSuspended && group.ClanId == clanId));
+
+        // A group holding no town is put back on the offensive; vanilla steers its lords while it still holds one.
+        public bool IsGroupWithoutTown(string? groupId)
+        {
+            InvasionGroupState? group = FindGroup(groupId);
+            return group != null && !group.IsSuspended && !Credits.Any(credit => credit.GroupId == group.Id);
+        }
+
         public InvasionCaptureContext StartCapture(string settlementId, long battleStartTimeBits, string attackerLeaderId)
         {
             // A later siege can never consume an earlier siege's unjoined snapshot.

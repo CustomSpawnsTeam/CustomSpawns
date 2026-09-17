@@ -16,10 +16,11 @@ namespace CustomSpawns.AI
         private readonly PartyBehaviorDecisionCoordinator _decisionCoordinator;
 
         public CustomSpawnsAiBehaviour(DynamicSpawnData dynamicSpawnData,
-            PartyBehaviourResolver partyBehaviourResolver, IEnumerable<ISyncsCampaignData> syncTargets)
+            PartyBehaviourResolver partyBehaviourResolver, IInvasionFootholdQuery invasionFootholdQuery,
+            IEnumerable<ISyncsCampaignData> syncTargets)
         {
             _decisionCoordinator = new PartyBehaviorDecisionCoordinator(
-                dynamicSpawnData, partyBehaviourResolver, syncTargets);
+                dynamicSpawnData, partyBehaviourResolver, invasionFootholdQuery, syncTargets);
         }
 
         public override void RegisterEvents()
@@ -60,6 +61,12 @@ namespace CustomSpawns.AI
             scoreSink.AddBehaviorScore(behavior, DominantAiBehaviorScore);
         }
 
+        // A promoted lord is steered by vanilla unless its invasion has lost every town it took.
+        internal static bool IsSteeredByCustomSpawns(bool isLordParty, bool isGroupWithoutTown)
+        {
+            return !isLordParty || isGroupWithoutTown;
+        }
+
         internal static EscortDecisionLockAction GetEscortDecisionLockAction(bool keepFormation,
             bool decisionsLocked, bool ownsLock)
         {
@@ -77,15 +84,17 @@ namespace CustomSpawns.AI
         {
             private readonly DynamicSpawnData _dynamicSpawnData;
             private readonly PartyBehaviourResolver _partyBehaviourResolver;
+            private readonly IInvasionFootholdQuery _invasionFootholdQuery;
             private readonly IReadOnlyList<ISyncsCampaignData> _syncTargets;
             private readonly HashSet<MobileParty> _escortDecisionLocks = new();
 
             public PartyBehaviorDecisionCoordinator(
                 DynamicSpawnData dynamicSpawnData, PartyBehaviourResolver partyBehaviourResolver,
-                IEnumerable<ISyncsCampaignData> syncTargets)
+                IInvasionFootholdQuery invasionFootholdQuery, IEnumerable<ISyncsCampaignData> syncTargets)
             {
                 _dynamicSpawnData = dynamicSpawnData;
                 _partyBehaviourResolver = partyBehaviourResolver;
+                _invasionFootholdQuery = invasionFootholdQuery;
 
                 var distinctTargets = new HashSet<object>(ReferenceEqualityComparer.Instance);
                 var targets = new List<ISyncsCampaignData>();
@@ -109,13 +118,14 @@ namespace CustomSpawns.AI
 
             public void AddBehaviorScore(MobileParty party, PartyThinkParams thinkParams)
             {
-                if (party.PartyComponent is LordPartyComponent)
+                CsPartyData? partyData = _dynamicSpawnData.GetDynamicSpawnData(party);
+                if (partyData is null)
                 {
                     return;
                 }
 
-                CsPartyData? partyData = _dynamicSpawnData.GetDynamicSpawnData(party);
-                if (partyData is null)
+                if (!IsSteeredByCustomSpawns(party.PartyComponent is LordPartyComponent,
+                        _invasionFootholdQuery.IsGroupWithoutTown(partyData.InvasionGroupId)))
                 {
                     return;
                 }
