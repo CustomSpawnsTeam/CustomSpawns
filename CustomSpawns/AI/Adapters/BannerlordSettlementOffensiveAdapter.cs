@@ -38,7 +38,7 @@ namespace CustomSpawns.AI.Adapters
          * counted here even though the army leader counts it too. That is the long-standing besiege
          * assessment, kept as it is so raid inherits it rather than besiege targeting changing.
          */
-        public float GetAttackerStrength(MobileParty party)
+        public virtual float GetAttackerStrength(MobileParty party)
         {
             if (party.Army is not null && party.Army.LeaderParty == party)
             {

@@ -128,6 +128,19 @@ namespace CustomSpawns.AI.Adapters
                 .FirstOrDefault();
         }
 
+        /**
+         * An invasion sizes up a garrison as one force: what all of its parties can bring to the walls
+         * rather than what the one deciding carries. Escorts belong to that force themselves, so every
+         * party counts its own strength once. A party attacking on its own is assessed as before.
+         */
+        public override float GetAttackerStrength(MobileParty party)
+        {
+            IReadOnlyList<MobileParty> force = _siegeTargetPolicy.GetAttackingForce(party);
+            return force.Count > 1
+                ? force.Sum(member => member.Party.CalculateCurrentStrength())
+                : base.GetAttackerStrength(party);
+        }
+
         public float GetTargetStrength(MobileParty party, Settlement target) =>
             GetDefenderStrength(party, target);
 

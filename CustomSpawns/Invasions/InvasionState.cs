@@ -36,7 +36,11 @@ namespace CustomSpawns.Invasions
 
         // A kingdom carrying a live invasion must outlive the loss of its last settlement so the invasion can retake one.
         public bool ProtectsKingdomOf(IEnumerable<string> clanIds) =>
-            clanIds.Any(clanId => Groups.Any(group => !group.IsSuspended && group.ClanId == clanId));
+            clanIds.Any(clanId => Groups.Any(group => !group.IsSuspended && !IsGroupSpent(group) && group.ClanId == clanId));
+
+        // An invasion left with no town to hold and no party to retake one has nothing left to fight with.
+        public bool IsGroupSpent(InvasionGroupState group) =>
+            group.Members.Count == 0 && !Credits.Any(credit => credit.GroupId == group.Id);
 
         // A group holding no town is put back on the offensive; vanilla steers its lords while it still holds one.
         public bool IsGroupWithoutTown(string? groupId)
@@ -159,7 +163,7 @@ namespace CustomSpawns.Invasions
         }
 
         public void Reconcile(IEnumerable<string> activePartyIds, Func<string, string?> ownerOfTown,
-            Func<InvasionGroupState, bool> effectsEnabled)
+            Func<InvasionGroupState, bool> effectsEnabled, Func<InvasionGroupState, bool> awaitsKingdomRetirement)
         {
             var active = new HashSet<string>(activePartyIds, StringComparer.Ordinal);
             foreach (var context in Captures)
@@ -170,7 +174,8 @@ namespace CustomSpawns.Invasions
             {
                 group.Members.IntersectWith(active);
                 group.IsSuspended = !effectsEnabled(group);
-                if (group.Members.Count != 0 || Credits.Any(c => c.GroupId == group.Id)) continue;
+                // A spent group outlives itself while the kingdom it leaves behind still has to be retired: it is what names that kingdom.
+                if (!IsGroupSpent(group) || awaitsKingdomRetirement(group)) continue;
                 GroupIndex.Remove(group.Id);
                 foreach (var context in Captures.Where(c => c.OwnershipGroupId == group.Id)) context.Cancelled = true;
             }

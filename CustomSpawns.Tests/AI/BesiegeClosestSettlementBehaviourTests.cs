@@ -223,6 +223,21 @@ namespace CustomSpawns.Tests.AI
         }
 
         [Test]
+        public void ConcreteAdapter_BeforeFirstCoastalConquestWeighsGarrisonsAgainstTheWholeInvasion()
+        {
+            MobileParty party = DummyParty();
+            MobileParty comrade = DummyParty();
+
+            var landing = new InvasionCoastalSiegeTargetPolicy(
+                Landing(_ => _ => true, party, comrade), MapPaths(_ => true));
+            var settled = new InvasionCoastalSiegeTargetPolicy(
+                Landing(_ => null, party, comrade), MapPaths(_ => true));
+
+            Assert.That(landing.GetAttackingForce(party), Is.EqualTo(new[] { party, comrade }));
+            Assert.That(settled.GetAttackingForce(party), Is.EqualTo(new[] { party }));
+        }
+
+        [Test]
         public void ConcreteAdapter_CoastalPolicyKeepsExistingEligibilityChecks()
         {
             MobileParty party = DummyParty();

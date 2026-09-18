@@ -140,7 +140,7 @@ namespace CustomSpawns.Tests.Invasions
             Assert.False(_correlation.IsBound(nativeEvent));
             Assert.True(capture.Cancelled);
             Assert.IsNull(_correlation.ResolveOwnership(nativeEvent, true, "town", _hero, "enemy", "clan", "clan"));
-            _state.Reconcile(new[] { "leader" }, _ => "enemy", _ => true);
+            _state.Reconcile(new[] { "leader" }, _ => "enemy", _ => true, _ => false);
             Assert.IsNull(_state.FindCapture(capture.Id));
         }
 

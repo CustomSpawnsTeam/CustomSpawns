@@ -156,7 +156,7 @@ namespace CustomSpawns.Tests.Invasions
             var capture = Conquer();
             _state.StartCapture("town", 200, "enemy");
             Assert.AreEqual(capture.Id, _state.Credits.Single().ContextId);
-            _state.Reconcile(new[] { "capturer" }, _ => "clan", _ => true);
+            _state.Reconcile(new[] { "capturer" }, _ => "clan", _ => true, _ => false);
             Assert.AreEqual(capture.Id, _state.Credits.Single().ContextId);
         }
 
@@ -164,9 +164,9 @@ namespace CustomSpawns.Tests.Invasions
         public void DestroyingOriginalKeepsFootholdAndOnlyEmptyGroupStartsFresh()
         {
             Conquer();
-            _state.Reconcile(new string[0], _ => "clan", _ => true);
+            _state.Reconcile(new string[0], _ => "clan", _ => true, _ => false);
             Assert.AreSame(_group, _state.Groups.Single());
-            _state.Reconcile(new string[0], _ => "enemy", _ => true);
+            _state.Reconcile(new string[0], _ => "enemy", _ => true, _ => false);
             Assert.That(_state.Groups, Is.Empty);
             var fresh = _state.RegisterMember("invasion", "clan", "new-invasion");
             Assert.AreNotEqual(_group.Id, fresh.Id);
@@ -176,7 +176,7 @@ namespace CustomSpawns.Tests.Invasions
         public void SurvivingEscortKeepsGroupWithoutTerritory()
         {
             _state.RegisterMember("invasion", "clan", "escort");
-            _state.Reconcile(new[] { "escort" }, _ => null, _ => true);
+            _state.Reconcile(new[] { "escort" }, _ => null, _ => true, _ => false);
             Assert.AreSame(_group, _state.Groups.Single());
             Assert.That(_group.MemberPartyIds, Is.EquivalentTo(new[] { "escort" }));
         }
@@ -185,12 +185,12 @@ namespace CustomSpawns.Tests.Invasions
         public void MissingConfigurationOrEliminatedClanSuspendsEffectsButPreservesSafeCleanupState()
         {
             var capture = Conquer();
-            _state.Reconcile(new[] { "capturer" }, _ => "clan", _ => false);
+            _state.Reconcile(new[] { "capturer" }, _ => "clan", _ => false, _ => false);
             Assert.True(_group.IsSuspended);
             Assert.False(_state.CanApplyOccupation(capture.Id, "clan"));
             Assert.AreEqual(1, _state.Credits.Count);
             _state = RoundTrip();
-            _state.Reconcile(new string[0], _ => "enemy", _ => false);
+            _state.Reconcile(new string[0], _ => "enemy", _ => false, _ => false);
             Assert.That(_state.Credits, Is.Empty);
             Assert.That(_state.Groups, Is.Empty);
         }
@@ -254,7 +254,7 @@ namespace CustomSpawns.Tests.Invasions
         {
             var empty = new InvasionSaveData().ToState();
             empty.RegisterMember("invasion", "clan", "existing");
-            empty.Reconcile(new[] { "existing" }, _ => "clan", _ => true);
+            empty.Reconcile(new[] { "existing" }, _ => "clan", _ => true, _ => false);
             Assert.That(empty.Credits, Is.Empty);
             var party = new CsPartyData("primary", "primary", true, null);
             Assert.IsNull(party.InvasionGroupId);
@@ -296,8 +296,21 @@ namespace CustomSpawns.Tests.Invasions
             Assert.True(_state.ProtectsKingdomOf(new[] { "other-clan", "clan" }));
             Assert.False(_state.ProtectsKingdomOf(new[] { "other-clan" }));
 
-            _state.Reconcile(new[] { "capturer" }, _ => "clan", _ => false);
+            _state.Reconcile(new[] { "capturer" }, _ => "clan", _ => false, _ => false);
             Assert.False(_state.ProtectsKingdomOf(new[] { "clan" }));
+        }
+
+        [Test]
+        public void ASpentInvasionStopsProtectingItsKingdomAndIsHeldUntilTheKingdomRetires()
+        {
+            Conquer();
+            _state.Reconcile(new string[0], _ => "enemy", _ => true, _ => true);
+
+            Assert.AreSame(_group, _state.Groups.Single());
+            Assert.False(_state.ProtectsKingdomOf(new[] { "clan" }));
+
+            _state.Reconcile(new string[0], _ => "enemy", _ => true, _ => false);
+            Assert.That(_state.Groups, Is.Empty);
         }
 
         [Test]
@@ -312,7 +325,7 @@ namespace CustomSpawns.Tests.Invasions
             _state.ObserveOwner("town", "enemy");
             Assert.True(_state.IsGroupWithoutTown(_group.Id));
 
-            _state.Reconcile(new[] { "capturer" }, _ => "clan", _ => false);
+            _state.Reconcile(new[] { "capturer" }, _ => "clan", _ => false, _ => false);
             Assert.False(_state.IsGroupWithoutTown(_group.Id));
         }
 

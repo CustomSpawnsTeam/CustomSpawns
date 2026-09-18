@@ -141,13 +141,15 @@ namespace CustomSpawns.Invasions.Adapters
         {
             State.Reconcile(MobileParty.All.Where(p => p.IsActive).Select(p => p.StringId),
                 id => Settlement.Find(id)?.OwnerClan?.StringId,
-                group => GetConfiguration(group) != null && Clan.FindFirst(c => c.StringId == group.ClanId)?.IsEliminated == false);
+                group => GetConfiguration(group) != null && Clan.FindFirst(c => c.StringId == group.ClanId)?.IsEliminated == false,
+                group => FindRetirableKingdom(group) != null);
             _correlation.Prune();
         }
 
         private void OnHourlyTick()
         {
             Reconcile();
+            RetireSpentInvasions();
             ApplyReadyOccupations();
         }
 
@@ -279,6 +281,59 @@ namespace CustomSpawns.Invasions.Adapters
         {
             Initialize();
             if (State.ProtectsKingdomOf(kingdom.Clans.Select(clan => clan.StringId))) result = false;
+        }
+
+        /**
+         * Vanilla only asks whether a kingdom can be discontinued when a settlement changes hands or when
+         * the player switches kingdom, so the kingdom an invasion was given would outlive the invasion
+         * itself once its protection stops applying. The missing trigger is supplied here; the rule that
+         * decides and the actions that end it are vanilla's own.
+         */
+        private void RetireSpentInvasions()
+        {
+            foreach (InvasionGroupState group in State.Groups.ToList())
+            {
+                if (!State.IsGroupSpent(group)) continue;
+                Kingdom? kingdom = FindRetirableKingdom(group);
+                if (kingdom == null) continue;
+                Logger.Info("Invasion spent: group=" + group.Id + " kingdom=" + kingdom.StringId);
+                DiscontinueKingdom(kingdom);
+            }
+        }
+
+        private static Kingdom? FindRetirableKingdom(InvasionGroupState group)
+        {
+            Kingdom? kingdom = Clan.FindFirst(clan => clan.StringId == group.ClanId)?.Kingdom;
+            if (kingdom == null) return null;
+            bool retirable = !kingdom.IsEliminated && kingdom != Clan.PlayerClan.Kingdom &&
+                             !kingdom.Settlements.Any();
+            if (retirable) CampaignEventDispatcher.Instance.CanKingdomBeDiscontinued(kingdom, ref retirable);
+            return retirable ? kingdom : null;
+        }
+
+        // FactionDiscontinuationCampaignBehavior.DiscontinueKingdom: its clans leave as independents, and
+        // vanilla then gives them its usual time to survive on their own before destroying them.
+        private static void DiscontinueKingdom(Kingdom kingdom)
+        {
+            foreach (Clan clan in kingdom.Clans.ToList())
+            {
+                FinalizeMapEvents(clan);
+                ChangeKingdomAction.ApplyByLeaveByKingdomDestruction(clan);
+            }
+
+            kingdom.RulingClan = null;
+            DestroyKingdomAction.Apply(kingdom);
+        }
+
+        // A kingdom is only retired once it holds no settlement, so only its parties can still be fighting.
+        private static void FinalizeMapEvents(Clan clan)
+        {
+            foreach (WarPartyComponent component in clan.WarPartyComponents.ToList())
+            {
+                if (component?.Party.IsActive != true) continue;
+                component.MobileParty.MapEvent?.FinalizeEvent();
+                component.MobileParty.SiegeEvent?.FinalizeSiegeEvent();
+            }
         }
 
         private void StartReinforcementSchedule(long contextId)
