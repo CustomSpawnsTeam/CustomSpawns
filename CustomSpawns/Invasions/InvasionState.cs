@@ -10,11 +10,11 @@ namespace CustomSpawns.Invasions
         internal long NextGroupId = 1;
         internal long NextCaptureId = 1;
         internal readonly Dictionary<string, InvasionGroupState> GroupIndex = new(StringComparer.Ordinal);
-        internal readonly Dictionary<long, InvasionCaptureContext> CaptureIndex = new();
-        internal readonly Dictionary<string, InvasionTownCredit> CreditIndex = new(StringComparer.Ordinal);
+        internal readonly Dictionary<long, InvasionCapture> CaptureIndex = new();
+        internal readonly Dictionary<string, InvasionFoothold> FootholdIndex = new(StringComparer.Ordinal);
         public IReadOnlyCollection<InvasionGroupState> Groups => GroupIndex.Values;
-        public IReadOnlyCollection<InvasionCaptureContext> Captures => CaptureIndex.Values;
-        public IReadOnlyCollection<InvasionTownCredit> Credits => CreditIndex.Values;
+        public IReadOnlyCollection<InvasionCapture> Captures => CaptureIndex.Values;
+        public IReadOnlyCollection<InvasionFoothold> Footholds => FootholdIndex.Values;
 
         public InvasionGroupState RegisterMember(string templateId, string clanId, string partyId)
         {
@@ -31,8 +31,8 @@ namespace CustomSpawns.Invasions
 
         public InvasionGroupState? FindGroup(string? id) => id != null && GroupIndex.TryGetValue(id, out var group) ? group : null;
         public InvasionGroupState? FindMemberGroup(string partyId) => Groups.SingleOrDefault(g => g.Members.Contains(partyId));
-        public InvasionTownCredit? FindCredit(string settlementId) => CreditIndex.TryGetValue(settlementId, out var credit) ? credit : null;
-        public InvasionCaptureContext? FindCapture(long id) => CaptureIndex.TryGetValue(id, out var capture) ? capture : null;
+        public InvasionFoothold? FindFoothold(string settlementId) => FootholdIndex.TryGetValue(settlementId, out var foothold) ? foothold : null;
+        public InvasionCapture? FindCapture(long id) => CaptureIndex.TryGetValue(id, out var capture) ? capture : null;
 
         // A kingdom carrying a live invasion must outlive the loss of its last settlement so the invasion can retake one.
         public bool ProtectsKingdomOf(IEnumerable<string> clanIds) =>
@@ -40,47 +40,47 @@ namespace CustomSpawns.Invasions
 
         // An invasion left with no town to hold and no party to retake one has nothing left to fight with.
         public bool IsGroupSpent(InvasionGroupState group) =>
-            group.Members.Count == 0 && !Credits.Any(credit => credit.GroupId == group.Id);
+            group.Members.Count == 0 && !Footholds.Any(foothold => foothold.GroupId == group.Id);
 
         // A group holding no town is put back on the offensive; vanilla steers its lords while it still holds one.
         public bool IsGroupWithoutTown(string? groupId)
         {
             InvasionGroupState? group = FindGroup(groupId);
-            return group != null && !group.IsSuspended && !Credits.Any(credit => credit.GroupId == group.Id);
+            return group != null && !group.IsSuspended && !Footholds.Any(foothold => foothold.GroupId == group.Id);
         }
 
-        public InvasionCaptureContext StartCapture(string settlementId, long battleStartTimeBits, string attackerLeaderId)
+        public InvasionCapture StartCapture(string settlementId, long battleStartTimeBits, string attackerLeaderId)
         {
-            // A later siege can never consume an earlier siege's unjoined snapshot.
-            foreach (var old in Captures.Where(c => c.SettlementId == settlementId && !c.Joined)) old.Cancelled = true;
-            var context = new InvasionCaptureContext(NextCaptureId++, settlementId, battleStartTimeBits, attackerLeaderId);
-            CaptureIndex.Add(context.Id, context);
-            return context;
+            // A later siege can never consume an earlier siege's unconfirmed snapshot.
+            foreach (var old in Captures.Where(c => c.SettlementId == settlementId && !c.IsConfirmed)) old.Cancelled = true;
+            var capture = new InvasionCapture(NextCaptureId++, settlementId, battleStartTimeBits, attackerLeaderId);
+            CaptureIndex.Add(capture.Id, capture);
+            return capture;
         }
 
         public void ObserveOwner(string settlementId, string? ownerClanId)
         {
-            var credit = FindCredit(settlementId);
-            if (credit != null && FindGroup(credit.GroupId)?.HoldsClan(ownerClanId) != true) CreditIndex.Remove(settlementId);
-            foreach (var context in Captures.Where(c => c.SettlementId == settlementId && c.OwnershipObserved &&
-                         FindGroup(c.OwnershipGroupId)?.HoldsClan(ownerClanId) != true))
-                context.Cancelled = true;
+            var foothold = FindFoothold(settlementId);
+            if (foothold != null && FindGroup(foothold.GroupId)?.HoldsClan(ownerClanId) != true) FootholdIndex.Remove(settlementId);
+            foreach (var capture in Captures.Where(c => c.SettlementId == settlementId && c.OwnershipObserved &&
+                         FindGroup(c.CapturingGroupId)?.HoldsClan(ownerClanId) != true))
+                capture.Cancelled = true;
         }
 
-        public bool CanApplyOccupation(long contextId, string currentOwnerClanId)
+        public bool CanApplyOccupation(long captureId, string currentOwnerClanId)
         {
-            var context = FindCapture(contextId);
-            if (context == null) return false;
-            ObserveOwner(context.SettlementId, currentOwnerClanId);
-            return context.Joined && context.ParticipantSnapshotCaptured && !context.Cancelled && !context.OccupationApplied &&
-                FindCredit(context.SettlementId)?.ContextId == contextId && FindGroup(context.OwnershipGroupId)?.IsSuspended == false;
+            var capture = FindCapture(captureId);
+            if (capture == null) return false;
+            ObserveOwner(capture.SettlementId, currentOwnerClanId);
+            return capture.IsConfirmed && capture.HasParticipants && !capture.Cancelled && !capture.OccupationApplied &&
+                FindFoothold(capture.SettlementId)?.CaptureId == captureId && FindGroup(capture.CapturingGroupId)?.IsSuspended == false;
         }
 
         // Called only after the engine adapter successfully applies the initial occupation package.
-        public bool CompleteOccupation(long contextId, string currentOwnerClanId)
+        public bool CompleteOccupation(long captureId, string currentOwnerClanId)
         {
-            if (!CanApplyOccupation(contextId, currentOwnerClanId)) return false;
-            CaptureIndex[contextId].OccupationApplied = true;
+            if (!CanApplyOccupation(captureId, currentOwnerClanId)) return false;
+            CaptureIndex[captureId].OccupationApplied = true;
             return true;
         }
 
@@ -88,10 +88,10 @@ namespace CustomSpawns.Invasions
             Func<InvasionGroupState, bool> effectsEnabled, Func<InvasionGroupState, bool> awaitsKingdomRetirement)
         {
             var active = new HashSet<string>(activePartyIds, StringComparer.Ordinal);
-            foreach (var context in Captures)
-                foreach (string absent in context.Participants.Keys.Where(id => !active.Contains(id)).ToList())
-                    context.Participants.Remove(absent);
-            foreach (var credit in Credits.ToList()) ObserveOwner(credit.SettlementId, ownerOfTown(credit.SettlementId));
+            foreach (var capture in Captures)
+                foreach (string absent in capture.Participants.Keys.Where(id => !active.Contains(id)).ToList())
+                    capture.Participants.Remove(absent);
+            foreach (var foothold in Footholds.ToList()) ObserveOwner(foothold.SettlementId, ownerOfTown(foothold.SettlementId));
             foreach (var group in Groups.ToList())
             {
                 group.Members.IntersectWith(active);
@@ -99,21 +99,21 @@ namespace CustomSpawns.Invasions
                 // A spent group outlives itself while the kingdom it leaves behind still has to be retired: it is what names that kingdom.
                 if (!IsGroupSpent(group) || awaitsKingdomRetirement(group)) continue;
                 GroupIndex.Remove(group.Id);
-                foreach (var context in Captures.Where(c => c.OwnershipGroupId == group.Id)) context.Cancelled = true;
+                foreach (var capture in Captures.Where(c => c.CapturingGroupId == group.Id)) capture.Cancelled = true;
             }
-            foreach (var context in Captures.Where(c => c.Cancelled).ToList()) CaptureIndex.Remove(context.Id);
+            foreach (var capture in Captures.Where(c => c.Cancelled).ToList()) CaptureIndex.Remove(capture.Id);
         }
 
         public void RemoveMember(string partyId)
         {
             foreach (var group in Groups) group.Members.Remove(partyId);
             // An ID may be reused by a later spawn; it must never become a donor for an older battle.
-            foreach (var context in Captures) context.Participants.Remove(partyId);
+            foreach (var capture in Captures) capture.Participants.Remove(partyId);
         }
 
-        public void DiscardUnboundCaptures(ISet<long> reboundContextIds)
+        public void DiscardUnboundCaptures(ISet<long> reboundCaptureIds)
         {
-            foreach (var context in Captures.Where(c => !c.Joined && !reboundContextIds.Contains(c.Id))) context.Cancelled = true;
+            foreach (var capture in Captures.Where(c => !c.IsConfirmed && !reboundCaptureIds.Contains(c.Id))) capture.Cancelled = true;
         }
     }
 
@@ -139,33 +139,33 @@ namespace CustomSpawns.Invasions
         public IReadOnlyCollection<string> MemberPartyIds => Members;
     }
 
-    public sealed class InvasionTownCredit
+    public sealed class InvasionFoothold
     {
-        internal InvasionTownCredit(string settlementId, string groupId, long contextId)
-        { SettlementId = settlementId; GroupId = groupId; ContextId = contextId; }
+        internal InvasionFoothold(string settlementId, string groupId, long captureId)
+        { SettlementId = settlementId; GroupId = groupId; CaptureId = captureId; }
         public string SettlementId { get; }
         public string GroupId { get; }
-        public long ContextId { get; }
+        public long CaptureId { get; }
     }
 
-    public sealed class InvasionCaptureContext
+    public sealed class InvasionCapture
     {
-        internal InvasionCaptureContext(long id, string settlementId, long battleStartTimeBits, string startingAttackerId)
+        internal InvasionCapture(long id, string settlementId, long battleStartTimeBits, string startingAttackerId)
         { Id = id; SettlementId = settlementId; BattleStartTimeBits = battleStartTimeBits; StartingAttackerId = startingAttackerId; }
         public long Id { get; }
         public string SettlementId { get; }
         // Exact bit representation of the engine's BattleStartTime.ToSeconds; no formatted-time rounding.
         public long BattleStartTimeBits { get; }
         public string StartingAttackerId { get; }
-        public string? OwnershipGroupId { get; internal set; }
+        public string? CapturingGroupId { get; internal set; }
         public string? CapturerId { get; internal set; }
         public string? PreviousOwnerClanId { get; internal set; }
         public bool OwnershipObserved { get; internal set; }
         public string? AftermathPreviousOwnerClanId { get; internal set; }
-        public bool ParticipantSnapshotCaptured { get; internal set; }
+        public bool HasParticipants { get; internal set; }
         internal Dictionary<string, string> Participants = new(StringComparer.Ordinal);
         public IReadOnlyCollection<string> ParticipantPartyIds => Participants.Keys;
-        public bool Joined { get; internal set; }
+        public bool IsConfirmed { get; internal set; }
         public bool Cancelled { get; internal set; }
         public bool OccupationApplied { get; internal set; }
     }

@@ -26,7 +26,7 @@ namespace CustomSpawns.Spawn.PartyComponents
             AddClassDefinition(typeof(InvasionSaveData), 6);
             AddClassDefinition(typeof(InvasionGroupSaveData), 7);
             AddClassDefinition(typeof(InvasionCaptureSaveData), 8);
-            AddClassDefinition(typeof(InvasionCreditSaveData), 9);
+            AddClassDefinition(typeof(InvasionFootholdSaveData), 9);
             AddClassDefinition(typeof(InvasionCaptureEvidenceSaveData), 10);
         }
 
@@ -39,7 +39,7 @@ namespace CustomSpawns.Spawn.PartyComponents
         {
             ConstructContainerDefinition(typeof(List<InvasionGroupSaveData>));
             ConstructContainerDefinition(typeof(List<InvasionCaptureSaveData>));
-            ConstructContainerDefinition(typeof(List<InvasionCreditSaveData>));
+            ConstructContainerDefinition(typeof(List<InvasionFootholdSaveData>));
             ConstructContainerDefinition(typeof(List<InvasionCaptureEvidenceSaveData>));
             ConstructContainerDefinition(typeof(List<MobileParty>));
             ConstructContainerDefinition(typeof(List<string>));

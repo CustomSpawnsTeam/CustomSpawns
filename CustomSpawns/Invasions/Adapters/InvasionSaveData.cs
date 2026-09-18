@@ -14,7 +14,7 @@ namespace CustomSpawns.Invasions.Adapters
         [SaveableField(2)] public long NextCaptureId = 1;
         [SaveableField(3)] public List<InvasionGroupSaveData> Groups = new();
         [SaveableField(4)] public List<InvasionCaptureSaveData> Captures = new();
-        [SaveableField(5)] public List<InvasionCreditSaveData> Credits = new();
+        [SaveableField(5)] public List<InvasionFootholdSaveData> Footholds = new();
         [SaveableField(6)] public List<InvasionCaptureEvidenceSaveData> OwnedCaptureEvidence = new();
 
         internal static InvasionSaveData FromState(InvasionState state) => new()
@@ -23,7 +23,7 @@ namespace CustomSpawns.Invasions.Adapters
             NextCaptureId = state.NextCaptureId,
             Groups = state.Groups.Select(InvasionGroupSaveData.FromState).ToList(),
             Captures = state.Captures.Select(InvasionCaptureSaveData.FromState).ToList(),
-            Credits = state.Credits.Select(InvasionCreditSaveData.FromState).ToList()
+            Footholds = state.Footholds.Select(InvasionFootholdSaveData.FromState).ToList()
         };
 
         internal InvasionState ToState()
@@ -31,19 +31,19 @@ namespace CustomSpawns.Invasions.Adapters
             var state = new InvasionState { NextGroupId = Math.Max(1, NextGroupId), NextCaptureId = Math.Max(1, NextCaptureId) };
             foreach (var group in Groups ?? new List<InvasionGroupSaveData>()) state.GroupIndex.Add(group.Id, group.ToState());
             foreach (var capture in Captures ?? new List<InvasionCaptureSaveData>()) state.CaptureIndex.Add(capture.Id, capture.ToState());
-            foreach (var credit in Credits ?? new List<InvasionCreditSaveData>())
-                if (state.FindGroup(credit.GroupId) != null && state.FindCapture(credit.ContextId)?.Joined == true)
-                    state.CreditIndex.Add(credit.SettlementId, credit.ToState());
+            foreach (var foothold in Footholds ?? new List<InvasionFootholdSaveData>())
+                if (state.FindGroup(foothold.GroupId) != null && state.FindCapture(foothold.CaptureId)?.IsConfirmed == true)
+                    state.FootholdIndex.Add(foothold.SettlementId, foothold.ToState());
             state.NextCaptureId = Math.Max(state.NextCaptureId, state.Captures.Select(c => c.Id + 1).DefaultIfEmpty(1).Max());
             return state;
         }
     }
 
     // Native references preserve identity across a save made between ownership and the player's aftermath choice.
-    // This is evidence for the saved context, not another copy of the invasion rules or mutable credit state.
+    // This is evidence for the saved capture, not another copy of the invasion rules or mutable foothold state.
     public sealed class InvasionCaptureEvidenceSaveData
     {
-        [SaveableField(1)] public long ContextId;
+        [SaveableField(1)] public long CaptureId;
         [SaveableField(2)] public string PreviousOwnerClanId = "";
         [SaveableField(3)] public string ExpectedOwnerClanId = "";
         [SaveableField(4)] public Hero? Capturer;
@@ -93,64 +93,64 @@ namespace CustomSpawns.Invasions.Adapters
         [SaveableField(1)] public long Id;
         [SaveableField(2)] public string SettlementId = "";
         [SaveableField(3)] public long BattleStartTimeBits;
-        [SaveableField(4)] public string? OwnershipGroupId;
+        [SaveableField(4)] public string? CapturingGroupId;
         [SaveableField(5)] public string? CapturerId;
         [SaveableField(6)] public string? PreviousOwnerClanId;
         [SaveableField(8)] public bool OwnershipObserved;
         [SaveableField(9)] public string StartingAttackerId = "";
         [SaveableField(11)] public string? AftermathPreviousOwnerClanId;
-        [SaveableField(12)] public bool ParticipantSnapshotCaptured;
+        [SaveableField(12)] public bool HasParticipants;
         [SaveableField(13)] public Dictionary<string, string> Participants = new();
-        [SaveableField(15)] public bool Joined;
+        [SaveableField(15)] public bool IsConfirmed;
         [SaveableField(16)] public bool Cancelled;
         [SaveableField(17)] public bool OccupationApplied;
 
-        internal static InvasionCaptureSaveData FromState(InvasionCaptureContext value) => new()
+        internal static InvasionCaptureSaveData FromState(InvasionCapture value) => new()
         {
             Id = value.Id,
             SettlementId = value.SettlementId,
             BattleStartTimeBits = value.BattleStartTimeBits,
-            OwnershipGroupId = value.OwnershipGroupId,
+            CapturingGroupId = value.CapturingGroupId,
             CapturerId = value.CapturerId,
             PreviousOwnerClanId = value.PreviousOwnerClanId,
             OwnershipObserved = value.OwnershipObserved,
             StartingAttackerId = value.StartingAttackerId,
             AftermathPreviousOwnerClanId = value.AftermathPreviousOwnerClanId,
-            ParticipantSnapshotCaptured = value.ParticipantSnapshotCaptured,
+            HasParticipants = value.HasParticipants,
             Participants = new Dictionary<string, string>(value.Participants, StringComparer.Ordinal),
-            Joined = value.Joined,
+            IsConfirmed = value.IsConfirmed,
             Cancelled = value.Cancelled,
             OccupationApplied = value.OccupationApplied
         };
 
-        internal InvasionCaptureContext ToState() => new(Id, SettlementId, BattleStartTimeBits, StartingAttackerId)
+        internal InvasionCapture ToState() => new(Id, SettlementId, BattleStartTimeBits, StartingAttackerId)
         {
-            OwnershipGroupId = OwnershipGroupId,
+            CapturingGroupId = CapturingGroupId,
             CapturerId = CapturerId,
             PreviousOwnerClanId = PreviousOwnerClanId,
             OwnershipObserved = OwnershipObserved,
             AftermathPreviousOwnerClanId = AftermathPreviousOwnerClanId,
-            ParticipantSnapshotCaptured = ParticipantSnapshotCaptured,
+            HasParticipants = HasParticipants,
             Participants = new Dictionary<string, string>(Participants ?? new Dictionary<string, string>(), StringComparer.Ordinal),
-            Joined = Joined,
+            IsConfirmed = IsConfirmed,
             Cancelled = Cancelled,
             OccupationApplied = OccupationApplied
         };
     }
 
-    public sealed class InvasionCreditSaveData
+    public sealed class InvasionFootholdSaveData
     {
         [SaveableField(1)] public string SettlementId = "";
         [SaveableField(2)] public string GroupId = "";
-        [SaveableField(3)] public long ContextId;
+        [SaveableField(3)] public long CaptureId;
 
-        internal static InvasionCreditSaveData FromState(InvasionTownCredit value) => new()
+        internal static InvasionFootholdSaveData FromState(InvasionFoothold value) => new()
         {
             SettlementId = value.SettlementId,
             GroupId = value.GroupId,
-            ContextId = value.ContextId
+            CaptureId = value.CaptureId
         };
 
-        internal InvasionTownCredit ToState() => new(SettlementId, GroupId, ContextId);
+        internal InvasionFoothold ToState() => new(SettlementId, GroupId, CaptureId);
     }
 }

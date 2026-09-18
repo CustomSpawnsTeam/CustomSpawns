@@ -50,7 +50,7 @@ namespace CustomSpawns.Invasions
         double NowInDays { get; }
         InvasionReinforcementSettings? GetSettings(InvasionGroupState group);
         bool IsCoastalTown(string settlementId);
-        // Credited towns the group still holds that can take a landing.
+        // Towns the group holds that can take a landing.
         IReadOnlyList<string> GetLandingSites(InvasionGroupState group);
         int CountActiveReinforcements(InvasionGroupState group);
         // Vanilla caps war parties per clan tier; a clan at its limit cannot take another arrival.
@@ -77,14 +77,14 @@ namespace CustomSpawns.Invasions
         }
 
         // The clock is wound once, by the first coastal town the invasion takes and holds.
-        internal InvasionGroupState? StartSchedule(long captureContextId)
+        internal InvasionGroupState? StartSchedule(long captureId)
         {
-            InvasionCaptureContext? context = _state.FindCapture(captureContextId);
-            InvasionGroupState? group = _state.FindGroup(context?.OwnershipGroupId);
-            if (context?.Joined != true || group == null || group.NextReinforcementDeadlineDays != 0) return null;
+            InvasionCapture? capture = _state.FindCapture(captureId);
+            InvasionGroupState? group = _state.FindGroup(capture?.CapturingGroupId);
+            if (capture?.IsConfirmed != true || group == null || group.NextReinforcementDeadlineDays != 0) return null;
 
             double intervalDays = _campaign.GetSettings(group)?.IntervalInDays ?? 0;
-            if (intervalDays <= 0 || !_campaign.IsCoastalTown(context.SettlementId)) return null;
+            if (intervalDays <= 0 || !_campaign.IsCoastalTown(capture.SettlementId)) return null;
 
             group.ReinforcementIntervalDays = intervalDays;
             group.NextReinforcementDeadlineDays = _campaign.NowInDays + intervalDays;

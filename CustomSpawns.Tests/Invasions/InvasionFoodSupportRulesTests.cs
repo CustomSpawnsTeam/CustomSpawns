@@ -16,7 +16,7 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
-        public void OngoingSupport_RequiresOneEligibleCreditedUnbesiegedTown()
+        public void OngoingSupport_RequiresOneEligibleHeldUnbesiegedTown()
         {
             Assert.True(InvasionFoodSupportRules.IsEligibleForOngoingSupport(true, true, true, true, false));
             Assert.False(InvasionFoodSupportRules.IsEligibleForOngoingSupport(false, true, true, true, false));

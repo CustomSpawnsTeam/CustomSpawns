@@ -25,7 +25,7 @@ namespace CustomSpawns.Tests.Invasions
         [Test]
         public void OnlyTheFirstCoastalTownWindsThePersistentClock()
         {
-            InvasionCaptureContext capture = Conquer();
+            InvasionCapture capture = Conquer();
             _campaign.Now = 10;
             _campaign.Coastal = false;
 
@@ -117,10 +117,10 @@ namespace CustomSpawns.Tests.Invasions
             _reinforcements.StartSchedule(Conquer().Id);
         }
 
-        private InvasionCaptureContext Conquer()
+        private InvasionCapture Conquer()
         {
             var correlation = new InvasionCaptureCorrelation(_state);
-            InvasionCaptureContext capture = _state.StartCapture("town", 100, "capturer");
+            InvasionCapture capture = _state.StartCapture("town", 100, "capturer");
             correlation.ObserveOwnership(capture.Id, _group.Id, "capturer", "enemy", "clan", true);
             correlation.ObserveAftermath(capture.Id, "capturer", "enemy", new Dictionary<string, string>
             {
