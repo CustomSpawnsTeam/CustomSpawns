@@ -4,7 +4,6 @@ using System.Linq;
 using CustomSpawns.AI;
 using CustomSpawns.AI.Offensives;
 using CustomSpawns.Data.Dao;
-using CustomSpawns.Data.Dto;
 using CustomSpawns.Spawn;
 using CustomSpawns.UtilityBehaviours;
 using TaleWorlds.CampaignSystem;
@@ -30,6 +29,7 @@ namespace CustomSpawns.Invasions.Adapters
         private InvasionOccupations _occupations;
         private InvasionKingdomRetirement _retirement;
         private InvasionSieges _sieges;
+        private InvasionMembership _membership;
         private bool _initialized;
         public InvasionState State { get; private set; } = new();
 
@@ -45,6 +45,7 @@ namespace CustomSpawns.Invasions.Adapters
             _occupations = NewOccupations();
             _retirement = new InvasionKingdomRetirement(State);
             _sieges = new InvasionSieges(State, _correlation, _spawns);
+            _membership = new InvasionMembership(State, _spawns, _parties, _correlation);
             // DynamicSpawnData registers its discovery callback first; scheduling/AI are composed later.
             initialiser.RunCallbackOnFirstCampaignTick(Initialize);
             parties.PartyRegistered += RegisterParty;
@@ -80,6 +81,7 @@ namespace CustomSpawns.Invasions.Adapters
             _occupations = NewOccupations();
             _retirement = new InvasionKingdomRetirement(State);
             _sieges = new InvasionSieges(State, _correlation, _spawns);
+            _membership = new InvasionMembership(State, _spawns, _parties, _correlation);
             foreach (var evidence in saved?.OwnedCaptureEvidence ?? new List<InvasionCaptureEvidenceSaveData>())
                 _correlation.RestoreOwnedResult(evidence.CaptureId, evidence.PreviousOwnerClanId,
                     evidence.ExpectedOwnerClanId, evidence.Capturer, (evidence.Participants ?? new List<MobileParty>()).Cast<object>());
@@ -96,102 +98,35 @@ namespace CustomSpawns.Invasions.Adapters
         {
             if (_initialized) return;
             _initialized = true;
-            Reconcile();
-            foreach (MobileParty party in MobileParty.All.Where(p => p.IsActive))
-            {
-                CsPartyData? data = _parties.GetDynamicSpawnData(party);
-                if (data != null) RegisterParty(party, data);
-            }
-            // Only a unique live native anchor can restore an incomplete occurrence.
-            var liveEvents = Settlement.All.Select(s => s.Party.MapEvent).Where(e => e != null).Distinct().ToList();
-            var rebound = new HashSet<long>(_correlation.ExportOwnedResults().Select(result => result.CaptureId));
-            foreach (var capture in State.Captures.Where(c => !c.Cancelled && !c.IsConfirmed))
-            {
-                if (rebound.Contains(capture.Id)) continue;
-                var matches = liveEvents.Where(e => e!.MapEventSettlement?.StringId == capture.SettlementId &&
-                    BitConverter.DoubleToInt64Bits(e.BattleStartTime.ToSeconds) == capture.BattleStartTimeBits).ToList();
-                int savedMatches = State.Captures.Count(c => !c.Cancelled && !c.IsConfirmed &&
-                    c.SettlementId == capture.SettlementId && c.BattleStartTimeBits == capture.BattleStartTimeBits);
-                if (matches.Count != 1 || savedMatches != 1 || _correlation.IsBound(matches[0]!)) continue;
-                _correlation.Bind(matches[0]!, capture.Id, capture.PreviousOwnerClanId ??
-                    capture.AftermathPreviousOwnerClanId ?? matches[0]!.MapEventSettlement.OwnerClan?.StringId ?? "");
-                rebound.Add(capture.Id);
-            }
-            State.DiscardUnboundCaptures(rebound);
+            _membership.Reconcile();
+            _membership.RegisterLive();
+            _sieges.RebindUnconfirmed();
         }
 
-        private void RegisterParty(MobileParty party, CsPartyData data)
-        {
-            // Saved membership survives removed configurations so cleanup remains possible.
-            InvasionGroupState? saved = State.FindGroup(data.InvasionGroupId);
-            if (saved != null && saved.HoldsClan(party.ActualClan?.StringId) && saved.SpawnTemplateId == data.OwningSpawnTemplateId)
-            {
-                saved.Members.Add(party.StringId);
-                data.SetInvasionIdentity(saved.Id, data.InvasionRole ?? InvasionRoleFor(data));
-                return;
-            }
-            string? templateId = data.OwningSpawnTemplateId;
-            Clan? clan = party.ActualClan;
-            if (templateId == null || clan == null || clan.IsEliminated || clan.IsBanditFaction ||
-                _spawns.FindByPartyTemplateId(templateId)?.Invasion == null)
-            {
-                data.SetInvasionIdentity(null, null);
-                return;
-            }
-            var group = State.RegisterMember(templateId, clan.StringId, party.StringId);
-            data.SetInvasionIdentity(group.Id, InvasionRoleFor(data));
-        }
+        private void RegisterParty(MobileParty party, CsPartyData data) => _membership.Register(party, data);
 
-        private void RemoveParty(MobileParty party)
-        {
-            State.RemoveMember(party.StringId);
-            Reconcile();
-        }
-
-        private static string InvasionRoleFor(CsPartyData data) => data.IsIndependentReinforcement ? "Reinforcement" :
-            data.IsPrimarySpawn ? "Original" : "Escort";
-
-        private void Reconcile()
-        {
-            State.Reconcile(MobileParty.All.Where(p => p.IsActive).Select(p => p.StringId),
-                id => Settlement.Find(id)?.OwnerClan?.StringId,
-                group => GetConfiguration(group) != null && Clan.FindFirst(c => c.StringId == group.ClanId)?.IsEliminated == false,
-                group => InvasionKingdomRetirement.FindRetirableKingdom(group) != null);
-            _correlation.Prune();
-        }
+        private void RemoveParty(MobileParty party) => _membership.Remove(party);
 
         private void OnHourlyTick()
         {
             Initialize();
-            Reconcile();
+            _membership.Reconcile();
             _retirement.RetireSpent();
             _occupations.ApplyReady();
         }
-
-        public InvasionData? GetConfiguration(InvasionGroupState group) => _spawns.FindByPartyTemplateId(group.SpawnTemplateId)?.Invasion;
 
         public bool HasPersistentInvasionGroup(CsPartyData partyData) => State.FindGroup(partyData.InvasionGroupId) != null;
 
         Func<Settlement, bool>? IInvasionLandingQuery.GetInitialCoastalTargetFilter(MobileParty party)
         {
             Initialize();
-            InvasionGroupState? group = State.FindMemberGroup(party.StringId);
-            if (group == null || group.IsSuspended ||
-                !group.HoldsClan(party.ActualClan?.StringId)) return null;
-            InvasionData? configuration = GetConfiguration(group);
-            if (configuration?.RequiresFirstCoastalConquest != true) return null;
-            bool factionHasCoastalTown = Settlement.All.Any(settlement => settlement.IsTown &&
-                settlement.MapFaction == party.MapFaction && _coastalTownResolver.IsCoastalTown(settlement));
-            return factionHasCoastalTown ? null : _coastalTownResolver.IsCoastalTown;
+            return _arrivals.FindInitialCoastalTargetFilter(party);
         }
 
         IReadOnlyList<MobileParty> IInvasionLandingQuery.GetLandingParties(MobileParty party)
         {
             Initialize();
-            InvasionGroupState? group = State.FindMemberGroup(party.StringId);
-            if (group == null) return new[] { party };
-            return MobileParty.All.Where(member => member.IsActive && group.Members.Contains(member.StringId))
-                .ToList();
+            return _membership.FindLiveMembers(party);
         }
 
         private void OnMapEventStarted(MapEvent mapEvent, PartyBase attacker, PartyBase defender)
@@ -233,7 +168,7 @@ namespace CustomSpawns.Invasions.Adapters
         private void ScheduleReinforcements()
         {
             Initialize();
-            Reconcile();
+            _membership.Reconcile();
             _arrivals.LandDue();
         }
 

@@ -161,6 +161,18 @@ namespace CustomSpawns.Invasions.Adapters
             return clan?.IsEliminated == false && clan.WarPartyComponents.Count < clan.WarPartyLimit;
         }
 
+        internal Func<Settlement, bool>? FindInitialCoastalTargetFilter(MobileParty party)
+        {
+            InvasionGroupState? group = _state.FindMemberGroup(party.StringId);
+            if (group == null || group.IsSuspended ||
+                !group.HoldsClan(party.ActualClan?.StringId)) return null;
+            InvasionData? configuration = GetConfiguration(group);
+            if (configuration?.RequiresFirstCoastalConquest != true) return null;
+            bool factionHasCoastalTown = Settlement.All.Any(settlement => settlement.IsTown &&
+                settlement.MapFaction == party.MapFaction && _coastalTownResolver.IsCoastalTown(settlement));
+            return factionHasCoastalTown ? null : _coastalTownResolver.IsCoastalTown;
+        }
+
         private bool IsEligibleLandingSettlement(Settlement settlement, InvasionGroupState group)
         {
             InvasionFoothold? foothold = _state.FindFoothold(settlement.StringId);

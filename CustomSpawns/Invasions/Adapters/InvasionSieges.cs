@@ -100,6 +100,26 @@ namespace CustomSpawns.Invasions.Adapters
             return capture.Id;
         }
 
+        internal void RebindUnconfirmed()
+        {
+            // Only a unique live native anchor can restore an incomplete occurrence.
+            var liveEvents = Settlement.All.Select(s => s.Party.MapEvent).Where(e => e != null).Distinct().ToList();
+            var rebound = new HashSet<long>(_correlation.ExportOwnedResults().Select(result => result.CaptureId));
+            foreach (var capture in _state.Captures.Where(c => !c.Cancelled && !c.IsConfirmed))
+            {
+                if (rebound.Contains(capture.Id)) continue;
+                var matches = liveEvents.Where(e => e!.MapEventSettlement?.StringId == capture.SettlementId &&
+                    BitConverter.DoubleToInt64Bits(e.BattleStartTime.ToSeconds) == capture.BattleStartTimeBits).ToList();
+                int savedMatches = _state.Captures.Count(c => !c.Cancelled && !c.IsConfirmed &&
+                    c.SettlementId == capture.SettlementId && c.BattleStartTimeBits == capture.BattleStartTimeBits);
+                if (matches.Count != 1 || savedMatches != 1 || _correlation.IsBound(matches[0]!)) continue;
+                _correlation.Bind(matches[0]!, capture.Id, capture.PreviousOwnerClanId ??
+                    capture.AftermathPreviousOwnerClanId ?? matches[0]!.MapEventSettlement.OwnerClan?.StringId ?? "");
+                rebound.Add(capture.Id);
+            }
+            _state.DiscardUnboundCaptures(rebound);
+        }
+
         private void RecordNativeResult(MapEvent? mapEvent)
         {
             if (mapEvent?.MapEventSettlement == null || !IsSuccessfulFinalization(mapEvent)) return;
