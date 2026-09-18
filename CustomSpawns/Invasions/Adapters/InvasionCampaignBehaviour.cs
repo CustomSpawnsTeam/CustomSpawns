@@ -20,7 +20,7 @@ using TaleWorlds.Library;
 namespace CustomSpawns.Invasions.Adapters
 {
     public sealed class InvasionCampaignBehaviour : CampaignBehaviorBase, IInvasionFootholdQuery,
-        IInvasionLandingQuery
+        IInvasionLandingQuery, IInvasionReinforcementQuery
     {
         private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         private readonly SpawnDao _spawns;
@@ -29,6 +29,7 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly InvasionCoastalTownResolver _coastalTownResolver = new();
         private readonly Func<int, int> _randomIndex;
         private InvasionCaptureCorrelation _correlation;
+        private InvasionReinforcements _reinforcements;
         private bool _initialized;
         public InvasionState State { get; private set; } = new();
 
@@ -40,6 +41,7 @@ namespace CustomSpawns.Invasions.Adapters
             _spawnGroups = spawnGroups;
             _randomIndex = randomIndex ?? MBRandom.RandomInt;
             _correlation = new InvasionCaptureCorrelation(State);
+            _reinforcements = new InvasionReinforcements(State, this, _randomIndex);
             // DynamicSpawnData registers its discovery callback first; scheduling/AI are composed later.
             initialiser.RunCallbackOnFirstCampaignTick(Initialize);
             parties.PartyRegistered += RegisterParty;
@@ -71,6 +73,7 @@ namespace CustomSpawns.Invasions.Adapters
             if (!dataStore.IsLoading) return;
             State = saved?.ToState() ?? new InvasionState();
             _correlation = new InvasionCaptureCorrelation(State);
+            _reinforcements = new InvasionReinforcements(State, this, _randomIndex);
             foreach (var evidence in saved?.OwnedCaptureEvidence ?? new List<InvasionCaptureEvidenceSaveData>())
                 _correlation.RestoreOwnedResult(evidence.ContextId, evidence.PreviousOwnerClanId,
                     evidence.ExpectedOwnerClanId, evidence.Capturer, (evidence.Participants ?? new List<MobileParty>()).Cast<object>());
@@ -241,7 +244,7 @@ namespace CustomSpawns.Invasions.Adapters
                 if (group != null && group.ClanId == party.ActualClan?.StringId) participants[party.StringId] = group.Id;
             }
             // Copy immediately: the native dictionary is cleared after the callback.
-            State.ObserveAftermath(context.Id, attacker.StringId, previousOwner?.StringId ?? "", participants);
+            _correlation.ObserveAftermath(context.Id, attacker.StringId, previousOwner?.StringId ?? "", participants);
             StartReinforcementSchedule(context.Id);
         }
 
@@ -265,9 +268,8 @@ namespace CustomSpawns.Invasions.Adapters
             if (group == null || context == null || party.ActualClan?.StringId != group.ClanId) return;
             InvasionData? configuration = GetConfiguration(group);
             if (configuration == null) return;
-            bool coastal = _coastalTownResolver.IsCoastalTown(settlement);
-            State.ObserveOwnership(context.Id, group.Id, party.StringId, oldOwner?.Clan?.StringId ?? "",
-                newOwner?.Clan?.StringId ?? "", true, coastal);
+            _correlation.ObserveOwnership(context.Id, group.Id, party.StringId, oldOwner?.Clan?.StringId ?? "",
+                newOwner?.Clan?.StringId ?? "", true);
             StartReinforcementSchedule(context.Id);
         }
 
@@ -338,82 +340,78 @@ namespace CustomSpawns.Invasions.Adapters
 
         private void StartReinforcementSchedule(long contextId)
         {
-            InvasionCaptureContext? context = State.FindCapture(contextId);
-            InvasionData? configuration = context == null ? null : State.FindGroup(context.OwnershipGroupId) is { } group
-                ? GetConfiguration(group)
-                : null;
-            if (configuration != null && State.StartReinforcementSchedule(contextId, CampaignTime.Now.ToDays,
-                    configuration.ReinforcementIntervalInDays))
-            {
-                Logger.Info("Invasion coastal credit joined: group=" + context!.OwnershipGroupId + " town=" +
-                            context.SettlementId + " next_arrival_day=" +
-                            State.FindGroup(context.OwnershipGroupId)!.NextReinforcementDeadlineDays);
-            }
+            InvasionGroupState? group = _reinforcements.StartSchedule(contextId);
+            if (group == null) return;
+            Logger.Info("Invasion coastal credit joined: group=" + group.Id + " town=" +
+                        State.FindCapture(contextId)!.SettlementId + " next_arrival_day=" +
+                        group.NextReinforcementDeadlineDays);
         }
 
         private void ScheduleReinforcements()
         {
             Initialize();
             Reconcile();
-            double nowDays = CampaignTime.Now.ToDays;
-            foreach (InvasionGroupState group in State.Groups.ToList())
+            foreach (InvasionReinforcementDraw draw in _reinforcements.DrawDue())
             {
-                if (group.NextReinforcementDeadlineDays == 0 || group.NextReinforcementDeadlineDays > nowDays)
-                    continue;
-
-                // Claim the slot first. A failed spawn and repeated callback both wait for the next interval.
-                if (!State.TryConsumeReinforcementSlot(group.Id, nowDays))
-                    continue;
-
-                InvasionData? configuration = GetConfiguration(group);
-                Clan? clan = Clan.FindFirst(candidate => candidate.StringId == group.ClanId);
-                SpawnDto? spawn = _spawns.FindByPartyTemplateId(group.SpawnTemplateId);
-                if (configuration == null || spawn == null || clan == null || clan.IsEliminated || group.IsSuspended)
-                {
-                    Logger.Info("Invasion reinforcement slot skipped: group=" + group.Id + " reason=configuration_or_clan");
-                    continue;
-                }
-                if (ActiveReinforcementCount(group.Id) >= configuration.ReinforcementActivePartyCap)
-                {
-                    Logger.Info("Invasion reinforcement slot skipped: group=" + group.Id + " reason=active_cap");
-                    continue;
-                }
-
-                List<Settlement> eligible = Settlement.All.Where(settlement => IsEligibleLandingSettlement(settlement,
-                    group, configuration)).ToList();
-                if (eligible.Count == 0)
-                {
-                    Logger.Info("Invasion reinforcement slot skipped: group=" + group.Id + " reason=no_credited_port");
-                    continue;
-                }
-
-                Settlement landing = eligible[_randomIndex(eligible.Count)];
-                PartyTemplateObject? template = Campaign.Current.ObjectManager.GetObject<PartyTemplateObject>(
-                    configuration.ReinforcementPartyTemplateId);
-                if (template == null || !IsEligibleLandingSettlement(landing, group, configuration))
-                {
-                    Logger.Info("Invasion reinforcement slot skipped: group=" + group.Id + " reason=template_or_port_changed");
-                    continue;
-                }
-
-                MobileParty? reinforcement = _spawnGroups.SpawnInvasionReinforcement(spawn, template, landing, clan);
-                Logger.Info("Invasion reinforcement " + (reinforcement == null ? "failed" : "arrived") + ": group=" +
-                            group.Id + " town=" + landing.StringId + " next_arrival_day=" +
-                            group.NextReinforcementDeadlineDays);
+                if (draw.Outcome == InvasionReinforcementOutcome.Landing) Land(draw);
+                else Logger.Info("Invasion reinforcement slot skipped: group=" + draw.Group.Id +
+                                 " reason=" + SkipReason(draw.Outcome));
             }
         }
 
-        private int ActiveReinforcementCount(string groupId)
+        private static string SkipReason(InvasionReinforcementOutcome outcome) =>
+            outcome == InvasionReinforcementOutcome.ActivePartyCapReached ? "active_cap" :
+            outcome == InvasionReinforcementOutcome.NoLandingSite ? "no_credited_port" : "configuration_or_clan";
+
+        private void Land(InvasionReinforcementDraw draw)
         {
-            return MobileParty.All.Count(party => party.IsActive && _parties.GetDynamicSpawnData(party) is { } data &&
-                data.InvasionGroupId == groupId && data.IsIndependentReinforcement);
+            InvasionData? configuration = GetConfiguration(draw.Group);
+            SpawnDto? spawn = _spawns.FindByPartyTemplateId(draw.Group.SpawnTemplateId);
+            Clan? clan = Clan.FindFirst(candidate => candidate.StringId == draw.Group.ClanId);
+            Settlement? landing = Settlement.Find(draw.LandingSettlementId!);
+            PartyTemplateObject? template = configuration == null ? null :
+                Campaign.Current.ObjectManager.GetObject<PartyTemplateObject>(configuration.ReinforcementPartyTemplateId);
+            if (spawn == null || clan == null || template == null || landing == null ||
+                !IsEligibleLandingSettlement(landing, draw.Group))
+            {
+                Logger.Info("Invasion reinforcement slot skipped: group=" + draw.Group.Id +
+                            " reason=template_or_port_changed");
+                return;
+            }
+
+            MobileParty? reinforcement = _spawnGroups.SpawnInvasionReinforcement(spawn, template, landing, clan);
+            Logger.Info("Invasion reinforcement " + (reinforcement == null ? "failed" : "arrived") + ": group=" +
+                        draw.Group.Id + " town=" + landing.StringId + " next_arrival_day=" +
+                        draw.Group.NextReinforcementDeadlineDays);
         }
 
-        private bool IsEligibleLandingSettlement(Settlement settlement, InvasionGroupState group,
-            InvasionData configuration)
+        double IInvasionReinforcementQuery.NowInDays => CampaignTime.Now.ToDays;
+
+        InvasionReinforcementSettings? IInvasionReinforcementQuery.GetSettings(InvasionGroupState group)
+        {
+            InvasionData? configuration = GetConfiguration(group);
+            Clan? clan = Clan.FindFirst(candidate => candidate.StringId == group.ClanId);
+            return configuration == null || clan?.IsEliminated != false
+                ? null
+                : new InvasionReinforcementSettings(configuration.ReinforcementIntervalInDays,
+                    configuration.ReinforcementActivePartyCap);
+        }
+
+        bool IInvasionReinforcementQuery.IsCoastalTown(string settlementId) =>
+            _coastalTownResolver.IsCoastalTown(Settlement.Find(settlementId));
+
+        IReadOnlyList<string> IInvasionReinforcementQuery.GetLandingSites(InvasionGroupState group) =>
+            Settlement.All.Where(settlement => IsEligibleLandingSettlement(settlement, group))
+                .Select(settlement => settlement.StringId).ToList();
+
+        int IInvasionReinforcementQuery.CountActiveReinforcements(InvasionGroupState group) =>
+            MobileParty.All.Count(party => party.IsActive && _parties.GetDynamicSpawnData(party) is { } data &&
+                data.InvasionGroupId == group.Id && data.IsIndependentReinforcement);
+
+        private bool IsEligibleLandingSettlement(Settlement settlement, InvasionGroupState group)
         {
             InvasionTownCredit? credit = State.FindCredit(settlement.StringId);
-            return credit?.GroupId == group.Id && credit.SupplyPortEligible && settlement.IsTown &&
+            return credit?.GroupId == group.Id && settlement.IsTown &&
                    settlement.OwnerClan?.StringId == group.ClanId && settlement.SiegeEvent == null &&
                    _coastalTownResolver.IsCoastalTown(settlement);
         }
@@ -478,8 +476,7 @@ namespace CustomSpawns.Invasions.Adapters
             Clan? clan = group == null ? null : Clan.FindFirst(candidate => candidate.StringId == group.ClanId);
             InvasionTownCredit? credit = State.FindCredit(town.Settlement.StringId);
             return InvasionFoodSupportRules.IsEligibleForOngoingSupport(credit?.GroupId == group?.Id,
-                credit?.SupplyPortEligible == true, configuration != null &&
-                _coastalTownResolver.IsCoastalTown(town.Settlement),
+                configuration != null && _coastalTownResolver.IsCoastalTown(town.Settlement),
                 group?.ClanId == town.Settlement.OwnerClan?.StringId, configuration != null && !group!.IsSuspended &&
                 clan?.IsEliminated == false, town.Settlement.SiegeEvent != null);
         }

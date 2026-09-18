@@ -108,7 +108,7 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
-        public void LateCoastalTownOwnershipCannotMarkTheCapturersCurrentInlandBattleAsCoastal()
+        public void LateOwnershipForAnotherTownCannotResolveOntoTheCapturersCurrentBattle()
         {
             object oldEvent = new();
             var oldCoastalCapture = _state.StartCapture("coastal-a", 100, "leader");
@@ -125,10 +125,9 @@ namespace CustomSpawns.Tests.Invasions
 
             var actual = _correlation.ResolveOwnership(inlandEvent, true, "inland-b", _hero, "enemy", "clan", "clan");
             Assert.AreSame(inlandCapture, actual);
-            _state.ObserveOwnership(actual!.Id, _group.Id, "leader", "enemy", "clan", true, false);
-            _state.ObserveAftermath(actual.Id, "leader", "enemy", new Dictionary<string, string> { ["leader"] = _group.Id });
+            _correlation.ObserveOwnership(actual!.Id, _group.Id, "leader", "enemy", "clan", true);
+            _correlation.ObserveAftermath(actual.Id, "leader", "enemy", new Dictionary<string, string> { ["leader"] = _group.Id });
             Assert.AreEqual("inland-b", _state.Credits.Single().SettlementId);
-            Assert.False(_state.Credits.Single().SupplyPortEligible);
         }
 
         [Test]
@@ -215,7 +214,7 @@ namespace CustomSpawns.Tests.Invasions
             object nativeEvent = new();
             var capture = Bind(nativeEvent, 100);
             Assert.False(_correlation.RestoreOwnedResult(capture.Id, "enemy", "clan", _hero, new[] { _leaderParty }));
-            _state.ObserveOwnership(capture.Id, _group.Id, "leader", "enemy", "clan", true, true);
+            _correlation.ObserveOwnership(capture.Id, _group.Id, "leader", "enemy", "clan", true);
             Assert.False(_correlation.RestoreOwnedResult(capture.Id, "wrong-owner", "clan", _hero, new[] { _leaderParty }));
             Assert.False(_correlation.RestoreOwnedResult(capture.Id, "enemy", "wrong-owner", _hero, new[] { _leaderParty }));
             Assert.False(_correlation.RestoreOwnedResult(capture.Id, "enemy", "clan", null, new[] { _leaderParty }));
@@ -242,10 +241,10 @@ namespace CustomSpawns.Tests.Invasions
         private void Own(object nativeEvent, InvasionCaptureContext capture)
         {
             Assert.AreSame(capture, _correlation.ResolveOwnership(nativeEvent, true, "town", _hero, "enemy", "clan", "clan"));
-            _state.ObserveOwnership(capture.Id, _group.Id, "leader", "enemy", "clan", true, true);
+            _correlation.ObserveOwnership(capture.Id, _group.Id, "leader", "enemy", "clan", true);
         }
         private void ApplyAftermath(InvasionCaptureContext capture, string donor) =>
-            _state.ObserveAftermath(capture.Id, "leader", "enemy", new Dictionary<string, string>
+            _correlation.ObserveAftermath(capture.Id, "leader", "enemy", new Dictionary<string, string>
             { ["leader"] = _group.Id, [donor] = _group.Id });
     }
 }

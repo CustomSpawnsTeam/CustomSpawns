@@ -58,62 +58,12 @@ namespace CustomSpawns.Invasions
             return context;
         }
 
-        public bool ObserveAftermath(long contextId, string attackerId, string previousOwnerClanId,
-            IReadOnlyDictionary<string, string> participantGroups)
-        {
-            var context = FindCapture(contextId);
-            if (context == null || context.Cancelled || context.Joined || context.StartingAttackerId != attackerId) return false;
-            if (context.ParticipantSnapshotCaptured) return false;
-            context.AftermathPreviousOwnerClanId = previousOwnerClanId;
-            context.Participants = participantGroups.Where(p => FindGroup(p.Value)?.Members.Contains(p.Key) == true)
-                .ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
-            context.ParticipantSnapshotCaptured = true;
-            TryJoin(context);
-            return true;
-        }
-
-        public bool ObserveOwnership(long contextId, string groupId, string capturerId, string previousOwnerClanId,
-            string newOwnerClanId, bool bySiege, bool isCoastalTown)
-        {
-            var context = FindCapture(contextId);
-            var group = FindGroup(groupId);
-            if (context == null || context.Cancelled || context.Joined || group == null || group.IsSuspended ||
-                !bySiege || group.ClanId != newOwnerClanId || !group.Members.Contains(capturerId)) return false;
-            if (context.OwnershipObserved) return false;
-            context.OwnershipGroupId = groupId;
-            context.CapturerId = capturerId;
-            context.PreviousOwnerClanId = previousOwnerClanId;
-            context.ExpectedOwnerClanId = newOwnerClanId;
-            context.IsCoastalTown = isCoastalTown;
-            context.OwnershipObserved = true;
-            TryJoin(context);
-            return true;
-        }
-
-        private void TryJoin(InvasionCaptureContext context)
-        {
-            if (!context.OwnershipObserved || !context.ParticipantSnapshotCaptured ||
-                context.PreviousOwnerClanId != context.AftermathPreviousOwnerClanId ||
-                !context.Participants.TryGetValue(context.CapturerId!, out string capturerGroupId) ||
-                capturerGroupId != context.OwnershipGroupId) return;
-            InvasionGroupState? group = FindGroup(context.OwnershipGroupId);
-            if (group == null || group.IsSuspended) return;
-            context.Participants = context.Participants.Where(p => p.Value == group.Id)
-                .ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
-            context.Joined = true;
-            if (CreditIndex.TryGetValue(context.SettlementId, out var previous))
-            {
-                var previousCapture = FindCapture(previous.ContextId);
-                if (previousCapture != null) previousCapture.Cancelled = true;
-            }
-            CreditIndex[context.SettlementId] = new InvasionTownCredit(context.SettlementId, group.Id, context.Id, context.IsCoastalTown);
-        }
-
         public void ObserveOwner(string settlementId, string? ownerClanId)
         {
             var credit = FindCredit(settlementId);
             if (credit != null && FindGroup(credit.GroupId)?.ClanId != ownerClanId) CreditIndex.Remove(settlementId);
-            foreach (var context in Captures.Where(c => c.SettlementId == settlementId && c.OwnershipObserved && c.ExpectedOwnerClanId != ownerClanId))
+            foreach (var context in Captures.Where(c => c.SettlementId == settlementId && c.OwnershipObserved &&
+                         FindGroup(c.OwnershipGroupId)?.ClanId != ownerClanId))
                 context.Cancelled = true;
         }
 
@@ -131,34 +81,6 @@ namespace CustomSpawns.Invasions
         {
             if (!CanApplyOccupation(contextId, currentOwnerClanId)) return false;
             CaptureIndex[contextId].OccupationApplied = true;
-            return true;
-        }
-
-        public bool StartReinforcementSchedule(long contextId, double nowDays, double intervalDays)
-        {
-            InvasionCaptureContext? context = FindCapture(contextId);
-            InvasionGroupState? group = FindGroup(context?.OwnershipGroupId);
-            if (context?.Joined != true || !context.IsCoastalTown || group == null ||
-                group.NextReinforcementDeadlineDays != 0 || intervalDays <= 0)
-            {
-                return false;
-            }
-
-            group.ReinforcementIntervalDays = intervalDays;
-            group.NextReinforcementDeadlineDays = nowDays + intervalDays;
-            return true;
-        }
-
-        public bool TryConsumeReinforcementSlot(string groupId, double nowDays)
-        {
-            InvasionGroupState? group = FindGroup(groupId);
-            if (group == null || group.NextReinforcementDeadlineDays == 0 ||
-                group.NextReinforcementDeadlineDays > nowDays || group.ReinforcementIntervalDays <= 0)
-            {
-                return false;
-            }
-
-            group.NextReinforcementDeadlineDays = nowDays + group.ReinforcementIntervalDays;
             return true;
         }
 
@@ -212,12 +134,11 @@ namespace CustomSpawns.Invasions
 
     public sealed class InvasionTownCredit
     {
-        internal InvasionTownCredit(string settlementId, string groupId, long contextId, bool supplyPortEligible)
-        { SettlementId = settlementId; GroupId = groupId; ContextId = contextId; SupplyPortEligible = supplyPortEligible; }
+        internal InvasionTownCredit(string settlementId, string groupId, long contextId)
+        { SettlementId = settlementId; GroupId = groupId; ContextId = contextId; }
         public string SettlementId { get; }
         public string GroupId { get; }
         public long ContextId { get; }
-        public bool SupplyPortEligible { get; }
     }
 
     public sealed class InvasionCaptureContext
@@ -232,13 +153,11 @@ namespace CustomSpawns.Invasions
         public string? OwnershipGroupId { get; internal set; }
         public string? CapturerId { get; internal set; }
         public string? PreviousOwnerClanId { get; internal set; }
-        public string? ExpectedOwnerClanId { get; internal set; }
         public bool OwnershipObserved { get; internal set; }
         public string? AftermathPreviousOwnerClanId { get; internal set; }
         public bool ParticipantSnapshotCaptured { get; internal set; }
         internal Dictionary<string, string> Participants = new(StringComparer.Ordinal);
         public IReadOnlyCollection<string> ParticipantPartyIds => Participants.Keys;
-        public bool IsCoastalTown { get; internal set; }
         public bool Joined { get; internal set; }
         public bool Cancelled { get; internal set; }
         public bool OccupationApplied { get; internal set; }

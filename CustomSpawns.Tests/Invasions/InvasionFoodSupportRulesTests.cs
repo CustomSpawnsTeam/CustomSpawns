@@ -18,13 +18,12 @@ namespace CustomSpawns.Tests.Invasions
         [Test]
         public void OngoingSupport_RequiresOneEligibleCreditedUnbesiegedTown()
         {
-            Assert.True(InvasionFoodSupportRules.IsEligibleForOngoingSupport(true, true, true, true, true, false));
-            Assert.False(InvasionFoodSupportRules.IsEligibleForOngoingSupport(false, true, true, true, true, false));
-            Assert.False(InvasionFoodSupportRules.IsEligibleForOngoingSupport(true, false, true, true, true, false));
-            Assert.False(InvasionFoodSupportRules.IsEligibleForOngoingSupport(true, true, false, true, true, false));
-            Assert.False(InvasionFoodSupportRules.IsEligibleForOngoingSupport(true, true, true, false, true, false));
-            Assert.False(InvasionFoodSupportRules.IsEligibleForOngoingSupport(true, true, true, true, false, false));
-            Assert.False(InvasionFoodSupportRules.IsEligibleForOngoingSupport(true, true, true, true, true, true));
+            Assert.True(InvasionFoodSupportRules.IsEligibleForOngoingSupport(true, true, true, true, false));
+            Assert.False(InvasionFoodSupportRules.IsEligibleForOngoingSupport(false, true, true, true, false));
+            Assert.False(InvasionFoodSupportRules.IsEligibleForOngoingSupport(true, false, true, true, false));
+            Assert.False(InvasionFoodSupportRules.IsEligibleForOngoingSupport(true, true, false, true, false));
+            Assert.False(InvasionFoodSupportRules.IsEligibleForOngoingSupport(true, true, true, false, false));
+            Assert.False(InvasionFoodSupportRules.IsEligibleForOngoingSupport(true, true, true, true, true));
         }
     }
 }

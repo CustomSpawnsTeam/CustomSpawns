@@ -88,13 +88,11 @@ namespace CustomSpawns.Invasions.Adapters
         [SaveableField(4)] public string? OwnershipGroupId;
         [SaveableField(5)] public string? CapturerId;
         [SaveableField(6)] public string? PreviousOwnerClanId;
-        [SaveableField(7)] public string? ExpectedOwnerClanId;
         [SaveableField(8)] public bool OwnershipObserved;
         [SaveableField(9)] public string StartingAttackerId = "";
         [SaveableField(11)] public string? AftermathPreviousOwnerClanId;
         [SaveableField(12)] public bool ParticipantSnapshotCaptured;
         [SaveableField(13)] public Dictionary<string, string> Participants = new();
-        [SaveableField(14)] public bool IsCoastalTown;
         [SaveableField(15)] public bool Joined;
         [SaveableField(16)] public bool Cancelled;
         [SaveableField(17)] public bool OccupationApplied;
@@ -107,13 +105,11 @@ namespace CustomSpawns.Invasions.Adapters
             OwnershipGroupId = value.OwnershipGroupId,
             CapturerId = value.CapturerId,
             PreviousOwnerClanId = value.PreviousOwnerClanId,
-            ExpectedOwnerClanId = value.ExpectedOwnerClanId,
             OwnershipObserved = value.OwnershipObserved,
             StartingAttackerId = value.StartingAttackerId,
             AftermathPreviousOwnerClanId = value.AftermathPreviousOwnerClanId,
             ParticipantSnapshotCaptured = value.ParticipantSnapshotCaptured,
             Participants = new Dictionary<string, string>(value.Participants, StringComparer.Ordinal),
-            IsCoastalTown = value.IsCoastalTown,
             Joined = value.Joined,
             Cancelled = value.Cancelled,
             OccupationApplied = value.OccupationApplied
@@ -124,12 +120,10 @@ namespace CustomSpawns.Invasions.Adapters
             OwnershipGroupId = OwnershipGroupId,
             CapturerId = CapturerId,
             PreviousOwnerClanId = PreviousOwnerClanId,
-            ExpectedOwnerClanId = ExpectedOwnerClanId,
             OwnershipObserved = OwnershipObserved,
             AftermathPreviousOwnerClanId = AftermathPreviousOwnerClanId,
             ParticipantSnapshotCaptured = ParticipantSnapshotCaptured,
             Participants = new Dictionary<string, string>(Participants ?? new Dictionary<string, string>(), StringComparer.Ordinal),
-            IsCoastalTown = IsCoastalTown,
             Joined = Joined,
             Cancelled = Cancelled,
             OccupationApplied = OccupationApplied
@@ -141,16 +135,14 @@ namespace CustomSpawns.Invasions.Adapters
         [SaveableField(1)] public string SettlementId = "";
         [SaveableField(2)] public string GroupId = "";
         [SaveableField(3)] public long ContextId;
-        [SaveableField(4)] public bool SupplyPortEligible;
 
         internal static InvasionCreditSaveData FromState(InvasionTownCredit value) => new()
         {
             SettlementId = value.SettlementId,
             GroupId = value.GroupId,
-            ContextId = value.ContextId,
-            SupplyPortEligible = value.SupplyPortEligible
+            ContextId = value.ContextId
         };
 
-        internal InvasionTownCredit ToState() => new(SettlementId, GroupId, ContextId, SupplyPortEligible);
+        internal InvasionTownCredit ToState() => new(SettlementId, GroupId, ContextId);
     }
 }

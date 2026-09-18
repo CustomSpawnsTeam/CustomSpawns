@@ -1,9 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace CustomSpawns.Invasions.Adapters
 {
-    // Transient native evidence, separate from saved rule state. Object tokens are compared by identity.
+    // Native evidence and the two-callback corroboration it feeds. Object tokens are compared by identity.
     internal sealed class InvasionCaptureCorrelation
     {
         private readonly InvasionState _state;
@@ -84,6 +85,57 @@ namespace CustomSpawns.Invasions.Adapters
             return context != null && !context.Cancelled && !context.Joined ? context : null;
         }
 
+        // Ownership and aftermath reach us as two unrelated native callbacks. Each records its half, and the
+        // capture is credited only once both halves agree they describe the same siege.
+        internal bool ObserveOwnership(long contextId, string groupId, string capturerId, string previousOwnerClanId,
+            string newOwnerClanId, bool bySiege)
+        {
+            var context = _state.FindCapture(contextId);
+            var group = _state.FindGroup(groupId);
+            if (context == null || context.Cancelled || context.Joined || group == null || group.IsSuspended ||
+                !bySiege || group.ClanId != newOwnerClanId || !group.Members.Contains(capturerId)) return false;
+            if (context.OwnershipObserved) return false;
+            context.OwnershipGroupId = groupId;
+            context.CapturerId = capturerId;
+            context.PreviousOwnerClanId = previousOwnerClanId;
+            context.OwnershipObserved = true;
+            TryJoin(context);
+            return true;
+        }
+
+        internal bool ObserveAftermath(long contextId, string attackerId, string previousOwnerClanId,
+            IReadOnlyDictionary<string, string> participantGroups)
+        {
+            var context = _state.FindCapture(contextId);
+            if (context == null || context.Cancelled || context.Joined || context.StartingAttackerId != attackerId) return false;
+            if (context.ParticipantSnapshotCaptured) return false;
+            context.AftermathPreviousOwnerClanId = previousOwnerClanId;
+            context.Participants = participantGroups.Where(p => _state.FindGroup(p.Value)?.Members.Contains(p.Key) == true)
+                .ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
+            context.ParticipantSnapshotCaptured = true;
+            TryJoin(context);
+            return true;
+        }
+
+        private void TryJoin(InvasionCaptureContext context)
+        {
+            if (!context.OwnershipObserved || !context.ParticipantSnapshotCaptured ||
+                context.PreviousOwnerClanId != context.AftermathPreviousOwnerClanId ||
+                !context.Participants.TryGetValue(context.CapturerId!, out string capturerGroupId) ||
+                capturerGroupId != context.OwnershipGroupId) return;
+            InvasionGroupState? group = _state.FindGroup(context.OwnershipGroupId);
+            if (group == null || group.IsSuspended) return;
+            context.Participants = context.Participants.Where(p => p.Value == group.Id)
+                .ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
+            context.Joined = true;
+            if (_state.CreditIndex.TryGetValue(context.SettlementId, out var previous))
+            {
+                var previousCapture = _state.FindCapture(previous.ContextId);
+                if (previousCapture != null) previousCapture.Cancelled = true;
+            }
+            _state.CreditIndex[context.SettlementId] = new InvasionTownCredit(context.SettlementId, group.Id, context.Id);
+        }
+
         internal void Prune()
         {
             foreach (var entry in _events.Where(e => PendingContext(e.Value) == null).ToList()) _events.Remove(entry.Key);
@@ -97,7 +149,8 @@ namespace CustomSpawns.Invasions.Adapters
         {
             var context = _state.FindCapture(contextId);
             if (capturer == null || context == null || !context.OwnershipObserved || context.Joined || context.Cancelled ||
-                context.PreviousOwnerClanId != previousOwnerClanId || context.ExpectedOwnerClanId != expectedOwnerClanId) return false;
+                context.PreviousOwnerClanId != previousOwnerClanId ||
+                _state.FindGroup(context.OwnershipGroupId)?.ClanId != expectedOwnerClanId) return false;
             _events.Add(new object(), new NativeResult(contextId, previousOwnerClanId)
             {
                 Verified = true, Capturer = capturer, ExpectedOwnerClanId = expectedOwnerClanId,
