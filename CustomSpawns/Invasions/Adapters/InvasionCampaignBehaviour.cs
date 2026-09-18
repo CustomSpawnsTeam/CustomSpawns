@@ -30,6 +30,7 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly Func<int, int> _randomIndex;
         private InvasionCaptureCorrelation _correlation;
         private InvasionReinforcementArrivals _arrivals;
+        private InvasionOccupations _occupations;
         private bool _initialized;
         public InvasionState State { get; private set; } = new();
 
@@ -42,6 +43,7 @@ namespace CustomSpawns.Invasions.Adapters
             _randomIndex = randomIndex ?? MBRandom.RandomInt;
             _correlation = new InvasionCaptureCorrelation(State);
             _arrivals = NewArrivals();
+            _occupations = NewOccupations();
             // DynamicSpawnData registers its discovery callback first; scheduling/AI are composed later.
             initialiser.RunCallbackOnFirstCampaignTick(Initialize);
             parties.PartyRegistered += RegisterParty;
@@ -74,6 +76,7 @@ namespace CustomSpawns.Invasions.Adapters
             State = saved?.ToState() ?? new InvasionState();
             _correlation = new InvasionCaptureCorrelation(State);
             _arrivals = NewArrivals();
+            _occupations = NewOccupations();
             foreach (var evidence in saved?.OwnedCaptureEvidence ?? new List<InvasionCaptureEvidenceSaveData>())
                 _correlation.RestoreOwnedResult(evidence.CaptureId, evidence.PreviousOwnerClanId,
                     evidence.ExpectedOwnerClanId, evidence.Capturer, (evidence.Participants ?? new List<MobileParty>()).Cast<object>());
@@ -83,6 +86,8 @@ namespace CustomSpawns.Invasions.Adapters
 
         private InvasionReinforcementArrivals NewArrivals() => new(State, _spawns, _parties, _spawnGroups,
             _coastalTownResolver, _randomIndex);
+
+        private InvasionOccupations NewOccupations() => new(State, _spawns, _parties, _coastalTownResolver);
 
         private void Initialize()
         {
@@ -154,9 +159,10 @@ namespace CustomSpawns.Invasions.Adapters
 
         private void OnHourlyTick()
         {
+            Initialize();
             Reconcile();
             RetireSpentInvasions();
-            ApplyReadyOccupations();
+            _occupations.ApplyReady();
         }
 
         public InvasionData? GetConfiguration(InvasionGroupState group) => _spawns.FindByPartyTemplateId(group.SpawnTemplateId)?.Invasion;
@@ -348,88 +354,8 @@ namespace CustomSpawns.Invasions.Adapters
             _arrivals.LandDue();
         }
 
-        public float GetOngoingFoodSupport(Town town)
-        {
-            InvasionFoothold? foothold = State.FindFoothold(town.Settlement.StringId);
-            InvasionGroupState? group = State.FindGroup(foothold?.GroupId);
-            InvasionData? configuration = group == null ? null : GetConfiguration(group);
-            return IsEligibleForFood(town, group, configuration) ? configuration!.DailyFoodBonus : 0f;
-        }
-
-        private void ApplyReadyOccupations()
-        {
-            foreach (InvasionCapture capture in GetReadyOccupations())
-            {
-                Town? town = Settlement.Find(capture.SettlementId)?.Town;
-                InvasionGroupState? group = State.FindGroup(capture.CapturingGroupId);
-                InvasionData? configuration = group == null ? null : GetConfiguration(group);
-                if (town?.GarrisonParty == null || group == null || configuration == null)
-                    continue;
-
-                foreach (MobileParty party in MobileParty.All.Where(p => p.IsActive &&
-                             capture.ParticipantPartyIds.Contains(p.StringId) &&
-                             _parties.GetDynamicSpawnData(p)?.IsEscort == true).ToList())
-                {
-                    town.GarrisonParty.MemberRoster.Add(party.MemberRoster);
-                    DestroyPartyAction.Apply(null, party);
-                }
-
-                if (IsEligibleForFood(town, group, configuration))
-                    InvasionOccupationFood.Apply(town, configuration.FoodStockFloor);
-                if (!PromoteCapturer(capture, town, group))
-                    continue;
-                if (State.CompleteOccupation(capture.Id, town.Settlement.OwnerClan?.StringId ?? ""))
-                    Logger.Info("Invasion occupation applied: group=" + group.Id + " town=" + town.Settlement.StringId);
-            }
-        }
-
-        private static bool PromoteCapturer(InvasionCapture capture, Town town, InvasionGroupState group)
-        {
-            MobileParty? party = MobileParty.All.FirstOrDefault(candidate => candidate.IsActive &&
-                candidate.StringId == capture.CapturerId);
-            Hero? leader = party?.LeaderHero;
-            Clan? clan = party?.ActualClan;
-            if (party == null || leader == null || clan == null || leader.Clan != clan ||
-                !group.HoldsClan(clan.StringId))
-                return false;
-
-            if (party.PartyComponent is not LordPartyComponent)
-                LordPartyComponent.ConvertPartyToLordParty(party, leader, leader);
-            if (clan.Kingdom == null)
-            {
-                clan.SetInitialHomeSettlement(town.Settlement);
-                Campaign.Current.KingdomManager.CreateKingdom(clan.Name, clan.InformalName, clan.Culture, clan);
-            }
-
-            return true;
-        }
-
-        private bool IsEligibleForFood(Town town, InvasionGroupState? group, InvasionData? configuration)
-        {
-            Clan? clan = group == null ? null : Clan.FindFirst(candidate => candidate.StringId == group.ClanId);
-            InvasionFoothold? foothold = State.FindFoothold(town.Settlement.StringId);
-            return InvasionFoodSupportRules.IsEligibleForOngoingSupport(foothold?.GroupId == group?.Id,
-                configuration != null && _coastalTownResolver.IsCoastalTown(town.Settlement),
-                group?.HoldsClan(town.Settlement.OwnerClan?.StringId) == true, configuration != null && !group!.IsSuspended &&
-                clan?.IsEliminated == false, town.Settlement.SiegeEvent != null);
-        }
-
-        // Occupation is applied on the hourly tick after Bannerlord has finished the capture callbacks.
-        public IReadOnlyList<InvasionCapture> GetReadyOccupations()
-        {
-            Initialize();
-            Reconcile();
-            var ready = new List<InvasionCapture>();
-            foreach (var capture in State.Captures)
-            {
-                Settlement? settlement = Settlement.Find(capture.SettlementId);
-                if (settlement?.Town?.GarrisonParty?.IsActive != true || settlement.Party.MapEvent != null ||
-                    settlement.SiegeEvent != null ||
-                    !State.CanApplyOccupation(capture.Id, settlement.OwnerClan?.StringId ?? "")) continue;
-                bool donorInBattle = MobileParty.All.Any(p => p.IsActive && capture.ParticipantPartyIds.Contains(p.StringId) && p.MapEvent != null);
-                if (!donorInBattle) ready.Add(capture);
-            }
-            return ready;
-        }
+        // The food model asks per town, so it holds the behaviour and not the occupation pass,
+        // which is replaced whenever a save rebinds the state.
+        public float GetOngoingFoodSupport(Town town) => _occupations.GetOngoingFoodSupport(town);
     }
 }
