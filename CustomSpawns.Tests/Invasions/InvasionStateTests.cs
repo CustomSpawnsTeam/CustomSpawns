@@ -32,6 +32,20 @@ namespace CustomSpawns.Tests.Invasions
             Assert.That(_group.MemberPartyIds, Is.EquivalentTo(new[] { "capturer", "second-original", "escort" }));
         }
 
+        [Test]
+        public void AnInvasionThatExpandedIntoAnotherClanKeepsOneGroupAcrossASave()
+        {
+            _group.AddClan("overflow-clan");
+
+            Assert.AreSame(_group, _state.RegisterMember("invasion", "overflow-clan", "overflow-party"));
+            Assert.True(_group.HoldsClan("overflow-clan"));
+            Assert.False(_group.HoldsClan("other-clan"));
+
+            InvasionGroupState restored = RoundTrip().Groups.Single();
+            Assert.AreEqual("clan", restored.ClanId);
+            Assert.That(restored.ClanIds, Is.EqualTo(new[] { "clan", "overflow-clan" }));
+        }
+
         [TestCase(true)]
         [TestCase(false)]
         public void CaptureObservationsJoinInEitherOrderAndReplayDoesNotRepeatOccupation(bool aftermathFirst)

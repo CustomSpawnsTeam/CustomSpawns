@@ -16,6 +16,7 @@ using TaleWorlds.CampaignSystem.Party.PartyComponents;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
+using TaleWorlds.Localization;
 
 namespace CustomSpawns.Invasions.Adapters
 {
@@ -113,7 +114,7 @@ namespace CustomSpawns.Invasions.Adapters
         {
             // Saved membership survives removed configurations so cleanup remains possible.
             InvasionGroupState? saved = State.FindGroup(data.InvasionGroupId);
-            if (saved != null && saved.ClanId == party.ActualClan?.StringId && saved.SpawnTemplateId == data.OwningSpawnTemplateId)
+            if (saved != null && saved.HoldsClan(party.ActualClan?.StringId) && saved.SpawnTemplateId == data.OwningSpawnTemplateId)
             {
                 saved.Members.Add(party.StringId);
                 data.SetInvasionIdentity(saved.Id, data.InvasionRole ?? InvasionRoleFor(data));
@@ -165,7 +166,7 @@ namespace CustomSpawns.Invasions.Adapters
             Initialize();
             InvasionGroupState? group = State.FindMemberGroup(party.StringId);
             if (group == null || group.IsSuspended ||
-                party.ActualClan?.StringId != group.ClanId) return null;
+                !group.HoldsClan(party.ActualClan?.StringId)) return null;
             InvasionData? configuration = GetConfiguration(group);
             if (configuration?.RequiresFirstCoastalConquest != true) return null;
             bool factionHasCoastalTown = Settlement.All.Any(settlement => settlement.IsTown &&
@@ -241,7 +242,7 @@ namespace CustomSpawns.Invasions.Adapters
             foreach (MobileParty party in contributions.Keys)
             {
                 var group = State.FindMemberGroup(party.StringId);
-                if (group != null && group.ClanId == party.ActualClan?.StringId) participants[party.StringId] = group.Id;
+                if (group != null && group.HoldsClan(party.ActualClan?.StringId)) participants[party.StringId] = group.Id;
             }
             // Copy immediately: the native dictionary is cleared after the callback.
             _correlation.ObserveAftermath(context.Id, attacker.StringId, previousOwner?.StringId ?? "", participants);
@@ -265,7 +266,7 @@ namespace CustomSpawns.Invasions.Adapters
             RecordNativeResult(mapEvent);
             var context = _correlation.ResolveOwnership(mapEvent, IsSuccessfulFinalization(mapEvent), settlement.StringId, capturer,
                 oldOwner?.Clan?.StringId ?? "", newOwner?.Clan?.StringId ?? "", settlement.OwnerClan?.StringId ?? "");
-            if (group == null || context == null || party.ActualClan?.StringId != group.ClanId) return;
+            if (group == null || context == null || !group.HoldsClan(party.ActualClan?.StringId)) return;
             InvasionData? configuration = GetConfiguration(group);
             if (configuration == null) return;
             _correlation.ObserveOwnership(context.Id, group.Id, party.StringId, oldOwner?.Clan?.StringId ?? "",
@@ -367,11 +368,10 @@ namespace CustomSpawns.Invasions.Adapters
         {
             InvasionData? configuration = GetConfiguration(draw.Group);
             SpawnDto? spawn = _spawns.FindByPartyTemplateId(draw.Group.SpawnTemplateId);
-            Clan? clan = Clan.FindFirst(candidate => candidate.StringId == draw.Group.ClanId);
             Settlement? landing = Settlement.Find(draw.LandingSettlementId!);
             PartyTemplateObject? template = configuration == null ? null :
                 Campaign.Current.ObjectManager.GetObject<PartyTemplateObject>(configuration.ReinforcementPartyTemplateId);
-            if (spawn == null || clan == null || template == null || landing == null ||
+            if (spawn == null || template == null || landing == null ||
                 !IsEligibleLandingSettlement(landing, draw.Group))
             {
                 Logger.Info("Invasion reinforcement slot skipped: group=" + draw.Group.Id +
@@ -379,10 +379,57 @@ namespace CustomSpawns.Invasions.Adapters
                 return;
             }
 
+            Clan? clan = draw.ClanId == null
+                ? FoundClan(draw.Group, landing)
+                : Clan.FindFirst(candidate => candidate.StringId == draw.ClanId);
+            if (clan == null)
+            {
+                Logger.Info("Invasion reinforcement slot skipped: group=" + draw.Group.Id +
+                            " reason=no_clan_to_take_the_party");
+                return;
+            }
+
             MobileParty? reinforcement = _spawnGroups.SpawnInvasionReinforcement(spawn, template, landing, clan);
             Logger.Info("Invasion reinforcement " + (reinforcement == null ? "failed" : "arrived") + ": group=" +
-                        draw.Group.Id + " town=" + landing.StringId + " next_arrival_day=" +
-                        draw.Group.NextReinforcementDeadlineDays);
+                        draw.Group.Id + " clan=" + clan.StringId + " town=" + landing.StringId +
+                        " next_arrival_day=" + draw.Group.NextReinforcementDeadlineDays);
+        }
+
+        /**
+         * Vanilla caps a clan's war parties by tier, so an invasion that outgrows its clans expands into
+         * another one instead of into a single oversized clan: its kingdom then distributes fiefs and
+         * respawns lords across all of them the way it does for any kingdom of its own.
+         */
+        private static Clan? FoundClan(InvasionGroupState group, Settlement landing)
+        {
+            Clan? founder = Clan.FindFirst(candidate => candidate.StringId == group.ClanId);
+            Kingdom? kingdom = founder?.Kingdom;
+            CharacterObject? lordTemplate = founder?.Culture?.LordTemplates
+                .FirstOrDefault(character => character.Occupation == Occupation.Lord);
+            if (founder == null || kingdom == null || lordTemplate == null) return null;
+
+            Clan clan = Clan.CreateClan(founder.StringId + "_" + group.ClanIds.Count);
+            TextObject name = NameGenerator.Current.GenerateClanName(founder.Culture, landing);
+            clan.ChangeClanName(name, name);
+            clan.Culture = founder.Culture;
+            clan.Banner = Banner.CreateRandomClanBanner();
+            clan.Color = founder.Color;
+            clan.Color2 = founder.Color2;
+            clan.IsNoble = true;
+            clan.SetInitialHomeSettlement(landing);
+            // Tier has no public setter; renown is the way in, and it carries the same war party limit.
+            clan.AddRenown(Campaign.Current.Models.ClanTierModel.GetRequiredRenownForTier(founder.Tier), false);
+
+            Hero leader = HeroCreator.CreateSpecialHero(lordTemplate, landing, clan, null, MBRandom.RandomInt(18, 36));
+            leader.ChangeState(Hero.CharacterStates.Active);
+            clan.SetLeader(leader);
+            EnterSettlementAction.ApplyForCharacterOnly(leader, landing);
+            ChangeKingdomAction.ApplyByJoinToKingdom(clan, kingdom, default, false);
+            CampaignEventDispatcher.Instance.OnClanCreated(clan, false);
+            group.AddClan(clan.StringId);
+            Logger.Info("Invasion clan founded: group=" + group.Id + " clan=" + clan.StringId +
+                        " kingdom=" + kingdom.StringId);
+            return clan;
         }
 
         double IInvasionReinforcementQuery.NowInDays => CampaignTime.Now.ToDays;
@@ -408,11 +455,17 @@ namespace CustomSpawns.Invasions.Adapters
             MobileParty.All.Count(party => party.IsActive && _parties.GetDynamicSpawnData(party) is { } data &&
                 data.InvasionGroupId == group.Id && data.IsIndependentReinforcement);
 
+        bool IInvasionReinforcementQuery.HasPartySlot(string clanId)
+        {
+            Clan? clan = Clan.FindFirst(candidate => candidate.StringId == clanId);
+            return clan?.IsEliminated == false && clan.WarPartyComponents.Count < clan.WarPartyLimit;
+        }
+
         private bool IsEligibleLandingSettlement(Settlement settlement, InvasionGroupState group)
         {
             InvasionTownCredit? credit = State.FindCredit(settlement.StringId);
             return credit?.GroupId == group.Id && settlement.IsTown &&
-                   settlement.OwnerClan?.StringId == group.ClanId && settlement.SiegeEvent == null &&
+                   group.HoldsClan(settlement.OwnerClan?.StringId) && settlement.SiegeEvent == null &&
                    _coastalTownResolver.IsCoastalTown(settlement);
         }
 
@@ -453,11 +506,12 @@ namespace CustomSpawns.Invasions.Adapters
 
         private static bool PromoteCapturer(InvasionCaptureContext capture, Town town, InvasionGroupState group)
         {
-            Clan? clan = Clan.FindFirst(candidate => candidate.StringId == group.ClanId);
             MobileParty? party = MobileParty.All.FirstOrDefault(candidate => candidate.IsActive &&
                 candidate.StringId == capture.CapturerId);
             Hero? leader = party?.LeaderHero;
-            if (clan == null || party == null || leader == null || party.ActualClan != clan || leader.Clan != clan)
+            Clan? clan = party?.ActualClan;
+            if (party == null || leader == null || clan == null || leader.Clan != clan ||
+                !group.HoldsClan(clan.StringId))
                 return false;
 
             if (party.PartyComponent is not LordPartyComponent)
@@ -477,7 +531,7 @@ namespace CustomSpawns.Invasions.Adapters
             InvasionTownCredit? credit = State.FindCredit(town.Settlement.StringId);
             return InvasionFoodSupportRules.IsEligibleForOngoingSupport(credit?.GroupId == group?.Id,
                 configuration != null && _coastalTownResolver.IsCoastalTown(town.Settlement),
-                group?.ClanId == town.Settlement.OwnerClan?.StringId, configuration != null && !group!.IsSuspended &&
+                group?.HoldsClan(town.Settlement.OwnerClan?.StringId) == true, configuration != null && !group!.IsSuspended &&
                 clan?.IsEliminated == false, town.Settlement.SiegeEvent != null);
         }
 

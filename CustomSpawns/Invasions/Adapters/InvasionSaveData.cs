@@ -59,6 +59,7 @@ namespace CustomSpawns.Invasions.Adapters
         [SaveableField(6)] public double NextReinforcementDeadlineDays;
         [SaveableField(7)] public List<string> Members = new();
         [SaveableField(8)] public double ReinforcementIntervalDays;
+        [SaveableField(9)] public List<string> ClanIds = new();
 
         internal static InvasionGroupSaveData FromState(InvasionGroupState value) => new()
         {
@@ -68,16 +69,23 @@ namespace CustomSpawns.Invasions.Adapters
             IsSuspended = value.IsSuspended,
             NextReinforcementDeadlineDays = value.NextReinforcementDeadlineDays,
             ReinforcementIntervalDays = value.ReinforcementIntervalDays,
-            Members = value.Members.ToList()
+            Members = value.Members.ToList(),
+            ClanIds = value.ClanIds.ToList()
         };
 
-        internal InvasionGroupState ToState() => new(Id, SpawnTemplateId, ClanId)
+        internal InvasionGroupState ToState()
         {
-            IsSuspended = IsSuspended,
-            NextReinforcementDeadlineDays = NextReinforcementDeadlineDays,
-            ReinforcementIntervalDays = ReinforcementIntervalDays,
-            Members = new HashSet<string>(Members ?? new List<string>(), StringComparer.Ordinal)
-        };
+            var group = new InvasionGroupState(Id, SpawnTemplateId, ClanId)
+            {
+                IsSuspended = IsSuspended,
+                NextReinforcementDeadlineDays = NextReinforcementDeadlineDays,
+                ReinforcementIntervalDays = ReinforcementIntervalDays,
+                Members = new HashSet<string>(Members ?? new List<string>(), StringComparer.Ordinal)
+            };
+            // A save taken before the invasion could expand carries the founding clan alone.
+            foreach (string clanId in ClanIds ?? new List<string>()) group.AddClan(clanId);
+            return group;
+        }
     }
 
     public sealed class InvasionCaptureSaveData

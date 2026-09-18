@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace CustomSpawns.Invasions
 {
@@ -28,16 +29,19 @@ namespace CustomSpawns.Invasions
     internal readonly struct InvasionReinforcementDraw
     {
         internal InvasionReinforcementDraw(InvasionGroupState group, InvasionReinforcementOutcome outcome,
-            string? landingSettlementId)
+            string? landingSettlementId, string? clanId)
         {
             Group = group;
             Outcome = outcome;
             LandingSettlementId = landingSettlementId;
+            ClanId = clanId;
         }
 
         internal InvasionGroupState Group { get; }
         internal InvasionReinforcementOutcome Outcome { get; }
         internal string? LandingSettlementId { get; }
+        // No clan on a landing means every clan of the invasion is full and the arrival founds another one.
+        internal string? ClanId { get; }
     }
 
     // Campaign facts the reinforcement rules read. Bannerlord access stays behind this boundary.
@@ -49,6 +53,8 @@ namespace CustomSpawns.Invasions
         // Credited towns the group still holds that can take a landing.
         IReadOnlyList<string> GetLandingSites(InvasionGroupState group);
         int CountActiveReinforcements(InvasionGroupState group);
+        // Vanilla caps war parties per clan tier; a clan at its limit cannot take another arrival.
+        bool HasPartySlot(string clanId);
     }
 
     /**
@@ -114,15 +120,17 @@ namespace CustomSpawns.Invasions
         {
             InvasionReinforcementSettings? settings = _campaign.GetSettings(group);
             if (settings == null || group.IsSuspended)
-                return new InvasionReinforcementDraw(group, InvasionReinforcementOutcome.Unavailable, null);
+                return new InvasionReinforcementDraw(group, InvasionReinforcementOutcome.Unavailable, null, null);
             if (_campaign.CountActiveReinforcements(group) >= settings.ActivePartyCap)
-                return new InvasionReinforcementDraw(group, InvasionReinforcementOutcome.ActivePartyCapReached, null);
+                return new InvasionReinforcementDraw(group, InvasionReinforcementOutcome.ActivePartyCapReached, null, null);
 
             IReadOnlyList<string> landingSites = _campaign.GetLandingSites(group);
+            // The arrival joins the first clan of the invasion that still has room for a war party.
             return landingSites.Count == 0
-                ? new InvasionReinforcementDraw(group, InvasionReinforcementOutcome.NoLandingSite, null)
+                ? new InvasionReinforcementDraw(group, InvasionReinforcementOutcome.NoLandingSite, null, null)
                 : new InvasionReinforcementDraw(group, InvasionReinforcementOutcome.Landing,
-                    landingSites[_selectIndex(landingSites.Count)]);
+                    landingSites[_selectIndex(landingSites.Count)],
+                    group.ClanIds.FirstOrDefault(_campaign.HasPartySlot));
         }
     }
 }

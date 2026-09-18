@@ -88,6 +88,29 @@ namespace CustomSpawns.Tests.Invasions
             Assert.AreEqual(31, _group.NextReinforcementDeadlineDays);
         }
 
+        [Test]
+        public void AnArrivalJoinsTheFirstInvasionClanThatStillHasRoomForAWarParty()
+        {
+            Wind();
+            _group.AddClan("overflow-clan");
+            _campaign.FullClans.Add("clan");
+
+            _campaign.Now = 17;
+            Assert.AreEqual("overflow-clan", _reinforcements.DrawDue().Single().ClanId);
+        }
+
+        [Test]
+        public void AnArrivalWithEveryInvasionClanFullCarriesNoClanSoOneIsFounded()
+        {
+            Wind();
+            _campaign.FullClans.Add("clan");
+
+            _campaign.Now = 17;
+            InvasionReinforcementDraw draw = _reinforcements.DrawDue().Single();
+            Assert.AreEqual(InvasionReinforcementOutcome.Landing, draw.Outcome);
+            Assert.IsNull(draw.ClanId);
+        }
+
         private void Wind()
         {
             _campaign.Now = 10;
@@ -114,12 +137,14 @@ namespace CustomSpawns.Tests.Invasions
             internal bool Coastal = true;
             internal int ActiveReinforcements;
             internal readonly List<string> LandingSites = new() { "town" };
+            internal readonly HashSet<string> FullClans = new();
 
             public double NowInDays => Now;
             public InvasionReinforcementSettings? GetSettings(InvasionGroupState group) => new(7, 2);
             public bool IsCoastalTown(string settlementId) => Coastal;
             public IReadOnlyList<string> GetLandingSites(InvasionGroupState group) => LandingSites;
             public int CountActiveReinforcements(InvasionGroupState group) => ActiveReinforcements;
+            public bool HasPartySlot(string clanId) => !FullClans.Contains(clanId);
         }
     }
 }

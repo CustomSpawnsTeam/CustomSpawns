@@ -18,7 +18,7 @@ namespace CustomSpawns.Invasions
 
         public InvasionGroupState RegisterMember(string templateId, string clanId, string partyId)
         {
-            InvasionGroupState? group = Groups.SingleOrDefault(g => g.SpawnTemplateId == templateId && g.ClanId == clanId);
+            InvasionGroupState? group = Groups.SingleOrDefault(g => g.SpawnTemplateId == templateId && g.HoldsClan(clanId));
             if (group == null)
             {
                 group = new InvasionGroupState((NextGroupId++).ToString(System.Globalization.CultureInfo.InvariantCulture), templateId, clanId);
@@ -36,7 +36,7 @@ namespace CustomSpawns.Invasions
 
         // A kingdom carrying a live invasion must outlive the loss of its last settlement so the invasion can retake one.
         public bool ProtectsKingdomOf(IEnumerable<string> clanIds) =>
-            clanIds.Any(clanId => Groups.Any(group => !group.IsSuspended && !IsGroupSpent(group) && group.ClanId == clanId));
+            clanIds.Any(clanId => Groups.Any(group => !group.IsSuspended && !IsGroupSpent(group) && group.HoldsClan(clanId)));
 
         // An invasion left with no town to hold and no party to retake one has nothing left to fight with.
         public bool IsGroupSpent(InvasionGroupState group) =>
@@ -61,9 +61,9 @@ namespace CustomSpawns.Invasions
         public void ObserveOwner(string settlementId, string? ownerClanId)
         {
             var credit = FindCredit(settlementId);
-            if (credit != null && FindGroup(credit.GroupId)?.ClanId != ownerClanId) CreditIndex.Remove(settlementId);
+            if (credit != null && FindGroup(credit.GroupId)?.HoldsClan(ownerClanId) != true) CreditIndex.Remove(settlementId);
             foreach (var context in Captures.Where(c => c.SettlementId == settlementId && c.OwnershipObserved &&
-                         FindGroup(c.OwnershipGroupId)?.ClanId != ownerClanId))
+                         FindGroup(c.OwnershipGroupId)?.HoldsClan(ownerClanId) != true))
                 context.Cancelled = true;
         }
 
@@ -119,10 +119,17 @@ namespace CustomSpawns.Invasions
 
     public sealed class InvasionGroupState
     {
-        internal InvasionGroupState(string id, string templateId, string clanId) { Id = id; SpawnTemplateId = templateId; ClanId = clanId; }
+        internal InvasionGroupState(string id, string templateId, string clanId)
+        { Id = id; SpawnTemplateId = templateId; ClanId = clanId; Clans.Add(clanId); }
         public string Id { get; }
         public string SpawnTemplateId { get; }
+        // The clan that founded the invasion: it is the one that rules the kingdom the invasion leaves behind.
         public string ClanId { get; }
+        // An invasion outgrows the war party limit of one clan, so it expands into further clans of its kingdom.
+        internal List<string> Clans = new();
+        public IReadOnlyList<string> ClanIds => Clans;
+        public bool HoldsClan(string? clanId) => clanId != null && Clans.Contains(clanId);
+        internal void AddClan(string clanId) { if (!Clans.Contains(clanId)) Clans.Add(clanId); }
         public bool IsSuspended { get; internal set; }
         // Zero means no deadline has been established yet. Scheduling is a separate feature.
         public double NextReinforcementDeadlineDays { get; internal set; }
