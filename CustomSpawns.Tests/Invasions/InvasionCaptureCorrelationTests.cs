@@ -65,7 +65,7 @@ namespace CustomSpawns.Tests.Invasions
         public void NativeConquestSideIncludesSallyOutBesiegersAndExcludesSiegeOutside(bool assault, bool sallyOut,
             bool blockadeSallyOut, BattleSideEnum expected)
         {
-            Assert.AreEqual(expected, InvasionCampaignBehaviour.GetConqueringSide(assault, sallyOut, blockadeSallyOut));
+            Assert.AreEqual(expected, InvasionSieges.GetConqueringSide(assault, sallyOut, blockadeSallyOut));
         }
 
         [Test]
