@@ -15,18 +15,18 @@ namespace CustomSpawns.Invasions.Adapters
     internal sealed class InvasionKingdomRetirement
     {
         private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
-        private readonly InvasionState _state;
+        private readonly InvasionState _invasionState;
 
         internal InvasionKingdomRetirement(InvasionState state)
         {
-            _state = state;
+            _invasionState = state;
         }
 
         internal void RetireSpent()
         {
-            foreach (InvasionGroupState group in _state.Groups.ToList())
+            foreach (InvasionGroupState group in _invasionState.Groups.ToList())
             {
-                if (!_state.IsGroupSpent(group))
+                if (!_invasionState.IsGroupSpent(group))
                 {
                     continue;
                 }

@@ -16,24 +16,24 @@ namespace CustomSpawns.Invasions.Adapters
      */
     internal sealed class InvasionMembership
     {
-        private readonly InvasionState _state;
-        private readonly SpawnDao _spawns;
-        private readonly DynamicSpawnData _parties;
-        private readonly InvasionCaptureCorrelation _correlation;
+        private readonly InvasionState _invasionState;
+        private readonly SpawnDao _spawnDao;
+        private readonly DynamicSpawnData _dynamicSpawnData;
+        private readonly InvasionCaptureCorrelation _invasionCaptureCorrelation;
 
         internal InvasionMembership(InvasionState state, SpawnDao spawns, DynamicSpawnData parties,
             InvasionCaptureCorrelation correlation)
         {
-            _state = state;
-            _spawns = spawns;
-            _parties = parties;
-            _correlation = correlation;
+            _invasionState = state;
+            _spawnDao = spawns;
+            _dynamicSpawnData = parties;
+            _invasionCaptureCorrelation = correlation;
         }
 
         internal void Register(MobileParty party, CsPartyData data)
         {
             // Saved membership survives removed configurations so cleanup remains possible.
-            InvasionGroupState? saved = _state.FindGroup(data.InvasionGroupId);
+            InvasionGroupState? saved = _invasionState.FindGroup(data.InvasionGroupId);
 
             if (saved != null && saved.HoldsClan(party.ActualClan?.StringId) && saved.SpawnTemplateId == data.OwningSpawnTemplateId)
             {
@@ -46,13 +46,13 @@ namespace CustomSpawns.Invasions.Adapters
             Clan? clan = party.ActualClan;
 
             if (templateId == null || clan == null || clan.IsEliminated || clan.IsBanditFaction ||
-                _spawns.FindByPartyTemplateId(templateId)?.Invasion == null)
+                _spawnDao.FindByPartyTemplateId(templateId)?.Invasion == null)
             {
                 data.SetInvasionIdentity(null, null);
                 return;
             }
 
-            var group = _state.RegisterMember(templateId, clan.StringId, party.StringId);
+            var group = _invasionState.RegisterMember(templateId, clan.StringId, party.StringId);
             data.SetInvasionIdentity(group.Id, RoleFor(data));
         }
 
@@ -60,7 +60,7 @@ namespace CustomSpawns.Invasions.Adapters
         {
             foreach (MobileParty party in MobileParty.All.Where(p => p.IsActive))
             {
-                CsPartyData? data = _parties.GetDynamicSpawnData(party);
+                CsPartyData? data = _dynamicSpawnData.GetDynamicSpawnData(party);
 
                 if (data != null)
                 {
@@ -71,23 +71,23 @@ namespace CustomSpawns.Invasions.Adapters
 
         internal void Remove(MobileParty party)
         {
-            _state.RemoveMember(party.StringId);
+            _invasionState.RemoveMember(party.StringId);
             Reconcile();
         }
 
         internal void Reconcile()
         {
-            _state.Reconcile(MobileParty.All.Where(p => p.IsActive).Select(p => p.StringId),
+            _invasionState.Reconcile(MobileParty.All.Where(p => p.IsActive).Select(p => p.StringId),
                 id => Settlement.Find(id)?.OwnerClan?.StringId,
                 group => GetConfiguration(group) != null && Clan.FindFirst(c => c.StringId == group.ClanId)?.IsEliminated == false,
                 group => InvasionKingdomRetirement.FindRetirableKingdom(group) != null);
 
-            _correlation.Prune();
+            _invasionCaptureCorrelation.Prune();
         }
 
         internal IReadOnlyList<MobileParty> FindLiveMembers(MobileParty party)
         {
-            InvasionGroupState? group = _state.FindMemberGroup(party.StringId);
+            InvasionGroupState? group = _invasionState.FindMemberGroup(party.StringId);
 
             if (group == null)
             {
@@ -101,6 +101,6 @@ namespace CustomSpawns.Invasions.Adapters
         private static string RoleFor(CsPartyData data) => data.IsIndependentReinforcement ? "Reinforcement" :
             data.IsPrimarySpawn ? "Original" : "Escort";
 
-        private InvasionData? GetConfiguration(InvasionGroupState group) => _spawns.FindByPartyTemplateId(group.SpawnTemplateId)?.Invasion;
+        private InvasionData? GetConfiguration(InvasionGroupState group) => _spawnDao.FindByPartyTemplateId(group.SpawnTemplateId)?.Invasion;
     }
 }

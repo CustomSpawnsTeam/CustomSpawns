@@ -19,33 +19,34 @@ namespace CustomSpawns.Invasions.Adapters
     public sealed class InvasionCampaignBehaviour : CampaignBehaviorBase, IInvasionFootholdQuery,
         IInvasionLandingQuery
     {
-        private readonly SpawnDao _spawns;
-        private readonly DynamicSpawnData _parties;
-        private readonly SpawnGroupService _spawnGroups;
-        private readonly InvasionCoastalTownResolver _coastalTownResolver = new();
+        private readonly SpawnDao _spawnDao;
+        private readonly DynamicSpawnData _dynamicSpawnData;
+        private readonly SpawnGroupService _spawnGroupService;
+        private readonly InvasionCoastalTownResolver _invasionCoastalTownResolver = new();
         private readonly Func<int, int> _randomIndex;
-        private InvasionCaptureCorrelation _correlation;
-        private InvasionReinforcementArrivals _arrivals;
-        private InvasionOccupations _occupations;
-        private InvasionKingdomRetirement _retirement;
-        private InvasionSieges _sieges;
-        private InvasionMembership _membership;
+        private InvasionCaptureCorrelation _invasionCaptureCorrelation;
+        private InvasionReinforcementArrivals _invasionReinforcementArrivals;
+        private InvasionOccupations _invasionOccupations;
+        private InvasionKingdomRetirement _invasionKingdomRetirement;
+        private InvasionSieges _invasionSieges;
+        private InvasionMembership _invasionMembership;
         private bool _initialized;
         public InvasionState State { get; private set; } = new();
 
         internal InvasionCampaignBehaviour(SpawnDao spawns, DynamicSpawnData parties, SpawnGroupService spawnGroups,
             SaveInitialiser initialiser, Func<int, int>? randomIndex = null)
         {
-            _spawns = spawns;
-            _parties = parties;
-            _spawnGroups = spawnGroups;
+            _spawnDao = spawns;
+            _dynamicSpawnData = parties;
+            _spawnGroupService = spawnGroups;
             _randomIndex = randomIndex ?? MBRandom.RandomInt;
-            _correlation = new InvasionCaptureCorrelation(State);
-            _arrivals = NewArrivals();
-            _occupations = NewOccupations();
-            _retirement = new InvasionKingdomRetirement(State);
-            _sieges = new InvasionSieges(State, _correlation, _spawns);
-            _membership = new InvasionMembership(State, _spawns, _parties, _correlation);
+            _invasionCaptureCorrelation = new InvasionCaptureCorrelation(State);
+            _invasionReinforcementArrivals = NewArrivals();
+            _invasionOccupations = NewOccupations();
+            _invasionKingdomRetirement = new InvasionKingdomRetirement(State);
+            _invasionSieges = new InvasionSieges(State, _invasionCaptureCorrelation, _spawnDao);
+            _invasionMembership = new InvasionMembership(State, _spawnDao, _dynamicSpawnData,
+                _invasionCaptureCorrelation);
 
             // DynamicSpawnData registers its discovery callback first; scheduling/AI are composed later.
             initialiser.RunCallbackOnFirstCampaignTick(Initialize);
@@ -70,7 +71,7 @@ namespace CustomSpawns.Invasions.Adapters
 
             if (saved != null)
             {
-                saved.OwnedCaptureEvidence = _correlation.ExportOwnedResults().Select(result => new InvasionCaptureEvidenceSaveData
+                saved.OwnedCaptureEvidence = _invasionCaptureCorrelation.ExportOwnedResults().Select(result => new InvasionCaptureEvidenceSaveData
                 {
                     CaptureId = result.CaptureId, PreviousOwnerClanId = result.PreviousOwnerClanId,
                     ExpectedOwnerClanId = result.ExpectedOwnerClanId, Capturer = result.Capturer as Hero,
@@ -86,27 +87,30 @@ namespace CustomSpawns.Invasions.Adapters
             }
 
             State = saved?.ToState() ?? new InvasionState();
-            _correlation = new InvasionCaptureCorrelation(State);
-            _arrivals = NewArrivals();
-            _occupations = NewOccupations();
-            _retirement = new InvasionKingdomRetirement(State);
-            _sieges = new InvasionSieges(State, _correlation, _spawns);
-            _membership = new InvasionMembership(State, _spawns, _parties, _correlation);
+            _invasionCaptureCorrelation = new InvasionCaptureCorrelation(State);
+            _invasionReinforcementArrivals = NewArrivals();
+            _invasionOccupations = NewOccupations();
+            _invasionKingdomRetirement = new InvasionKingdomRetirement(State);
+            _invasionSieges = new InvasionSieges(State, _invasionCaptureCorrelation, _spawnDao);
+            _invasionMembership = new InvasionMembership(State, _spawnDao, _dynamicSpawnData,
+                _invasionCaptureCorrelation);
 
             foreach (var evidence in saved?.OwnedCaptureEvidence ?? new List<InvasionCaptureEvidenceSaveData>())
             {
-                _correlation.RestoreOwnedResult(evidence.CaptureId, evidence.PreviousOwnerClanId,
+                _invasionCaptureCorrelation.RestoreOwnedResult(evidence.CaptureId, evidence.PreviousOwnerClanId,
                     evidence.ExpectedOwnerClanId, evidence.Capturer, (evidence.Participants ?? new List<MobileParty>()).Cast<object>());
             }
 
             _initialized = false;
-            _coastalTownResolver.ClearCache();
+            _invasionCoastalTownResolver.ClearCache();
         }
 
-        private InvasionReinforcementArrivals NewArrivals() => new(State, _spawns, _parties, _spawnGroups,
-            _coastalTownResolver, _randomIndex);
+        private InvasionReinforcementArrivals NewArrivals() =>
+            new(State, _spawnDao, _dynamicSpawnData, _spawnGroupService, _invasionCoastalTownResolver,
+                _randomIndex);
 
-        private InvasionOccupations NewOccupations() => new(State, _spawns, _parties, _coastalTownResolver);
+        private InvasionOccupations NewOccupations() =>
+            new(State, _spawnDao, _dynamicSpawnData, _invasionCoastalTownResolver);
 
         private void Initialize()
         {
@@ -116,22 +120,22 @@ namespace CustomSpawns.Invasions.Adapters
             }
 
             _initialized = true;
-            _membership.Reconcile();
-            _membership.RegisterLive();
-            _sieges.RebindUnconfirmed();
+            _invasionMembership.Reconcile();
+            _invasionMembership.RegisterLive();
+            _invasionSieges.RebindUnconfirmed();
         }
 
-        private void RegisterParty(MobileParty party, CsPartyData data) => _membership.Register(party, data);
+        private void RegisterParty(MobileParty party, CsPartyData data) => _invasionMembership.Register(party, data);
 
-        private void RemoveParty(MobileParty party) => _membership.Remove(party);
+        private void RemoveParty(MobileParty party) => _invasionMembership.Remove(party);
 
         private void OnHourlyTick()
         {
             Initialize();
 
-            _membership.Reconcile();
-            _retirement.RetireSpent();
-            _occupations.ApplyReady();
+            _invasionMembership.Reconcile();
+            _invasionKingdomRetirement.RetireSpent();
+            _invasionOccupations.ApplyReady();
         }
 
         public bool HasPersistentInvasionGroup(CsPartyData partyData) => State.FindGroup(partyData.InvasionGroupId) != null;
@@ -139,33 +143,33 @@ namespace CustomSpawns.Invasions.Adapters
         Func<Settlement, bool>? IInvasionLandingQuery.GetInitialCoastalTargetFilter(MobileParty party)
         {
             Initialize();
-            return _arrivals.FindInitialCoastalTargetFilter(party);
+            return _invasionReinforcementArrivals.FindInitialCoastalTargetFilter(party);
         }
 
         IReadOnlyList<MobileParty> IInvasionLandingQuery.GetLandingParties(MobileParty party)
         {
             Initialize();
-            return _membership.FindLiveMembers(party);
+            return _invasionMembership.FindLiveMembers(party);
         }
 
         private void OnMapEventStarted(MapEvent mapEvent, PartyBase attacker, PartyBase defender)
         {
             Initialize();
-            _sieges.ObserveStart(mapEvent);
+            _invasionSieges.ObserveStart(mapEvent);
         }
 
-        private void OnMapEventEnded(MapEvent mapEvent) => _sieges.ObserveEnd(mapEvent);
+        private void OnMapEventEnded(MapEvent mapEvent) => _invasionSieges.ObserveEnd(mapEvent);
 
         private void OnAftermath(MobileParty attacker, Settlement settlement, SiegeAftermathAction.SiegeAftermath aftermath,
             Clan previousOwner, Dictionary<MobileParty, float> contributions)
         {
             Initialize();
 
-            long? capture = _sieges.ObserveAftermath(attacker, settlement, previousOwner, contributions);
+            long? capture = _invasionSieges.ObserveAftermath(attacker, settlement, previousOwner, contributions);
 
             if (capture != null)
             {
-                _arrivals.StartSchedule(capture.Value);
+                _invasionReinforcementArrivals.StartSchedule(capture.Value);
             }
         }
 
@@ -174,11 +178,11 @@ namespace CustomSpawns.Invasions.Adapters
         {
             Initialize();
 
-            long? capture = _sieges.ObserveOwnerChange(settlement, newOwner, oldOwner, capturer, detail);
+            long? capture = _invasionSieges.ObserveOwnerChange(settlement, newOwner, oldOwner, capturer, detail);
 
             if (capture != null)
             {
-                _arrivals.StartSchedule(capture.Value);
+                _invasionReinforcementArrivals.StartSchedule(capture.Value);
             }
         }
 
@@ -202,12 +206,12 @@ namespace CustomSpawns.Invasions.Adapters
         {
             Initialize();
 
-            _membership.Reconcile();
-            _arrivals.LandDue();
+            _invasionMembership.Reconcile();
+            _invasionReinforcementArrivals.LandDue();
         }
 
         // The food model asks per town, so it holds the behaviour and not the occupation pass,
         // which is replaced whenever a save rebinds the state.
-        public float GetOngoingFoodSupport(Town town) => _occupations.GetOngoingFoodSupport(town);
+        public float GetOngoingFoodSupport(Town town) => _invasionOccupations.GetOngoingFoodSupport(town);
     }
 }

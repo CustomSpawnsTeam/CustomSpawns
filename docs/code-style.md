@@ -73,6 +73,32 @@ Put the comment on the line above the block it is about, with a blank line befor
 (unless the block is the first thing in the method). A comment glued to the end of a previous
 paragraph reads as a footnote to the wrong statement.
 
+## A field is named for what it holds
+
+A private field holding a collaborator takes its type's name, camelCased. An interface drops the
+leading `I`.
+
+```csharp
+// no
+private readonly SpawnDao _spawns;
+private readonly DynamicSpawnData _parties;
+private readonly IInvasionReinforcementQuery _campaign;
+
+// yes
+private readonly SpawnDao _spawnDao;
+private readonly DynamicSpawnData _dynamicSpawnData;
+private readonly IInvasionReinforcementQuery _invasionReinforcementQuery;
+```
+
+A shortened name reads like a concept or a collection — `_spawns` sounds like a list of spawns,
+`_correlation` like a number — and you have to go back to the declaration to find out what the
+thing actually is. The type already answers that, so use it.
+
+This is for fields holding a named collaborator. Primitives, flags, delegates and collections have
+no useful type name and keep a descriptive one: `bool _initialized`, `Func<int, int> _randomIndex`,
+`Dictionary<string, bool> _coastalBySettlementId`. Locals and parameters are unaffected; they are
+read next to their own declaration.
+
 ## Before and after
 
 `InvasionSieges.ObserveOwnerChange` as first written — four unrelated steps with no seam between

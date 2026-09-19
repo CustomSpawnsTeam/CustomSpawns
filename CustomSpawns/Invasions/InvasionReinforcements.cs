@@ -64,30 +64,30 @@ namespace CustomSpawns.Invasions
      */
     internal sealed class InvasionReinforcements
     {
-        private readonly InvasionState _state;
-        private readonly IInvasionReinforcementQuery _campaign;
+        private readonly InvasionState _invasionState;
+        private readonly IInvasionReinforcementQuery _invasionReinforcementQuery;
         private readonly Func<int, int> _selectIndex;
 
         internal InvasionReinforcements(InvasionState state, IInvasionReinforcementQuery campaign,
             Func<int, int> selectIndex)
         {
-            _state = state;
-            _campaign = campaign;
+            _invasionState = state;
+            _invasionReinforcementQuery = campaign;
             _selectIndex = selectIndex;
         }
 
         // The clock is wound once, by the first coastal town the invasion takes and holds.
         internal InvasionGroupState? StartSchedule(long captureId)
         {
-            InvasionCapture? capture = _state.FindCapture(captureId);
-            InvasionGroupState? group = _state.FindGroup(capture?.CapturingGroupId);
+            InvasionCapture? capture = _invasionState.FindCapture(captureId);
+            InvasionGroupState? group = _invasionState.FindGroup(capture?.CapturingGroupId);
             if (capture?.IsConfirmed != true || group == null || group.NextReinforcementDeadlineDays != 0) return null;
 
-            double intervalDays = _campaign.GetSettings(group)?.IntervalInDays ?? 0;
-            if (intervalDays <= 0 || !_campaign.IsCoastalTown(capture.SettlementId)) return null;
+            double intervalDays = _invasionReinforcementQuery.GetSettings(group)?.IntervalInDays ?? 0;
+            if (intervalDays <= 0 || !_invasionReinforcementQuery.IsCoastalTown(capture.SettlementId)) return null;
 
             group.ReinforcementIntervalDays = intervalDays;
-            group.NextReinforcementDeadlineDays = _campaign.NowInDays + intervalDays;
+            group.NextReinforcementDeadlineDays = _invasionReinforcementQuery.NowInDays + intervalDays;
             return group;
         }
 
@@ -97,9 +97,9 @@ namespace CustomSpawns.Invasions
          */
         internal IReadOnlyList<InvasionReinforcementDraw> DrawDue()
         {
-            double nowDays = _campaign.NowInDays;
+            double nowDays = _invasionReinforcementQuery.NowInDays;
             var draws = new List<InvasionReinforcementDraw>();
-            foreach (InvasionGroupState group in new List<InvasionGroupState>(_state.Groups))
+            foreach (InvasionGroupState group in new List<InvasionGroupState>(_invasionState.Groups))
                 if (TryClaimSlot(group, nowDays)) draws.Add(Draw(group));
             return draws;
         }
@@ -118,19 +118,19 @@ namespace CustomSpawns.Invasions
 
         private InvasionReinforcementDraw Draw(InvasionGroupState group)
         {
-            InvasionReinforcementSettings? settings = _campaign.GetSettings(group);
+            InvasionReinforcementSettings? settings = _invasionReinforcementQuery.GetSettings(group);
             if (settings == null || group.IsSuspended)
                 return new InvasionReinforcementDraw(group, InvasionReinforcementOutcome.Unavailable, null, null);
-            if (_campaign.CountActiveReinforcements(group) >= settings.ActivePartyCap)
+            if (_invasionReinforcementQuery.CountActiveReinforcements(group) >= settings.ActivePartyCap)
                 return new InvasionReinforcementDraw(group, InvasionReinforcementOutcome.ActivePartyCapReached, null, null);
 
-            IReadOnlyList<string> landingSites = _campaign.GetLandingSites(group);
+            IReadOnlyList<string> landingSites = _invasionReinforcementQuery.GetLandingSites(group);
             // The arrival joins the first clan of the invasion that still has room for a war party.
             return landingSites.Count == 0
                 ? new InvasionReinforcementDraw(group, InvasionReinforcementOutcome.NoLandingSite, null, null)
                 : new InvasionReinforcementDraw(group, InvasionReinforcementOutcome.Landing,
                     landingSites[_selectIndex(landingSites.Count)],
-                    group.ClanIds.FirstOrDefault(_campaign.HasPartySlot));
+                    group.ClanIds.FirstOrDefault(_invasionReinforcementQuery.HasPartySlot));
         }
     }
 }

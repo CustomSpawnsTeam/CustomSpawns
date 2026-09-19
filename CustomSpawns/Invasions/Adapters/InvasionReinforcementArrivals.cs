@@ -23,27 +23,27 @@ namespace CustomSpawns.Invasions.Adapters
     internal sealed class InvasionReinforcementArrivals : IInvasionReinforcementQuery
     {
         private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
-        private readonly InvasionState _state;
-        private readonly SpawnDao _spawns;
-        private readonly DynamicSpawnData _parties;
-        private readonly SpawnGroupService _spawnGroups;
-        private readonly InvasionCoastalTownResolver _coastalTownResolver;
-        private readonly InvasionReinforcements _reinforcements;
+        private readonly InvasionState _invasionState;
+        private readonly SpawnDao _spawnDao;
+        private readonly DynamicSpawnData _dynamicSpawnData;
+        private readonly SpawnGroupService _spawnGroupService;
+        private readonly InvasionCoastalTownResolver _invasionCoastalTownResolver;
+        private readonly InvasionReinforcements _invasionReinforcements;
 
         internal InvasionReinforcementArrivals(InvasionState state, SpawnDao spawns, DynamicSpawnData parties,
             SpawnGroupService spawnGroups, InvasionCoastalTownResolver coastalTownResolver, Func<int, int> randomIndex)
         {
-            _state = state;
-            _spawns = spawns;
-            _parties = parties;
-            _spawnGroups = spawnGroups;
-            _coastalTownResolver = coastalTownResolver;
-            _reinforcements = new InvasionReinforcements(state, this, randomIndex);
+            _invasionState = state;
+            _spawnDao = spawns;
+            _dynamicSpawnData = parties;
+            _spawnGroupService = spawnGroups;
+            _invasionCoastalTownResolver = coastalTownResolver;
+            _invasionReinforcements = new InvasionReinforcements(state, this, randomIndex);
         }
 
         internal void StartSchedule(long captureId)
         {
-            InvasionGroupState? group = _reinforcements.StartSchedule(captureId);
+            InvasionGroupState? group = _invasionReinforcements.StartSchedule(captureId);
 
             if (group == null)
             {
@@ -51,13 +51,13 @@ namespace CustomSpawns.Invasions.Adapters
             }
 
             Logger.Info("Invasion coastal foothold gained: group=" + group.Id + " town=" +
-                        _state.FindCapture(captureId)!.SettlementId + " next_arrival_day=" +
+                        _invasionState.FindCapture(captureId)!.SettlementId + " next_arrival_day=" +
                         group.NextReinforcementDeadlineDays);
         }
 
         internal void LandDue()
         {
-            foreach (InvasionReinforcementDraw draw in _reinforcements.DrawDue())
+            foreach (InvasionReinforcementDraw draw in _invasionReinforcements.DrawDue())
             {
                 if (draw.Outcome == InvasionReinforcementOutcome.Landing)
                 {
@@ -78,7 +78,7 @@ namespace CustomSpawns.Invasions.Adapters
         private void Land(InvasionReinforcementDraw draw)
         {
             InvasionData? configuration = GetConfiguration(draw.Group);
-            SpawnDto? spawn = _spawns.FindByPartyTemplateId(draw.Group.SpawnTemplateId);
+            SpawnDto? spawn = _spawnDao.FindByPartyTemplateId(draw.Group.SpawnTemplateId);
             Settlement? landing = Settlement.Find(draw.LandingSettlementId!);
             PartyTemplateObject? template = configuration == null ? null :
                 Campaign.Current.ObjectManager.GetObject<PartyTemplateObject>(configuration.ReinforcementPartyTemplateId);
@@ -102,7 +102,7 @@ namespace CustomSpawns.Invasions.Adapters
                 return;
             }
 
-            MobileParty? reinforcement = _spawnGroups.SpawnInvasionReinforcement(spawn, template, landing, clan);
+            MobileParty? reinforcement = _spawnGroupService.SpawnInvasionReinforcement(spawn, template, landing, clan);
             Logger.Info("Invasion reinforcement " + (reinforcement == null ? "failed" : "arrived") + ": group=" +
                         draw.Group.Id + " clan=" + clan.StringId + " town=" + landing.StringId +
                         " next_arrival_day=" + draw.Group.NextReinforcementDeadlineDays);
@@ -164,14 +164,14 @@ namespace CustomSpawns.Invasions.Adapters
         }
 
         bool IInvasionReinforcementQuery.IsCoastalTown(string settlementId) =>
-            _coastalTownResolver.IsCoastalTown(Settlement.Find(settlementId));
+            _invasionCoastalTownResolver.IsCoastalTown(Settlement.Find(settlementId));
 
         IReadOnlyList<string> IInvasionReinforcementQuery.GetLandingSites(InvasionGroupState group) =>
             Settlement.All.Where(settlement => IsEligibleLandingSettlement(settlement, group))
                 .Select(settlement => settlement.StringId).ToList();
 
         int IInvasionReinforcementQuery.CountActiveReinforcements(InvasionGroupState group) =>
-            MobileParty.All.Count(party => party.IsActive && _parties.GetDynamicSpawnData(party) is { } data &&
+            MobileParty.All.Count(party => party.IsActive && _dynamicSpawnData.GetDynamicSpawnData(party) is { } data &&
                 data.InvasionGroupId == group.Id && data.IsIndependentReinforcement);
 
         bool IInvasionReinforcementQuery.HasPartySlot(string clanId)
@@ -183,7 +183,7 @@ namespace CustomSpawns.Invasions.Adapters
 
         internal Func<Settlement, bool>? FindInitialCoastalTargetFilter(MobileParty party)
         {
-            InvasionGroupState? group = _state.FindMemberGroup(party.StringId);
+            InvasionGroupState? group = _invasionState.FindMemberGroup(party.StringId);
 
             if (group == null || group.IsSuspended || !group.HoldsClan(party.ActualClan?.StringId))
             {
@@ -198,21 +198,21 @@ namespace CustomSpawns.Invasions.Adapters
             }
 
             bool factionHasCoastalTown = Settlement.All.Any(settlement => settlement.IsTown &&
-                settlement.MapFaction == party.MapFaction && _coastalTownResolver.IsCoastalTown(settlement));
+                settlement.MapFaction == party.MapFaction && _invasionCoastalTownResolver.IsCoastalTown(settlement));
 
-            return factionHasCoastalTown ? null : _coastalTownResolver.IsCoastalTown;
+            return factionHasCoastalTown ? null : _invasionCoastalTownResolver.IsCoastalTown;
         }
 
         private bool IsEligibleLandingSettlement(Settlement settlement, InvasionGroupState group)
         {
-            InvasionFoothold? foothold = _state.FindFoothold(settlement.StringId);
+            InvasionFoothold? foothold = _invasionState.FindFoothold(settlement.StringId);
 
             return foothold?.GroupId == group.Id && settlement.IsTown &&
                    group.HoldsClan(settlement.OwnerClan?.StringId) && settlement.SiegeEvent == null &&
-                   _coastalTownResolver.IsCoastalTown(settlement);
+                   _invasionCoastalTownResolver.IsCoastalTown(settlement);
         }
 
         private InvasionData? GetConfiguration(InvasionGroupState group) =>
-            _spawns.FindByPartyTemplateId(group.SpawnTemplateId)?.Invasion;
+            _spawnDao.FindByPartyTemplateId(group.SpawnTemplateId)?.Invasion;
     }
 }
