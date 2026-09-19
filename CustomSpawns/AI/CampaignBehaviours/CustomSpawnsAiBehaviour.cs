@@ -67,10 +67,10 @@ namespace CustomSpawns.AI
             scoreSink.AddBehaviorScore(behavior, DominantAiBehaviorScore);
         }
 
-        // A promoted lord is steered by vanilla unless its group has lost every town it took.
-        internal static bool IsSteeredByCustomSpawns(bool isLordParty, bool isGroupWithoutTown)
+        // A promoted lord is steered by vanilla unless its domain still requires CustomSpawns control.
+        internal static bool IsSteeredByCustomSpawns(bool isLordParty, bool requiresCustomSpawnsSteering)
         {
-            return !isLordParty || isGroupWithoutTown;
+            return !isLordParty || requiresCustomSpawnsSteering;
         }
 
         internal static EscortDecisionLockAction GetEscortDecisionLockAction(bool keepFormation,

@@ -23,19 +23,19 @@ namespace CustomSpawns.Invasions.Adapters
 
     internal sealed class InvasionCoastalSiegeTargetPolicy : ISiegeTargetPolicy
     {
-        private readonly IInvasionLandingQuery _landing;
-        private readonly IMapPathQuery _mapPaths;
+        private readonly IInvasionLandingQuery _invasionLandingQuery;
+        private readonly IMapPathQuery _mapPathQuery;
 
         internal InvasionCoastalSiegeTargetPolicy(IInvasionLandingQuery landing, IMapPathQuery mapPaths)
         {
-            _landing = landing;
-            _mapPaths = mapPaths;
+            _invasionLandingQuery = landing;
+            _mapPathQuery = mapPaths;
         }
 
         public bool IsCandidateAllowed(MobileParty party, SiegeTargetCandidate candidate)
         {
             Func<Settlement, bool>? initialCoastalTargetFilter =
-                _landing.GetInitialCoastalTargetFilter(party);
+                _invasionLandingQuery.GetInitialCoastalTargetFilter(party);
             return IsEligibleCoastalTarget(party, candidate.Target, candidate.TargetId,
                 initialCoastalTargetFilter);
         }
@@ -48,7 +48,7 @@ namespace CustomSpawns.Invasions.Adapters
             }
 
             Func<Settlement, bool>? initialCoastalTargetFilter =
-                _landing.GetInitialCoastalTargetFilter(party);
+                _invasionLandingQuery.GetInitialCoastalTargetFilter(party);
             return IsEligibleCoastalTarget(party, target, target.StringId, initialCoastalTargetFilter);
         }
 
@@ -59,19 +59,19 @@ namespace CustomSpawns.Invasions.Adapters
             List<MobileParty> others = GetAttackingForce(party)
                 .Where(landingParty => landingParty != party).ToList();
             return candidate => candidate.Distance +
-                                others.Sum(other => _mapPaths.GetDistanceToGate(other, candidate.Target));
+                                others.Sum(other => _mapPathQuery.GetDistanceToGate(other, candidate.Target));
         }
 
         // That same force says how strong the invasion is: while it is still looking for a foothold its
         // parties take a town together, so a garrison is weighed against all of them.
         public IReadOnlyList<MobileParty> GetAttackingForce(MobileParty party)
         {
-            if (_landing.GetInitialCoastalTargetFilter(party) == null)
+            if (_invasionLandingQuery.GetInitialCoastalTargetFilter(party) == null)
             {
                 return new[] { party };
             }
 
-            return _landing.GetLandingParties(party);
+            return _invasionLandingQuery.GetLandingParties(party);
         }
 
         private bool IsEligibleCoastalTarget(MobileParty party, Settlement target,
@@ -88,7 +88,7 @@ namespace CustomSpawns.Invasions.Adapters
                 return false;
             }
 
-            if (_mapPaths.HasReachableLandGate(party, target))
+            if (_mapPathQuery.HasReachableLandGate(party, target))
             {
                 return true;
             }
