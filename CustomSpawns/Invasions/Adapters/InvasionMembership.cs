@@ -34,20 +34,24 @@ namespace CustomSpawns.Invasions.Adapters
         {
             // Saved membership survives removed configurations so cleanup remains possible.
             InvasionGroupState? saved = _state.FindGroup(data.InvasionGroupId);
+
             if (saved != null && saved.HoldsClan(party.ActualClan?.StringId) && saved.SpawnTemplateId == data.OwningSpawnTemplateId)
             {
                 saved.Members.Add(party.StringId);
                 data.SetInvasionIdentity(saved.Id, data.InvasionRole ?? RoleFor(data));
                 return;
             }
+
             string? templateId = data.OwningSpawnTemplateId;
             Clan? clan = party.ActualClan;
+
             if (templateId == null || clan == null || clan.IsEliminated || clan.IsBanditFaction ||
                 _spawns.FindByPartyTemplateId(templateId)?.Invasion == null)
             {
                 data.SetInvasionIdentity(null, null);
                 return;
             }
+
             var group = _state.RegisterMember(templateId, clan.StringId, party.StringId);
             data.SetInvasionIdentity(group.Id, RoleFor(data));
         }
@@ -57,7 +61,11 @@ namespace CustomSpawns.Invasions.Adapters
             foreach (MobileParty party in MobileParty.All.Where(p => p.IsActive))
             {
                 CsPartyData? data = _parties.GetDynamicSpawnData(party);
-                if (data != null) Register(party, data);
+
+                if (data != null)
+                {
+                    Register(party, data);
+                }
             }
         }
 
@@ -73,13 +81,19 @@ namespace CustomSpawns.Invasions.Adapters
                 id => Settlement.Find(id)?.OwnerClan?.StringId,
                 group => GetConfiguration(group) != null && Clan.FindFirst(c => c.StringId == group.ClanId)?.IsEliminated == false,
                 group => InvasionKingdomRetirement.FindRetirableKingdom(group) != null);
+
             _correlation.Prune();
         }
 
         internal IReadOnlyList<MobileParty> FindLiveMembers(MobileParty party)
         {
             InvasionGroupState? group = _state.FindMemberGroup(party.StringId);
-            if (group == null) return new[] { party };
+
+            if (group == null)
+            {
+                return new[] { party };
+            }
+
             return MobileParty.All.Where(member => member.IsActive && group.Members.Contains(member.StringId))
                 .ToList();
         }

@@ -46,6 +46,7 @@ namespace CustomSpawns.Invasions.Adapters
             _retirement = new InvasionKingdomRetirement(State);
             _sieges = new InvasionSieges(State, _correlation, _spawns);
             _membership = new InvasionMembership(State, _spawns, _parties, _correlation);
+
             // DynamicSpawnData registers its discovery callback first; scheduling/AI are composed later.
             initialiser.RunCallbackOnFirstCampaignTick(Initialize);
             parties.PartyRegistered += RegisterParty;
@@ -66,15 +67,24 @@ namespace CustomSpawns.Invasions.Adapters
         public override void SyncData(IDataStore dataStore)
         {
             InvasionSaveData? saved = dataStore.IsSaving ? InvasionSaveData.FromState(State) : null;
+
             if (saved != null)
+            {
                 saved.OwnedCaptureEvidence = _correlation.ExportOwnedResults().Select(result => new InvasionCaptureEvidenceSaveData
                 {
                     CaptureId = result.CaptureId, PreviousOwnerClanId = result.PreviousOwnerClanId,
                     ExpectedOwnerClanId = result.ExpectedOwnerClanId, Capturer = result.Capturer as Hero,
                     Participants = result.Participants.Cast<MobileParty>().ToList()
                 }).ToList();
+            }
+
             dataStore.SyncData("_invasionState", ref saved);
-            if (!dataStore.IsLoading) return;
+
+            if (!dataStore.IsLoading)
+            {
+                return;
+            }
+
             State = saved?.ToState() ?? new InvasionState();
             _correlation = new InvasionCaptureCorrelation(State);
             _arrivals = NewArrivals();
@@ -82,9 +92,13 @@ namespace CustomSpawns.Invasions.Adapters
             _retirement = new InvasionKingdomRetirement(State);
             _sieges = new InvasionSieges(State, _correlation, _spawns);
             _membership = new InvasionMembership(State, _spawns, _parties, _correlation);
+
             foreach (var evidence in saved?.OwnedCaptureEvidence ?? new List<InvasionCaptureEvidenceSaveData>())
+            {
                 _correlation.RestoreOwnedResult(evidence.CaptureId, evidence.PreviousOwnerClanId,
                     evidence.ExpectedOwnerClanId, evidence.Capturer, (evidence.Participants ?? new List<MobileParty>()).Cast<object>());
+            }
+
             _initialized = false;
             _coastalTownResolver.ClearCache();
         }
@@ -96,7 +110,11 @@ namespace CustomSpawns.Invasions.Adapters
 
         private void Initialize()
         {
-            if (_initialized) return;
+            if (_initialized)
+            {
+                return;
+            }
+
             _initialized = true;
             _membership.Reconcile();
             _membership.RegisterLive();
@@ -110,6 +128,7 @@ namespace CustomSpawns.Invasions.Adapters
         private void OnHourlyTick()
         {
             Initialize();
+
             _membership.Reconcile();
             _retirement.RetireSpent();
             _occupations.ApplyReady();
@@ -141,16 +160,26 @@ namespace CustomSpawns.Invasions.Adapters
             Clan previousOwner, Dictionary<MobileParty, float> contributions)
         {
             Initialize();
+
             long? capture = _sieges.ObserveAftermath(attacker, settlement, previousOwner, contributions);
-            if (capture != null) _arrivals.StartSchedule(capture.Value);
+
+            if (capture != null)
+            {
+                _arrivals.StartSchedule(capture.Value);
+            }
         }
 
         private void OnOwnerChanged(Settlement settlement, bool openToClaim, Hero newOwner, Hero oldOwner,
             Hero capturer, ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail detail)
         {
             Initialize();
+
             long? capture = _sieges.ObserveOwnerChange(settlement, newOwner, oldOwner, capturer, detail);
-            if (capture != null) _arrivals.StartSchedule(capture.Value);
+
+            if (capture != null)
+            {
+                _arrivals.StartSchedule(capture.Value);
+            }
         }
 
         bool IInvasionFootholdQuery.IsGroupWithoutTown(string? invasionGroupId)
@@ -162,12 +191,17 @@ namespace CustomSpawns.Invasions.Adapters
         private void CanKingdomBeDiscontinued(Kingdom kingdom, ref bool result)
         {
             Initialize();
-            if (State.ProtectsKingdomOf(kingdom.Clans.Select(clan => clan.StringId))) result = false;
+
+            if (State.ProtectsKingdomOf(kingdom.Clans.Select(clan => clan.StringId)))
+            {
+                result = false;
+            }
         }
 
         private void ScheduleReinforcements()
         {
             Initialize();
+
             _membership.Reconcile();
             _arrivals.LandDue();
         }

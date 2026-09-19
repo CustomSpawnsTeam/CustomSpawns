@@ -26,9 +26,18 @@ namespace CustomSpawns.Invasions.Adapters
         {
             foreach (InvasionGroupState group in _state.Groups.ToList())
             {
-                if (!_state.IsGroupSpent(group)) continue;
+                if (!_state.IsGroupSpent(group))
+                {
+                    continue;
+                }
+
                 Kingdom? kingdom = FindRetirableKingdom(group);
-                if (kingdom == null) continue;
+
+                if (kingdom == null)
+                {
+                    continue;
+                }
+
                 Logger.Info("Invasion spent: group=" + group.Id + " kingdom=" + kingdom.StringId);
                 DiscontinueKingdom(kingdom);
             }
@@ -37,10 +46,20 @@ namespace CustomSpawns.Invasions.Adapters
         internal static Kingdom? FindRetirableKingdom(InvasionGroupState group)
         {
             Kingdom? kingdom = Clan.FindFirst(clan => clan.StringId == group.ClanId)?.Kingdom;
-            if (kingdom == null) return null;
+
+            if (kingdom == null)
+            {
+                return null;
+            }
+
             bool retirable = !kingdom.IsEliminated && kingdom != Clan.PlayerClan.Kingdom &&
                              !kingdom.Settlements.Any();
-            if (retirable) CampaignEventDispatcher.Instance.CanKingdomBeDiscontinued(kingdom, ref retirable);
+
+            if (retirable)
+            {
+                CampaignEventDispatcher.Instance.CanKingdomBeDiscontinued(kingdom, ref retirable);
+            }
+
             return retirable ? kingdom : null;
         }
 
@@ -63,7 +82,11 @@ namespace CustomSpawns.Invasions.Adapters
         {
             foreach (WarPartyComponent component in clan.WarPartyComponents.ToList())
             {
-                if (component?.Party.IsActive != true) continue;
+                if (component?.Party.IsActive != true)
+                {
+                    continue;
+                }
+
                 component.MobileParty.MapEvent?.FinalizeEvent();
                 component.MobileParty.SiegeEvent?.FinalizeSiegeEvent();
             }

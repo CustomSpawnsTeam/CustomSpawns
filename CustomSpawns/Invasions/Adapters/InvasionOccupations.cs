@@ -48,8 +48,11 @@ namespace CustomSpawns.Invasions.Adapters
                 Town? town = Settlement.Find(capture.SettlementId)?.Town;
                 InvasionGroupState? group = _state.FindGroup(capture.CapturingGroupId);
                 InvasionData? configuration = group == null ? null : GetConfiguration(group);
+
                 if (town?.GarrisonParty == null || group == null || configuration == null)
+                {
                     continue;
+                }
 
                 foreach (MobileParty party in MobileParty.All.Where(p => p.IsActive &&
                              capture.ParticipantPartyIds.Contains(p.StringId) &&
@@ -60,11 +63,19 @@ namespace CustomSpawns.Invasions.Adapters
                 }
 
                 if (IsEligibleForFood(town, group, configuration))
+                {
                     InvasionOccupationFood.Apply(town, configuration.FoodStockFloor);
+                }
+
                 if (!PromoteCapturer(capture, town, group))
+                {
                     continue;
+                }
+
                 if (_state.CompleteOccupation(capture.Id, town.Settlement.OwnerClan?.StringId ?? ""))
+                {
                     Logger.Info("Invasion occupation applied: group=" + group.Id + " town=" + town.Settlement.StringId);
+                }
             }
         }
 
@@ -74,12 +85,18 @@ namespace CustomSpawns.Invasions.Adapters
                 candidate.StringId == capture.CapturerId);
             Hero? leader = party?.LeaderHero;
             Clan? clan = party?.ActualClan;
+
             if (party == null || leader == null || clan == null || leader.Clan != clan ||
                 !group.HoldsClan(clan.StringId))
+            {
                 return false;
+            }
 
             if (party.PartyComponent is not LordPartyComponent)
+            {
                 LordPartyComponent.ConvertPartyToLordParty(party, leader, leader);
+            }
+
             if (clan.Kingdom == null)
             {
                 clan.SetInitialHomeSettlement(town.Settlement);
@@ -103,15 +120,26 @@ namespace CustomSpawns.Invasions.Adapters
         private IReadOnlyList<InvasionCapture> GetReadyOccupations()
         {
             var ready = new List<InvasionCapture>();
+
             foreach (var capture in _state.Captures)
             {
                 Settlement? settlement = Settlement.Find(capture.SettlementId);
+
                 if (settlement?.Town?.GarrisonParty?.IsActive != true || settlement.Party.MapEvent != null ||
                     settlement.SiegeEvent != null ||
-                    !_state.CanApplyOccupation(capture.Id, settlement.OwnerClan?.StringId ?? "")) continue;
+                    !_state.CanApplyOccupation(capture.Id, settlement.OwnerClan?.StringId ?? ""))
+                {
+                    continue;
+                }
+
                 bool donorInBattle = MobileParty.All.Any(p => p.IsActive && capture.ParticipantPartyIds.Contains(p.StringId) && p.MapEvent != null);
-                if (!donorInBattle) ready.Add(capture);
+
+                if (!donorInBattle)
+                {
+                    ready.Add(capture);
+                }
             }
+
             return ready;
         }
 

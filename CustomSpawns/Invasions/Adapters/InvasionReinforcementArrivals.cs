@@ -44,7 +44,12 @@ namespace CustomSpawns.Invasions.Adapters
         internal void StartSchedule(long captureId)
         {
             InvasionGroupState? group = _reinforcements.StartSchedule(captureId);
-            if (group == null) return;
+
+            if (group == null)
+            {
+                return;
+            }
+
             Logger.Info("Invasion coastal foothold gained: group=" + group.Id + " town=" +
                         _state.FindCapture(captureId)!.SettlementId + " next_arrival_day=" +
                         group.NextReinforcementDeadlineDays);
@@ -54,9 +59,15 @@ namespace CustomSpawns.Invasions.Adapters
         {
             foreach (InvasionReinforcementDraw draw in _reinforcements.DrawDue())
             {
-                if (draw.Outcome == InvasionReinforcementOutcome.Landing) Land(draw);
-                else Logger.Info("Invasion reinforcement slot skipped: group=" + draw.Group.Id +
-                                 " reason=" + SkipReason(draw.Outcome));
+                if (draw.Outcome == InvasionReinforcementOutcome.Landing)
+                {
+                    Land(draw);
+                }
+                else
+                {
+                    Logger.Info("Invasion reinforcement slot skipped: group=" + draw.Group.Id +
+                                " reason=" + SkipReason(draw.Outcome));
+                }
             }
         }
 
@@ -71,6 +82,7 @@ namespace CustomSpawns.Invasions.Adapters
             Settlement? landing = Settlement.Find(draw.LandingSettlementId!);
             PartyTemplateObject? template = configuration == null ? null :
                 Campaign.Current.ObjectManager.GetObject<PartyTemplateObject>(configuration.ReinforcementPartyTemplateId);
+
             if (spawn == null || template == null || landing == null ||
                 !IsEligibleLandingSettlement(landing, draw.Group))
             {
@@ -82,6 +94,7 @@ namespace CustomSpawns.Invasions.Adapters
             Clan? clan = draw.ClanId == null
                 ? FoundClan(draw.Group, landing)
                 : Clan.FindFirst(candidate => candidate.StringId == draw.ClanId);
+
             if (clan == null)
             {
                 Logger.Info("Invasion reinforcement slot skipped: group=" + draw.Group.Id +
@@ -106,7 +119,11 @@ namespace CustomSpawns.Invasions.Adapters
             Kingdom? kingdom = founder?.Kingdom;
             CharacterObject? lordTemplate = founder?.Culture?.LordTemplates
                 .FirstOrDefault(character => character.Occupation == Occupation.Lord);
-            if (founder == null || kingdom == null || lordTemplate == null) return null;
+
+            if (founder == null || kingdom == null || lordTemplate == null)
+            {
+                return null;
+            }
 
             Clan clan = Clan.CreateClan(founder.StringId + "_" + group.ClanIds.Count);
             TextObject name = NameGenerator.Current.GenerateClanName(founder.Culture, landing);
@@ -117,6 +134,7 @@ namespace CustomSpawns.Invasions.Adapters
             clan.Color2 = founder.Color2;
             clan.IsNoble = true;
             clan.SetInitialHomeSettlement(landing);
+
             // Tier has no public setter; renown is the way in, and it carries the same war party limit.
             clan.AddRenown(Campaign.Current.Models.ClanTierModel.GetRequiredRenownForTier(founder.Tier), false);
 
@@ -138,6 +156,7 @@ namespace CustomSpawns.Invasions.Adapters
         {
             InvasionData? configuration = GetConfiguration(group);
             Clan? clan = Clan.FindFirst(candidate => candidate.StringId == group.ClanId);
+
             return configuration == null || clan?.IsEliminated != false
                 ? null
                 : new InvasionReinforcementSettings(configuration.ReinforcementIntervalInDays,
@@ -158,24 +177,36 @@ namespace CustomSpawns.Invasions.Adapters
         bool IInvasionReinforcementQuery.HasPartySlot(string clanId)
         {
             Clan? clan = Clan.FindFirst(candidate => candidate.StringId == clanId);
+
             return clan?.IsEliminated == false && clan.WarPartyComponents.Count < clan.WarPartyLimit;
         }
 
         internal Func<Settlement, bool>? FindInitialCoastalTargetFilter(MobileParty party)
         {
             InvasionGroupState? group = _state.FindMemberGroup(party.StringId);
-            if (group == null || group.IsSuspended ||
-                !group.HoldsClan(party.ActualClan?.StringId)) return null;
+
+            if (group == null || group.IsSuspended || !group.HoldsClan(party.ActualClan?.StringId))
+            {
+                return null;
+            }
+
             InvasionData? configuration = GetConfiguration(group);
-            if (configuration?.RequiresFirstCoastalConquest != true) return null;
+
+            if (configuration?.RequiresFirstCoastalConquest != true)
+            {
+                return null;
+            }
+
             bool factionHasCoastalTown = Settlement.All.Any(settlement => settlement.IsTown &&
                 settlement.MapFaction == party.MapFaction && _coastalTownResolver.IsCoastalTown(settlement));
+
             return factionHasCoastalTown ? null : _coastalTownResolver.IsCoastalTown;
         }
 
         private bool IsEligibleLandingSettlement(Settlement settlement, InvasionGroupState group)
         {
             InvasionFoothold? foothold = _state.FindFoothold(settlement.StringId);
+
             return foothold?.GroupId == group.Id && settlement.IsTown &&
                    group.HoldsClan(settlement.OwnerClan?.StringId) && settlement.SiegeEvent == null &&
                    _coastalTownResolver.IsCoastalTown(settlement);
