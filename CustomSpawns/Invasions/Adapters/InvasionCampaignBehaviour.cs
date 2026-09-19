@@ -15,7 +15,7 @@ using TaleWorlds.Library;
 
 namespace CustomSpawns.Invasions.Adapters
 {
-    public sealed class InvasionCampaignBehaviour : CampaignBehaviorBase, IInvasionFootholdQuery,
+    public sealed class InvasionCampaignBehaviour : CampaignBehaviorBase, IPartySteeringQuery,
         IInvasionLandingQuery
     {
         private readonly SpawnDao _spawnDao;
@@ -185,10 +185,10 @@ namespace CustomSpawns.Invasions.Adapters
             }
         }
 
-        bool IInvasionFootholdQuery.IsGroupWithoutTown(string? invasionGroupId)
+        bool IPartySteeringQuery.RequiresCustomSpawnsSteering(MobileParty party)
         {
             Initialize();
-            return State.IsGroupWithoutTown(invasionGroupId);
+            return State.IsGroupWithoutTown(_dynamicSpawnData.GetDynamicSpawnData(party)?.InvasionGroupId);
         }
 
         private void CanKingdomBeDiscontinued(Kingdom kingdom, ref bool result)

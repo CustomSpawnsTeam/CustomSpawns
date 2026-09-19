@@ -9,18 +9,24 @@ using TaleWorlds.CampaignSystem.Party.PartyComponents;
 
 namespace CustomSpawns.AI
 {
+    // Whether a lord party should keep being steered by CustomSpawns instead of being released to vanilla AI.
+    internal interface IPartySteeringQuery
+    {
+        bool RequiresCustomSpawnsSteering(MobileParty party);
+    }
+
     public class CustomSpawnsAiBehaviour : CampaignBehaviorBase
     {
         internal const float DominantAiBehaviorScore = 1000000f;
 
         private readonly PartyBehaviorDecisionCoordinator _decisionCoordinator;
 
-        public CustomSpawnsAiBehaviour(DynamicSpawnData dynamicSpawnData,
-            PartyBehaviourResolver partyBehaviourResolver, IInvasionFootholdQuery invasionFootholdQuery,
+        internal CustomSpawnsAiBehaviour(DynamicSpawnData dynamicSpawnData,
+            PartyBehaviourResolver partyBehaviourResolver, IPartySteeringQuery partySteeringQuery,
             IEnumerable<ISyncsCampaignData> syncTargets)
         {
             _decisionCoordinator = new PartyBehaviorDecisionCoordinator(
-                dynamicSpawnData, partyBehaviourResolver, invasionFootholdQuery, syncTargets);
+                dynamicSpawnData, partyBehaviourResolver, partySteeringQuery, syncTargets);
         }
 
         public override void RegisterEvents()
@@ -84,17 +90,17 @@ namespace CustomSpawns.AI
         {
             private readonly DynamicSpawnData _dynamicSpawnData;
             private readonly PartyBehaviourResolver _partyBehaviourResolver;
-            private readonly IInvasionFootholdQuery _invasionFootholdQuery;
+            private readonly IPartySteeringQuery _partySteeringQuery;
             private readonly IReadOnlyList<ISyncsCampaignData> _syncTargets;
             private readonly HashSet<MobileParty> _escortDecisionLocks = new();
 
             public PartyBehaviorDecisionCoordinator(
                 DynamicSpawnData dynamicSpawnData, PartyBehaviourResolver partyBehaviourResolver,
-                IInvasionFootholdQuery invasionFootholdQuery, IEnumerable<ISyncsCampaignData> syncTargets)
+                IPartySteeringQuery partySteeringQuery, IEnumerable<ISyncsCampaignData> syncTargets)
             {
                 _dynamicSpawnData = dynamicSpawnData;
                 _partyBehaviourResolver = partyBehaviourResolver;
-                _invasionFootholdQuery = invasionFootholdQuery;
+                _partySteeringQuery = partySteeringQuery;
 
                 var distinctTargets = new HashSet<object>(ReferenceEqualityComparer.Instance);
                 var targets = new List<ISyncsCampaignData>();
@@ -125,7 +131,7 @@ namespace CustomSpawns.AI
                 }
 
                 if (!IsSteeredByCustomSpawns(party.PartyComponent is LordPartyComponent,
-                        _invasionFootholdQuery.IsGroupWithoutTown(partyData.InvasionGroupId)))
+                        _partySteeringQuery.RequiresCustomSpawnsSteering(party)))
                 {
                     return;
                 }
