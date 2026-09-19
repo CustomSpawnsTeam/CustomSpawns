@@ -67,7 +67,7 @@ namespace CustomSpawns.AI
             scoreSink.AddBehaviorScore(behavior, DominantAiBehaviorScore);
         }
 
-        // A promoted lord is steered by vanilla unless its invasion has lost every town it took.
+        // A promoted lord is steered by vanilla unless its group has lost every town it took.
         internal static bool IsSteeredByCustomSpawns(bool isLordParty, bool isGroupWithoutTown)
         {
             return !isLordParty || isGroupWithoutTown;

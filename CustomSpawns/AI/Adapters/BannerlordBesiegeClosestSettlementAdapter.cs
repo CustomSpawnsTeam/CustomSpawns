@@ -117,9 +117,10 @@ namespace CustomSpawns.AI.Adapters
         }
 
         /**
-         * An invasion sizes up a garrison as one force: what all of its parties can bring to the walls
-         * rather than what the one deciding carries. Escorts belong to that force themselves, so every
-         * party counts its own strength once. A party attacking on its own is assessed as before.
+         * A grouped attacking force is sized up the same way a garrison is: as one combined force,
+         * counting what all of its parties can bring to the walls rather than what the one deciding
+         * carries. Escorts belong to that force themselves, so every party counts its own strength
+         * once. A party attacking on its own is assessed as before.
          */
         public override float GetAttackerStrength(MobileParty party)
         {
@@ -140,7 +141,7 @@ namespace CustomSpawns.AI.Adapters
         public float GetHostileLordStrengthNearTarget(MobileParty party, Settlement target)
         {
             // Reconnaissance uses the party's established visibility radius, centred on the land gate
-            // it will use to approach this target rather than on the invasion party's current position.
+            // it will use to approach this target rather than on the party's current position.
             return OffensiveStrengthRules.SumVisibleHostileLordStrength(
                 _getTargetRoamingParties(party, target), GetSeeingRange(party));
         }
