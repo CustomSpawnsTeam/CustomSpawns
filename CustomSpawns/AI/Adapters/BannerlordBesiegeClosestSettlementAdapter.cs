@@ -4,6 +4,7 @@ using System.Linq;
 using CustomSpawns.Data.Adapter;
 using CustomSpawns.AI.Model;
 using CustomSpawns.AI.Offensives;
+using CustomSpawns.Invasions.Adapters;
 using CustomSpawns.Spawn;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
