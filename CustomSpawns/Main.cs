@@ -129,9 +129,11 @@ namespace CustomSpawns
                 _spawnGroupService, _saveInitialiser);
             _devestationMetricData = new DevestationMetricData(_mobilePartyTrackingBehaviour, _campaignDataConfigLoader, _saveInitialiser, _messageBoxService, _modDebug);
             _dailyLogger = new DailyLogger(_devestationMetricData, _messageBoxService);
+            var invasionCoastalSiegeTargetPolicy = new InvasionCoastalSiegeTargetPolicy(
+                _invasionCampaignBehaviour, new BannerlordMapPathQuery());
             IPriorityPartyBehaviour[] priorityPartyBehaviours =
                 PartyBehaviourRegistrations.CreateBehaviours(_dynamicSpawnData,
-                    _invasionCampaignBehaviour);
+                    invasionCoastalSiegeTargetPolicy);
             var partyBehaviourLookup = new SpawnPartyBehaviourLookup(_spawnDao, _partyBehaviourDao,
                 _messageBoxService);
             var priorityPartyBehaviourRegistry = new PriorityPartyBehaviourRegistry(priorityPartyBehaviours);

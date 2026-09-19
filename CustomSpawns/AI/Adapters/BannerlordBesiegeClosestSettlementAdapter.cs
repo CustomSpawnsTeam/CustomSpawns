@@ -4,7 +4,6 @@ using System.Linq;
 using CustomSpawns.Data.Adapter;
 using CustomSpawns.AI.Model;
 using CustomSpawns.AI.Offensives;
-using CustomSpawns.Invasions.Adapters;
 using CustomSpawns.Spawn;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
@@ -28,10 +27,9 @@ namespace CustomSpawns.AI.Adapters
         }
 
         internal BannerlordBesiegeClosestSettlementAdapter(DynamicSpawnData dynamicSpawnData,
-            IInvasionLandingQuery landing) : this(
+            ISiegeTargetPolicy siegeTargetPolicy) : this(
             observer => observer.SeeingRange, ObserveRoamingParties, ObserveCandidates,
-            dynamicSpawnData.FindAccompanyingParties,
-            new InvasionCoastalSiegeTargetPolicy(landing, new BannerlordMapPathQuery()),
+            dynamicSpawnData.FindAccompanyingParties, siegeTargetPolicy,
             ObserveRoamingPartiesNearTarget)
         {
         }
@@ -52,17 +50,6 @@ namespace CustomSpawns.AI.Adapters
             Func<MobileParty, Settlement, IEnumerable<RoamingPartyStrength>> getTargetRoamingParties)
             : this(getSeeingRange, getRoamingParties, getCandidates, getAccompanyingParties,
                 new NoRestrictionSiegeTargetPolicy(), getTargetRoamingParties)
-        {
-        }
-
-        internal BannerlordBesiegeClosestSettlementAdapter(Func<MobileParty, float> getSeeingRange,
-            Func<MobileParty, IEnumerable<RoamingPartyStrength>> getRoamingParties,
-            Func<MobileParty, IEnumerable<SiegeTargetCandidate>> getCandidates,
-            Func<MobileParty, IEnumerable<MobileParty>> getAccompanyingParties,
-            IInvasionLandingQuery landing, IMapPathQuery mapPaths)
-            : this(getSeeingRange, getRoamingParties, getCandidates, getAccompanyingParties,
-                new InvasionCoastalSiegeTargetPolicy(landing, mapPaths),
-                (_, _) => Enumerable.Empty<RoamingPartyStrength>())
         {
         }
 

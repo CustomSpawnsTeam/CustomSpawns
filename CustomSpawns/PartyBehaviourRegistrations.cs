@@ -16,11 +16,11 @@ namespace CustomSpawns
      */
     internal sealed class PartyBehaviourRegistration
     {
-        private readonly Func<DynamicSpawnData, IInvasionLandingQuery, IPriorityPartyBehaviour>
+        private readonly Func<DynamicSpawnData, ISiegeTargetPolicy, IPriorityPartyBehaviour>
             _createBehaviour;
 
         internal PartyBehaviourRegistration(IPriorityPartyBehaviourConfigAdapter configAdapter,
-            Func<DynamicSpawnData, IInvasionLandingQuery, IPriorityPartyBehaviour> createBehaviour)
+            Func<DynamicSpawnData, ISiegeTargetPolicy, IPriorityPartyBehaviour> createBehaviour)
         {
             ConfigAdapter = configAdapter ?? throw new ArgumentNullException(nameof(configAdapter));
             _createBehaviour = createBehaviour ?? throw new ArgumentNullException(nameof(createBehaviour));
@@ -29,9 +29,9 @@ namespace CustomSpawns
         internal IPriorityPartyBehaviourConfigAdapter ConfigAdapter { get; }
 
         internal IPriorityPartyBehaviour CreateBehaviour(DynamicSpawnData dynamicSpawnData,
-            IInvasionLandingQuery landing)
+            ISiegeTargetPolicy siegeTargetPolicy)
         {
-            return _createBehaviour(dynamicSpawnData, landing);
+            return _createBehaviour(dynamicSpawnData, siegeTargetPolicy);
         }
     }
 
@@ -54,8 +54,8 @@ namespace CustomSpawns
                     new BannerlordRaidClosestVillageAdapter(dynamicSpawnData), MBRandom.RandomFloatRanged)),
             new PartyBehaviourRegistration(
                 new BesiegeClosestSettlementConfigAdapter(),
-                (dynamicSpawnData, landing) => new BesiegeClosestSettlementBehaviour(
-                    new BannerlordBesiegeClosestSettlementAdapter(dynamicSpawnData, landing),
+                (dynamicSpawnData, siegeTargetPolicy) => new BesiegeClosestSettlementBehaviour(
+                    new BannerlordBesiegeClosestSettlementAdapter(dynamicSpawnData, siegeTargetPolicy),
                     MBRandom.RandomFloatRanged))
         };
 
@@ -63,10 +63,10 @@ namespace CustomSpawns
             All.Select(registration => registration.ConfigAdapter);
 
         internal static IPriorityPartyBehaviour[] CreateBehaviours(DynamicSpawnData dynamicSpawnData,
-            IInvasionLandingQuery landing)
+            ISiegeTargetPolicy siegeTargetPolicy)
         {
             return All.Select(registration => registration.CreateBehaviour(dynamicSpawnData,
-                landing)).ToArray();
+                siegeTargetPolicy)).ToArray();
         }
     }
 }

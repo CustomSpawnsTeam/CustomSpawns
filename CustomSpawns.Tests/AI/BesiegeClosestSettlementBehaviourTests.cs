@@ -166,8 +166,10 @@ namespace CustomSpawns.Tests.AI
                     Candidate(inlandCastle, SpawnSettlementType.Castle, 1f, 10f, true, "inland-castle"),
                     Candidate(inlandTown, SpawnSettlementType.Town, 2f, 10f, true, "inland-town"),
                     Candidate(coastalTown, SpawnSettlementType.Town, 3f, 10f, true, "coastal-town")
-                }, _ => new MobileParty[0], Landing(_ => settlement => settlement == coastalTown, party),
-                MapPaths(settlement => settlement == coastalTown));
+                }, _ => new MobileParty[0], new InvasionCoastalSiegeTargetPolicy(
+                    Landing(_ => settlement => settlement == coastalTown, party),
+                    MapPaths(settlement => settlement == coastalTown)),
+                (_, _) => new RoamingPartyStrength[0]);
 
             Settlement? result = operations.FindClosestSiegeTarget(party, 100f, 1.5f,
                 new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle });
@@ -186,8 +188,10 @@ namespace CustomSpawns.Tests.AI
                 {
                     Candidate(inlandTown, SpawnSettlementType.Town, 1f, 10f, true, "inland-town"),
                     Candidate(coastalTown, SpawnSettlementType.Town, 2f, 10f, true, "coastal-town")
-                }, _ => new MobileParty[0], Landing(_ => settlement => settlement == coastalTown, party),
-                MapPaths(_ => false));
+                }, _ => new MobileParty[0], new InvasionCoastalSiegeTargetPolicy(
+                    Landing(_ => settlement => settlement == coastalTown, party),
+                    MapPaths(_ => false)),
+                (_, _) => new RoamingPartyStrength[0]);
 
             Settlement? result = operations.FindClosestSiegeTarget(party, 100f, 1.5f,
                 new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle });
@@ -212,11 +216,15 @@ namespace CustomSpawns.Tests.AI
 
             Settlement? alone = new BannerlordBesiegeClosestSettlementAdapter(_ => 5f,
                     _ => new RoamingPartyStrength[0], _ => candidates, _ => new MobileParty[0],
-                    Landing(_ => _ => true, party), MapPaths(_ => true, comradeDistance))
+                    new InvasionCoastalSiegeTargetPolicy(Landing(_ => _ => true, party),
+                        MapPaths(_ => true, comradeDistance)),
+                    (_, _) => new RoamingPartyStrength[0])
                 .FindClosestSiegeTarget(party, 100f, 1.5f, new[] { SpawnSettlementType.Town });
             Settlement? together = new BannerlordBesiegeClosestSettlementAdapter(_ => 5f,
                     _ => new RoamingPartyStrength[0], _ => candidates, _ => new MobileParty[0],
-                    Landing(_ => _ => true, party, comrade), MapPaths(_ => true, comradeDistance))
+                    new InvasionCoastalSiegeTargetPolicy(Landing(_ => _ => true, party, comrade),
+                        MapPaths(_ => true, comradeDistance)),
+                    (_, _) => new RoamingPartyStrength[0])
                 .FindClosestSiegeTarget(party, 100f, 1.5f, new[] { SpawnSettlementType.Town });
 
             Assert.That(alone, Is.SameAs(nearestToParty));
@@ -254,7 +262,9 @@ namespace CustomSpawns.Tests.AI
                     Candidate(strongTown, SpawnSettlementType.Town, 2f, 200f, true, "coastal-town"),
                     Candidate(incompatibleTown, SpawnSettlementType.Town, 3f, 10f, false, "coastal-town"),
                     Candidate(viableTown, SpawnSettlementType.Town, 4f, 10f, true, "coastal-town")
-                }, _ => new MobileParty[0], Landing(_ => _ => true, party), MapPaths(_ => true));
+                }, _ => new MobileParty[0], new InvasionCoastalSiegeTargetPolicy(
+                    Landing(_ => _ => true, party), MapPaths(_ => true)),
+                (_, _) => new RoamingPartyStrength[0]);
 
             Settlement? result = operations.FindClosestSiegeTarget(party, 100f, 1.5f,
                 new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle });
@@ -271,7 +281,9 @@ namespace CustomSpawns.Tests.AI
                 _ => new RoamingPartyStrength[0], _ => new[]
                 {
                     Candidate(inlandCastle, SpawnSettlementType.Castle, 1f, 10f, true, "inland-castle")
-                }, _ => new MobileParty[0], Landing(_ => null, party), MapPaths(_ => false));
+                }, _ => new MobileParty[0], new InvasionCoastalSiegeTargetPolicy(
+                    Landing(_ => null, party), MapPaths(_ => false)),
+                (_, _) => new RoamingPartyStrength[0]);
 
             Settlement? result = operations.FindClosestSiegeTarget(party, 100f, 1.5f,
                 new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle });
@@ -290,7 +302,9 @@ namespace CustomSpawns.Tests.AI
                 {
                     Candidate(nearestCastle, SpawnSettlementType.Castle, 1f, 10f),
                     Candidate(town, SpawnSettlementType.Town, 2f, 10f)
-                }, _ => new MobileParty[0], Landing(_ => null, party), MapPaths(_ => false));
+                }, _ => new MobileParty[0], new InvasionCoastalSiegeTargetPolicy(
+                    Landing(_ => null, party), MapPaths(_ => false)),
+                (_, _) => new RoamingPartyStrength[0]);
 
             Settlement? result = operations.FindClosestSiegeTarget(party, 100f, 1.5f,
                 new[] { SpawnSettlementType.Town, SpawnSettlementType.Castle });
