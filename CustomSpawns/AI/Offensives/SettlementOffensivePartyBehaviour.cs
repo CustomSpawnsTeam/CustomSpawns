@@ -19,7 +19,6 @@ namespace CustomSpawns.AI.Offensives
         : PriorityPartyBehaviour<TConfiguration> where TConfiguration : SettlementOffensiveData
     {
         private const float DaysPerHour = 1f / 24f;
-        private const int LegacyRecoveryPhase = 5;
         private readonly Func<float, float, float> _roll;
         private readonly PartyStateStore<SettlementOffensiveBehaviourState> _states;
 
@@ -38,12 +37,7 @@ namespace CustomSpawns.AI.Offensives
             TConfiguration configuration)
         {
             SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
-            if ((int)state.Phase == LegacyRecoveryPhase)
-            {
-                state.Phase = state.Target is null
-                    ? SettlementOffensivePhase.Search
-                    : SettlementOffensivePhase.Approach;
-            }
+
             if (TickCooldown(state))
             {
                 return PartyBehaviourResult.NotApplicable;

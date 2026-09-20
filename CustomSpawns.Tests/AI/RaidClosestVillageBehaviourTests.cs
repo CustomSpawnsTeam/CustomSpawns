@@ -161,24 +161,6 @@ namespace CustomSpawns.Tests.AI
         }
 
         [Test]
-        public void LegacyRecoverySave_ImmediatelyRetriesSameTarget()
-        {
-            MobileParty party = DummyParty();
-            Settlement target = DummySettlement();
-            var operations = new OperationsStub { RaidTarget = target };
-            RaidClosestVillageBehaviour provider = Provider(operations);
-            Evaluate(provider, party);
-            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
-            state.Phase = (SettlementOffensivePhase)5;
-            state.Target = target;
-
-            PartyBehaviourResult result = Evaluate(provider, party);
-
-            Assert.That(result.AIBehavior?.Party, Is.SameAs(target));
-            Assert.That(state.Phase, Is.EqualTo(SettlementOffensivePhase.Approach));
-        }
-
-        [Test]
         public void InvalidActiveTarget_RetargetsWithoutFailureAndRaidsReplacement()
         {
             MobileParty party = DummyParty();
