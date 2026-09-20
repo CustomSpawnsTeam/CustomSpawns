@@ -5,6 +5,7 @@ using CustomSpawns.AI.Model;
 using CustomSpawns.AI.Offensives;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.CampaignSystem.Siege;
 
 namespace CustomSpawns.Invasions.Adapters
 {
@@ -60,6 +61,20 @@ namespace CustomSpawns.Invasions.Adapters
             return IsEligibleCoastalTarget(party, target, target.StringId, initialCoastalTargetFilter);
         }
 
+        // A landing takes its first town as one force, so a town another party of the same landing is
+        // already besieging is one to march to and support rather than one to give up on.
+        public bool IsJoinableSiege(MobileParty party, Settlement settlement)
+        {
+            BesiegerCamp? camp = settlement.SiegeEvent?.BesiegerCamp;
+            if (camp == null)
+            {
+                return false;
+            }
+
+            return _invasionLandingQuery.GetLandingParties(party)
+                .Any(landingParty => IsInCamp(landingParty, camp));
+        }
+
         public Func<SiegeTargetCandidate, float> GetTargetDistance(MobileParty party)
         {
             // An invasion lands as one force, so the town it heads for is the nearest for all of its
@@ -78,7 +93,9 @@ namespace CustomSpawns.Invasions.Adapters
             List<MobileParty> force = new List<MobileParty> { party };
 
             force.AddRange(GetLandingForce(party)
-                .Where(landingParty => landingParty != party && IsGatheredWith(party, landingParty)));
+                .Where(landingParty => landingParty != party &&
+                                       (IsGatheredWith(party, landingParty) ||
+                                        IsCampMateOf(party, landingParty))));
 
             return force;
         }
@@ -96,6 +113,20 @@ namespace CustomSpawns.Invasions.Adapters
         private static bool IsGatheredWith(MobileParty party, MobileParty landingParty)
         {
             return landingParty.Position.Distance(party.Position) <= GatheringRadius;
+        }
+
+        // Parties of one besieger camp are one force however far their camp positions spread them, and the
+        // strength ratio is re-checked every tick, so distance alone would make a besieging force waver.
+        private static bool IsCampMateOf(MobileParty party, MobileParty landingParty)
+        {
+            BesiegerCamp? camp = party.BesiegerCamp;
+            return camp != null && IsInCamp(landingParty, camp);
+        }
+
+        private static bool IsInCamp(MobileParty party, BesiegerCamp camp)
+        {
+            return party.BesiegerCamp == camp || camp.IsBesiegerSideParty(party) ||
+                   camp.HasInvolvedPartyForEventType(party.Party);
         }
 
         private bool IsEligibleCoastalTarget(MobileParty party, Settlement target,

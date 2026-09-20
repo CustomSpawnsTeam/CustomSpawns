@@ -11,6 +11,10 @@ namespace CustomSpawns.AI.Offensives
         bool IsCandidateAllowed(MobileParty party, SiegeTargetCandidate candidate);
         bool IsExistingTargetAllowed(MobileParty party, Settlement target, bool matchingNativeAssault);
 
+        // Whether a siege somebody else is already running against this settlement is one this party may
+        // join, so that it supports the siege instead of the settlement being ruled out as a target.
+        bool IsJoinableSiege(MobileParty party, Settlement settlement);
+
         // The ordering key target selection ranks candidates by, resolved once per selection.
         Func<SiegeTargetCandidate, float> GetTargetDistance(MobileParty party);
 
@@ -23,6 +27,8 @@ namespace CustomSpawns.AI.Offensives
         public bool IsCandidateAllowed(MobileParty party, SiegeTargetCandidate candidate) => true;
 
         public bool IsExistingTargetAllowed(MobileParty party, Settlement target, bool matchingNativeAssault) => true;
+
+        public bool IsJoinableSiege(MobileParty party, Settlement settlement) => false;
 
         public Func<SiegeTargetCandidate, float> GetTargetDistance(MobileParty party) =>
             candidate => candidate.Distance;

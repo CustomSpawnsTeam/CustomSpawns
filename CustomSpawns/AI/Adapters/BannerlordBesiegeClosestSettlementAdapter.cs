@@ -103,7 +103,9 @@ namespace CustomSpawns.AI.Adapters
             Func<SiegeTargetCandidate, float> targetDistance = _siegeTargetPolicy.GetTargetDistance(party);
             return _getCandidates(party)
                 .Where(candidate => candidate.IsActive && candidate.IsHostile &&
-                                    candidate.HasCompatibleSiege && targetTypes.Contains(candidate.Type) &&
+                                    (candidate.HasCompatibleSiege ||
+                                     _siegeTargetPolicy.IsJoinableSiege(party, candidate.Target)) &&
+                                    targetTypes.Contains(candidate.Type) &&
                                     candidate.Target != excludedTarget &&
                                     OffensiveStrengthRules.MeetsStrengthRatio(attackerStrength,
                                         candidate.DefenderStrength, minimumTargetRatio))
@@ -166,7 +168,8 @@ namespace CustomSpawns.AI.Adapters
             if (!target.IsActive || (!target.IsTown && !target.IsCastle) ||
                 !party.MapFaction.IsAtWarWith(target.MapFaction) ||
                 !IsIntendedTargetFaction(target.MapFaction, intendedTargetFaction) ||
-                (target.SiegeEvent is not null && !matchingOperationActive))
+                (target.SiegeEvent is not null && !matchingOperationActive &&
+                 !_siegeTargetPolicy.IsJoinableSiege(party, target)))
             {
                 return false;
             }

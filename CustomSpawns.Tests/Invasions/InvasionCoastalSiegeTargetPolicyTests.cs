@@ -8,6 +8,7 @@ using NUnit.Framework;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.CampaignSystem.Siege;
 using TaleWorlds.Library;
 
 namespace CustomSpawns.Tests.Invasions
@@ -77,6 +78,67 @@ namespace CustomSpawns.Tests.Invasions
                 : new[] { party }));
         }
 
+        [Test]
+        public void AttackingForce_CountsALandingPartyInTheSameBesiegerCampHoweverFarAway()
+        {
+            BesiegerCamp camp = EmptyCamp();
+            MobileParty party = PartyInCamp(camp, 0f, 0f);
+            MobileParty comrade = PartyInCamp(camp, 0f, 100f);
+
+            var policy = new InvasionCoastalSiegeTargetPolicy(
+                Landing(_ => _ => true, party, comrade), MapPaths());
+
+            Assert.That(policy.GetAttackingForce(party), Is.EqualTo(new[] { party, comrade }));
+        }
+
+        [Test]
+        public void JoinableSiege_WhenALandingPartyIsInTheBesiegerCamp()
+        {
+            MobileParty party = PartyAt(0f, 0f);
+            BesiegerCamp camp = EmptyCamp();
+            MobileParty comrade = PartyInCamp(camp, 0f, 100f);
+
+            var policy = new InvasionCoastalSiegeTargetPolicy(
+                Landing(_ => _ => true, party, comrade), MapPaths());
+
+            Assert.That(policy.IsJoinableSiege(party, BesiegedTown(camp)), Is.True);
+        }
+
+        [Test]
+        public void JoinableSiege_IsRefusedWhenTheBesiegerCampHoldsNoLandingParty()
+        {
+            MobileParty party = PartyAt(0f, 0f);
+            MobileParty comrade = PartyAt(0f, 1f);
+
+            var policy = new InvasionCoastalSiegeTargetPolicy(
+                Landing(_ => _ => true, party, comrade), MapPaths());
+
+            Assert.That(policy.IsJoinableSiege(party, BesiegedTown(EmptyCamp())), Is.False);
+        }
+
+        [Test]
+        public void JoinableSiege_IsRefusedWhenNobodyIsBesiegingTheTown()
+        {
+            MobileParty party = PartyAt(0f, 0f);
+            BesiegerCamp camp = EmptyCamp();
+            MobileParty comrade = PartyInCamp(camp, 0f, 1f);
+
+            var policy = new InvasionCoastalSiegeTargetPolicy(
+                Landing(_ => _ => true, party, comrade), MapPaths());
+
+            Assert.That(policy.IsJoinableSiege(party, UnbesiegedTown()), Is.False);
+        }
+
+        [Test]
+        public void JoinableSiege_IsAlwaysRefusedWithoutASiegeTargetPolicy()
+        {
+            BesiegerCamp camp = EmptyCamp();
+            MobileParty party = PartyInCamp(camp, 0f, 0f);
+
+            Assert.That(new NoRestrictionSiegeTargetPolicy().IsJoinableSiege(party, BesiegedTown(camp)),
+                Is.False);
+        }
+
         private static IInvasionLandingQuery Landing(Func<MobileParty, Func<Settlement, bool>?> filter,
             params MobileParty[] landingParties)
         {
@@ -118,8 +180,46 @@ namespace CustomSpawns.Tests.Invasions
 
             typeof(MobileParty).GetField("_position", BindingFlags.NonPublic | BindingFlags.Instance)
                 .SetValue(party, new CampaignVec2(new Vec2(x, y), true));
+            typeof(MobileParty).GetField("<Party>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance)
+                .SetValue(party, FormatterServices.GetUninitializedObject(typeof(PartyBase)));
 
             return party;
+        }
+
+        private static MobileParty PartyInCamp(BesiegerCamp camp, float x, float y)
+        {
+            MobileParty party = PartyAt(x, y);
+
+            typeof(MobileParty).GetField("_besiegerCamp", BindingFlags.NonPublic | BindingFlags.Instance)
+                .SetValue(party, camp);
+
+            return party;
+        }
+
+        private static BesiegerCamp EmptyCamp()
+        {
+            var camp = (BesiegerCamp)FormatterServices.GetUninitializedObject(typeof(BesiegerCamp));
+
+            typeof(BesiegerCamp).GetField("_besiegerParties", BindingFlags.NonPublic | BindingFlags.Instance)
+                .SetValue(camp, new MBList<MobileParty>());
+
+            return camp;
+        }
+
+        private static Settlement BesiegedTown(BesiegerCamp camp)
+        {
+            var siegeEvent = (SiegeEvent)FormatterServices.GetUninitializedObject(typeof(SiegeEvent));
+            typeof(SiegeEvent).GetField("BesiegerCamp").SetValue(siegeEvent, camp);
+
+            Settlement town = UnbesiegedTown();
+            town.SiegeEvent = siegeEvent;
+
+            return town;
+        }
+
+        private static Settlement UnbesiegedTown()
+        {
+            return (Settlement)FormatterServices.GetUninitializedObject(typeof(Settlement));
         }
     }
 }
