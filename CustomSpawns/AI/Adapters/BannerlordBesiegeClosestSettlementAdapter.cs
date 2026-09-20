@@ -123,13 +123,17 @@ namespace CustomSpawns.AI.Adapters
          * counting what all of its parties can bring to the walls rather than what the one deciding
          * carries. Escorts belong to that force themselves, so every party counts its own strength
          * once. A party attacking on its own is assessed as before.
+         * The pooled force and the party's own assessment overlap, since an army member or an escort
+         * can be a member of that force too, so the two cannot be added without counting parties
+         * twice. The greater of them is taken instead: the party's own assessment stays a floor, so a
+         * force gaining a member is never assessed as weaker than it was on its own, and the force
+         * that is actually present is never under-counted.
          */
         public override float GetAttackerStrength(MobileParty party)
         {
-            IReadOnlyList<MobileParty> force = _siegeTargetPolicy.GetAttackingForce(party);
-            return force.Count > 1
-                ? force.Sum(member => member.Party.CalculateCurrentStrength())
-                : base.GetAttackerStrength(party);
+            return Math.Max(base.GetAttackerStrength(party),
+                _siegeTargetPolicy.GetAttackingForce(party)
+                    .Sum(member => member.Party.CalculateCurrentStrength()));
         }
 
         public float GetTargetStrength(MobileParty party, Settlement target) =>

@@ -625,6 +625,25 @@ namespace CustomSpawns.Tests.AI
             Assert.That(counted, Is.EqualTo(new[] { accompanyingParty }));
         }
 
+        [Test]
+        public void ConcreteAdapter_KeepsAssessingThePartyItselfWhenItIsPartOfAPooledForce()
+        {
+            MobileParty party = DummyPartyWithPartyBase();
+            MobileParty comrade = DummyPartyWithPartyBase();
+            MobileParty accompanyingParty = DummyPartyWithPartyBase();
+            var counted = new List<MobileParty>();
+            var operations = new BannerlordBesiegeClosestSettlementAdapter(_ => 5f,
+                _ => new RoamingPartyStrength[0], _ => new SiegeTargetCandidate[0],
+                _ => Counted(accompanyingParty, counted),
+                new InvasionCoastalSiegeTargetPolicy(Landing(_ => _ => true, party, comrade),
+                    MapPaths(_ => true)),
+                (_, _) => new RoamingPartyStrength[0]);
+
+            operations.GetAttackerStrength(party);
+
+            Assert.That(counted, Is.EqualTo(new[] { accompanyingParty }));
+        }
+
         [TestCase(false)]
         [TestCase(true)]
         public void ActiveCampOrAssault_FreezesClockAndKeepsSiegeUnderway(bool assault)

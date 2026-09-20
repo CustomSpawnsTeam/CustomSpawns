@@ -92,6 +92,30 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
+        public void AttackingForce_CountsALandingPartyBesiegingTheTownWhileTheDecidingPartyMarchesToIt()
+        {
+            MobileParty party = PartyAt(0f, 0f);
+            MobileParty besieger = PartyInCamp(EmptyCamp(), 0f, 100f);
+
+            var policy = new InvasionCoastalSiegeTargetPolicy(
+                Landing(_ => _ => true, party, besieger), MapPaths());
+
+            Assert.That(policy.GetAttackingForce(party), Is.EqualTo(new[] { party, besieger }));
+        }
+
+        [Test]
+        public void AttackingForce_ExcludesALandingPartyInAnotherCampThanTheDecidingParty()
+        {
+            MobileParty party = PartyInCamp(EmptyCamp(), 0f, 0f);
+            MobileParty elsewhere = PartyInCamp(EmptyCamp(), 0f, 100f);
+
+            var policy = new InvasionCoastalSiegeTargetPolicy(
+                Landing(_ => _ => true, party, elsewhere), MapPaths());
+
+            Assert.That(policy.GetAttackingForce(party), Is.EqualTo(new[] { party }));
+        }
+
+        [Test]
         public void JoinableSiege_WhenALandingPartyIsInTheBesiegerCamp()
         {
             MobileParty party = PartyAt(0f, 0f);
@@ -113,7 +137,24 @@ namespace CustomSpawns.Tests.Invasions
             var policy = new InvasionCoastalSiegeTargetPolicy(
                 Landing(_ => _ => true, party, comrade), MapPaths());
 
-            Assert.That(policy.IsJoinableSiege(party, BesiegedTown(EmptyCamp())), Is.False);
+            Assert.That(policy.IsJoinableSiege(party, BesiegedTown(CampOf(StrangerParty()))), Is.False);
+        }
+
+        [Test]
+        public void JoinableSiege_IsRefusedWhenTheCampIsBesiegingAnotherTown()
+        {
+            MobileParty party = PartyAt(0f, 0f);
+            BesiegerCamp camp = EmptyCamp();
+            MobileParty comrade = PartyInCamp(camp, 0f, 1f);
+            Settlement besiegedTown = BesiegedTown(camp);
+
+            Settlement otherTown = UnbesiegedTown();
+            otherTown.SiegeEvent = besiegedTown.SiegeEvent;
+
+            var policy = new InvasionCoastalSiegeTargetPolicy(
+                Landing(_ => _ => true, party, comrade), MapPaths());
+
+            Assert.That(policy.IsJoinableSiege(party, otherTown), Is.False);
         }
 
         [Test]
@@ -196,6 +237,19 @@ namespace CustomSpawns.Tests.Invasions
             return party;
         }
 
+        // A party of somebody else's camp, wired up for the real BesiegerCamp lookups that walk it.
+        private static MobileParty StrangerParty()
+        {
+            MobileParty party = PartyAt(0f, 0f);
+
+            typeof(MobileParty).GetField("_attachedParties", BindingFlags.NonPublic | BindingFlags.Instance)
+                .SetValue(party, new MBList<MobileParty>());
+            typeof(PartyBase).GetField("<MobileParty>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance)
+                .SetValue(party.Party, party);
+
+            return party;
+        }
+
         private static BesiegerCamp EmptyCamp()
         {
             var camp = (BesiegerCamp)FormatterServices.GetUninitializedObject(typeof(BesiegerCamp));
@@ -206,12 +260,27 @@ namespace CustomSpawns.Tests.Invasions
             return camp;
         }
 
+        private static BesiegerCamp CampOf(MobileParty besieger)
+        {
+            BesiegerCamp camp = EmptyCamp();
+
+            ((MBList<MobileParty>)typeof(BesiegerCamp)
+                    .GetField("_besiegerParties", BindingFlags.NonPublic | BindingFlags.Instance)
+                    .GetValue(camp))
+                .Add(besieger);
+
+            return camp;
+        }
+
         private static Settlement BesiegedTown(BesiegerCamp camp)
         {
             var siegeEvent = (SiegeEvent)FormatterServices.GetUninitializedObject(typeof(SiegeEvent));
             typeof(SiegeEvent).GetField("BesiegerCamp").SetValue(siegeEvent, camp);
+            typeof(BesiegerCamp).GetField("<SiegeEvent>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance)
+                .SetValue(camp, siegeEvent);
 
             Settlement town = UnbesiegedTown();
+            typeof(SiegeEvent).GetField("BesiegedSettlement").SetValue(siegeEvent, town);
             town.SiegeEvent = siegeEvent;
 
             return town;

@@ -66,7 +66,7 @@ namespace CustomSpawns.Invasions.Adapters
         public bool IsJoinableSiege(MobileParty party, Settlement settlement)
         {
             BesiegerCamp? camp = settlement.SiegeEvent?.BesiegerCamp;
-            if (camp == null)
+            if (camp == null || camp.SiegeEvent.BesiegedSettlement != settlement)
             {
                 return false;
             }
@@ -117,10 +117,15 @@ namespace CustomSpawns.Invasions.Adapters
 
         // Parties of one besieger camp are one force however far their camp positions spread them, and the
         // strength ratio is re-checked every tick, so distance alone would make a besieging force waver.
+        // A party still marching to support counts a besieging landing party too, or it would weigh a
+        // garrison against itself alone and never set out. That reads any camp of the landing as the one
+        // it is marching to, which assumes the landing runs at most one siege at a time: true while it is
+        // landless and looking for its first foothold, the only state in which any of this pooling is
+        // active at all (GetLandingForce returns the deciding party alone once the coastal filter is null).
         private static bool IsCampMateOf(MobileParty party, MobileParty landingParty)
         {
             BesiegerCamp? camp = party.BesiegerCamp;
-            return camp != null && IsInCamp(landingParty, camp);
+            return camp == null ? landingParty.BesiegerCamp != null : IsInCamp(landingParty, camp);
         }
 
         private static bool IsInCamp(MobileParty party, BesiegerCamp camp)
