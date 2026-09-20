@@ -23,6 +23,12 @@ namespace CustomSpawns.Invasions.Adapters
 
     internal sealed class InvasionCoastalSiegeTargetPolicy : ISiegeTargetPolicy
     {
+        // How far apart two parties of one landing may be and still count as marching together. A landing
+        // is scattered over 10 map units around its port (MobilePartySpawnFactory.SpawnParty), so two of
+        // its parties can start 20 apart, and they spread further as they set off; 30 covers that with
+        // room to spare while a party left behind at another town is well outside it.
+        private const float GatheringRadius = 30f;
+
         private readonly IInvasionLandingQuery _invasionLandingQuery;
         private readonly IMapPathQuery _mapPathQuery;
 
@@ -56,15 +62,26 @@ namespace CustomSpawns.Invasions.Adapters
         {
             // An invasion lands as one force, so the town it heads for is the nearest for all of its
             // parties together rather than the nearest for whichever party is deciding.
-            List<MobileParty> others = GetAttackingForce(party)
+            List<MobileParty> others = GetLandingForce(party)
                 .Where(landingParty => landingParty != party).ToList();
             return candidate => candidate.Distance +
                                 others.Sum(other => _mapPathQuery.GetDistanceToGate(other, candidate.Target));
         }
 
-        // That same force says how strong the invasion is: while it is still looking for a foothold its
-        // parties take a town together, so a garrison is weighed against all of them.
+        // That same force says how strong the invasion is, but only the part of it that is actually here:
+        // while the landing is still looking for a foothold its gathered parties take a town together, so
+        // a garrison is weighed against them and not against a remnant stranded elsewhere on the map.
         public IReadOnlyList<MobileParty> GetAttackingForce(MobileParty party)
+        {
+            List<MobileParty> force = new List<MobileParty> { party };
+
+            force.AddRange(GetLandingForce(party)
+                .Where(landingParty => landingParty != party && IsGatheredWith(party, landingParty)));
+
+            return force;
+        }
+
+        private IReadOnlyList<MobileParty> GetLandingForce(MobileParty party)
         {
             if (_invasionLandingQuery.GetInitialCoastalTargetFilter(party) == null)
             {
@@ -72,6 +89,11 @@ namespace CustomSpawns.Invasions.Adapters
             }
 
             return _invasionLandingQuery.GetLandingParties(party);
+        }
+
+        private static bool IsGatheredWith(MobileParty party, MobileParty landingParty)
+        {
+            return landingParty.Position.Distance(party.Position) <= GatheringRadius;
         }
 
         private bool IsEligibleCoastalTarget(MobileParty party, Settlement target,
