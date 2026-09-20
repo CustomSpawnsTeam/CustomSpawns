@@ -25,8 +25,10 @@ namespace CustomSpawns.Invasions.Adapters
     {
         // How far apart two parties of one landing may be and still count as marching together. A landing
         // is scattered over 10 map units around its port (MobilePartySpawnFactory.SpawnParty), so two of
-        // its parties can start 20 apart, and they spread further as they set off; 30 covers that with
-        // room to spare while a party left behind at another town is well outside it.
+        // its parties can start 20 apart and spread further as they set off, which sets the floor. There
+        // is no ceiling that also separates two neighbouring ports: on the DADG map the closest pair of
+        // port towns is 21.4 apart, inside that floor. So this tells a stranded remnant from the force at
+        // hand only once the two are roughly a town apart, which is the case the playtest reported.
         private const float GatheringRadius = 30f;
 
         private readonly IInvasionLandingQuery _invasionLandingQuery;

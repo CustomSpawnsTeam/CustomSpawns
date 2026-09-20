@@ -232,7 +232,7 @@ namespace CustomSpawns.Tests.AI
         }
 
         [Test]
-        public void ConcreteAdapter_BeforeFirstCoastalConquestWeighsGarrisonsAgainstTheWholeInvasion()
+        public void ConcreteAdapter_BeforeFirstCoastalConquestWeighsGarrisonsAgainstTheGatheredInvasion()
         {
             MobileParty party = DummyParty();
             MobileParty comrade = DummyParty();
