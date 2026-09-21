@@ -330,17 +330,17 @@ namespace CustomSpawns.Tests.Invasions
         public void OnlyALiveGroupTakesBackARespawnedLordOfItsClans()
         {
             _group.AddClan("overflow-clan");
-            Assert.AreSame(_group, _state.FindAdoptingGroup("clan"));
-            Assert.AreSame(_group, _state.FindAdoptingGroup("overflow-clan"));
-            Assert.IsNull(_state.FindAdoptingGroup("other-clan"));
-            Assert.IsNull(_state.FindAdoptingGroup(null));
+            Assert.AreSame(_group, Adopting("clan"));
+            Assert.AreSame(_group, Adopting("overflow-clan"));
+            Assert.IsNull(Adopting("other-clan"));
+            Assert.IsNull(Adopting(null));
 
             _group.IsSuspended = true;
-            Assert.IsNull(_state.FindAdoptingGroup("clan"));
+            Assert.IsNull(Adopting("clan"));
 
             _group.IsSuspended = false;
             _state.RemoveMember("capturer");
-            Assert.IsNull(_state.FindAdoptingGroup("clan"));
+            Assert.IsNull(Adopting("clan"));
         }
 
         [Test]
@@ -349,9 +349,32 @@ namespace CustomSpawns.Tests.Invasions
             Conquer();
             _state.RemoveMember("capturer");
 
-            Assert.AreSame(_group, _state.FindAdoptingGroup("clan"));
+            Assert.AreSame(_group, Adopting("clan"));
         }
 
+        [Test]
+        public void AGroupTakesNoLordBackWhileItAlreadyFieldsItsBudgetedParties()
+        {
+            _state.RegisterMember("invasion", "clan", "second");
+
+            Assert.IsNull(_state.FindAdoptingGroup("clan", LiveMembers, _ => 2));
+            Assert.AreSame(_group, _state.FindAdoptingGroup("clan", LiveMembers, _ => 3));
+
+            _state.RemoveMember("second");
+            Assert.AreSame(_group, _state.FindAdoptingGroup("clan", LiveMembers, _ => 2));
+        }
+
+        [Test]
+        public void MembershipTheEngineNoLongerBacksDoesNotSpendTheBudget()
+        {
+            _state.RegisterMember("invasion", "clan", "dropped-before-reconciliation");
+
+            Assert.AreSame(_group,
+                _state.FindAdoptingGroup("clan", group => group.MemberPartyIds.Count(id => id == "capturer"), _ => 2));
+        }
+
+        private InvasionGroupState? Adopting(string? clanId) => _state.FindAdoptingGroup(clanId, LiveMembers, _ => int.MaxValue);
+        private static int LiveMembers(InvasionGroupState group) => group.MemberPartyIds.Count;
         private InvasionCapture Start(long ticks = 100) => _state.StartCapture("town", ticks, "capturer");
         private Dictionary<string, string> Participants() => new() { ["capturer"] = _group.Id };
         private void Ownership(InvasionCapture c) => Correlation.ObserveOwnership(c.Id, _group.Id, "capturer", "enemy", "clan", true);

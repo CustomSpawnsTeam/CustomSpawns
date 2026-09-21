@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CustomSpawns.Data.Dao;
@@ -64,7 +65,8 @@ namespace CustomSpawns.Invasions.Adapters
          */
         internal void Adopt(MobileParty party)
         {
-            string? templateId = FindAdoptingTemplate(party, _dynamicSpawnData.GetDynamicSpawnData(party), _invasionState);
+            string? templateId = FindAdoptingTemplate(party, _dynamicSpawnData.GetDynamicSpawnData(party),
+                _invasionState, CountLiveMembers, PartyBudget);
 
             if (templateId == null)
             {
@@ -79,14 +81,36 @@ namespace CustomSpawns.Invasions.Adapters
          * be a respawned invasion lord: the garrisons, caravans and militias of the same clan are not
          * ours to adopt.
          */
-        internal static string? FindAdoptingTemplate(MobileParty party, CsPartyData? registered, InvasionState invasionState)
+        internal static string? FindAdoptingTemplate(MobileParty party, CsPartyData? registered,
+            InvasionState invasionState, Func<InvasionGroupState, int> countLiveMembers,
+            Func<InvasionGroupState, int> partyBudget)
         {
             if (registered != null || party.LordPartyComponent == null)
             {
                 return null;
             }
 
-            return invasionState.FindAdoptingGroup(party.ActualClan?.StringId)?.SpawnTemplateId;
+            return invasionState.FindAdoptingGroup(party.ActualClan?.StringId, countLiveMembers, partyBudget)
+                ?.SpawnTemplateId;
+        }
+
+        private static int CountLiveMembers(InvasionGroupState group) =>
+            MobileParty.All.Count(party => party.IsActive && group.Members.Contains(party.StringId));
+
+        /**
+         * How many parties the configuration fields for this group: the primary parties the spawner keeps
+         * on the map, each with the escorts it lands alongside, plus the reinforcement landings the
+         * invasion may hold at once. The spawner tests its count before incrementing it, so it keeps one
+         * primary more than MaximumOnMap names, and the budget has to allow what the spawner produces.
+         */
+        private int PartyBudget(InvasionGroupState group)
+        {
+            SpawnDto? spawn = _spawnDao.FindByPartyTemplateId(group.SpawnTemplateId);
+
+            return spawn?.Invasion == null
+                ? 0
+                : (spawn.MaximumOnMap + 1) * (1 + spawn.SpawnAlongWith.Count) +
+                  spawn.Invasion.ReinforcementActivePartyCap;
         }
 
         internal void RegisterLive()

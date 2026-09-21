@@ -24,14 +24,13 @@ namespace CustomSpawns.Tests.Invasions
         [Test]
         public void ARespawnedLordOfAnInvadingClanIsAdoptedUnderItsGroupTemplate()
         {
-            Assert.AreEqual("invasion",
-                InvasionMembership.FindAdoptingTemplate(LordParty("clan"), null, _state));
+            Assert.AreEqual("invasion", AdoptingTemplate(LordParty("clan")));
         }
 
         [Test]
         public void ALordOfAnUninvolvedClanIsNotAdopted()
         {
-            Assert.IsNull(InvasionMembership.FindAdoptingTemplate(LordParty("other-clan"), null, _state));
+            Assert.IsNull(AdoptingTemplate(LordParty("other-clan")));
         }
 
         [Test]
@@ -39,7 +38,7 @@ namespace CustomSpawns.Tests.Invasions
         {
             var registered = new CsPartyData("invasion", "invasion", true, null, null);
 
-            Assert.IsNull(InvasionMembership.FindAdoptingTemplate(LordParty("clan"), registered, _state));
+            Assert.IsNull(AdoptingTemplate(LordParty("clan"), registered));
         }
 
         [Test]
@@ -47,7 +46,18 @@ namespace CustomSpawns.Tests.Invasions
         {
             MobileParty party = DummyParty("clan");
 
-            Assert.IsNull(InvasionMembership.FindAdoptingTemplate(party, null, _state));
+            Assert.IsNull(AdoptingTemplate(party));
+        }
+
+        [Test]
+        public void AnInvasionFieldingItsBudgetedPartiesAdoptsOnlyWhatItLoses()
+        {
+            _state.RegisterMember("invasion", "clan", "invasion_party_2");
+
+            Assert.IsNull(AdoptingTemplate(LordParty("clan"), budget: 2));
+
+            _state.RemoveMember("invasion_party_2");
+            Assert.AreEqual("invasion", AdoptingTemplate(LordParty("clan"), budget: 2));
         }
 
         [Test]
@@ -64,6 +74,10 @@ namespace CustomSpawns.Tests.Invasions
             Assert.AreEqual("Adopted", InvasionMembership.RoleFor(PartyOfTheGroup("Adopted")));
             Assert.AreEqual("Reinforcement", InvasionMembership.RoleFor(PartyOfTheGroup("Reinforcement")));
         }
+
+        private string? AdoptingTemplate(MobileParty party, CsPartyData? registered = null, int budget = int.MaxValue) =>
+            InvasionMembership.FindAdoptingTemplate(party, registered, _state,
+                group => group.MemberPartyIds.Count, _ => budget);
 
         private CsPartyData PartyOfTheGroup(string partyRole)
         {
