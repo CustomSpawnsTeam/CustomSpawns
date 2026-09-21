@@ -7,6 +7,7 @@ using CustomSpawns.Spawn;
 using NLog;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.CampaignSystem.Settlements;
 
 namespace CustomSpawns.Invasions.Adapters
@@ -82,6 +83,38 @@ namespace CustomSpawns.Invasions.Adapters
             }
 
             _dynamicSpawnData.RegisterAdoptedParty(party, templateId);
+            RefillRoster(party, templateId);
+        }
+
+        /**
+         * The game fills a respawned lord from its clan's default template, so an invasion lord comes back
+         * leading a domestic retinue instead of the invading force it was given. Its troops are drawn the way
+         * a fresh spawn of the same invasion draws them -- FindAppropriateInitialRosterForMobileParty over the
+         * spawn's own party template, which no party size limit caps -- and take the place of the ones the
+         * game gave it. The party is already created, so it is the roster that is refilled and not the party
+         * that is re-initialised: initialisation also moves the party and hands it the template's ships.
+         */
+        private void RefillRoster(MobileParty party, string templateId)
+        {
+            PartyTemplateObject? partyTemplate = _spawnDao.FindByPartyTemplateId(templateId)?.PartyTemplate;
+
+            if (partyTemplate == null)
+            {
+                return;
+            }
+
+            ReplaceRegulars(party.MemberRoster, Campaign.Current.Models.PartySizeLimitModel
+                .FindAppropriateInitialRosterForMobileParty(party, partyTemplate));
+        }
+
+        /**
+         * The lord and anyone else who came back as a hero stay: only the regulars are the wrong ones, so
+         * they are replaced rather than added to, which would leave the lord leading both rosters at once.
+         */
+        internal static void ReplaceRegulars(TroopRoster roster, TroopRoster troops)
+        {
+            roster.RemoveIf(member => !member.Character.IsHero);
+            roster.Add(troops);
         }
 
         /**

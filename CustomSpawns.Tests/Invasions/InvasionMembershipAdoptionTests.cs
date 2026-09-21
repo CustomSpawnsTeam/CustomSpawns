@@ -6,6 +6,7 @@ using NUnit.Framework;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Party.PartyComponents;
+using TaleWorlds.CampaignSystem.Roster;
 
 namespace CustomSpawns.Tests.Invasions
 {
@@ -74,6 +75,61 @@ namespace CustomSpawns.Tests.Invasions
             Assert.AreEqual("Adopted", InvasionMembership.RoleFor(PartyOfTheGroup("Adopted")));
             Assert.AreEqual("Reinforcement", InvasionMembership.RoleFor(PartyOfTheGroup("Reinforcement")));
         }
+
+        [Test]
+        public void AnAdoptedLordIsNotAdoptedASecondTime()
+        {
+            var adopted = new CsPartyData("invasion", "invasion", false, null, null, "Adopted");
+
+            Assert.True(adopted.IsAdopted);
+            Assert.IsNull(AdoptingTemplate(LordParty("clan"), adopted));
+        }
+
+        [Test]
+        public void AnAdoptedLordTradesTheClanTroopsItCameBackWithForTheInvasionsOwn()
+        {
+            CharacterObject lord = Lord();
+            CharacterObject clanTroop = Troop();
+            CharacterObject invasionTroop = Troop();
+            TroopRoster roster = RosterOf(Member(lord, 1), Member(clanTroop, 20));
+
+            InvasionMembership.ReplaceRegulars(roster, RosterOf(Member(invasionTroop, 200)));
+
+            Assert.AreEqual(1, roster.GetTroopCount(lord));
+            Assert.AreEqual(0, roster.GetTroopCount(clanTroop));
+            Assert.AreEqual(200, roster.GetTroopCount(invasionTroop));
+        }
+
+        private static TroopRoster RosterOf(params TroopRosterElement[] members)
+        {
+            TroopRoster roster = TroopRoster.CreateDummyTroopRoster();
+            Field(typeof(TroopRoster), "data").SetValue(roster, members);
+            Field(typeof(TroopRoster), "_count").SetValue(roster, members.Length);
+            roster.UpdateVersion();
+            return roster;
+        }
+
+        private static TroopRosterElement Member(CharacterObject character, int number)
+        {
+            var member = new TroopRosterElement(character);
+            member.Number = number;
+            return member;
+        }
+
+        private static CharacterObject Lord()
+        {
+            CharacterObject lord = Troop();
+            Field(typeof(CharacterObject), "_heroObject")
+                .SetValue(lord, FormatterServices.GetUninitializedObject(typeof(Hero)));
+            return lord;
+        }
+
+        private static CharacterObject Troop() =>
+            (CharacterObject)FormatterServices.GetUninitializedObject(typeof(CharacterObject));
+
+        private static System.Reflection.FieldInfo Field(System.Type owner, string name) =>
+            owner.GetField(name, System.Reflection.BindingFlags.Instance |
+                                 System.Reflection.BindingFlags.NonPublic)!;
 
         private string? AdoptingTemplate(MobileParty party, CsPartyData? registered = null, int budget = int.MaxValue) =>
             InvasionMembership.FindAdoptingTemplate(party, registered, _state,
