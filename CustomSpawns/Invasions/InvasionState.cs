@@ -34,6 +34,11 @@ namespace CustomSpawns.Invasions
         public InvasionFoothold? FindFoothold(string settlementId) => FootholdIndex.TryGetValue(settlementId, out var foothold) ? foothold : null;
         public InvasionCapture? FindCapture(long id) => CaptureIndex.TryGetValue(id, out var capture) ? capture : null;
 
+        // Vanilla respawns a defeated invasion lord under a party name no recognition path of ours matches:
+        // the live group that clan still fights for is the one that has to take the party back.
+        public InvasionGroupState? FindAdoptingGroup(string? clanId) =>
+            Groups.FirstOrDefault(group => !group.IsSuspended && !IsGroupSpent(group) && group.HoldsClan(clanId));
+
         // A kingdom carrying a live invasion must outlive the loss of its last settlement so the invasion can retake one.
         public bool ProtectsKingdomOf(IEnumerable<string> clanIds) =>
             clanIds.Any(clanId => Groups.Any(group => !group.IsSuspended && !IsGroupSpent(group) && group.HoldsClan(clanId)));

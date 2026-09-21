@@ -62,7 +62,7 @@ namespace CustomSpawns.Spawn
             saveInitialiser.RunCallbackOnFirstCampaignTick(OnSaveStart);
             // Set the party size of a custom party to the size of the actual spawned party
             // This cancels the speed malus that is applied to non-lordly parties that are too big
-            partySizeCalculatedSubject.Register(new PartySizeResizerOnFirstCalculation(spawnDao));
+            partySizeCalculatedSubject.Register(new PartySizeResizerOnFirstCalculation(spawnDao, dynamicSpawnData));
         }
 
         private void HourlyCheckData()

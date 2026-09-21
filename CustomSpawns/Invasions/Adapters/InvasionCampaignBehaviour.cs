@@ -60,6 +60,7 @@ namespace CustomSpawns.Invasions.Adapters
             CampaignEvents.OnSiegeAftermathAppliedEvent.AddNonSerializedListener(this, OnAftermath);
             CampaignEvents.OnSettlementOwnerChangedEvent.AddNonSerializedListener(this, OnOwnerChanged);
             CampaignEvents.CanKingdomBeDiscontinuedEvent.AddNonSerializedListener(this, CanKingdomBeDiscontinued);
+            CampaignEvents.MobilePartyCreated.AddNonSerializedListener(this, OnMobilePartyCreated);
             CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, OnHourlyTick);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, ScheduleReinforcements);
         }
@@ -127,6 +128,10 @@ namespace CustomSpawns.Invasions.Adapters
         private void RegisterParty(MobileParty party, CsPartyData data) => _invasionMembership.Register(party, data);
 
         private void RemoveParty(MobileParty party) => _invasionMembership.Remove(party);
+
+        // Deliberately does not Initialize(): party creation fires for the whole map while a new game
+        // is built, long before the first campaign tick, and adoption only reads state SyncData restores.
+        private void OnMobilePartyCreated(MobileParty party) => _invasionMembership.Adopt(party);
 
         private void OnHourlyTick()
         {

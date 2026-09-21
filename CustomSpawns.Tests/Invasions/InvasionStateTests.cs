@@ -326,6 +326,32 @@ namespace CustomSpawns.Tests.Invasions
             Assert.False(_state.IsGroupWithoutTown(_group.Id));
         }
 
+        [Test]
+        public void OnlyALiveGroupTakesBackARespawnedLordOfItsClans()
+        {
+            _group.AddClan("overflow-clan");
+            Assert.AreSame(_group, _state.FindAdoptingGroup("clan"));
+            Assert.AreSame(_group, _state.FindAdoptingGroup("overflow-clan"));
+            Assert.IsNull(_state.FindAdoptingGroup("other-clan"));
+            Assert.IsNull(_state.FindAdoptingGroup(null));
+
+            _group.IsSuspended = true;
+            Assert.IsNull(_state.FindAdoptingGroup("clan"));
+
+            _group.IsSuspended = false;
+            _state.RemoveMember("capturer");
+            Assert.IsNull(_state.FindAdoptingGroup("clan"));
+        }
+
+        [Test]
+        public void AGroupHoldingATownTakesBackARespawnedLordAfterLosingEveryParty()
+        {
+            Conquer();
+            _state.RemoveMember("capturer");
+
+            Assert.AreSame(_group, _state.FindAdoptingGroup("clan"));
+        }
+
         private InvasionCapture Start(long ticks = 100) => _state.StartCapture("town", ticks, "capturer");
         private Dictionary<string, string> Participants() => new() { ["capturer"] = _group.Id };
         private void Ownership(InvasionCapture c) => Correlation.ObserveOwnership(c.Id, _group.Id, "capturer", "enemy", "clan", true);

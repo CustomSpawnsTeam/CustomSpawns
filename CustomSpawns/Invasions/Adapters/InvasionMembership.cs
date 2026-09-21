@@ -56,6 +56,39 @@ namespace CustomSpawns.Invasions.Adapters
             data.SetInvasionIdentity(group.Id, RoleFor(data));
         }
 
+        /**
+         * Vanilla respawns a defeated invasion lord as an ordinary lord party under a StringId no
+         * recognition path of ours matches, so the lord returns without its membership, its food
+         * eligibility, its steering and its spawn-sized party limit. Registering the new party under
+         * its group's spawn template gives it back the party data all four are read from.
+         */
+        internal void Adopt(MobileParty party)
+        {
+            string? templateId = FindAdoptingTemplate(party, _dynamicSpawnData.GetDynamicSpawnData(party), _invasionState);
+
+            if (templateId == null)
+            {
+                return;
+            }
+
+            _dynamicSpawnData.RegisterInvasionReinforcementParty(party, templateId);
+        }
+
+        /**
+         * A party we already know keeps the identity it was registered with, and only a lord party can
+         * be a respawned invasion lord: the garrisons, caravans and militias of the same clan are not
+         * ours to adopt.
+         */
+        internal static string? FindAdoptingTemplate(MobileParty party, CsPartyData? registered, InvasionState invasionState)
+        {
+            if (registered != null || party.LordPartyComponent == null)
+            {
+                return null;
+            }
+
+            return invasionState.FindAdoptingGroup(party.ActualClan?.StringId)?.SpawnTemplateId;
+        }
+
         internal void RegisterLive()
         {
             foreach (MobileParty party in MobileParty.All.Where(p => p.IsActive))
