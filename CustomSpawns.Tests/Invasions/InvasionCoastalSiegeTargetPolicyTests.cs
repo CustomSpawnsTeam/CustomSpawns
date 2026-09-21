@@ -94,13 +94,40 @@ namespace CustomSpawns.Tests.Invasions
         [Test]
         public void AttackingForce_CountsALandingPartyBesiegingTheTownWhileTheDecidingPartyMarchesToIt()
         {
-            MobileParty party = PartyAt(0f, 0f);
-            MobileParty besieger = PartyInCamp(EmptyCamp(), 0f, 100f);
+            BesiegerCamp camp = EmptyCamp();
+            MobileParty besieger = PartyInCamp(camp, 0f, 100f);
+            MobileParty party = PartyMarchingOn(BesiegedTown(camp), 0f, 0f);
 
             var policy = new InvasionCoastalSiegeTargetPolicy(
                 Landing(_ => _ => true, party, besieger), MapPaths());
 
             Assert.That(policy.GetAttackingForce(party), Is.EqualTo(new[] { party, besieger }));
+        }
+
+        [Test]
+        public void AttackingForce_ExcludesALandingPartyBesiegingATownTheDecidingPartyIsNotMarchingOn()
+        {
+            MobileParty besieger = PartyInCamp(EmptyCamp(), 0f, 100f);
+            BesiegedTown(besieger.BesiegerCamp);
+            MobileParty party = PartyMarchingOn(BesiegedTown(EmptyCamp()), 0f, 0f);
+
+            var policy = new InvasionCoastalSiegeTargetPolicy(
+                Landing(_ => _ => true, party, besieger), MapPaths());
+
+            Assert.That(policy.GetAttackingForce(party), Is.EqualTo(new[] { party }));
+        }
+
+        [Test]
+        public void AttackingForce_ExcludesADistantBesiegerWhileTheDecidingPartyIsStillLookingForATarget()
+        {
+            MobileParty party = PartyAt(0f, 0f);
+            MobileParty besieger = PartyInCamp(EmptyCamp(), 0f, 100f);
+            BesiegedTown(besieger.BesiegerCamp);
+
+            var policy = new InvasionCoastalSiegeTargetPolicy(
+                Landing(_ => _ => true, party, besieger), MapPaths());
+
+            Assert.That(policy.GetAttackingForce(party), Is.EqualTo(new[] { party }));
         }
 
         [Test]
@@ -233,6 +260,20 @@ namespace CustomSpawns.Tests.Invasions
 
             typeof(MobileParty).GetField("_besiegerCamp", BindingFlags.NonPublic | BindingFlags.Instance)
                 .SetValue(party, camp);
+
+            return party;
+        }
+
+        // A party under way to besiege a town, as SetMoveBesiegeSettlement leaves it: target and behaviour
+        // together. Both setters run campaign code an uninitialised party cannot, so the fields are set.
+        private static MobileParty PartyMarchingOn(Settlement target, float x, float y)
+        {
+            MobileParty party = PartyAt(x, y);
+
+            typeof(MobileParty).GetField("_targetSettlement", BindingFlags.NonPublic | BindingFlags.Instance)
+                .SetValue(party, target);
+            typeof(MobileParty).GetField("_defaultBehavior", BindingFlags.NonPublic | BindingFlags.Instance)
+                .SetValue(party, AiBehavior.BesiegeSettlement);
 
             return party;
         }

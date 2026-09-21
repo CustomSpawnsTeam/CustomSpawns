@@ -65,20 +65,18 @@ namespace CustomSpawns.Invasions.Adapters
         // already besieging is one to march to and support rather than one to give up on.
         public bool IsJoinableSiege(MobileParty party, Settlement settlement)
         {
-            BesiegerCamp? camp = settlement.SiegeEvent?.BesiegerCamp;
-            if (camp == null || camp.SiegeEvent.BesiegedSettlement != settlement)
-            {
-                return false;
-            }
-
             return _invasionLandingQuery.GetLandingParties(party)
-                .Any(landingParty => IsInCamp(landingParty, camp));
+                .Any(landingParty => IsBesieging(landingParty, settlement));
         }
 
         public Func<SiegeTargetCandidate, float> GetTargetDistance(MobileParty party)
         {
             // An invasion lands as one force, so the town it heads for is the nearest for all of its
-            // parties together rather than the nearest for whichever party is deciding.
+            // parties together rather than the nearest for whichever party is deciding. The set this
+            // ranks over is no longer just the landing: adopting respawned lords grows it over campaign
+            // time, so a member far from the rest still pulls the ranking towards itself. Unlike the
+            // strength pooling above, this is deliberately not narrowed to the parties at hand -- ranking
+            // by the whole group is what keeps a scattered invasion converging on one town.
             List<MobileParty> others = GetLandingForce(party)
                 .Where(landingParty => landingParty != party).ToList();
             return candidate => candidate.Distance +
@@ -118,14 +116,28 @@ namespace CustomSpawns.Invasions.Adapters
         // Parties of one besieger camp are one force however far their camp positions spread them, and the
         // strength ratio is re-checked every tick, so distance alone would make a besieging force waver.
         // A party still marching to support counts a besieging landing party too, or it would weigh a
-        // garrison against itself alone and never set out. That reads any camp of the landing as the one
-        // it is marching to, which assumes the landing runs at most one siege at a time: true while it is
-        // landless and looking for its first foothold, the only state in which any of this pooling is
-        // active at all (GetLandingForce returns the deciding party alone once the coastal filter is null).
+        // garrison against itself alone and never set out -- but only the besiegers of the very town it is
+        // marching on, or a remnant stranded across the map would borrow their strength against a town
+        // they have nothing to do with and besiege it regardless of the force ratio. SetMoveBesiegeSettlement
+        // sets both the target and the behaviour together, and the behaviour is what tells a march to
+        // support from the patrol the recon fallback issues, which overwrites the target settlement too.
         private static bool IsCampMateOf(MobileParty party, MobileParty landingParty)
         {
             BesiegerCamp? camp = party.BesiegerCamp;
-            return camp == null ? landingParty.BesiegerCamp != null : IsInCamp(landingParty, camp);
+
+            if (camp != null)
+            {
+                return IsInCamp(landingParty, camp);
+            }
+
+            return party.DefaultBehavior == AiBehavior.BesiegeSettlement && party.TargetSettlement != null &&
+                   IsBesieging(landingParty, party.TargetSettlement);
+        }
+
+        private static bool IsBesieging(MobileParty party, Settlement settlement)
+        {
+            BesiegerCamp? camp = settlement.SiegeEvent?.BesiegerCamp;
+            return camp != null && camp.SiegeEvent.BesiegedSettlement == settlement && IsInCamp(party, camp);
         }
 
         private static bool IsInCamp(MobileParty party, BesiegerCamp camp)

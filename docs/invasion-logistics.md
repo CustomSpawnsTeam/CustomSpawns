@@ -50,6 +50,10 @@ The transfer is unconditional: every still-active escort party among the capture
 
 The group's first arrival is due at its first coastal foothold plus the configured interval. A daily check considers the group once and chooses one held, eligible, non-besieged port. An arrival uses the land gate, its own troop template and generated leader, fresh AI state, and the original behaviour configuration. It has no `SupportedParty` and creates no escorts. Its creation/death does not change original `MaximumOnMap` accounting.
 
+A defeated invasion lord is respawned by the game as an ordinary lord of its clan under a party name no spawn template matches, so it comes back outside its invasion. Such a lord is adopted back into its clan's group: it is registered under that group's spawn template, carries the `"Adopted"` role across saves, and has its regulars replaced by the troops a fresh spawn of the same invasion would draw, its heroes left alone. That restores its membership, food eligibility, steering and spawn-sized party limit.
+
+Adoption is bounded by the group's budget -- `MaximumConcurrentPrimaries` plus `Reinforcements/ActivePartyCap` -- weighed against the group's live non-escort members, so a clan that keeps losing lords does not accumulate invasion parties without end. Escorts are outside that count, and an adopted lord spends no landing slot against the reinforcement cap. The bound is on adopting, not on how many parties are alive: the spawner keeps its own separate count.
+
 A due slot blocked by the cap, unavailable port/configuration/template, or spawn failure is skipped until the next interval. There is no backlog or catch-up loop; advancing multiple weeks produces at most one current arrival. Port ownership is rechecked at the spawn call. Membership and deadlines persist, while active counts are reconciled from surviving registered parties. Losing the original army does not stop an eligible surviving foothold; a group disappears only when it has neither a foothold nor surviving members and the kingdom it leaves behind has been retired.
 
 ## Losing the foothold

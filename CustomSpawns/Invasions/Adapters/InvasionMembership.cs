@@ -103,9 +103,14 @@ namespace CustomSpawns.Invasions.Adapters
                 return;
             }
 
-            ReplaceRegulars(party.MemberRoster, Campaign.Current.Models.PartySizeLimitModel
+            ReplaceRegulars(party, Campaign.Current.Models.PartySizeLimitModel
                 .FindAppropriateInitialRosterForMobileParty(party, partyTemplate));
         }
+
+        // The troops the lord fights with, not the ones it drags behind it: the same call against the
+        // prison roster compiles and would leave the party empty with an invasion's worth of captives.
+        internal static void ReplaceRegulars(MobileParty party, TroopRoster troops) =>
+            ReplaceRegulars(party.MemberRoster, troops);
 
         /**
          * The lord and anyone else who came back as a hero stay: only the regulars are the wrong ones, so
@@ -171,6 +176,10 @@ namespace CustomSpawns.Invasions.Adapters
          * How many non-escort parties the configuration fields for a group: the primary parties the spawner
          * keeps on the map plus the reinforcement landings the invasion may hold at once. A spawn that
          * invades for nothing budgets nothing.
+         *
+         * This bounds adoption, not the parties alive: the spawner keeps its own count, so a dead primary
+         * frees a spawn slot and opens adoption headroom at the same time, and a group can hold more live
+         * non-escort parties than this until the next death settles it.
          */
         internal static int PartyBudget(SpawnDto? spawn) =>
             spawn?.Invasion == null

@@ -100,6 +100,32 @@ namespace CustomSpawns.Tests.Invasions
             Assert.AreEqual(200, roster.GetTroopCount(invasionTroop));
         }
 
+        [Test]
+        public void AnAdoptedLordIsRefilledWithTroopsItLeadsAndNotWithPrisoners()
+        {
+            CharacterObject invasionTroop = Troop();
+            MobileParty party = PartyWithRosters();
+
+            InvasionMembership.ReplaceRegulars(party, RosterOf(Member(invasionTroop, 200)));
+
+            Assert.AreEqual(200, party.MemberRoster.GetTroopCount(invasionTroop));
+            Assert.AreEqual(0, party.PrisonRoster.GetTroopCount(invasionTroop));
+        }
+
+        private static MobileParty PartyWithRosters()
+        {
+            MobileParty party = DummyParty("clan");
+            var partyBase = (PartyBase)FormatterServices.GetUninitializedObject(typeof(PartyBase));
+
+            Field(typeof(MobileParty), "<Party>k__BackingField").SetValue(party, partyBase);
+            Field(typeof(PartyBase), "<MemberRoster>k__BackingField")
+                .SetValue(partyBase, TroopRoster.CreateDummyTroopRoster());
+            Field(typeof(PartyBase), "<PrisonRoster>k__BackingField")
+                .SetValue(partyBase, TroopRoster.CreateDummyTroopRoster());
+
+            return party;
+        }
+
         private static TroopRoster RosterOf(params TroopRosterElement[] members)
         {
             TroopRoster roster = TroopRoster.CreateDummyTroopRoster();

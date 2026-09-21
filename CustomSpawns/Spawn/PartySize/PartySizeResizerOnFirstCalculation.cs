@@ -54,7 +54,7 @@ namespace CustomSpawns.Spawn.PartySize
          */
         internal static bool IsCustomSpawnsParty(MobileParty mobileParty)
         {
-            if (_dynamicSpawnData!.GetDynamicSpawnData(mobileParty) != null)
+            if (_dynamicSpawnData?.GetDynamicSpawnData(mobileParty) != null)
             {
                 return true;
             }
