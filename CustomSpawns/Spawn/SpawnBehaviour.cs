@@ -300,7 +300,7 @@ namespace CustomSpawns.Spawn
         internal static bool ShouldSuppressDeathMessage(CsPartyData partyData,
             Func<CsPartyData, bool> hasPersistentInvasionGroup)
         {
-            return partyData.IsIndependentReinforcement ||
+            return partyData.IsIndependentReinforcement || partyData.IsAdopted ||
                    (partyData.IsPrimarySpawn && hasPersistentInvasionGroup(partyData));
         }
 

@@ -172,7 +172,14 @@ namespace CustomSpawns.Invasions.Adapters
 
         int IInvasionReinforcementQuery.CountActiveReinforcements(InvasionGroupState group) =>
             MobileParty.All.Count(party => party.IsActive && _dynamicSpawnData.GetDynamicSpawnData(party) is { } data &&
-                data.InvasionGroupId == group.Id && data.IsIndependentReinforcement);
+                CountsAgainstActivePartyCap(data, group));
+
+        /**
+         * Only a party this invasion landed spends its cap. A party it merely took back from the game
+         * costs it nothing, or the first adopted lord would hold the landings off for as long as it lives.
+         */
+        internal static bool CountsAgainstActivePartyCap(CsPartyData data, InvasionGroupState group) =>
+            data.InvasionGroupId == group.Id && data.IsIndependentReinforcement;
 
         bool IInvasionReinforcementQuery.HasPartySlot(string clanId)
         {

@@ -71,7 +71,7 @@ namespace CustomSpawns.Invasions.Adapters
                 return;
             }
 
-            _dynamicSpawnData.RegisterInvasionReinforcementParty(party, templateId);
+            _dynamicSpawnData.RegisterAdoptedParty(party, templateId);
         }
 
         /**
@@ -131,7 +131,8 @@ namespace CustomSpawns.Invasions.Adapters
                 .ToList();
         }
 
-        private static string RoleFor(CsPartyData data) => data.IsIndependentReinforcement ? "Reinforcement" :
+        internal static string RoleFor(CsPartyData data) => data.IsIndependentReinforcement ? "Reinforcement" :
+            data.IsAdopted ? "Adopted" :
             data.IsPrimarySpawn ? "Original" : "Escort";
 
         private InvasionData? GetConfiguration(InvasionGroupState group) => _spawnDao.FindByPartyTemplateId(group.SpawnTemplateId)?.Invasion;

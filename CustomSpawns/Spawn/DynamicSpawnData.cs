@@ -121,6 +121,15 @@ namespace CustomSpawns.Spawn
             RegisterParty(mobileParty, owningSpawnTemplateId, false, null, "Reinforcement");
         }
 
+        /**
+         * A party the game spawned itself and an invasion took back. It is not a reinforcement: it
+         * costs the invasion none of its landing budget, which counts reinforcements alone.
+         */
+        public void RegisterAdoptedParty(MobileParty mobileParty, string owningSpawnTemplateId)
+        {
+            RegisterParty(mobileParty, owningSpawnTemplateId, false, null, "Adopted");
+        }
+
         private void RegisterParty(MobileParty mobileParty, string owningSpawnTemplateId, bool isPrimarySpawn,
             MobileParty? supportedParty, string? partyRole = null)
         {
@@ -252,6 +261,7 @@ namespace CustomSpawns.Spawn
         public bool IsPrimarySpawn => _isPrimarySpawn;
         public bool IsIndependentReinforcement => string.Equals(_partyRole, "Reinforcement",
             StringComparison.Ordinal);
+        public bool IsAdopted => string.Equals(_partyRole, "Adopted", StringComparison.Ordinal);
         public bool IsEscort => string.Equals(_partyRole, "Escort", StringComparison.Ordinal) ||
                                 (_partyRole == null && !_isPrimarySpawn);
         public Settlement? LatestClosestSettlement

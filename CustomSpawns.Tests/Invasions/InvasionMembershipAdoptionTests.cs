@@ -12,12 +12,13 @@ namespace CustomSpawns.Tests.Invasions
     public class InvasionMembershipAdoptionTests
     {
         private InvasionState _state = null!;
+        private InvasionGroupState _group = null!;
 
         [SetUp]
         public void SetUp()
         {
             _state = new InvasionState();
-            _state.RegisterMember("invasion", "clan", "invasion_party_1");
+            _group = _state.RegisterMember("invasion", "clan", "invasion_party_1");
         }
 
         [Test]
@@ -47,6 +48,28 @@ namespace CustomSpawns.Tests.Invasions
             MobileParty party = DummyParty("clan");
 
             Assert.IsNull(InvasionMembership.FindAdoptingTemplate(party, null, _state));
+        }
+
+        [Test]
+        public void AnAdoptedLordDoesNotSpendTheInvasionsLandingBudget()
+        {
+            Assert.False(InvasionReinforcementArrivals.CountsAgainstActivePartyCap(PartyOfTheGroup("Adopted"), _group));
+            Assert.True(InvasionReinforcementArrivals.CountsAgainstActivePartyCap(PartyOfTheGroup("Reinforcement"),
+                _group));
+        }
+
+        [Test]
+        public void AnAdoptedLordComesBackFromASaveAsAnAdoptedLord()
+        {
+            Assert.AreEqual("Adopted", InvasionMembership.RoleFor(PartyOfTheGroup("Adopted")));
+            Assert.AreEqual("Reinforcement", InvasionMembership.RoleFor(PartyOfTheGroup("Reinforcement")));
+        }
+
+        private CsPartyData PartyOfTheGroup(string partyRole)
+        {
+            var data = new CsPartyData("invasion", "invasion", false, null, null, partyRole);
+            data.SetInvasionIdentity(_group.Id, null);
+            return data;
         }
 
         private static MobileParty LordParty(string clanId)
