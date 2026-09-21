@@ -40,8 +40,11 @@ namespace CustomSpawns.Invasions
         // membership can still name parties the engine has dropped, so the budget is read against a live count.
         public InvasionGroupState? FindAdoptingGroup(string? clanId, Func<InvasionGroupState, int> countLiveMembers,
             Func<InvasionGroupState, int> partyBudget) =>
-            Groups.FirstOrDefault(group => !group.IsSuspended && !IsGroupSpent(group) && group.HoldsClan(clanId) &&
-                countLiveMembers(group) < partyBudget(group));
+            FindFightingGroups(clanId).FirstOrDefault(group => countLiveMembers(group) < partyBudget(group));
+
+        // The live invasions a clan fights for: adoption offers a party to them, and a refused adoption names them.
+        public IEnumerable<InvasionGroupState> FindFightingGroups(string? clanId) =>
+            Groups.Where(group => !group.IsSuspended && !IsGroupSpent(group) && group.HoldsClan(clanId));
 
         // A kingdom carrying a live invasion must outlive the loss of its last settlement so the invasion can retake one.
         public bool ProtectsKingdomOf(IEnumerable<string> clanIds) =>

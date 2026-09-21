@@ -216,7 +216,8 @@ namespace CustomSpawns.Spawn
                 {
                     for (int i = 0; i < spawn.RepeatSpawnRolls; i++)
                     {
-                        if (_numberOfSpawns[spawn.PartyTemplate.StringId] <= spawn.MaximumOnMap && (spawn.MinimumNumberOfDaysUntilSpawn < (int)Math.Ceiling(Campaign.Current.Models.CampaignTimeModel.CampaignStartTime.ElapsedDaysUntilNow)))
+                        // MaximumConcurrentPrimaries is what this test keeps on the map; the invasion adoption budget reads it too.
+                        if (_numberOfSpawns[spawn.PartyTemplate.StringId] < spawn.MaximumConcurrentPrimaries && (spawn.MinimumNumberOfDaysUntilSpawn < (int)Math.Ceiling(Campaign.Current.Models.CampaignTimeModel.CampaignStartTime.ElapsedDaysUntilNow)))
                         {
                             float currentChanceOfSpawn = ComputeChanceSpawn(spawn);
                             float spawnChanceFlatMultiplier = _configLoader.Config.SpawnChanceFlatMultiplier;

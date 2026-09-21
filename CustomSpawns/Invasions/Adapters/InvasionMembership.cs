@@ -4,6 +4,7 @@ using System.Linq;
 using CustomSpawns.Data.Dao;
 using CustomSpawns.Data.Dto;
 using CustomSpawns.Spawn;
+using NLog;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -17,6 +18,7 @@ namespace CustomSpawns.Invasions.Adapters
      */
     internal sealed class InvasionMembership
     {
+        private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         private readonly InvasionState _invasionState;
         private readonly SpawnDao _spawnDao;
         private readonly DynamicSpawnData _dynamicSpawnData;
@@ -63,17 +65,42 @@ namespace CustomSpawns.Invasions.Adapters
          * eligibility, its steering and its spawn-sized party limit. Registering the new party under
          * its group's spawn template gives it back the party data all four are read from.
          */
-        internal void Adopt(MobileParty party)
+        internal void Adopt(MobileParty party) =>
+            Adopt(party, CountLiveCountedMembers, BudgetOf);
+
+        // The live count and the budget are parameters so a test can drive adoption off the campaign map.
+        internal void Adopt(MobileParty party, Func<InvasionGroupState, int> countLiveMembers,
+            Func<InvasionGroupState, int> partyBudget)
         {
-            string? templateId = FindAdoptingTemplate(party, _dynamicSpawnData.GetDynamicSpawnData(party),
-                _invasionState, CountLiveMembers, PartyBudget);
+            CsPartyData? registered = _dynamicSpawnData.GetDynamicSpawnData(party);
+            string? templateId = FindAdoptingTemplate(party, registered, _invasionState, countLiveMembers, partyBudget);
 
             if (templateId == null)
             {
+                ReportAdoptionRefusal(party, registered, countLiveMembers, partyBudget);
                 return;
             }
 
             _dynamicSpawnData.RegisterAdoptedParty(party, templateId);
+        }
+
+        /**
+         * A budget refusal leaves a respawned lord outside its invasion for good, and nothing else on the
+         * map says so, so it is reported rather than left to be inferred from a lord that stopped invading.
+         */
+        private void ReportAdoptionRefusal(MobileParty party, CsPartyData? registered,
+            Func<InvasionGroupState, int> countLiveMembers, Func<InvasionGroupState, int> partyBudget)
+        {
+            if (registered != null || party.LordPartyComponent == null)
+            {
+                return;
+            }
+
+            foreach (InvasionGroupState group in _invasionState.FindFightingGroups(party.ActualClan?.StringId))
+            {
+                Logger.Info("Invasion adoption refused: group=" + group.Id + " party=" + party.StringId +
+                            " counted_parties=" + countLiveMembers(group) + " budget=" + partyBudget(group));
+            }
         }
 
         /**
@@ -94,24 +121,28 @@ namespace CustomSpawns.Invasions.Adapters
                 ?.SpawnTemplateId;
         }
 
-        private static int CountLiveMembers(InvasionGroupState group) =>
-            MobileParty.All.Count(party => party.IsActive && group.Members.Contains(party.StringId));
+        /**
+         * Escorts are outside the budget: nothing bounds how many of them a group holds, since the spawner
+         * frees a primary's slot when it dies but leaves its escorts on the map, so counting them would let
+         * the count drift past the budget and switch adoption off for good. What the budget bounds -- the
+         * parties an invasion leads with -- is therefore what it counts.
+         */
+        private int CountLiveCountedMembers(InvasionGroupState group) =>
+            MobileParty.All.Count(party => party.IsActive && group.Members.Contains(party.StringId) &&
+                _dynamicSpawnData.GetDynamicSpawnData(party)?.IsEscort != true);
+
+        private int BudgetOf(InvasionGroupState group) =>
+            PartyBudget(_spawnDao.FindByPartyTemplateId(group.SpawnTemplateId));
 
         /**
-         * How many parties the configuration fields for this group: the primary parties the spawner keeps
-         * on the map, each with the escorts it lands alongside, plus the reinforcement landings the
-         * invasion may hold at once. The spawner tests its count before incrementing it, so it keeps one
-         * primary more than MaximumOnMap names, and the budget has to allow what the spawner produces.
+         * How many non-escort parties the configuration fields for a group: the primary parties the spawner
+         * keeps on the map plus the reinforcement landings the invasion may hold at once. A spawn that
+         * invades for nothing budgets nothing.
          */
-        private int PartyBudget(InvasionGroupState group)
-        {
-            SpawnDto? spawn = _spawnDao.FindByPartyTemplateId(group.SpawnTemplateId);
-
-            return spawn?.Invasion == null
+        internal static int PartyBudget(SpawnDto? spawn) =>
+            spawn?.Invasion == null
                 ? 0
-                : (spawn.MaximumOnMap + 1) * (1 + spawn.SpawnAlongWith.Count) +
-                  spawn.Invasion.ReinforcementActivePartyCap;
-        }
+                : spawn.MaximumConcurrentPrimaries + spawn.Invasion.ReinforcementActivePartyCap;
 
         internal void RegisterLive()
         {

@@ -40,5 +40,12 @@ namespace CustomSpawns.Data.Dto
         public InformationMessage? DeathMessage { get; set; }
         public int SoundEvent { get; set; }
         public bool InheritClanFromSettlement { get; set; }
+
+        /**
+         * How many main parties of this spawn the spawner keeps on the map at once. It tests its count
+         * before incrementing it, so it keeps one more than MaximumOnMap names. Both that test and the
+         * invasion adoption budget read this, so neither can be tightened without the other.
+         */
+        public int MaximumConcurrentPrimaries => MaximumOnMap + 1;
     }
 }
