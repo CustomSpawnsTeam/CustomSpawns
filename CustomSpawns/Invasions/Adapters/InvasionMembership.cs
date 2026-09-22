@@ -60,11 +60,12 @@ namespace CustomSpawns.Invasions.Adapters
         }
 
         /**
-         * Two paths hand an invasion clan an ordinary lord party. A spawned party is owned by its clan
-         * leader, which neither leads it nor enters its roster, so vanilla reads that clan leader as
-         * party-less and fields one for it whenever the clan sits under its tier party limit -- the
-         * common case, and the one that keeps happening all campaign. A lord generated to lead a
-         * besieging spawn is not that hero: it is enrolled in the roster and belongs to its party. The
+         * Two paths hand an invasion clan an ordinary lord party. A spawned party is handed to its clan
+         * leader as owner, and unless a lord is generated to lead it that clan leader stays its owner
+         * without ever entering a roster, so vanilla reads it as party-less and fields a party for it
+         * whenever the clan sits under its tier party limit -- the common case, and the one that keeps
+         * happening all campaign. A generated besieging lord is not that hero: it both owns and leads
+         * the party it was made for, and is enrolled in its roster. The
          * other path is a living invasion party changing component, as one does when the invasion
          * becomes a kingdom and loses its only coastal town. Either way the party arrives under a
          * StringId no recognition path of ours matches, so it carries on without its membership, its

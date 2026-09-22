@@ -133,20 +133,25 @@ namespace CustomSpawns.Tests.Invasions
         {
             var lord = (Hero)FormatterServices.GetUninitializedObject(typeof(Hero));
 
-            Hero? answer = InvasionLordRemoval.FindLordOfRemovedInvasionParty(_state, "clan", "lord-party",
+            Hero? answer = InvasionLordRemoval.TakeLordOfRemovedInvasionParty(_state, "clan", "lord-party",
                 lord, () => _state.RemoveMember("lord-party"));
 
             Assert.AreSame(lord, answer);
             Assert.True(_state.IsGroupSpent(_group));
         }
 
+        /**
+         * Forgetting the party is the point of the call and happens whoever led it, so the answer being
+         * nothing is only half of what is asserted here.
+         */
         [Test]
-        public void TheLordOfAPartyOfNoLiveInvasionIsNotAnsweredFor()
+        public void TheLordOfAPartyOfNoLiveInvasionIsNotAnsweredForButItsPartyIsStillForgotten()
         {
             var lord = (Hero)FormatterServices.GetUninitializedObject(typeof(Hero));
 
-            Assert.IsNull(InvasionLordRemoval.FindLordOfRemovedInvasionParty(_state, "other-clan",
+            Assert.IsNull(InvasionLordRemoval.TakeLordOfRemovedInvasionParty(_state, "other-clan",
                 "lord-party", lord, () => _state.RemoveMember("lord-party")));
+            Assert.True(_state.IsGroupSpent(_group));
         }
 
         /**

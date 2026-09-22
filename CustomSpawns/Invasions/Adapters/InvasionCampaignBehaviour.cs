@@ -140,7 +140,7 @@ namespace CustomSpawns.Invasions.Adapters
         private void RemoveParty(MobileParty party)
         {
             Hero? leader = party.LeaderHero;
-            _lordOfRemovedInvasionParty = InvasionLordRemoval.FindLordOfRemovedInvasionParty(State,
+            _lordOfRemovedInvasionParty = InvasionLordRemoval.TakeLordOfRemovedInvasionParty(State,
                 leader?.Clan?.StringId, party.StringId, leader, () => _invasionMembership.Remove(party));
         }
 
@@ -167,6 +167,11 @@ namespace CustomSpawns.Invasions.Adapters
         private void OnHourlyTick()
         {
             Initialize();
+
+            // A kept lord is consumed inside the very destroy that kept it, so one surviving into this
+            // tick was kept by a destroy that announced neither capture nor flight -- a retreat-ended
+            // battle, or a disband into a settlement -- and has no removal decision left to authorise.
+            _lordOfRemovedInvasionParty = null;
 
             _invasionMembership.Reconcile();
             _invasionKingdomRetirement.RetireSpent();

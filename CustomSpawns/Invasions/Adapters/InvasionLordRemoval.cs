@@ -18,9 +18,10 @@ namespace CustomSpawns.Invasions.Adapters
          * live invasion. The two statements are in this order and not the other one: forgetting the
          * party can spend its group or reconcile it away, and the question would then have no answer
          * left to give. Forgetting is passed in so the order is stated once, here, rather than left to
-         * whichever caller happens to hold the ledger.
+         * whichever caller happens to hold the ledger. It takes rather than finds: the forgetting is the
+         * point of the call, and answering is what it does on the way.
          */
-        internal static Hero? FindLordOfRemovedInvasionParty(InvasionState invasionState, string? clanId,
+        internal static Hero? TakeLordOfRemovedInvasionParty(InvasionState invasionState, string? clanId,
             string partyId, Hero? leader, Action forgetParty)
         {
             bool wasFightingAnInvasion = leader != null && invasionState.FindFightingGroups(clanId)
