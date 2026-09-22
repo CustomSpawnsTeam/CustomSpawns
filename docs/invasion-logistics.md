@@ -50,11 +50,17 @@ The transfer is unconditional: every still-active escort party among the capture
 
 The group's first arrival is due at its first coastal foothold plus the configured interval. A daily check considers the group once and chooses one held, eligible, non-besieged port. An arrival uses the land gate, its own troop template and generated leader, fresh AI state, and the original behaviour configuration. It has no `SupportedParty` and creates no escorts. Its creation/death does not change original `MaximumOnMap` accounting.
 
-A defeated invasion lord is respawned by the game as an ordinary lord of its clan under a party name no spawn template matches, so it comes back outside its invasion. Such a lord is adopted back into its clan's group: it is registered under that group's spawn template and carries the `"Adopted"` role across saves. That restores its membership, food eligibility, steering and spawn-sized party limit. Its roster is left as the game filled it: adoption restores what the lord belongs to, not what it leads.
+A living invasion party changes component when the invasion becomes a kingdom and loses its only coastal town, and the game rebuilds it as an ordinary lord party under a name no spawn template matches, so it carries on outside its invasion. Such a party is adopted back into its clan's group: it is registered under that group's spawn template and carries the `"Adopted"` role across saves. That restores its membership, food eligibility, steering and spawn-sized party limit. Its roster is left as the game filled it: adoption restores the invasion identity the party lost, not the troops standing in it.
 
 Adoption is bounded by the group's budget -- `MaximumConcurrentPrimaries` plus `Reinforcements/ActivePartyCap` -- weighed against the group's live non-escort members, so a clan that keeps losing lords does not accumulate invasion parties without end. Escorts are outside that count, and an adopted lord spends no landing slot against the reinforcement cap. The bound is on adopting, not on how many parties are alive: the spawner keeps its own separate count.
 
 A due slot blocked by the cap, unavailable port/configuration/template, or spawn failure is skipped until the next interval. There is no backlog or catch-up loop; advancing multiple weeks produces at most one current arrival. Port ownership is rechecked at the spawn call. Membership and deadlines persist, while active counts are reconciled from surviving registered parties. Losing the original army does not stop an eligible surviving foothold; a group disappears only when it has neither a foothold nor surviving members and the kingdom it leaves behind has been retired.
+
+## Defeat removes the lord
+
+A lord of a clan that is still fighting a live invasion is removed from the campaign the moment it is captured or becomes a fugitive, instead of waiting without a party until its clan's next daily tick hands it a fresh one. Capture, escape and ransom therefore all end the same way, and a ransom needs no handling of its own because the lord is already gone by the time one could be offered. The removal is `KillCharacterAction.ApplyByRemove`: the lord simply disappears, and no relation loss or honor penalty is charged to whoever beat it. `Hero.MainHero`, any hero of the player clan, and any hero whose clan is not fighting a live invasion are never touched.
+
+Succession is the game's own. While another adult lord of the clan is alive, one is promoted and the clan keeps invading, so a clan of three lords survives its first two defeats; the third leaves no successor and the clan is dissolved, which is the invasion ending. Removing a lord also frees the slot its party held in the adoption budget.
 
 ## Losing the foothold
 

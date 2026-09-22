@@ -61,6 +61,8 @@ namespace CustomSpawns.Invasions.Adapters
             CampaignEvents.OnSettlementOwnerChangedEvent.AddNonSerializedListener(this, OnOwnerChanged);
             CampaignEvents.CanKingdomBeDiscontinuedEvent.AddNonSerializedListener(this, CanKingdomBeDiscontinued);
             CampaignEvents.MobilePartyCreated.AddNonSerializedListener(this, OnMobilePartyCreated);
+            CampaignEvents.HeroPrisonerTaken.AddNonSerializedListener(this, OnHeroPrisonerTaken);
+            CampaignEvents.CharacterBecameFugitiveEvent.AddNonSerializedListener(this, OnCharacterBecameFugitive);
             CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, OnHourlyTick);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, ScheduleReinforcements);
         }
@@ -132,6 +134,17 @@ namespace CustomSpawns.Invasions.Adapters
         // Deliberately does not Initialize(): party creation fires for the whole map while a new game
         // is built, long before the first campaign tick, and adoption only reads state SyncData restores.
         private void OnMobilePartyCreated(MobileParty party) => _invasionMembership.Adopt(party);
+
+        // The two ways an invasion lord survives losing its party, and the two it would come back from.
+        private void OnHeroPrisonerTaken(PartyBase capturer, Hero prisoner) => RemoveDefeatedLord(prisoner);
+
+        private void OnCharacterBecameFugitive(Hero hero, bool showNotification) => RemoveDefeatedLord(hero);
+
+        private void RemoveDefeatedLord(Hero hero)
+        {
+            Initialize();
+            InvasionLordRemoval.RemoveDefeated(State, hero);
+        }
 
         private void OnHourlyTick()
         {

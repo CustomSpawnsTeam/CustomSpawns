@@ -60,10 +60,12 @@ namespace CustomSpawns.Invasions.Adapters
         }
 
         /**
-         * Vanilla respawns a defeated invasion lord as an ordinary lord party under a StringId no
-         * recognition path of ours matches, so the lord returns without its membership, its food
-         * eligibility, its steering and its spawn-sized party limit. Registering the new party under
-         * its group's spawn template gives it back the party data all four are read from.
+         * A living invasion party changes component when the invasion becomes a kingdom and loses its only
+         * coastal town, and vanilla rebuilds it as an ordinary lord party under a StringId no recognition
+         * path of ours matches, so it carries on without its membership, its food eligibility, its
+         * steering and its spawn-sized party limit. Registering the new party under its group's spawn
+         * template gives it back the party data all four are read from. A defeated lord is not a case
+         * here: it is removed rather than left to come back.
          */
         internal void Adopt(MobileParty party) =>
             Adopt(party, CountLiveCountedMembers, BudgetOf);
