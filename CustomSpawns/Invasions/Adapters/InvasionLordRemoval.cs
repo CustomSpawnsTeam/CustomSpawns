@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
@@ -12,6 +13,24 @@ namespace CustomSpawns.Invasions.Adapters
      */
     internal static class InvasionLordRemoval
     {
+        /**
+         * The lord of a party the ledger is about to forget, or nothing if that party was fighting no
+         * live invasion. The two statements are in this order and not the other one: forgetting the
+         * party can spend its group or reconcile it away, and the question would then have no answer
+         * left to give. Forgetting is passed in so the order is stated once, here, rather than left to
+         * whichever caller happens to hold the ledger.
+         */
+        internal static Hero? FindLordOfRemovedInvasionParty(InvasionState invasionState, string? clanId,
+            string partyId, Hero? leader, Action forgetParty)
+        {
+            bool wasFightingAnInvasion = leader != null && invasionState.FindFightingGroups(clanId)
+                .Any(group => group.MemberPartyIds.Contains(partyId));
+
+            forgetParty();
+
+            return wasFightingAnInvasion ? leader : null;
+        }
+
         internal static void RemoveDefeated(InvasionState invasionState, Hero hero, bool lostItsInvasionParty)
         {
             if (!IsRemovableInvasionLord(invasionState, hero.Clan?.StringId,

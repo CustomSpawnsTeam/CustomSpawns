@@ -1,6 +1,8 @@
+using System.Runtime.Serialization;
 using CustomSpawns.Invasions;
 using CustomSpawns.Invasions.Adapters;
 using NUnit.Framework;
+using TaleWorlds.CampaignSystem;
 
 namespace CustomSpawns.Tests.Invasions
 {
@@ -106,6 +108,45 @@ namespace CustomSpawns.Tests.Invasions
         public void ThePlayerIsNeverRemovedEvenAfterLosingAnInvasionParty()
         {
             Assert.False(IsRemovable(isMainHero: true, lostItsInvasionParty: true));
+        }
+
+        /**
+         * Losing an invasion party stands in for the answer the ledger can no longer give and for
+         * nothing else, so every other guard still holds while it is true.
+         */
+        [Test]
+        public void NoOtherGuardIsWaivedByTheLossOfAnInvasionParty()
+        {
+            Assert.False(IsRemovable(belongsToPlayerClan: true, lostItsInvasionParty: true));
+            Assert.False(IsRemovable(isChild: true, lostItsInvasionParty: true));
+            Assert.False(IsRemovable(isAlive: false, lostItsInvasionParty: true));
+            Assert.False(IsRemovable(isLord: false, lostItsInvasionParty: true));
+        }
+
+        /**
+         * The order the answer and the ledger are taken in: the forget here empties the group, which is
+         * what destroying the last party of an invasion does, and the lord is still the answer because
+         * it was asked for before that happened.
+         */
+        [Test]
+        public void TheLordIsAnsweredForBeforeTheLedgerForgetsItsParty()
+        {
+            var lord = (Hero)FormatterServices.GetUninitializedObject(typeof(Hero));
+
+            Hero? answer = InvasionLordRemoval.FindLordOfRemovedInvasionParty(_state, "clan", "lord-party",
+                lord, () => _state.RemoveMember("lord-party"));
+
+            Assert.AreSame(lord, answer);
+            Assert.True(_state.IsGroupSpent(_group));
+        }
+
+        [Test]
+        public void TheLordOfAPartyOfNoLiveInvasionIsNotAnsweredFor()
+        {
+            var lord = (Hero)FormatterServices.GetUninitializedObject(typeof(Hero));
+
+            Assert.IsNull(InvasionLordRemoval.FindLordOfRemovedInvasionParty(_state, "other-clan",
+                "lord-party", lord, () => _state.RemoveMember("lord-party")));
         }
 
         /**

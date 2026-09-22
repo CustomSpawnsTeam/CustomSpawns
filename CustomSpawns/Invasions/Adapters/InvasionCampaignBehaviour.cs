@@ -135,17 +135,13 @@ namespace CustomSpawns.Invasions.Adapters
          * a fleeing lord's party before it announces the flight, and that destroy can leave the group it
          * emptied spent or reconciled away. Whether the lord was invading is therefore answered here,
          * while its party is still a member of a group that is still fighting, and kept for the capture
-         * or flight the same destroy is about to dispatch. The next removal answers it afresh.
+         * or flight the same destroy is about to dispatch. The next removal decision spends it.
          */
         private void RemoveParty(MobileParty party)
         {
             Hero? leader = party.LeaderHero;
-            _lordOfRemovedInvasionParty = leader != null && State.FindFightingGroups(leader.Clan?.StringId)
-                .Any(group => group.MemberPartyIds.Contains(party.StringId))
-                ? leader
-                : null;
-
-            _invasionMembership.Remove(party);
+            _lordOfRemovedInvasionParty = InvasionLordRemoval.FindLordOfRemovedInvasionParty(State,
+                leader?.Clan?.StringId, party.StringId, leader, () => _invasionMembership.Remove(party));
         }
 
         // Deliberately does not Initialize(): party creation fires for the whole map while a new game
@@ -157,11 +153,15 @@ namespace CustomSpawns.Invasions.Adapters
 
         private void OnCharacterBecameFugitive(Hero hero, bool showNotification) => RemoveDefeatedLord(hero);
 
+        // The kept lord authorises one removal decision and is spent by it: a party removal that
+        // dispatches neither capture nor flight would otherwise leave it standing for the rest of the
+        // session, ready to answer for a defeat years later that has nothing to do with an invasion.
         private void RemoveDefeatedLord(Hero hero)
         {
             Initialize();
-            InvasionLordRemoval.RemoveDefeated(State, hero,
-                lostItsInvasionParty: hero == _lordOfRemovedInvasionParty);
+            bool lostItsInvasionParty = hero == _lordOfRemovedInvasionParty;
+            _lordOfRemovedInvasionParty = null;
+            InvasionLordRemoval.RemoveDefeated(State, hero, lostItsInvasionParty);
         }
 
         private void OnHourlyTick()

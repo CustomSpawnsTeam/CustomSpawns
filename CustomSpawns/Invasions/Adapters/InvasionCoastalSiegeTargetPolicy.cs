@@ -75,9 +75,9 @@ namespace CustomSpawns.Invasions.Adapters
             // parties together rather than the nearest for whichever party is deciding. The set this
             // ranks over is no longer just the landing: adopting the lord parties the game fields for an
             // invasion clan grows it over campaign time, so a member far from the rest still pulls the
-            // ranking towards itself. Unlike the
-            // strength pooling above, this is deliberately not narrowed to the parties at hand -- ranking
-            // by the whole group is what keeps a scattered invasion converging on one town.
+            // ranking towards itself. Unlike the strength pooling above, this is deliberately not
+            // narrowed to the parties at hand -- ranking by the whole group is what keeps a scattered
+            // invasion converging on one town.
             List<MobileParty> others = GetLandingForce(party)
                 .Where(landingParty => landingParty != party).ToList();
             return candidate => candidate.Distance +
