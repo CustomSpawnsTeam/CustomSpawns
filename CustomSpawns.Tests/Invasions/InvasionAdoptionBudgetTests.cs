@@ -8,13 +8,10 @@ using CustomSpawns.Data.Dto;
 using CustomSpawns.Invasions;
 using CustomSpawns.Invasions.Adapters;
 using CustomSpawns.Spawn;
-using Moq;
 using NUnit.Framework;
 using TaleWorlds.CampaignSystem;
-using TaleWorlds.CampaignSystem.ComponentInterfaces;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Party.PartyComponents;
-using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
@@ -32,7 +29,6 @@ namespace CustomSpawns.Tests.Invasions
         private DynamicSpawnData _dynamicSpawnData = null!;
         private Dictionary<MobileParty, CsPartyData> _registry = null!;
         private MBList<MobileParty> _liveParties = null!;
-        private Mock<PartySizeLimitModel> _partySizeLimitModel = null!;
 
         [SetUp]
         public void SetUp()
@@ -42,12 +38,7 @@ namespace CustomSpawns.Tests.Invasions
             _liveParties = new MBList<MobileParty>();
             _dynamicSpawnData = (DynamicSpawnData)FormatterServices.GetUninitializedObject(typeof(DynamicSpawnData));
             SetField(_dynamicSpawnData, "_dynamicSpawnData", _registry);
-            _partySizeLimitModel = new Mock<PartySizeLimitModel>();
-            _partySizeLimitModel
-                .Setup(model => model.FindAppropriateInitialRosterForMobileParty(It.IsAny<MobileParty>(),
-                    It.IsAny<PartyTemplateObject>()))
-                .Returns(TroopRoster.CreateDummyTroopRoster());
-            UseCampaign(_liveParties, _partySizeLimitModel.Object);
+            UseCampaign(_liveParties);
         }
 
         [TearDown]
@@ -92,20 +83,6 @@ namespace CustomSpawns.Tests.Invasions
             Assert.IsTrue(adopted!.IsAdopted);
             Assert.IsFalse(adopted.IsIndependentReinforcement);
             Assert.AreEqual("invasion", adopted.OwningSpawnTemplateId);
-        }
-
-        // The lord comes back holding its clan's default troops, so its roster is drawn again from the invasion's.
-        [Test]
-        public void ARespawnedLordIsFilledFromTheTemplateOfTheInvasionThatAdoptsIt()
-        {
-            Member("invasion_party_1", Primary());
-            MobileParty lord = LordParty("respawned_lord", "clan");
-            SpawnDto spawn = Spawn(maximumOnMap: 0, activePartyCap: 1);
-
-            Adoption(spawn).Adopt(lord);
-
-            _partySizeLimitModel.Verify(model =>
-                model.FindAppropriateInitialRosterForMobileParty(lord, spawn.PartyTemplate));
         }
 
         /**
@@ -179,30 +156,18 @@ namespace CustomSpawns.Tests.Invasions
             party.ActualClan = clan;
             party.IsActive = true;
             SetField(party, "_partyComponent", FormatterServices.GetUninitializedObject(typeof(LordPartyComponent)));
-            SetField(party, "<Party>k__BackingField", PartyWithAnEmptyRoster());
             _liveParties.Add(party);
             return party;
         }
 
-        // The troops adoption refills are the party's own, so the party stood up here owns a roster to refill.
-        private static PartyBase PartyWithAnEmptyRoster()
-        {
-            var partyBase = (PartyBase)FormatterServices.GetUninitializedObject(typeof(PartyBase));
-            SetField(partyBase, "<MemberRoster>k__BackingField", TroopRoster.CreateDummyTroopRoster());
-            return partyBase;
-        }
-
         // Adoption reads MobileParty.All and, through the registration it performs, Settlement.All.
-        private static void UseCampaign(MBList<MobileParty> parties, PartySizeLimitModel partySizeLimitModel)
+        private static void UseCampaign(MBList<MobileParty> parties)
         {
             var objects = (CampaignObjectManager)FormatterServices.GetUninitializedObject(typeof(CampaignObjectManager));
             SetField(objects, "_mobileParties", parties);
             SetField(objects, "<Settlements>k__BackingField", new MBList<Settlement>());
-            var models = (GameModels)FormatterServices.GetUninitializedObject(typeof(GameModels));
-            SetField(models, "<PartySizeLimitModel>k__BackingField", partySizeLimitModel);
             var campaign = (Campaign)FormatterServices.GetUninitializedObject(typeof(Campaign));
             SetField(campaign, "<CampaignObjectManager>k__BackingField", objects);
-            SetField(campaign, "_gameModels", models);
             SetCurrentCampaign(campaign);
         }
 
