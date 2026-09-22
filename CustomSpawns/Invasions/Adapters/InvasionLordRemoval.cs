@@ -14,8 +14,12 @@ namespace CustomSpawns.Invasions.Adapters
     {
         internal static void RemoveDefeated(InvasionState invasionState, Hero hero)
         {
-            if (!IsRemovableInvasionLord(invasionState, hero.Clan?.StringId, hero == Hero.MainHero,
-                    hero.Clan == Clan.PlayerClan))
+            if (!IsRemovableInvasionLord(invasionState, hero.Clan?.StringId,
+                    isMainHero: hero == Hero.MainHero,
+                    belongsToPlayerClan: hero.Clan == Clan.PlayerClan,
+                    isChild: hero.IsChild,
+                    isAlive: hero.IsAlive,
+                    isLord: hero.IsLord))
             {
                 return;
             }
@@ -32,10 +36,15 @@ namespace CustomSpawns.Invasions.Adapters
 
         /**
          * Only a hero of a clan that is still fighting a live invasion is ours to remove, and the player
-         * and its clan are never ours at all.
+         * and its clan are never ours at all. An invasion may be configured to use an existing clan, and a
+         * retaken town takes prisoner every clan hero residing in it, so the clan's spouses, children and
+         * quest heroes reach us as readily as its lords do. The living adult lord test is vanilla's own,
+         * the one it uses to decide which clan hero can succeed a dead leader: an occupation alone does not
+         * settle it, because a lord's child carries the lord occupation from birth.
          */
         internal static bool IsRemovableInvasionLord(InvasionState invasionState, string? clanId, bool isMainHero,
-            bool belongsToPlayerClan) =>
-            !isMainHero && !belongsToPlayerClan && invasionState.FindFightingGroups(clanId).Any();
+            bool belongsToPlayerClan, bool isChild, bool isAlive, bool isLord) =>
+            !isMainHero && !belongsToPlayerClan && !isChild && isAlive && isLord &&
+            invasionState.FindFightingGroups(clanId).Any();
     }
 }

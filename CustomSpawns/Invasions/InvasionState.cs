@@ -34,7 +34,7 @@ namespace CustomSpawns.Invasions
         public InvasionFoothold? FindFoothold(string settlementId) => FootholdIndex.TryGetValue(settlementId, out var foothold) ? foothold : null;
         public InvasionCapture? FindCapture(long id) => CaptureIndex.TryGetValue(id, out var capture) ? capture : null;
 
-        // Vanilla respawns a defeated invasion lord under a party name no recognition path of ours matches:
+        // Vanilla rebuilds a living invasion party under a party name no recognition path of ours matches:
         // the live group that clan still fights for is the one that has to take the party back. It takes back
         // what it lost and no more, so a group already fielding its configured budget adopts nothing; saved
         // membership can still name parties the engine has dropped, so the budget is read against a live count.

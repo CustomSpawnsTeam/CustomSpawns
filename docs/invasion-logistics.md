@@ -60,6 +60,8 @@ A due slot blocked by the cap, unavailable port/configuration/template, or spawn
 
 A lord of a clan that is still fighting a live invasion is removed from the campaign the moment it is captured or becomes a fugitive, instead of waiting without a party until its clan's next daily tick hands it a fresh one. Capture, escape and ransom therefore all end the same way, and a ransom needs no handling of its own because the lord is already gone by the time one could be offered. The removal is `KillCharacterAction.ApplyByRemove`: the lord simply disappears, and no relation loss or honor penalty is charged to whoever beat it. `Hero.MainHero`, any hero of the player clan, and any hero whose clan is not fighting a live invasion are never touched.
 
+Only a living adult lord is removed. An invasion may be configured against an existing clan rather than a spawned one, and retaking a town takes prisoner every hero of the owning clan residing in it, so the clan's spouses, children and quest heroes arrive at the same event a defeated lord does. The test is vanilla's own — the one it uses to pick a successor for a dead clan leader — because a lord's child carries the lord occupation from birth and an occupation alone would not tell the two apart.
+
 Succession is the game's own. While another adult lord of the clan is alive, one is promoted and the clan keeps invading, so a clan of three lords survives its first two defeats; the third leaves no successor and the clan is dissolved, which is the invasion ending. Removing a lord also frees the slot its party held in the adoption budget.
 
 ## Losing the foothold

@@ -19,7 +19,7 @@ namespace CustomSpawns.Tests.Invasions
         [Test]
         public void ALordOfAClanFightingAnInvasionIsRemoved()
         {
-            Assert.True(InvasionLordRemoval.IsRemovableInvasionLord(_state, "clan", false, false));
+            Assert.True(IsRemovable());
         }
 
         [Test]
@@ -27,31 +27,49 @@ namespace CustomSpawns.Tests.Invasions
         {
             _group.AddClan("overflow-clan");
 
-            Assert.True(InvasionLordRemoval.IsRemovableInvasionLord(_state, "overflow-clan", false, false));
+            Assert.True(IsRemovable(clanId: "overflow-clan"));
         }
 
         [Test]
         public void ThePlayerIsNeverRemoved()
         {
-            Assert.False(InvasionLordRemoval.IsRemovableInvasionLord(_state, "clan", true, true));
+            Assert.False(IsRemovable(isMainHero: true));
         }
 
         [Test]
         public void APlayerClanHeroIsNeverRemoved()
         {
-            Assert.False(InvasionLordRemoval.IsRemovableInvasionLord(_state, "clan", false, true));
+            Assert.False(IsRemovable(belongsToPlayerClan: true));
+        }
+
+        [Test]
+        public void AChildOfAnInvasionClanIsNeverRemoved()
+        {
+            Assert.False(IsRemovable(isChild: true));
+        }
+
+        [Test]
+        public void AHeroOfAnInvasionClanThatIsNoLordIsNeverRemoved()
+        {
+            Assert.False(IsRemovable(isLord: false));
+        }
+
+        [Test]
+        public void AnAlreadyDeadHeroIsNotRemovedAgain()
+        {
+            Assert.False(IsRemovable(isAlive: false));
         }
 
         [Test]
         public void ALordOfAClanThatFightsNoInvasionIsNotRemoved()
         {
-            Assert.False(InvasionLordRemoval.IsRemovableInvasionLord(_state, "other-clan", false, false));
+            Assert.False(IsRemovable(clanId: "other-clan"));
         }
 
         [Test]
         public void AClanlessHeroIsNotRemoved()
         {
-            Assert.False(InvasionLordRemoval.IsRemovableInvasionLord(_state, null, false, false));
+            Assert.False(IsRemovable(clanId: null));
         }
 
         [Test]
@@ -59,7 +77,7 @@ namespace CustomSpawns.Tests.Invasions
         {
             _group.IsSuspended = true;
 
-            Assert.False(InvasionLordRemoval.IsRemovableInvasionLord(_state, "clan", false, false));
+            Assert.False(IsRemovable());
         }
 
         [Test]
@@ -68,7 +86,20 @@ namespace CustomSpawns.Tests.Invasions
             _state.RemoveMember("lord-party");
 
             Assert.True(_state.IsGroupSpent(_group));
-            Assert.False(InvasionLordRemoval.IsRemovableInvasionLord(_state, "clan", false, false));
+            Assert.False(IsRemovable());
         }
+
+        /**
+         * A living adult lord of a clan fighting a live invasion, so that every test states the one fact
+         * that makes it the case it is named for and no test can pass on a second one.
+         */
+        private bool IsRemovable(string? clanId = "clan", bool isMainHero = false, bool belongsToPlayerClan = false,
+            bool isChild = false, bool isAlive = true, bool isLord = true) =>
+            InvasionLordRemoval.IsRemovableInvasionLord(_state, clanId,
+                isMainHero: isMainHero,
+                belongsToPlayerClan: belongsToPlayerClan,
+                isChild: isChild,
+                isAlive: isAlive,
+                isLord: isLord);
     }
 }

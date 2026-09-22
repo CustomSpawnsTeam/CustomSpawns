@@ -87,7 +87,7 @@ namespace CustomSpawns.Invasions.Adapters
         }
 
         /**
-         * A budget refusal leaves a respawned lord outside its invasion for good, and nothing else on the
+         * A budget refusal leaves a rebuilt party outside its invasion for good, and nothing else on the
          * map says so, so it is reported rather than left to be inferred from a lord that stopped invading.
          */
         private void ReportAdoptionRefusal(MobileParty party, CsPartyData? registered,
@@ -107,8 +107,8 @@ namespace CustomSpawns.Invasions.Adapters
 
         /**
          * A party we already know keeps the identity it was registered with, and only a lord party can
-         * be a respawned invasion lord: the garrisons, caravans and militias of the same clan are not
-         * ours to adopt.
+         * be an invasion party the game rebuilt: the garrisons, caravans and militias of the same clan
+         * are not ours to adopt.
          */
         internal static string? FindAdoptingTemplate(MobileParty party, CsPartyData? registered,
             InvasionState invasionState, Func<InvasionGroupState, int> countLiveMembers,

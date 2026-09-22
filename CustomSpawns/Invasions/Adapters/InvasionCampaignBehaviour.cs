@@ -135,7 +135,8 @@ namespace CustomSpawns.Invasions.Adapters
         // is built, long before the first campaign tick, and adoption only reads state SyncData restores.
         private void OnMobilePartyCreated(MobileParty party) => _invasionMembership.Adopt(party);
 
-        // The two ways an invasion lord survives losing its party, and the two it would come back from.
+        // Capture and flight are the two ways an invasion lord survives losing its party, and so the two
+        // it would otherwise come back from.
         private void OnHeroPrisonerTaken(PartyBase capturer, Hero prisoner) => RemoveDefeatedLord(prisoner);
 
         private void OnCharacterBecameFugitive(Hero hero, bool showNotification) => RemoveDefeatedLord(hero);
