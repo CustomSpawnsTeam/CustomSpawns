@@ -30,6 +30,7 @@ namespace CustomSpawns.Invasions.Adapters
         private InvasionSieges _invasionSieges;
         private InvasionMembership _invasionMembership;
         private bool _initialized;
+        private Hero? _lordOfRemovedInvasionParty;
         public InvasionState State { get; private set; } = new();
 
         internal InvasionCampaignBehaviour(SpawnDao spawns, DynamicSpawnData parties, SpawnGroupService spawnGroups,
@@ -129,14 +130,29 @@ namespace CustomSpawns.Invasions.Adapters
 
         private void RegisterParty(MobileParty party, CsPartyData data) => _invasionMembership.Register(party, data);
 
-        private void RemoveParty(MobileParty party) => _invasionMembership.Remove(party);
+        /**
+         * Removing a party tells the ledger first and the party's lord only afterwards: vanilla destroys
+         * a fleeing lord's party before it announces the flight, and that destroy can leave the group it
+         * emptied spent or reconciled away. Whether the lord was invading is therefore answered here,
+         * while its party is still a member of a group that is still fighting, and kept for the capture
+         * or flight the same destroy is about to dispatch. The next removal answers it afresh.
+         */
+        private void RemoveParty(MobileParty party)
+        {
+            Hero? leader = party.LeaderHero;
+            _lordOfRemovedInvasionParty = leader != null && State.FindFightingGroups(leader.Clan?.StringId)
+                .Any(group => group.MemberPartyIds.Contains(party.StringId))
+                ? leader
+                : null;
+
+            _invasionMembership.Remove(party);
+        }
 
         // Deliberately does not Initialize(): party creation fires for the whole map while a new game
         // is built, long before the first campaign tick, and adoption only reads state SyncData restores.
         private void OnMobilePartyCreated(MobileParty party) => _invasionMembership.Adopt(party);
 
-        // Capture and flight are the two ways an invasion lord survives losing its party, and so the two
-        // it would otherwise come back from.
+        // Capture and flight are the two ways an invasion lord outlives its party.
         private void OnHeroPrisonerTaken(PartyBase capturer, Hero prisoner) => RemoveDefeatedLord(prisoner);
 
         private void OnCharacterBecameFugitive(Hero hero, bool showNotification) => RemoveDefeatedLord(hero);
@@ -144,7 +160,8 @@ namespace CustomSpawns.Invasions.Adapters
         private void RemoveDefeatedLord(Hero hero)
         {
             Initialize();
-            InvasionLordRemoval.RemoveDefeated(State, hero);
+            InvasionLordRemoval.RemoveDefeated(State, hero,
+                lostItsInvasionParty: hero == _lordOfRemovedInvasionParty);
         }
 
         private void OnHourlyTick()

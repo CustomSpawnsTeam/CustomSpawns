@@ -22,7 +22,7 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
-        public void ARespawnedLordOfAnInvadingClanIsAdoptedUnderItsGroupTemplate()
+        public void ARebuiltLordPartyOfAnInvadingClanIsAdoptedUnderItsGroupTemplate()
         {
             Assert.AreEqual("invasion", AdoptingTemplate(LordParty("clan")));
         }

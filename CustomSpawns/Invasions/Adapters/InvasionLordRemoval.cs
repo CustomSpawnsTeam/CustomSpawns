@@ -12,14 +12,15 @@ namespace CustomSpawns.Invasions.Adapters
      */
     internal static class InvasionLordRemoval
     {
-        internal static void RemoveDefeated(InvasionState invasionState, Hero hero)
+        internal static void RemoveDefeated(InvasionState invasionState, Hero hero, bool lostItsInvasionParty)
         {
             if (!IsRemovableInvasionLord(invasionState, hero.Clan?.StringId,
                     isMainHero: hero == Hero.MainHero,
                     belongsToPlayerClan: hero.Clan == Clan.PlayerClan,
                     isChild: hero.IsChild,
                     isAlive: hero.IsAlive,
-                    isLord: hero.IsLord))
+                    isLord: hero.IsLord,
+                    lostItsInvasionParty: lostItsInvasionParty))
             {
                 return;
             }
@@ -41,10 +42,16 @@ namespace CustomSpawns.Invasions.Adapters
          * quest heroes reach us as readily as its lords do. The living adult lord test is vanilla's own,
          * the one it uses to decide which clan hero can succeed a dead leader: an occupation alone does not
          * settle it, because a lord's child carries the lord occupation from birth.
+         *
+         * A lord that has just lost its invasion party is asked about no further: flight destroys the
+         * party before it says the lord fled, and destroying the last party of a group spends it or
+         * deletes it outright, so by the time the answer is wanted the ledger no longer holds it. The
+         * answer taken while the party was still a member stands in for the one the ledger can no
+         * longer give, and it is the same answer: the group that party belonged to was fighting.
          */
         internal static bool IsRemovableInvasionLord(InvasionState invasionState, string? clanId, bool isMainHero,
-            bool belongsToPlayerClan, bool isChild, bool isAlive, bool isLord) =>
+            bool belongsToPlayerClan, bool isChild, bool isAlive, bool isLord, bool lostItsInvasionParty) =>
             !isMainHero && !belongsToPlayerClan && !isChild && isAlive && isLord &&
-            invasionState.FindFightingGroups(clanId).Any();
+            (lostItsInvasionParty || invasionState.FindFightingGroups(clanId).Any());
     }
 }

@@ -90,16 +90,36 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         /**
+         * The lord of the party whose loss spent the group: destroying the last party of an invasion is
+         * what announces the defeat of its lord, so the ledger is already empty when the answer is wanted.
+         */
+        [Test]
+        public void ALordThatJustLostTheLastPartyOfItsInvasionIsStillRemoved()
+        {
+            _state.RemoveMember("lord-party");
+
+            Assert.True(_state.IsGroupSpent(_group));
+            Assert.True(IsRemovable(lostItsInvasionParty: true));
+        }
+
+        [Test]
+        public void ThePlayerIsNeverRemovedEvenAfterLosingAnInvasionParty()
+        {
+            Assert.False(IsRemovable(isMainHero: true, lostItsInvasionParty: true));
+        }
+
+        /**
          * A living adult lord of a clan fighting a live invasion, so that every test states the one fact
          * that makes it the case it is named for and no test can pass on a second one.
          */
         private bool IsRemovable(string? clanId = "clan", bool isMainHero = false, bool belongsToPlayerClan = false,
-            bool isChild = false, bool isAlive = true, bool isLord = true) =>
+            bool isChild = false, bool isAlive = true, bool isLord = true, bool lostItsInvasionParty = false) =>
             InvasionLordRemoval.IsRemovableInvasionLord(_state, clanId,
                 isMainHero: isMainHero,
                 belongsToPlayerClan: belongsToPlayerClan,
                 isChild: isChild,
                 isAlive: isAlive,
-                isLord: isLord);
+                isLord: isLord,
+                lostItsInvasionParty: lostItsInvasionParty);
     }
 }

@@ -71,10 +71,10 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
-        public void ARespawnedLordIsRegisteredAsAdoptedAndNotAsAnIndependentReinforcement()
+        public void ARebuiltLordPartyIsRegisteredAsAdoptedAndNotAsAnIndependentReinforcement()
         {
             Member("invasion_party_1", Primary());
-            MobileParty lord = LordParty("respawned_lord", "clan");
+            MobileParty lord = LordParty("rebuilt_lord", "clan");
 
             Adoption(Spawn(maximumOnMap: 0, activePartyCap: 1)).Adopt(lord);
 
@@ -98,7 +98,7 @@ namespace CustomSpawns.Tests.Invasions
                 Member("escort_" + i, Escort());
             }
 
-            MobileParty lord = LordParty("respawned_lord", "clan");
+            MobileParty lord = LordParty("rebuilt_lord", "clan");
 
             Adoption(Spawn(maximumOnMap: 1, activePartyCap: 0)).Adopt(lord);
 
@@ -110,7 +110,7 @@ namespace CustomSpawns.Tests.Invasions
         {
             Member("invasion_party_1", Primary());
             Member("invasion_party_2", Reinforcement());
-            MobileParty lord = LordParty("respawned_lord", "clan");
+            MobileParty lord = LordParty("rebuilt_lord", "clan");
 
             Adoption(Spawn(maximumOnMap: 0, activePartyCap: 1)).Adopt(lord);
 

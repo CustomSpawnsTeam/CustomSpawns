@@ -49,8 +49,8 @@ namespace CustomSpawns.Spawn.PartySize
         }
 
         /**
-         * A party this mod has taken ownership of is one of ours whatever it is called: an invasion
-         * lord respawned by the game comes back under a party name no spawn template matches.
+         * A party this mod has taken ownership of is one of ours whatever it is called: a lord party the
+         * game fields for an invasion clan arrives under a party name no spawn template matches.
          */
         internal static bool IsCustomSpawnsParty(MobileParty mobileParty)
         {

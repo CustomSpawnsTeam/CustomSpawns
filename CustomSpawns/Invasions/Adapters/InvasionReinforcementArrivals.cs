@@ -110,8 +110,10 @@ namespace CustomSpawns.Invasions.Adapters
 
         /**
          * Vanilla caps a clan's war parties by tier, so an invasion that outgrows its clans expands into
-         * another one instead of into a single oversized clan: its kingdom then distributes fiefs and
-         * respawns lords across all of them the way it does for any kingdom of its own.
+         * another one instead of into a single oversized clan: its kingdom then distributes fiefs across
+         * all of them, and fields a party for each lord that has none, the way it does for any kingdom of
+         * its own. A lord beaten in the field is no longer among them: it is removed rather than fielded
+         * again.
          */
         private static Clan? FoundClan(InvasionGroupState group, Settlement landing)
         {

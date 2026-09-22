@@ -327,7 +327,7 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
-        public void OnlyALiveGroupTakesBackARespawnedLordOfItsClans()
+        public void OnlyALiveGroupTakesBackARebuiltLordPartyOfItsClans()
         {
             _group.AddClan("overflow-clan");
             Assert.AreSame(_group, Adopting("clan"));
@@ -344,7 +344,7 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
-        public void AGroupHoldingATownTakesBackARespawnedLordAfterLosingEveryParty()
+        public void AGroupHoldingATownTakesBackARebuiltLordPartyAfterLosingEveryParty()
         {
             Conquer();
             _state.RemoveMember("capturer");

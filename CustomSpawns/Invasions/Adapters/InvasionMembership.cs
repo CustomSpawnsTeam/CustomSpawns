@@ -60,12 +60,15 @@ namespace CustomSpawns.Invasions.Adapters
         }
 
         /**
-         * A living invasion party changes component when the invasion becomes a kingdom and loses its only
-         * coastal town, and vanilla rebuilds it as an ordinary lord party under a StringId no recognition
-         * path of ours matches, so it carries on without its membership, its food eligibility, its
-         * steering and its spawn-sized party limit. Registering the new party under its group's spawn
-         * template gives it back the party data all four are read from. A defeated lord is not a case
-         * here: it is removed rather than left to come back.
+         * Two paths hand an invasion clan an ordinary lord party. A spawned party's leader is its owner
+         * and not a member of its roster, so vanilla reads that leader as party-less and fields one for
+         * it whenever the clan sits under its tier party limit -- the common case, and the one that keeps
+         * happening all campaign. The other is a living invasion party changing component, as one does
+         * when the invasion becomes a kingdom and loses its only coastal town. Either way the party
+         * arrives under a StringId no recognition path of ours matches, so it carries on without its
+         * membership, its food eligibility, its steering and its spawn-sized party limit. Registering it
+         * under its group's spawn template gives it back the party data all four are read from. A
+         * defeated lord is not a case here: it is removed rather than left to come back.
          */
         internal void Adopt(MobileParty party) =>
             Adopt(party, CountLiveCountedMembers, BudgetOf);
