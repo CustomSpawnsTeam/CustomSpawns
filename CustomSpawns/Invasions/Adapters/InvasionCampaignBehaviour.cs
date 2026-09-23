@@ -135,7 +135,8 @@ namespace CustomSpawns.Invasions.Adapters
          * a fleeing lord's party before it announces the flight, and that destroy can leave the group it
          * emptied spent or reconciled away. Whether the lord was invading is therefore answered here,
          * while its party is still a member of a group that is still fighting, and kept for the capture
-         * or flight the same destroy is about to dispatch. The next removal decision spends it.
+         * or flight the same destroy is about to dispatch. The next removal decision spends it, and the
+         * next hourly tick discards it if no such decision came.
          */
         private void RemoveParty(MobileParty party)
         {

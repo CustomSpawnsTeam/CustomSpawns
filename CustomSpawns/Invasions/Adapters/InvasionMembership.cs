@@ -65,13 +65,13 @@ namespace CustomSpawns.Invasions.Adapters
          * without ever entering a roster, so vanilla reads it as party-less and fields a party for it
          * whenever the clan sits under its tier party limit -- the common case, and the one that keeps
          * happening all campaign. A generated besieging lord is not that hero: it both owns and leads
-         * the party it was made for, and is enrolled in its roster. The
-         * other path is a living invasion party changing component, as one does when the invasion
-         * becomes a kingdom and loses its only coastal town. Either way the party arrives under a
-         * StringId no recognition path of ours matches, so it carries on without its membership, its
-         * food eligibility, its steering and its spawn-sized party limit. Registering it under its
-         * group's spawn template gives it back the party data all four are read from. A defeated lord
-         * is not a case here: it is removed rather than left to come back.
+         * the party it was made for, and is enrolled in its roster. The other path is a living invasion
+         * party changing component, as one does when the invasion becomes a kingdom and loses its only
+         * coastal town. Either way the party arrives under a StringId no recognition path of ours
+         * matches, so it carries on without its membership, its food eligibility, its steering and its
+         * spawn-sized party limit. Registering it under its group's spawn template gives it back the
+         * party data all four are read from. A defeated lord is not a case here: it is removed rather
+         * than left to come back.
          */
         internal void Adopt(MobileParty party) =>
             Adopt(party, CountLiveCountedMembers, BudgetOf);
