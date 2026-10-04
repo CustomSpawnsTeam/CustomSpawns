@@ -7,21 +7,21 @@ namespace CustomSpawns.Invasions
     // Configured cadence and ceiling of an invasion's reinforcement stream.
     internal sealed class InvasionReinforcementSettings
     {
-        internal InvasionReinforcementSettings(double intervalInDays, int activePartyCap)
+        internal InvasionReinforcementSettings(double intervalInDays, int maxConcurrentParties)
         {
             IntervalInDays = intervalInDays;
-            ActivePartyCap = activePartyCap;
+            MaxConcurrentParties = maxConcurrentParties;
         }
 
         internal double IntervalInDays { get; }
-        internal int ActivePartyCap { get; }
+        internal int MaxConcurrentParties { get; }
     }
 
     internal enum InvasionReinforcementOutcome
     {
         // Nothing left to send with: no configuration, a retired spawn template, or no clan.
         Unavailable,
-        ActivePartyCapReached,
+        MaxConcurrentPartiesReached,
         NoLandingSite,
         Landing
     }
@@ -121,8 +121,8 @@ namespace CustomSpawns.Invasions
             InvasionReinforcementSettings? settings = _invasionReinforcementQuery.GetSettings(group);
             if (settings == null || group.IsSuspended)
                 return new InvasionReinforcementDraw(group, InvasionReinforcementOutcome.Unavailable, null, null);
-            if (_invasionReinforcementQuery.CountActiveReinforcements(group) >= settings.ActivePartyCap)
-                return new InvasionReinforcementDraw(group, InvasionReinforcementOutcome.ActivePartyCapReached, null, null);
+            if (_invasionReinforcementQuery.CountActiveReinforcements(group) >= settings.MaxConcurrentParties)
+                return new InvasionReinforcementDraw(group, InvasionReinforcementOutcome.MaxConcurrentPartiesReached, null, null);
 
             IReadOnlyList<string> landingSites = _invasionReinforcementQuery.GetLandingSites(group);
             // The arrival joins the first clan of the invasion that still has room for a war party.

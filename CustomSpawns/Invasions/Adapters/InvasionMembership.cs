@@ -154,7 +154,7 @@ namespace CustomSpawns.Invasions.Adapters
         internal static int PartyBudget(SpawnDto? spawn) =>
             spawn?.Invasion == null
                 ? 0
-                : spawn.MaximumConcurrentPrimaries + spawn.Invasion.ReinforcementActivePartyCap;
+                : spawn.MaximumConcurrentPrimaries + spawn.Invasion.ReinforcementMaxConcurrentParties;
 
         internal void RegisterLive()
         {

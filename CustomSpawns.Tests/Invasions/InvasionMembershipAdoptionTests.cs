@@ -63,8 +63,8 @@ namespace CustomSpawns.Tests.Invasions
         [Test]
         public void AnAdoptedLordDoesNotSpendTheInvasionsLandingBudget()
         {
-            Assert.False(InvasionReinforcementArrivals.CountsAgainstActivePartyCap(PartyOfTheGroup("Adopted"), _group));
-            Assert.True(InvasionReinforcementArrivals.CountsAgainstActivePartyCap(PartyOfTheGroup("Reinforcement"),
+            Assert.False(InvasionReinforcementArrivals.CountsAgainstMaxConcurrentParties(PartyOfTheGroup("Adopted"), _group));
+            Assert.True(InvasionReinforcementArrivals.CountsAgainstMaxConcurrentParties(PartyOfTheGroup("Reinforcement"),
                 _group));
         }
 

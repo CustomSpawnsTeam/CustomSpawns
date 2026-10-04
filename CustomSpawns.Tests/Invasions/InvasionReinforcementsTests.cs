@@ -77,7 +77,7 @@ namespace CustomSpawns.Tests.Invasions
 
             _campaign.ActiveReinforcements = 2;
             _campaign.Now = 17;
-            Assert.AreEqual(InvasionReinforcementOutcome.ActivePartyCapReached,
+            Assert.AreEqual(InvasionReinforcementOutcome.MaxConcurrentPartiesReached,
                 _reinforcements.DrawDue().Single().Outcome);
             Assert.AreEqual(24, _group.NextReinforcementDeadlineDays);
 

@@ -50,20 +50,20 @@ namespace CustomSpawns.Tests.Invasions
         [Test]
         public void TheBudgetIsThePrimariesTheSpawnerKeepsPlusTheLandingsTheInvasionMayHold()
         {
-            Assert.AreEqual(6, InvasionMembership.PartyBudget(Spawn(maximumOnMap: 2, activePartyCap: 3)));
+            Assert.AreEqual(6, InvasionMembership.PartyBudget(Spawn(maximumOnMap: 2, maxConcurrentParties: 3)));
         }
 
         // The spawner tests its count before incrementing it, so MaximumOnMap names one primary fewer than it keeps.
         [Test]
         public void TheBudgetAllowsThePrimaryTheSpawnerKeepsBeyondMaximumOnMap()
         {
-            Assert.AreEqual(2, InvasionMembership.PartyBudget(Spawn(maximumOnMap: 1, activePartyCap: 0)));
+            Assert.AreEqual(2, InvasionMembership.PartyBudget(Spawn(maximumOnMap: 1, maxConcurrentParties: 0)));
         }
 
         [Test]
         public void ASpawnThatInvadesForNothingBudgetsNothing()
         {
-            SpawnDto spawn = Spawn(maximumOnMap: 5, activePartyCap: 5);
+            SpawnDto spawn = Spawn(maximumOnMap: 5, maxConcurrentParties: 5);
             spawn.Invasion = null;
 
             Assert.AreEqual(0, InvasionMembership.PartyBudget(spawn));
@@ -76,7 +76,7 @@ namespace CustomSpawns.Tests.Invasions
             Member("invasion_party_1", Primary());
             MobileParty lord = LordParty("rebuilt_lord", "clan");
 
-            Adoption(Spawn(maximumOnMap: 0, activePartyCap: 1)).Adopt(lord);
+            Adoption(Spawn(maximumOnMap: 0, maxConcurrentParties: 1)).Adopt(lord);
 
             CsPartyData? adopted = _dynamicSpawnData.GetDynamicSpawnData(lord);
             Assert.NotNull(adopted);
@@ -100,7 +100,7 @@ namespace CustomSpawns.Tests.Invasions
 
             MobileParty lord = LordParty("rebuilt_lord", "clan");
 
-            Adoption(Spawn(maximumOnMap: 1, activePartyCap: 0)).Adopt(lord);
+            Adoption(Spawn(maximumOnMap: 1, maxConcurrentParties: 0)).Adopt(lord);
 
             Assert.IsTrue(_dynamicSpawnData.GetDynamicSpawnData(lord)?.IsAdopted);
         }
@@ -112,7 +112,7 @@ namespace CustomSpawns.Tests.Invasions
             Member("invasion_party_2", Reinforcement());
             MobileParty lord = LordParty("rebuilt_lord", "clan");
 
-            Adoption(Spawn(maximumOnMap: 0, activePartyCap: 1)).Adopt(lord);
+            Adoption(Spawn(maximumOnMap: 0, maxConcurrentParties: 1)).Adopt(lord);
 
             Assert.IsNull(_dynamicSpawnData.GetDynamicSpawnData(lord));
         }
@@ -124,7 +124,7 @@ namespace CustomSpawns.Tests.Invasions
             return new InvasionMembership(_state, spawnDao, _dynamicSpawnData, null!);
         }
 
-        private static SpawnDto Spawn(int maximumOnMap, int activePartyCap)
+        private static SpawnDto Spawn(int maximumOnMap, int maxConcurrentParties)
         {
             var template = (PartyTemplateObject)FormatterServices.GetUninitializedObject(typeof(PartyTemplateObject));
             template.StringId = "invasion";
@@ -133,7 +133,7 @@ namespace CustomSpawns.Tests.Invasions
                 PartyTemplate = template,
                 MaximumOnMap = maximumOnMap,
                 SpawnAlongWith = new ReadOnlyCollection<AccompanyingParty>(new List<AccompanyingParty>()),
-                Invasion = new InvasionData(false, 0f, 0f, "reinforcement", 1f, activePartyCap)
+                Invasion = new InvasionData(false, 0f, 0f, "reinforcement", 1f, maxConcurrentParties)
             };
         }
 

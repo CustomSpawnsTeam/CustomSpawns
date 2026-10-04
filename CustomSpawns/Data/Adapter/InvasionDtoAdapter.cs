@@ -11,7 +11,7 @@ namespace CustomSpawns.Data.Adapter
             return new InvasionData(config.RequiresFirstCoastalConquest, config.Supplies.FoodStockFloor,
                 config.Supplies.DailyFoodBonus,
                 config.Reinforcements.PartyTemplateId!, config.Reinforcements.IntervalInDays,
-                config.Reinforcements.ActivePartyCap);
+                config.Reinforcements.MaxConcurrentParties);
         }
     }
 }

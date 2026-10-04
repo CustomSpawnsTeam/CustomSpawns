@@ -32,8 +32,8 @@ namespace CustomSpawns.Data.Model
         [XmlElement("IntervalInDays")]
         public float IntervalInDays { get; set; } = 7f;
 
-        [XmlElement("ActivePartyCap")]
-        public int ActivePartyCap { get; set; } = 1;
+        [XmlElement("MaxConcurrentParties")]
+        public int MaxConcurrentParties { get; set; } = 1;
     }
 
     internal static class InvasionConfigValidator
@@ -59,9 +59,9 @@ namespace CustomSpawns.Data.Model
             {
                 throw new ArgumentException("Invasion Reinforcements IntervalInDays must be finite and greater than zero.");
             }
-            if (config.Reinforcements.ActivePartyCap <= 0)
+            if (config.Reinforcements.MaxConcurrentParties <= 0)
             {
-                throw new ArgumentException("Invasion Reinforcements ActivePartyCap must be greater than zero.");
+                throw new ArgumentException("Invasion Reinforcements MaxConcurrentParties must be greater than zero.");
             }
         }
 

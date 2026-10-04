@@ -12,7 +12,7 @@ An optional, element-only `Invasion` block in a spawn definition enables invasio
   <Reinforcements>
     <PartyTemplateId>cs_makko_invasion_reinforcement</PartyTemplateId>
     <IntervalInDays>7</IntervalInDays>
-    <ActivePartyCap>3</ActivePartyCap>
+    <MaxConcurrentParties>3</MaxConcurrentParties>
   </Reinforcements>
 </Invasion>
 ```
@@ -28,7 +28,7 @@ These are initial sample balance values, not a guarantee of positive food, rebel
 | `Supplies/DailyFoodBonus` | Additive daily `Overseas supplies` food-model contribution; default 0. |
 | `Reinforcements/PartyTemplateId` | Required raw troop-template ID, without the `PartyTemplate.` prefix. |
 | `Reinforcements/IntervalInDays` | Positive interval for both the first and later arrivals; default 7. |
-| `Reinforcements/ActivePartyCap` | Positive cap on surviving registered reinforcements in this group; default 1. The sample explicitly uses 3. |
+| `Reinforcements/MaxConcurrentParties` | Positive cap on surviving registered reinforcements in this group; default 1. The sample explicitly uses 3. |
 
 All quantities must be finite and nonnegative. Runtime validation checks troop-template references, non-bandit ownership and an effective behaviour template able to besiege towns. Invalid opt-ins are diagnosed without breaking unrelated valid spawn definitions. Reinforcements inherit the original `PriorityPartyBehaviourTemplateId`; there is no second behaviour configuration.
 
@@ -52,7 +52,7 @@ The group's first arrival is due at its first coastal foothold plus the configur
 
 Two paths hand an invasion clan an ordinary lord party under a name no spawn template matches, so that it carries on outside its invasion. The common one runs all campaign: a spawned party is handed to its clan leader as owner, and unless a lord is generated to lead it that clan leader stays its owner without ever standing in a roster, so the game reads it as having no party and fields one for it whenever the clan sits under its tier party limit. A generated besieging lord is not that hero — it both owns and leads the party it was made for, and is enrolled in its roster. The other is a living invasion party changing component, as one does when the invasion becomes a kingdom and loses its only coastal town. Either party is adopted back into its clan's group: it is registered under that group's spawn template and carries the `"Adopted"` role across saves. That restores its membership, food eligibility, steering and spawn-sized party limit. Its roster is left as the game filled it: adoption restores the invasion identity the party lost, not the troops standing in it.
 
-Adoption is bounded by the group's budget -- `MaximumConcurrentPrimaries` plus `Reinforcements/ActivePartyCap` -- weighed against the group's live non-escort members, so a clan that keeps losing lords does not accumulate invasion parties without end. Escorts are outside that count, and an adopted lord spends no landing slot against the reinforcement cap. The bound is on adopting, not on how many parties are alive: the spawner keeps its own separate count.
+Adoption is bounded by the group's budget -- `MaximumConcurrentPrimaries` plus `Reinforcements/MaxConcurrentParties` -- weighed against the group's live non-escort members, so a clan that keeps losing lords does not accumulate invasion parties without end. Escorts are outside that count, and an adopted lord spends no landing slot against the reinforcement cap. The bound is on adopting, not on how many parties are alive: the spawner keeps its own separate count.
 
 A due slot blocked by the cap, unavailable port/configuration/template, or spawn failure is skipped until the next interval. There is no backlog or catch-up loop; advancing multiple weeks produces at most one current arrival. Port ownership is rechecked at the spawn call. Membership and deadlines persist, while active counts are reconciled from surviving registered parties. Losing the original army does not stop an eligible surviving foothold; a group disappears only when it has neither a foothold nor surviving members and the kingdom it leaves behind has been retired.
 

@@ -33,7 +33,7 @@ private InvasionData? GetConfiguration(InvasionGroupState group) =>
     _spawns.FindByPartyTemplateId(group.SpawnTemplateId)?.Invasion;
 
 private static string SkipReason(InvasionReinforcementOutcome outcome) =>
-    outcome == InvasionReinforcementOutcome.ActivePartyCapReached ? "active_cap" :
+    outcome == InvasionReinforcementOutcome.MaxConcurrentPartiesReached ? "max_concurrent" :
     outcome == InvasionReinforcementOutcome.NoLandingSite ? "no_held_port" : "configuration_or_clan";
 ```
 

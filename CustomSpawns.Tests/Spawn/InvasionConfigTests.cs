@@ -32,7 +32,7 @@ namespace CustomSpawns.Tests.Spawn
             const string invasion = "<Invasion><Supplies><FoodStockFloor>30</FoodStockFloor><DailyFoodBonus>5</DailyFoodBonus>" +
                                     "</Supplies>" +
                                     "<Reinforcements><PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId>" +
-                                    "<ActivePartyCap>2</ActivePartyCap></Reinforcements></Invasion>";
+                                    "<MaxConcurrentParties>2</MaxConcurrentParties></Reinforcements></Invasion>";
             Spawns spawns = Read("<RegularBanditDailySpawnData party_template=\"PartyTemplate.invasion\">" + invasion +
                                  "</RegularBanditDailySpawnData>", out List<System.Exception> errors);
 
@@ -46,7 +46,7 @@ namespace CustomSpawns.Tests.Spawn
                 Assert.That(data.DailyFoodBonus, Is.EqualTo(5f));
                 Assert.That(data.ReinforcementPartyTemplateId, Is.EqualTo("PartyTemplate.reinforcements"));
                 Assert.That(data.ReinforcementIntervalInDays, Is.EqualTo(7f));
-                Assert.That(data.ReinforcementActivePartyCap, Is.EqualTo(2));
+                Assert.That(data.ReinforcementMaxConcurrentParties, Is.EqualTo(2));
             });
         }
 
