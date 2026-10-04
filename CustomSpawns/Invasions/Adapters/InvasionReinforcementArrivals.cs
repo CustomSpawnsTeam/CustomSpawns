@@ -210,19 +210,24 @@ namespace CustomSpawns.Invasions.Adapters
                 string.Equals(data.ReinforcementRuleId, ruleId, StringComparison.Ordinal));
 
         /**
-         * Vanilla's own measure of what a faction fields, narrowed to the clans of this invasion: the
-         * parties on the map plus the garrisons, which is where an occupation puts the escort it arrived
-         * with. Summed here rather than read off the cached faction total, so that a party landed a moment
-         * ago already counts against the next rule of the same day.
+         * Vanilla's own measure of what a faction fields -- the parties on the map plus the garrisons,
+         * which is where an occupation puts the escort it arrived with -- narrowed to the clans of this
+         * invasion. The measure is vanilla's to define, so it is read off the clan rather than summed
+         * again here. It is a cached total, and refreshed first the way vanilla refreshes it before
+         * reading it, so that a party landed a moment ago already counts against the next rule of the
+         * same day.
          */
         InvasionStrengthBudget IInvasionReinforcementQuery.GetStrengthBudget(InvasionGroupState group)
         {
             InvasionData? configuration = GetConfiguration(group);
             List<Clan> clans = Clan.All.Where(clan => group.HoldsClan(clan.StringId)).ToList();
+            double currentStrength = 0;
 
-            double currentStrength = clans.Sum(clan =>
-                clan.WarPartyComponents.Sum(warParty => (double)warParty.MobileParty.Party.EstimatedStrength) +
-                clan.Fiefs.Sum(fief => fief.GarrisonParty == null ? 0 : (double)fief.GarrisonParty.Party.EstimatedStrength));
+            foreach (Clan clan in clans)
+            {
+                clan.UpdateCurrentStrength();
+                currentStrength += clan.CurrentTotalStrength;
+            }
 
             return new InvasionStrengthBudget(configuration?.MaxFactionStrength ?? 0,
                 configuration?.StrengthPerTownHeld ?? 0, clans.Sum(clan => clan.Fiefs.Count(fief => fief.IsTown)),
