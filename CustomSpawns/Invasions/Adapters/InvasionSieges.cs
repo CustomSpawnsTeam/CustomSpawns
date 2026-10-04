@@ -93,11 +93,11 @@ namespace CustomSpawns.Invasions.Adapters
 
             foreach (MobileParty party in contributions.Keys)
             {
-                var group = _invasionState.FindMemberGroup(party.StringId);
+                var invasion = _invasionState.FindInvasionOfParty(party.StringId);
 
-                if (group != null && group.HoldsClan(party.ActualClan?.StringId))
+                if (invasion != null && invasion.HoldsClan(party.ActualClan?.StringId))
                 {
-                    participants[party.StringId] = group.ClanId;
+                    participants[party.StringId] = invasion.ClanId;
                 }
             }
 
@@ -114,7 +114,7 @@ namespace CustomSpawns.Invasions.Adapters
 
             if (previousFoothold != null && _invasionState.FindFoothold(settlement.StringId) == null)
             {
-                Logger.Info("Invasion coastal foothold lost: group=" + previousFoothold.GroupId +
+                Logger.Info("Invasion coastal foothold lost: invasion=" + previousFoothold.InvasionClanId +
                             " town=" + settlement.StringId);
             }
 
@@ -130,7 +130,7 @@ namespace CustomSpawns.Invasions.Adapters
                 return null;
             }
 
-            var group = _invasionState.FindMemberGroup(party.StringId);
+            var invasion = _invasionState.FindInvasionOfParty(party.StringId);
             MapEvent? mapEvent = settlement.Party.MapEvent ?? party.MapEvent;
 
             if (!ReferenceEquals(mapEvent?.MapEventSettlement, settlement))
@@ -144,19 +144,19 @@ namespace CustomSpawns.Invasions.Adapters
                 settlement.StringId, capturer, oldOwner?.Clan?.StringId ?? "", newOwner?.Clan?.StringId ?? "",
                 settlement.OwnerClan?.StringId ?? "");
 
-            if (group == null || capture == null || !group.HoldsClan(party.ActualClan?.StringId))
+            if (invasion == null || capture == null || !invasion.HoldsClan(party.ActualClan?.StringId))
             {
                 return null;
             }
 
-            InvasionData? configuration = _spawnDao.FindByPartyTemplateId(group.SpawnTemplateId)?.Invasion;
+            InvasionData? configuration = _spawnDao.FindByPartyTemplateId(invasion.SpawnTemplateId)?.Invasion;
 
             if (configuration == null)
             {
                 return null;
             }
 
-            _invasionCaptureCorrelation.ObserveOwnership(capture.Id, group.ClanId, party.StringId,
+            _invasionCaptureCorrelation.ObserveOwnership(capture.Id, invasion.ClanId, party.StringId,
                 oldOwner?.Clan?.StringId ?? "", newOwner?.Clan?.StringId ?? "", true);
             return capture.Id;
         }

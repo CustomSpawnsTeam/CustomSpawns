@@ -12,8 +12,8 @@ namespace CustomSpawns.Tests.Invasions
 {
     public class InvasionSaveContractTests
     {
-        [TestCase(typeof(InvasionSaveData), 6)]
-        [TestCase(typeof(InvasionGroupSaveData), 7)]
+        [TestCase(typeof(InvasionStateSaveData), 6)]
+        [TestCase(typeof(InvasionSaveData), 7)]
         [TestCase(typeof(InvasionCaptureSaveData), 8)]
         [TestCase(typeof(InvasionFootholdSaveData), 9)]
         [TestCase(typeof(InvasionCaptureEvidenceSaveData), 10)]
@@ -35,7 +35,7 @@ namespace CustomSpawns.Tests.Invasions
         [Test]
         public void PureStateHasNoSaveAttributesOrEngineFields()
         {
-            foreach (Type type in new[] { typeof(InvasionState), typeof(InvasionGroupState), typeof(InvasionFoothold), typeof(InvasionCapture), typeof(InvasionReinforcementSchedule) })
+            foreach (Type type in new[] { typeof(InvasionState), typeof(Invasion), typeof(InvasionFoothold), typeof(InvasionCapture), typeof(InvasionReinforcementSchedule) })
             foreach (FieldInfo field in type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
             {
                 Assert.IsNull(field.GetCustomAttribute<SaveableFieldAttribute>(), type.Name + "." + field.Name);
@@ -43,8 +43,8 @@ namespace CustomSpawns.Tests.Invasions
             }
         }
 
+        [TestCase(typeof(InvasionStateSaveData))]
         [TestCase(typeof(InvasionSaveData))]
-        [TestCase(typeof(InvasionGroupSaveData))]
         [TestCase(typeof(InvasionCaptureSaveData))]
         [TestCase(typeof(InvasionFootholdSaveData))]
         [TestCase(typeof(InvasionCaptureEvidenceSaveData))]

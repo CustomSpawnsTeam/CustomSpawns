@@ -94,7 +94,7 @@ namespace CustomSpawns.Tests.Invasions
 
         /**
          * A dead primary frees its spawner slot but leaves its escorts on the map, so escorts accumulate
-         * past anything the configuration names. Counting them would put the group over budget for good.
+         * past anything the configuration names. Counting them would put the invasion over budget for good.
          */
         [Test]
         public void LingeringEscortsDoNotExhaustTheAdoptionBudget()

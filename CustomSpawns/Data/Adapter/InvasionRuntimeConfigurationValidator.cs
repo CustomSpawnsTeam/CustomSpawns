@@ -57,7 +57,7 @@ namespace CustomSpawns.Data.Adapter
          * towns the invasion takes, fields its parties and carries the kingdom it leaves behind, so two
          * invasion spawns sharing a clan would keep two sets of books -- footholds, party budget, strength
          * ceiling -- over one faction's single set of towns, parties and troops. The later spawn is refused
-         * rather than merged into the first: a group reads one spawn template's configuration, so merging
+         * rather than merged into the first: a invasion reads one spawn template's configuration, so merging
          * would silently discard the other's.
          *
          * Returns the party template ids to refuse, in configuration order.

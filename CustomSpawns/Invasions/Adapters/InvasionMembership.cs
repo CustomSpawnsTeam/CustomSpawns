@@ -12,7 +12,7 @@ using TaleWorlds.CampaignSystem.Settlements;
 namespace CustomSpawns.Invasions.Adapters
 {
     /**
-     * Who is fighting an invasion. A spawned party joins the group its template invades for, keeps
+     * Who is fighting an invasion. A spawned party joins the invasion its template invades for, keeps
      * that membership across a save, and leaves when it dies; reconciliation is the same question
      * asked of the whole map, since parties, clans and configurations all disappear behind our back.
      */
@@ -40,7 +40,7 @@ namespace CustomSpawns.Invasions.Adapters
             // The party's clan names its invasion, and it survives the rebuilds that lose everything we
             // write on the party. Membership therefore outlives a removed configuration, so cleanup
             // remains possible.
-            InvasionGroupState? saved = _invasionState.FindGroupHolding(clan?.StringId);
+            Invasion? saved = _invasionState.FindInvasionHolding(clan?.StringId);
 
             if (saved != null)
             {
@@ -77,7 +77,7 @@ namespace CustomSpawns.Invasions.Adapters
          * party changing component, as one does when the invasion becomes a kingdom and loses its only
          * coastal town. Either way the party arrives under a StringId no recognition path of ours
          * matches, so it carries on without its membership, its food eligibility, its steering and its
-         * spawn-sized party limit. Registering it under its group's spawn template gives it back the
+         * spawn-sized party limit. Registering it under its invasion's spawn template gives it back the
          * party data all four are read from. A defeated lord is not a case here: it is removed rather
          * than left to come back.
          */
@@ -85,8 +85,8 @@ namespace CustomSpawns.Invasions.Adapters
             Adopt(party, CountLiveCountedMembers, BudgetOf);
 
         // The live count and the budget are parameters so a test can drive adoption off the campaign map.
-        internal void Adopt(MobileParty party, Func<InvasionGroupState, int> countLiveMembers,
-            Func<InvasionGroupState, int> partyBudget)
+        internal void Adopt(MobileParty party, Func<Invasion, int> countLiveMembers,
+            Func<Invasion, int> partyBudget)
         {
             CsPartyData? registered = _dynamicSpawnData.GetDynamicSpawnData(party);
             string? templateId = FindAdoptingTemplate(party, registered, _invasionState, countLiveMembers, partyBudget);
@@ -105,19 +105,19 @@ namespace CustomSpawns.Invasions.Adapters
          * map says so, so it is reported rather than left to be inferred from a lord that stopped invading.
          */
         private void ReportAdoptionRefusal(MobileParty party, CsPartyData? registered,
-            Func<InvasionGroupState, int> countLiveMembers, Func<InvasionGroupState, int> partyBudget)
+            Func<Invasion, int> countLiveMembers, Func<Invasion, int> partyBudget)
         {
             if (registered != null || party.LordPartyComponent == null)
             {
                 return;
             }
 
-            InvasionGroupState? group = _invasionState.FindFightingGroup(party.ActualClan?.StringId);
+            Invasion? invasion = _invasionState.FindFightingInvasion(party.ActualClan?.StringId);
 
-            if (group != null)
+            if (invasion != null)
             {
-                Logger.Info("Invasion adoption refused: group=" + group.ClanId + " party=" + party.StringId +
-                            " counted_parties=" + countLiveMembers(group) + " budget=" + partyBudget(group));
+                Logger.Info("Invasion adoption refused: invasion=" + invasion.ClanId + " party=" + party.StringId +
+                            " counted_parties=" + countLiveMembers(invasion) + " budget=" + partyBudget(invasion));
             }
         }
 
@@ -127,38 +127,38 @@ namespace CustomSpawns.Invasions.Adapters
          * are not ours to adopt.
          */
         internal static string? FindAdoptingTemplate(MobileParty party, CsPartyData? registered,
-            InvasionState invasionState, Func<InvasionGroupState, int> countLiveMembers,
-            Func<InvasionGroupState, int> partyBudget)
+            InvasionState invasionState, Func<Invasion, int> countLiveMembers,
+            Func<Invasion, int> partyBudget)
         {
             if (registered != null || party.LordPartyComponent == null)
             {
                 return null;
             }
 
-            return invasionState.FindAdoptingGroup(party.ActualClan?.StringId, countLiveMembers, partyBudget)
+            return invasionState.FindAdoptingInvasion(party.ActualClan?.StringId, countLiveMembers, partyBudget)
                 ?.SpawnTemplateId;
         }
 
         /**
-         * Escorts are outside the budget: nothing bounds how many of them a group holds, since the spawner
+         * Escorts are outside the budget: nothing bounds how many of them a invasion holds, since the spawner
          * frees a primary's slot when it dies but leaves its escorts on the map, so counting them would let
          * the count drift past the budget and switch adoption off for good. What the budget bounds -- the
          * parties an invasion leads with -- is therefore what it counts.
          */
-        private int CountLiveCountedMembers(InvasionGroupState group) =>
-            MobileParty.All.Count(party => party.IsActive && group.Members.Contains(party.StringId) &&
+        private int CountLiveCountedMembers(Invasion invasion) =>
+            MobileParty.All.Count(party => party.IsActive && invasion.Members.Contains(party.StringId) &&
                 _dynamicSpawnData.GetDynamicSpawnData(party)?.IsEscort != true);
 
-        private int BudgetOf(InvasionGroupState group) =>
-            PartyBudget(_spawnDao.FindByPartyTemplateId(group.SpawnTemplateId));
+        private int BudgetOf(Invasion invasion) =>
+            PartyBudget(_spawnDao.FindByPartyTemplateId(invasion.SpawnTemplateId));
 
         /**
-         * How many non-escort parties the configuration fields for a group: the primary parties the spawner
+         * How many non-escort parties the configuration fields for a invasion: the primary parties the spawner
          * keeps on the map plus the reinforcement landings the invasion may hold at once. A spawn that
          * invades for nothing budgets nothing.
          *
          * This bounds adoption, not the parties alive: the spawner keeps its own count, so a dead primary
-         * frees a spawn slot and opens adoption headroom at the same time, and a group can hold more live
+         * frees a spawn slot and opens adoption headroom at the same time, and a invasion can hold more live
          * non-escort parties than this until the next death settles it.
          */
         internal static int PartyBudget(SpawnDto? spawn) =>
@@ -190,22 +190,22 @@ namespace CustomSpawns.Invasions.Adapters
         {
             _invasionState.Reconcile(MobileParty.All.Where(p => p.IsActive).Select(p => p.StringId),
                 id => Settlement.Find(id)?.OwnerClan?.StringId,
-                group => GetConfiguration(group) != null && Clan.FindFirst(c => c.StringId == group.ClanId)?.IsEliminated == false,
-                group => InvasionKingdomRetirement.FindRetirableKingdom(group) != null);
+                invasion => GetConfiguration(invasion) != null && Clan.FindFirst(c => c.StringId == invasion.ClanId)?.IsEliminated == false,
+                invasion => InvasionKingdomRetirement.FindRetirableKingdom(invasion) != null);
 
             _invasionCaptureCorrelation.Prune();
         }
 
         internal IReadOnlyList<MobileParty> FindLiveMembers(MobileParty party)
         {
-            InvasionGroupState? group = _invasionState.FindMemberGroup(party.StringId);
+            Invasion? invasion = _invasionState.FindInvasionOfParty(party.StringId);
 
-            if (group == null)
+            if (invasion == null)
             {
                 return new[] { party };
             }
 
-            return MobileParty.All.Where(member => member.IsActive && group.Members.Contains(member.StringId))
+            return MobileParty.All.Where(member => member.IsActive && invasion.Members.Contains(member.StringId))
                 .ToList();
         }
 
@@ -213,6 +213,6 @@ namespace CustomSpawns.Invasions.Adapters
             data.IsAdopted ? "Adopted" :
             data.IsPrimarySpawn ? "Original" : "Escort";
 
-        private InvasionData? GetConfiguration(InvasionGroupState group) => _spawnDao.FindByPartyTemplateId(group.SpawnTemplateId)?.Invasion;
+        private InvasionData? GetConfiguration(Invasion invasion) => _spawnDao.FindByPartyTemplateId(invasion.SpawnTemplateId)?.Invasion;
     }
 }

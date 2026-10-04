@@ -11,7 +11,7 @@ namespace CustomSpawns.Tests.Invasions
     {
         private InvasionState _state = null!;
         private InvasionCaptureCorrelation _correlation = null!;
-        private InvasionGroupState _group = null!;
+        private Invasion _invasion = null!;
         private readonly object _hero = new();
         private readonly object _leaderParty = new();
         private readonly object _oldDonor = new();
@@ -21,7 +21,7 @@ namespace CustomSpawns.Tests.Invasions
         public void SetUp()
         {
             _state = new InvasionState();
-            _group = _state.RegisterMember("invasion", "clan", "leader");
+            _invasion = _state.RegisterMember("invasion", "clan", "leader");
             _state.RegisterMember("invasion", "clan", "old-donor");
             _state.RegisterMember("invasion", "clan", "new-donor");
             _correlation = new InvasionCaptureCorrelation(_state);
@@ -82,7 +82,7 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
-        public void StaleCapturerFromAnotherGroupIsRejectedEvenWhenTheyParticipatedInTheCurrentWinningSide()
+        public void StaleCapturerFromAnotherInvasionIsRejectedEvenWhenTheyParticipatedInTheCurrentWinningSide()
         {
             object oldEvent = new();
             Bind(oldEvent, 100);
@@ -125,8 +125,8 @@ namespace CustomSpawns.Tests.Invasions
 
             var actual = _correlation.ResolveOwnership(inlandEvent, true, "inland-b", _hero, "enemy", "clan", "clan");
             Assert.AreSame(inlandCapture, actual);
-            _correlation.ObserveOwnership(actual!.Id, _group.ClanId, "leader", "enemy", "clan", true);
-            _correlation.ObserveAftermath(actual.Id, "leader", "enemy", new Dictionary<string, string> { ["leader"] = _group.ClanId });
+            _correlation.ObserveOwnership(actual!.Id, _invasion.ClanId, "leader", "enemy", "clan", true);
+            _correlation.ObserveAftermath(actual.Id, "leader", "enemy", new Dictionary<string, string> { ["leader"] = _invasion.ClanId });
             Assert.AreEqual("inland-b", _state.Footholds.Single().SettlementId);
         }
 
@@ -194,7 +194,7 @@ namespace CustomSpawns.Tests.Invasions
             Record(nativeEvent, 100, new[] { _leaderParty, _newDonor });
             Own(nativeEvent, capture);
             var saved = _correlation.ExportOwnedResults().Single();
-            _state = InvasionSaveData.FromState(_state).ToState();
+            _state = InvasionStateSaveData.FromState(_state).ToState();
             _correlation = new InvasionCaptureCorrelation(_state);
             Assert.True(_correlation.RestoreOwnedResult(saved.CaptureId, saved.PreviousOwnerClanId,
                 saved.ExpectedOwnerClanId, saved.Capturer, saved.Participants));
@@ -214,7 +214,7 @@ namespace CustomSpawns.Tests.Invasions
             object nativeEvent = new();
             var capture = Bind(nativeEvent, 100);
             Assert.False(_correlation.RestoreOwnedResult(capture.Id, "enemy", "clan", _hero, new[] { _leaderParty }));
-            _correlation.ObserveOwnership(capture.Id, _group.ClanId, "leader", "enemy", "clan", true);
+            _correlation.ObserveOwnership(capture.Id, _invasion.ClanId, "leader", "enemy", "clan", true);
             Assert.False(_correlation.RestoreOwnedResult(capture.Id, "wrong-owner", "clan", _hero, new[] { _leaderParty }));
             Assert.False(_correlation.RestoreOwnedResult(capture.Id, "enemy", "wrong-owner", _hero, new[] { _leaderParty }));
             Assert.False(_correlation.RestoreOwnedResult(capture.Id, "enemy", "clan", null, new[] { _leaderParty }));
@@ -241,10 +241,10 @@ namespace CustomSpawns.Tests.Invasions
         private void Own(object nativeEvent, InvasionCapture capture)
         {
             Assert.AreSame(capture, _correlation.ResolveOwnership(nativeEvent, true, "town", _hero, "enemy", "clan", "clan"));
-            _correlation.ObserveOwnership(capture.Id, _group.ClanId, "leader", "enemy", "clan", true);
+            _correlation.ObserveOwnership(capture.Id, _invasion.ClanId, "leader", "enemy", "clan", true);
         }
         private void ApplyAftermath(InvasionCapture capture, string donor) =>
             _correlation.ObserveAftermath(capture.Id, "leader", "enemy", new Dictionary<string, string>
-            { ["leader"] = _group.ClanId, [donor] = _group.ClanId });
+            { ["leader"] = _invasion.ClanId, [donor] = _invasion.ClanId });
     }
 }

@@ -9,13 +9,13 @@ namespace CustomSpawns.Tests.Invasions
     public class InvasionLordRemovalTests
     {
         private InvasionState _state = null!;
-        private InvasionGroupState _group = null!;
+        private Invasion _invasion = null!;
 
         [SetUp]
         public void SetUp()
         {
             _state = new InvasionState();
-            _group = _state.RegisterMember("invasion", "clan", "lord-party");
+            _invasion = _state.RegisterMember("invasion", "clan", "lord-party");
         }
 
         [Test]
@@ -27,7 +27,7 @@ namespace CustomSpawns.Tests.Invasions
         [Test]
         public void ALordOfAClanTheInvasionExpandedIntoIsRemoved()
         {
-            _group.AddClan("overflow-clan");
+            _invasion.AddClan("overflow-clan");
 
             Assert.True(IsRemovable(clanId: "overflow-clan"));
         }
@@ -77,7 +77,7 @@ namespace CustomSpawns.Tests.Invasions
         [Test]
         public void ALordOfASuspendedInvasionIsNotRemoved()
         {
-            _group.IsSuspended = true;
+            _invasion.IsSuspended = true;
 
             Assert.False(IsRemovable());
         }
@@ -87,12 +87,12 @@ namespace CustomSpawns.Tests.Invasions
         {
             _state.RemoveMember("lord-party");
 
-            Assert.True(_state.IsGroupSpent(_group));
+            Assert.True(_state.IsInvasionSpent(_invasion));
             Assert.False(IsRemovable());
         }
 
         /**
-         * The lord of the party whose loss spent the group: destroying the last party of an invasion is
+         * The lord of the party whose loss spent the invasion: destroying the last party of an invasion is
          * what announces the defeat of its lord, so the ledger is already empty when the answer is wanted.
          */
         [Test]
@@ -100,7 +100,7 @@ namespace CustomSpawns.Tests.Invasions
         {
             _state.RemoveMember("lord-party");
 
-            Assert.True(_state.IsGroupSpent(_group));
+            Assert.True(_state.IsInvasionSpent(_invasion));
             Assert.True(IsRemovable(lostItsInvasionParty: true));
         }
 
@@ -124,7 +124,7 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         /**
-         * The order the answer and the ledger are taken in: the forget here empties the group, which is
+         * The order the answer and the ledger are taken in: the forget here empties the invasion, which is
          * what destroying the last party of an invasion does, and the lord is still the answer because
          * it was asked for before that happened.
          */
@@ -137,7 +137,7 @@ namespace CustomSpawns.Tests.Invasions
                 lord, () => _state.RemoveMember("lord-party"));
 
             Assert.AreSame(lord, answer);
-            Assert.True(_state.IsGroupSpent(_group));
+            Assert.True(_state.IsInvasionSpent(_invasion));
         }
 
         /**
@@ -151,7 +151,7 @@ namespace CustomSpawns.Tests.Invasions
 
             Assert.IsNull(InvasionLordRemoval.TakeLordOfRemovedInvasionParty(_state, "other-clan",
                 "lord-party", lord, () => _state.RemoveMember("lord-party")));
-            Assert.True(_state.IsGroupSpent(_group));
+            Assert.True(_state.IsInvasionSpent(_invasion));
         }
 
         /**

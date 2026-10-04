@@ -12,17 +12,17 @@ namespace CustomSpawns.Tests.Invasions
     public class InvasionMembershipAdoptionTests
     {
         private InvasionState _state = null!;
-        private InvasionGroupState _group = null!;
+        private Invasion _invasion = null!;
 
         [SetUp]
         public void SetUp()
         {
             _state = new InvasionState();
-            _group = _state.RegisterMember("invasion", "clan", "invasion_party_1");
+            _invasion = _state.RegisterMember("invasion", "clan", "invasion_party_1");
         }
 
         [Test]
-        public void ARebuiltLordPartyOfAnInvadingClanIsAdoptedUnderItsGroupTemplate()
+        public void ARebuiltLordPartyOfAnInvadingClanIsAdoptedUnderItsInvasionTemplate()
         {
             Assert.AreEqual("invasion", AdoptingTemplate(LordParty("clan")));
         }
@@ -63,16 +63,16 @@ namespace CustomSpawns.Tests.Invasions
         [Test]
         public void AnAdoptedLordDoesNotSpendTheInvasionsLandingBudget()
         {
-            Assert.False(InvasionReinforcementArrivals.CountsAgainstMaxConcurrentParties("clan", PartyOfTheGroup("Adopted"), _group));
-            Assert.True(InvasionReinforcementArrivals.CountsAgainstMaxConcurrentParties("clan", PartyOfTheGroup("Reinforcement"),
-                _group));
+            Assert.False(InvasionReinforcementArrivals.CountsAgainstMaxConcurrentParties("clan", PartyOfTheInvasion("Adopted"), _invasion));
+            Assert.True(InvasionReinforcementArrivals.CountsAgainstMaxConcurrentParties("clan", PartyOfTheInvasion("Reinforcement"),
+                _invasion));
         }
 
         [Test]
         public void AnAdoptedLordComesBackFromASaveAsAnAdoptedLord()
         {
-            Assert.AreEqual("Adopted", InvasionMembership.RoleFor(PartyOfTheGroup("Adopted")));
-            Assert.AreEqual("Reinforcement", InvasionMembership.RoleFor(PartyOfTheGroup("Reinforcement")));
+            Assert.AreEqual("Adopted", InvasionMembership.RoleFor(PartyOfTheInvasion("Adopted")));
+            Assert.AreEqual("Reinforcement", InvasionMembership.RoleFor(PartyOfTheInvasion("Reinforcement")));
         }
 
         [Test]
@@ -86,9 +86,9 @@ namespace CustomSpawns.Tests.Invasions
 
         private string? AdoptingTemplate(MobileParty party, CsPartyData? registered = null, int budget = int.MaxValue) =>
             InvasionMembership.FindAdoptingTemplate(party, registered, _state,
-                group => group.MemberPartyIds.Count, _ => budget);
+                invasion => invasion.MemberPartyIds.Count, _ => budget);
 
-        private CsPartyData PartyOfTheGroup(string partyRole)
+        private CsPartyData PartyOfTheInvasion(string partyRole)
         {
             var data = new CsPartyData("invasion", "invasion", false, null, null, partyRole);
             return data;

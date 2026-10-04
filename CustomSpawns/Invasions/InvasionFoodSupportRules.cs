@@ -6,9 +6,9 @@ namespace CustomSpawns.Invasions
     internal static class InvasionFoodSupportRules
     {
         internal static bool IsEligibleForOngoingSupport(bool hasFoothold, bool isLiveCoastalTown,
-            bool isOwnedByHoldingGroup, bool isConfigurationEnabled, bool isUnderSiege)
+            bool isOwnedByHoldingInvasion, bool isConfigurationEnabled, bool isUnderSiege)
         {
-            return hasFoothold && isLiveCoastalTown && isOwnedByHoldingGroup &&
+            return hasFoothold && isLiveCoastalTown && isOwnedByHoldingInvasion &&
                    isConfigurationEnabled && !isUnderSiege;
         }
 

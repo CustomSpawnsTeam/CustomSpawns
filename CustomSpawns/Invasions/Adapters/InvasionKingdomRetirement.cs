@@ -24,28 +24,28 @@ namespace CustomSpawns.Invasions.Adapters
 
         internal void RetireSpent()
         {
-            foreach (InvasionGroupState group in _invasionState.Groups.ToList())
+            foreach (Invasion invasion in _invasionState.Invasions.ToList())
             {
-                if (!_invasionState.IsGroupSpent(group))
+                if (!_invasionState.IsInvasionSpent(invasion))
                 {
                     continue;
                 }
 
-                Kingdom? kingdom = FindRetirableKingdom(group);
+                Kingdom? kingdom = FindRetirableKingdom(invasion);
 
                 if (kingdom == null)
                 {
                     continue;
                 }
 
-                Logger.Info("Invasion spent: group=" + group.ClanId + " kingdom=" + kingdom.StringId);
+                Logger.Info("Invasion spent: invasion=" + invasion.ClanId + " kingdom=" + kingdom.StringId);
                 DiscontinueKingdom(kingdom);
             }
         }
 
-        internal static Kingdom? FindRetirableKingdom(InvasionGroupState group)
+        internal static Kingdom? FindRetirableKingdom(Invasion invasion)
         {
-            Kingdom? kingdom = Clan.FindFirst(clan => clan.StringId == group.ClanId)?.Kingdom;
+            Kingdom? kingdom = Clan.FindFirst(clan => clan.StringId == invasion.ClanId)?.Kingdom;
 
             if (kingdom == null)
             {

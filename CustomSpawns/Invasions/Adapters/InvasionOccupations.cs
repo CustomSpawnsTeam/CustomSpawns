@@ -36,9 +36,9 @@ namespace CustomSpawns.Invasions.Adapters
         internal float GetOngoingFoodSupport(Town town)
         {
             InvasionFoothold? foothold = _invasionState.FindFoothold(town.Settlement.StringId);
-            InvasionGroupState? group = _invasionState.FindGroup(foothold?.GroupId);
-            InvasionData? configuration = group == null ? null : GetConfiguration(group);
-            return IsEligibleForFood(town, group, configuration) ? configuration!.DailyFoodBonus : 0f;
+            Invasion? invasion = _invasionState.FindInvasion(foothold?.InvasionClanId);
+            InvasionData? configuration = invasion == null ? null : GetConfiguration(invasion);
+            return IsEligibleForFood(town, invasion, configuration) ? configuration!.DailyFoodBonus : 0f;
         }
 
         internal void ApplyReady()
@@ -46,10 +46,10 @@ namespace CustomSpawns.Invasions.Adapters
             foreach (InvasionCapture capture in GetReadyOccupations())
             {
                 Town? town = Settlement.Find(capture.SettlementId)?.Town;
-                InvasionGroupState? group = _invasionState.FindGroup(capture.CapturingGroupId);
-                InvasionData? configuration = group == null ? null : GetConfiguration(group);
+                Invasion? invasion = _invasionState.FindInvasion(capture.CapturingInvasionClanId);
+                InvasionData? configuration = invasion == null ? null : GetConfiguration(invasion);
 
-                if (town?.GarrisonParty == null || group == null || configuration == null)
+                if (town?.GarrisonParty == null || invasion == null || configuration == null)
                 {
                     continue;
                 }
@@ -62,24 +62,24 @@ namespace CustomSpawns.Invasions.Adapters
                     DestroyPartyAction.Apply(null, party);
                 }
 
-                if (IsEligibleForFood(town, group, configuration))
+                if (IsEligibleForFood(town, invasion, configuration))
                 {
                     InvasionOccupationFood.Apply(town, configuration.FoodStockFloor);
                 }
 
-                if (!PromoteCapturer(capture, town, group))
+                if (!PromoteCapturer(capture, town, invasion))
                 {
                     continue;
                 }
 
                 if (_invasionState.CompleteOccupation(capture.Id, town.Settlement.OwnerClan?.StringId ?? ""))
                 {
-                    Logger.Info("Invasion occupation applied: group=" + group.ClanId + " town=" + town.Settlement.StringId);
+                    Logger.Info("Invasion occupation applied: invasion=" + invasion.ClanId + " town=" + town.Settlement.StringId);
                 }
             }
         }
 
-        private static bool PromoteCapturer(InvasionCapture capture, Town town, InvasionGroupState group)
+        private static bool PromoteCapturer(InvasionCapture capture, Town town, Invasion invasion)
         {
             MobileParty? party = MobileParty.All.FirstOrDefault(candidate => candidate.IsActive &&
                 candidate.StringId == capture.CapturerId);
@@ -87,7 +87,7 @@ namespace CustomSpawns.Invasions.Adapters
             Clan? clan = party?.ActualClan;
 
             if (party == null || leader == null || clan == null || leader.Clan != clan ||
-                !group.HoldsClan(clan.StringId))
+                !invasion.HoldsClan(clan.StringId))
             {
                 return false;
             }
@@ -106,13 +106,13 @@ namespace CustomSpawns.Invasions.Adapters
             return true;
         }
 
-        private bool IsEligibleForFood(Town town, InvasionGroupState? group, InvasionData? configuration)
+        private bool IsEligibleForFood(Town town, Invasion? invasion, InvasionData? configuration)
         {
-            Clan? clan = group == null ? null : Clan.FindFirst(candidate => candidate.StringId == group.ClanId);
+            Clan? clan = invasion == null ? null : Clan.FindFirst(candidate => candidate.StringId == invasion.ClanId);
             InvasionFoothold? foothold = _invasionState.FindFoothold(town.Settlement.StringId);
-            return InvasionFoodSupportRules.IsEligibleForOngoingSupport(foothold?.GroupId == group?.ClanId,
+            return InvasionFoodSupportRules.IsEligibleForOngoingSupport(foothold?.InvasionClanId == invasion?.ClanId,
                 configuration != null && _invasionCoastalTownResolver.IsCoastalTown(town.Settlement),
-                group?.HoldsClan(town.Settlement.OwnerClan?.StringId) == true, configuration != null && !group!.IsSuspended &&
+                invasion?.HoldsClan(town.Settlement.OwnerClan?.StringId) == true, configuration != null && !invasion!.IsSuspended &&
                 clan?.IsEliminated == false, town.Settlement.SiegeEvent != null);
         }
 
@@ -143,7 +143,7 @@ namespace CustomSpawns.Invasions.Adapters
             return ready;
         }
 
-        private InvasionData? GetConfiguration(InvasionGroupState group) =>
-            _spawnDao.FindByPartyTemplateId(group.SpawnTemplateId)?.Invasion;
+        private InvasionData? GetConfiguration(Invasion invasion) =>
+            _spawnDao.FindByPartyTemplateId(invasion.SpawnTemplateId)?.Invasion;
     }
 }

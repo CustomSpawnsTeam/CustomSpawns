@@ -70,7 +70,7 @@ namespace CustomSpawns.Invasions.Adapters
 
         public override void SyncData(IDataStore dataStore)
         {
-            InvasionSaveData? saved = dataStore.IsSaving ? InvasionSaveData.FromState(State) : null;
+            InvasionStateSaveData? saved = dataStore.IsSaving ? InvasionStateSaveData.FromState(State) : null;
 
             if (saved != null)
             {
@@ -132,9 +132,9 @@ namespace CustomSpawns.Invasions.Adapters
 
         /**
          * Removing a party tells the ledger first and the party's lord only afterwards: vanilla destroys
-         * a fleeing lord's party before it announces the flight, and that destroy can leave the group it
+         * a fleeing lord's party before it announces the flight, and that destroy can leave the invasion it
          * emptied spent or reconciled away. Whether the lord was invading is therefore answered here,
-         * while its party is still a member of a group that is still fighting, and kept for the capture
+         * while its party is still a member of a invasion that is still fighting, and kept for the capture
          * or flight the same destroy is about to dispatch. The next removal decision spends it, and the
          * next hourly tick discards it if no such decision came.
          */
@@ -180,7 +180,7 @@ namespace CustomSpawns.Invasions.Adapters
         }
 
         // The party itself no longer says which invasion it serves, so the spawn it came from is asked instead.
-        public bool HasPersistentInvasionGroup(CsPartyData partyData) => State.HasGroupOf(partyData.OwningSpawnTemplateId);
+        public bool HasPersistentInvasion(CsPartyData partyData) => State.HasInvasionOf(partyData.OwningSpawnTemplateId);
 
         Func<Settlement, bool>? IInvasionLandingQuery.GetInitialCoastalTargetFilter(MobileParty party)
         {
@@ -231,7 +231,7 @@ namespace CustomSpawns.Invasions.Adapters
         bool IPartySteeringQuery.RequiresCustomSpawnsSteering(MobileParty party)
         {
             Initialize();
-            return State.IsGroupWithoutTown(party.ActualClan?.StringId);
+            return State.IsInvasionWithoutTown(party.ActualClan?.StringId);
         }
 
         private void CanKingdomBeDiscontinued(Kingdom kingdom, ref bool result)

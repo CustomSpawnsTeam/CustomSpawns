@@ -10,7 +10,7 @@ namespace CustomSpawns.Tests.Invasions
     public class InvasionReinforcementsTests
     {
         private InvasionState _state = null!;
-        private InvasionGroupState _group = null!;
+        private Invasion _invasion = null!;
         private CampaignStub _campaign = null!;
         private InvasionReinforcements _reinforcements = null!;
 
@@ -18,7 +18,7 @@ namespace CustomSpawns.Tests.Invasions
         public void SetUp()
         {
             _state = new InvasionState();
-            _group = _state.RegisterMember("invasion", "clan", "capturer");
+            _invasion = _state.RegisterMember("invasion", "clan", "capturer");
             _campaign = new CampaignStub();
             _reinforcements = new InvasionReinforcements(_state, _campaign, _ => 0);
         }
@@ -31,17 +31,17 @@ namespace CustomSpawns.Tests.Invasions
             _campaign.Coastal = false;
 
             Assert.IsNull(_reinforcements.StartSchedule(capture.Id));
-            Assert.That(_group.ReinforcementSchedules, Is.Empty);
+            Assert.That(_invasion.ReinforcementSchedules, Is.Empty);
 
             _campaign.Coastal = true;
-            Assert.AreSame(_group, _reinforcements.StartSchedule(capture.Id));
+            Assert.AreSame(_invasion, _reinforcements.StartSchedule(capture.Id));
             Assert.IsNull(_reinforcements.StartSchedule(capture.Id));
-            Assert.AreEqual(17, Schedule(_group, "infantry").NextDeadlineDays);
-            Assert.AreEqual(7, Schedule(_group, "infantry").IntervalDays);
+            Assert.AreEqual(17, Schedule(_invasion, "infantry").NextDeadlineDays);
+            Assert.AreEqual(7, Schedule(_invasion, "infantry").IntervalDays);
 
             _state = RoundTrip();
-            Assert.AreEqual(7, Schedule(_state.Groups.Single(), "infantry").IntervalDays);
-            Assert.AreEqual(17, Schedule(_state.Groups.Single(), "infantry").NextDeadlineDays);
+            Assert.AreEqual(7, Schedule(_state.Invasions.Single(), "infantry").IntervalDays);
+            Assert.AreEqual(17, Schedule(_state.Invasions.Single(), "infantry").NextDeadlineDays);
         }
 
         [Test]
@@ -56,7 +56,7 @@ namespace CustomSpawns.Tests.Invasions
             InvasionReinforcementDraw draw = _reinforcements.DrawDue().Single();
             Assert.AreEqual(InvasionReinforcementOutcome.Landing, draw.Outcome);
             Assert.AreEqual("town", draw.LandingSettlementId);
-            Assert.AreEqual(24, Schedule(_group, "infantry").NextDeadlineDays);
+            Assert.AreEqual(24, Schedule(_invasion, "infantry").NextDeadlineDays);
             Assert.That(_reinforcements.DrawDue(), Is.Empty);
         }
 
@@ -67,7 +67,7 @@ namespace CustomSpawns.Tests.Invasions
 
             _campaign.Now = 50;
             Assert.AreEqual(InvasionReinforcementOutcome.Landing, _reinforcements.DrawDue().Single().Outcome);
-            Assert.AreEqual(57, Schedule(_group, "infantry").NextDeadlineDays);
+            Assert.AreEqual(57, Schedule(_invasion, "infantry").NextDeadlineDays);
             Assert.That(_reinforcements.DrawDue(), Is.Empty);
         }
 
@@ -80,20 +80,20 @@ namespace CustomSpawns.Tests.Invasions
             _campaign.Now = 17;
             Assert.AreEqual(InvasionReinforcementOutcome.MaxConcurrentPartiesReached,
                 _reinforcements.DrawDue().Single().Outcome);
-            Assert.AreEqual(24, Schedule(_group, "infantry").NextDeadlineDays);
+            Assert.AreEqual(24, Schedule(_invasion, "infantry").NextDeadlineDays);
 
             _campaign.ActiveReinforcements["infantry"] = 0;
             _campaign.LandingSites.Clear();
             _campaign.Now = 24;
             Assert.AreEqual(InvasionReinforcementOutcome.NoLandingSite, _reinforcements.DrawDue().Single().Outcome);
-            Assert.AreEqual(31, Schedule(_group, "infantry").NextDeadlineDays);
+            Assert.AreEqual(31, Schedule(_invasion, "infantry").NextDeadlineDays);
         }
 
         [Test]
         public void AnArrivalJoinsTheFirstInvasionClanThatStillHasRoomForAWarParty()
         {
             Wind();
-            _group.AddClan("overflow-clan");
+            _invasion.AddClan("overflow-clan");
             _campaign.FullClans.Add("clan");
 
             _campaign.Now = 17;
@@ -171,7 +171,7 @@ namespace CustomSpawns.Tests.Invasions
             Assert.AreEqual(new[] { "cavalry", "infantry" }, draws.Select(draw => draw.RuleId).ToArray());
             Assert.AreEqual(InvasionReinforcementOutcome.Landing, draws[0].Outcome);
             Assert.AreEqual(InvasionReinforcementOutcome.Unavailable, draws[1].Outcome);
-            Assert.AreEqual(24, Schedule(_group, "infantry").NextDeadlineDays);
+            Assert.AreEqual(24, Schedule(_invasion, "infantry").NextDeadlineDays);
         }
 
         [Test]
@@ -180,14 +180,14 @@ namespace CustomSpawns.Tests.Invasions
             _campaign.Rules.Add(new InvasionReinforcementRule("cavalry", 20, 1));
             Wind();
 
-            InvasionGroupState group = RoundTrip().Groups.Single();
+            Invasion invasion = RoundTrip().Invasions.Single();
 
             Assert.AreEqual(new[] { "infantry", "cavalry" },
-                group.ReinforcementSchedules.Select(schedule => schedule.RuleId).ToArray());
+                invasion.ReinforcementSchedules.Select(schedule => schedule.RuleId).ToArray());
             Assert.AreEqual(new[] { 7d, 20d },
-                group.ReinforcementSchedules.Select(schedule => schedule.IntervalDays).ToArray());
+                invasion.ReinforcementSchedules.Select(schedule => schedule.IntervalDays).ToArray());
             Assert.AreEqual(new[] { 17d, 30d },
-                group.ReinforcementSchedules.Select(schedule => schedule.NextDeadlineDays).ToArray());
+                invasion.ReinforcementSchedules.Select(schedule => schedule.NextDeadlineDays).ToArray());
         }
 
         [Test]
@@ -221,7 +221,7 @@ namespace CustomSpawns.Tests.Invasions
             _campaign.Now = 17;
             Assert.AreEqual(InvasionReinforcementOutcome.FactionStrengthReached,
                 _reinforcements.DrawDue().Single().Outcome);
-            Assert.AreEqual(24, Schedule(_group, "infantry").NextDeadlineDays);
+            Assert.AreEqual(24, Schedule(_invasion, "infantry").NextDeadlineDays);
         }
 
         [Test]
@@ -254,7 +254,7 @@ namespace CustomSpawns.Tests.Invasions
             }
 
             Assert.AreEqual(new[] { "first=600", "second=200", "third=FactionStrengthReached" }, landed.ToArray());
-            Assert.AreEqual(24, Schedule(_group, "third").NextDeadlineDays);
+            Assert.AreEqual(24, Schedule(_invasion, "third").NextDeadlineDays);
         }
 
         private void Wind()
@@ -263,22 +263,22 @@ namespace CustomSpawns.Tests.Invasions
             _reinforcements.StartSchedule(Conquer().Id);
         }
 
-        private static InvasionReinforcementSchedule Schedule(InvasionGroupState group, string ruleId) =>
-            group.ReinforcementSchedules.Single(schedule => schedule.RuleId == ruleId);
+        private static InvasionReinforcementSchedule Schedule(Invasion invasion, string ruleId) =>
+            invasion.ReinforcementSchedules.Single(schedule => schedule.RuleId == ruleId);
 
         private InvasionCapture Conquer()
         {
             var correlation = new InvasionCaptureCorrelation(_state);
             InvasionCapture capture = _state.StartCapture("town", 100, "capturer");
-            correlation.ObserveOwnership(capture.Id, _group.ClanId, "capturer", "enemy", "clan", true);
+            correlation.ObserveOwnership(capture.Id, _invasion.ClanId, "capturer", "enemy", "clan", true);
             correlation.ObserveAftermath(capture.Id, "capturer", "enemy", new Dictionary<string, string>
             {
-                ["capturer"] = _group.ClanId
+                ["capturer"] = _invasion.ClanId
             });
             return capture;
         }
 
-        private InvasionState RoundTrip() => InvasionSaveData.FromState(_state).ToState();
+        private InvasionState RoundTrip() => InvasionStateSaveData.FromState(_state).ToState();
 
         private sealed class CampaignStub : IInvasionReinforcementQuery
         {
@@ -296,14 +296,14 @@ namespace CustomSpawns.Tests.Invasions
 
             public double NowInDays => Now;
 
-            public InvasionStrengthBudget GetStrengthBudget(InvasionGroupState group) =>
+            public InvasionStrengthBudget GetStrengthBudget(Invasion invasion) =>
                 new(MaxFactionStrength, StrengthPerTownHeld, TownsHeld, CurrentStrength);
 
-            public IReadOnlyList<InvasionReinforcementRule>? GetRules(InvasionGroupState group) => Rules;
+            public IReadOnlyList<InvasionReinforcementRule>? GetRules(Invasion invasion) => Rules;
             public bool IsCoastalTown(string settlementId) => Coastal;
-            public IReadOnlyList<string> GetLandingSites(InvasionGroupState group) => LandingSites;
+            public IReadOnlyList<string> GetLandingSites(Invasion invasion) => LandingSites;
 
-            public int CountActiveReinforcements(InvasionGroupState group, string ruleId) =>
+            public int CountActiveReinforcements(Invasion invasion, string ruleId) =>
                 ActiveReinforcements.TryGetValue(ruleId, out int count) ? count : 0;
 
             public bool HasPartySlot(string clanId) => !FullClans.Contains(clanId);

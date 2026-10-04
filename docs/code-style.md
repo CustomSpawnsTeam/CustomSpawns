@@ -29,8 +29,8 @@ This is about statements. Expressions keep their compact forms: expression-bodie
 ternaries, null-coalescing and LINQ chains are single expressions and stay as they are.
 
 ```csharp
-private InvasionData? GetConfiguration(InvasionGroupState group) =>
-    _spawns.FindByPartyTemplateId(group.SpawnTemplateId)?.Invasion;
+private InvasionData? GetConfiguration(Invasion invasion) =>
+    _spawns.FindByPartyTemplateId(invasion.SpawnTemplateId)?.Invasion;
 
 private static string SkipReason(InvasionReinforcementOutcome outcome) =>
     outcome == InvasionReinforcementOutcome.MaxConcurrentPartiesReached ? "max_concurrent" :
@@ -108,7 +108,7 @@ them, and five one-line guards you have to read character by character:
 InvasionFoothold? previousFoothold = _state.FindFoothold(settlement.StringId);
 _state.ObserveOwner(settlement.StringId, settlement.OwnerClan?.StringId);
 if (previousFoothold != null && _state.FindFoothold(settlement.StringId) == null)
-    Logger.Info("Invasion coastal foothold lost: group=" + previousFoothold.GroupId + " town=" + settlement.StringId);
+    Logger.Info("Invasion coastal foothold lost: invasion=" + previousFoothold.InvasionClanId + " town=" + settlement.StringId);
 if (!settlement.IsTown || detail != ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail.BySiege) return null;
 MobileParty? party = capturer?.PartyBelongedTo;
 if (party == null) return null;
@@ -122,7 +122,7 @@ _state.ObserveOwner(settlement.StringId, settlement.OwnerClan?.StringId);
 
 if (previousFoothold != null && _state.FindFoothold(settlement.StringId) == null)
 {
-    Logger.Info("Invasion coastal foothold lost: group=" + previousFoothold.GroupId +
+    Logger.Info("Invasion coastal foothold lost: invasion=" + previousFoothold.InvasionClanId +
                 " town=" + settlement.StringId);
 }
 

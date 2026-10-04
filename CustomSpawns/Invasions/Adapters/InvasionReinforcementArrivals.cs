@@ -44,16 +44,16 @@ namespace CustomSpawns.Invasions.Adapters
 
         internal void StartSchedule(long captureId)
         {
-            InvasionGroupState? group = _invasionReinforcements.StartSchedule(captureId);
+            Invasion? invasion = _invasionReinforcements.StartSchedule(captureId);
 
-            if (group == null)
+            if (invasion == null)
             {
                 return;
             }
 
-            Logger.Info("Invasion coastal foothold gained: group=" + group.ClanId + " town=" +
+            Logger.Info("Invasion coastal foothold gained: invasion=" + invasion.ClanId + " town=" +
                         _invasionState.FindCapture(captureId)!.SettlementId + " next_arrival_days=" +
-                        string.Join(",", group.ReinforcementSchedules.Select(schedule =>
+                        string.Join(",", invasion.ReinforcementSchedules.Select(schedule =>
                             schedule.RuleId + "@" + schedule.NextDeadlineDays)));
         }
 
@@ -67,7 +67,7 @@ namespace CustomSpawns.Invasions.Adapters
                 }
                 else
                 {
-                    Logger.Info("Invasion reinforcement slot skipped: group=" + draw.Group.ClanId +
+                    Logger.Info("Invasion reinforcement slot skipped: invasion=" + draw.Invasion.ClanId +
                                 " rule=" + draw.RuleId + " reason=" + SkipReason(draw.Outcome));
                 }
             }
@@ -80,27 +80,27 @@ namespace CustomSpawns.Invasions.Adapters
 
         private void Land(InvasionReinforcementDraw draw)
         {
-            InvasionReinforcementRuleData? rule = FindRule(draw.Group, draw.RuleId);
-            SpawnDto? spawn = _spawnDao.FindByPartyTemplateId(draw.Group.SpawnTemplateId);
+            InvasionReinforcementRuleData? rule = FindRule(draw.Invasion, draw.RuleId);
+            SpawnDto? spawn = _spawnDao.FindByPartyTemplateId(draw.Invasion.SpawnTemplateId);
             Settlement? landing = Settlement.Find(draw.LandingSettlementId!);
             PartyTemplateObject? template = rule == null ? null :
                 Campaign.Current.ObjectManager.GetObject<PartyTemplateObject>(rule.PartyTemplateId);
 
             if (spawn == null || template == null || landing == null ||
-                !IsEligibleLandingSettlement(landing, draw.Group))
+                !IsEligibleLandingSettlement(landing, draw.Invasion))
             {
-                Logger.Info("Invasion reinforcement slot skipped: group=" + draw.Group.ClanId +
+                Logger.Info("Invasion reinforcement slot skipped: invasion=" + draw.Invasion.ClanId +
                             " rule=" + draw.RuleId + " reason=template_or_port_changed");
                 return;
             }
 
             Clan? clan = draw.ClanId == null
-                ? FoundClan(draw.Group, landing)
+                ? FoundClan(draw.Invasion, landing)
                 : Clan.FindFirst(candidate => candidate.StringId == draw.ClanId);
 
             if (clan == null)
             {
-                Logger.Info("Invasion reinforcement slot skipped: group=" + draw.Group.ClanId +
+                Logger.Info("Invasion reinforcement slot skipped: invasion=" + draw.Invasion.ClanId +
                             " rule=" + draw.RuleId + " reason=no_clan_to_take_the_party");
                 return;
             }
@@ -108,10 +108,10 @@ namespace CustomSpawns.Invasions.Adapters
             MobileParty? reinforcement = _spawnGroupService.SpawnInvasionReinforcement(spawn, template, landing, clan,
                 draw.RuleId);
             int landed = reinforcement == null ? 0 : TrimToPermittedStrength(reinforcement, draw.PermittedStrength);
-            Logger.Info("Invasion reinforcement " + (reinforcement == null ? "failed" : "arrived") + ": group=" +
-                        draw.Group.ClanId + " rule=" + draw.RuleId + " clan=" + clan.StringId + " town=" +
+            Logger.Info("Invasion reinforcement " + (reinforcement == null ? "failed" : "arrived") + ": invasion=" +
+                        draw.Invasion.ClanId + " rule=" + draw.RuleId + " clan=" + clan.StringId + " town=" +
                         landing.StringId + " men=" + landed + " next_arrival_day=" +
-                        draw.Group.FindReinforcementSchedule(draw.RuleId)?.NextDeadlineDays);
+                        draw.Invasion.FindReinforcementSchedule(draw.RuleId)?.NextDeadlineDays);
         }
 
         /**
@@ -146,9 +146,9 @@ namespace CustomSpawns.Invasions.Adapters
          * its own. A lord beaten in the field is no longer among them: it is removed rather than fielded
          * again.
          */
-        private static Clan? FoundClan(InvasionGroupState group, Settlement landing)
+        private static Clan? FoundClan(Invasion invasion, Settlement landing)
         {
-            Clan? founder = Clan.FindFirst(candidate => candidate.StringId == group.ClanId);
+            Clan? founder = Clan.FindFirst(candidate => candidate.StringId == invasion.ClanId);
             Kingdom? kingdom = founder?.Kingdom;
             CharacterObject? lordTemplate = founder?.Culture?.LordTemplates
                 .FirstOrDefault(character => character.Occupation == Occupation.Lord);
@@ -158,7 +158,7 @@ namespace CustomSpawns.Invasions.Adapters
                 return null;
             }
 
-            Clan clan = Clan.CreateClan(founder.StringId + "_" + group.ClanIds.Count);
+            Clan clan = Clan.CreateClan(founder.StringId + "_" + invasion.ClanIds.Count);
             TextObject name = NameGenerator.Current.GenerateClanName(founder.Culture, landing);
             clan.ChangeClanName(name, name);
             clan.Culture = founder.Culture;
@@ -177,18 +177,18 @@ namespace CustomSpawns.Invasions.Adapters
             EnterSettlementAction.ApplyForCharacterOnly(leader, landing);
             ChangeKingdomAction.ApplyByJoinToKingdom(clan, kingdom, default, false);
             CampaignEventDispatcher.Instance.OnClanCreated(clan, false);
-            group.AddClan(clan.StringId);
-            Logger.Info("Invasion clan founded: group=" + group.ClanId + " clan=" + clan.StringId +
+            invasion.AddClan(clan.StringId);
+            Logger.Info("Invasion clan founded: invasion=" + invasion.ClanId + " clan=" + clan.StringId +
                         " kingdom=" + kingdom.StringId);
             return clan;
         }
 
         double IInvasionReinforcementQuery.NowInDays => CampaignTime.Now.ToDays;
 
-        IReadOnlyList<InvasionReinforcementRule>? IInvasionReinforcementQuery.GetRules(InvasionGroupState group)
+        IReadOnlyList<InvasionReinforcementRule>? IInvasionReinforcementQuery.GetRules(Invasion invasion)
         {
-            InvasionData? configuration = GetConfiguration(group);
-            Clan? clan = Clan.FindFirst(candidate => candidate.StringId == group.ClanId);
+            InvasionData? configuration = GetConfiguration(invasion);
+            Clan? clan = Clan.FindFirst(candidate => candidate.StringId == invasion.ClanId);
 
             return configuration == null || clan?.IsEliminated != false
                 ? null
@@ -199,14 +199,14 @@ namespace CustomSpawns.Invasions.Adapters
         bool IInvasionReinforcementQuery.IsCoastalTown(string settlementId) =>
             _invasionCoastalTownResolver.IsCoastalTown(Settlement.Find(settlementId));
 
-        IReadOnlyList<string> IInvasionReinforcementQuery.GetLandingSites(InvasionGroupState group) =>
-            Settlement.All.Where(settlement => IsEligibleLandingSettlement(settlement, group))
+        IReadOnlyList<string> IInvasionReinforcementQuery.GetLandingSites(Invasion invasion) =>
+            Settlement.All.Where(settlement => IsEligibleLandingSettlement(settlement, invasion))
                 .Select(settlement => settlement.StringId).ToList();
 
         // Each rule holds its own count, so a stream at its ceiling never holds another stream off.
-        int IInvasionReinforcementQuery.CountActiveReinforcements(InvasionGroupState group, string ruleId) =>
+        int IInvasionReinforcementQuery.CountActiveReinforcements(Invasion invasion, string ruleId) =>
             MobileParty.All.Count(party => party.IsActive && _dynamicSpawnData.GetDynamicSpawnData(party) is { } data &&
-                CountsAgainstMaxConcurrentParties(party.ActualClan?.StringId, data, group) &&
+                CountsAgainstMaxConcurrentParties(party.ActualClan?.StringId, data, invasion) &&
                 string.Equals(data.ReinforcementRuleId, ruleId, StringComparison.Ordinal));
 
         /**
@@ -217,10 +217,10 @@ namespace CustomSpawns.Invasions.Adapters
          * reading it, so that a party landed a moment ago already counts against the next rule of the
          * same day.
          */
-        InvasionStrengthBudget IInvasionReinforcementQuery.GetStrengthBudget(InvasionGroupState group)
+        InvasionStrengthBudget IInvasionReinforcementQuery.GetStrengthBudget(Invasion invasion)
         {
-            InvasionData? configuration = GetConfiguration(group);
-            List<Clan> clans = Clan.All.Where(clan => group.HoldsClan(clan.StringId)).ToList();
+            InvasionData? configuration = GetConfiguration(invasion);
+            List<Clan> clans = Clan.All.Where(clan => invasion.HoldsClan(clan.StringId)).ToList();
             double currentStrength = 0;
 
             foreach (Clan clan in clans)
@@ -239,8 +239,8 @@ namespace CustomSpawns.Invasions.Adapters
          * costs it nothing, or the first adopted lord would hold the landings off for as long as it lives.
          */
         internal static bool CountsAgainstMaxConcurrentParties(string? clanId, CsPartyData data,
-            InvasionGroupState group) =>
-            group.HoldsClan(clanId) && data.IsIndependentReinforcement;
+            Invasion invasion) =>
+            invasion.HoldsClan(clanId) && data.IsIndependentReinforcement;
 
         bool IInvasionReinforcementQuery.HasPartySlot(string clanId)
         {
@@ -251,14 +251,14 @@ namespace CustomSpawns.Invasions.Adapters
 
         internal Func<Settlement, bool>? FindInitialCoastalTargetFilter(MobileParty party)
         {
-            InvasionGroupState? group = _invasionState.FindMemberGroup(party.StringId);
+            Invasion? invasion = _invasionState.FindInvasionOfParty(party.StringId);
 
-            if (group == null || group.IsSuspended || !group.HoldsClan(party.ActualClan?.StringId))
+            if (invasion == null || invasion.IsSuspended || !invasion.HoldsClan(party.ActualClan?.StringId))
             {
                 return null;
             }
 
-            InvasionData? configuration = GetConfiguration(group);
+            InvasionData? configuration = GetConfiguration(invasion);
 
             if (configuration?.RequiresFirstCoastalConquest != true)
             {
@@ -271,19 +271,19 @@ namespace CustomSpawns.Invasions.Adapters
             return factionHasCoastalTown ? null : _invasionCoastalTownResolver.IsCoastalTown;
         }
 
-        private bool IsEligibleLandingSettlement(Settlement settlement, InvasionGroupState group)
+        private bool IsEligibleLandingSettlement(Settlement settlement, Invasion invasion)
         {
             InvasionFoothold? foothold = _invasionState.FindFoothold(settlement.StringId);
 
-            return foothold?.GroupId == group.ClanId && settlement.IsTown &&
-                   group.HoldsClan(settlement.OwnerClan?.StringId) && settlement.SiegeEvent == null &&
+            return foothold?.InvasionClanId == invasion.ClanId && settlement.IsTown &&
+                   invasion.HoldsClan(settlement.OwnerClan?.StringId) && settlement.SiegeEvent == null &&
                    _invasionCoastalTownResolver.IsCoastalTown(settlement);
         }
 
-        private InvasionData? GetConfiguration(InvasionGroupState group) =>
-            _spawnDao.FindByPartyTemplateId(group.SpawnTemplateId)?.Invasion;
+        private InvasionData? GetConfiguration(Invasion invasion) =>
+            _spawnDao.FindByPartyTemplateId(invasion.SpawnTemplateId)?.Invasion;
 
-        private InvasionReinforcementRuleData? FindRule(InvasionGroupState group, string ruleId) =>
-            GetConfiguration(group)?.ReinforcementRules.FirstOrDefault(rule => rule.Id == ruleId);
+        private InvasionReinforcementRuleData? FindRule(Invasion invasion, string ruleId) =>
+            GetConfiguration(invasion)?.ReinforcementRules.FirstOrDefault(rule => rule.Id == ruleId);
     }
 }

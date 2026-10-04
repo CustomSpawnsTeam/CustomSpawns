@@ -8,18 +8,18 @@ using TaleWorlds.SaveSystem;
 namespace CustomSpawns.Invasions.Adapters
 {
     // Save DTOs are boundary copies, never a second live state holder.
-    public sealed class InvasionSaveData
+    public sealed class InvasionStateSaveData
     {
         [SaveableField(2)] public long NextCaptureId = 1;
-        [SaveableField(3)] public List<InvasionGroupSaveData> Groups = new();
+        [SaveableField(3)] public List<InvasionSaveData> Invasions = new();
         [SaveableField(4)] public List<InvasionCaptureSaveData> Captures = new();
         [SaveableField(5)] public List<InvasionFootholdSaveData> Footholds = new();
         [SaveableField(6)] public List<InvasionCaptureEvidenceSaveData> OwnedCaptureEvidence = new();
 
-        internal static InvasionSaveData FromState(InvasionState state) => new()
+        internal static InvasionStateSaveData FromState(InvasionState state) => new()
         {
             NextCaptureId = state.NextCaptureId,
-            Groups = state.Groups.Select(InvasionGroupSaveData.FromState).ToList(),
+            Invasions = state.Invasions.Select(InvasionSaveData.FromState).ToList(),
             Captures = state.Captures.Select(InvasionCaptureSaveData.FromState).ToList(),
             Footholds = state.Footholds.Select(InvasionFootholdSaveData.FromState).ToList()
         };
@@ -27,10 +27,10 @@ namespace CustomSpawns.Invasions.Adapters
         internal InvasionState ToState()
         {
             var state = new InvasionState { NextCaptureId = Math.Max(1, NextCaptureId) };
-            foreach (var group in Groups ?? new List<InvasionGroupSaveData>()) state.GroupIndex.Add(group.ClanId, group.ToState());
+            foreach (var invasion in Invasions ?? new List<InvasionSaveData>()) state.InvasionIndex.Add(invasion.ClanId, invasion.ToState());
             foreach (var capture in Captures ?? new List<InvasionCaptureSaveData>()) state.CaptureIndex.Add(capture.Id, capture.ToState());
             foreach (var foothold in Footholds ?? new List<InvasionFootholdSaveData>())
-                if (state.FindGroup(foothold.GroupId) != null && state.FindCapture(foothold.CaptureId)?.IsConfirmed == true)
+                if (state.FindInvasion(foothold.InvasionClanId) != null && state.FindCapture(foothold.CaptureId)?.IsConfirmed == true)
                     state.FootholdIndex.Add(foothold.SettlementId, foothold.ToState());
             state.NextCaptureId = Math.Max(state.NextCaptureId, state.Captures.Select(c => c.Id + 1).DefaultIfEmpty(1).Max());
             return state;
@@ -48,7 +48,7 @@ namespace CustomSpawns.Invasions.Adapters
         [SaveableField(5)] public List<MobileParty> Participants = new();
     }
 
-    public sealed class InvasionGroupSaveData
+    public sealed class InvasionSaveData
     {
         [SaveableField(2)] public string SpawnTemplateId = "";
         [SaveableField(3)] public string ClanId = "";
@@ -57,7 +57,7 @@ namespace CustomSpawns.Invasions.Adapters
         [SaveableField(9)] public List<string> ClanIds = new();
         [SaveableField(10)] public List<InvasionReinforcementScheduleSaveData> ReinforcementSchedules = new();
 
-        internal static InvasionGroupSaveData FromState(InvasionGroupState value) => new()
+        internal static InvasionSaveData FromState(Invasion value) => new()
         {
             SpawnTemplateId = value.SpawnTemplateId,
             ClanId = value.ClanId,
@@ -68,18 +68,18 @@ namespace CustomSpawns.Invasions.Adapters
                 .Select(InvasionReinforcementScheduleSaveData.FromState).ToList()
         };
 
-        internal InvasionGroupState ToState()
+        internal Invasion ToState()
         {
-            var group = new InvasionGroupState(SpawnTemplateId, ClanId)
+            var invasion = new Invasion(SpawnTemplateId, ClanId)
             {
                 IsSuspended = IsSuspended,
                 Members = new HashSet<string>(Members ?? new List<string>(), StringComparer.Ordinal)
             };
             // A save taken before the invasion could expand carries the founding clan alone.
-            foreach (string clanId in ClanIds ?? new List<string>()) group.AddClan(clanId);
+            foreach (string clanId in ClanIds ?? new List<string>()) invasion.AddClan(clanId);
             foreach (var schedule in ReinforcementSchedules ?? new List<InvasionReinforcementScheduleSaveData>())
-                group.WindReinforcementSchedule(schedule.RuleId, schedule.IntervalDays, schedule.NextDeadlineDays);
-            return group;
+                invasion.WindReinforcementSchedule(schedule.RuleId, schedule.IntervalDays, schedule.NextDeadlineDays);
+            return invasion;
         }
     }
 
@@ -102,7 +102,7 @@ namespace CustomSpawns.Invasions.Adapters
         [SaveableField(1)] public long Id;
         [SaveableField(2)] public string SettlementId = "";
         [SaveableField(3)] public long BattleStartTimeBits;
-        [SaveableField(4)] public string? CapturingGroupId;
+        [SaveableField(4)] public string? CapturingInvasionClanId;
         [SaveableField(5)] public string? CapturerId;
         [SaveableField(6)] public string? PreviousOwnerClanId;
         [SaveableField(8)] public bool OwnershipObserved;
@@ -119,7 +119,7 @@ namespace CustomSpawns.Invasions.Adapters
             Id = value.Id,
             SettlementId = value.SettlementId,
             BattleStartTimeBits = value.BattleStartTimeBits,
-            CapturingGroupId = value.CapturingGroupId,
+            CapturingInvasionClanId = value.CapturingInvasionClanId,
             CapturerId = value.CapturerId,
             PreviousOwnerClanId = value.PreviousOwnerClanId,
             OwnershipObserved = value.OwnershipObserved,
@@ -134,7 +134,7 @@ namespace CustomSpawns.Invasions.Adapters
 
         internal InvasionCapture ToState() => new(Id, SettlementId, BattleStartTimeBits, StartingAttackerId)
         {
-            CapturingGroupId = CapturingGroupId,
+            CapturingInvasionClanId = CapturingInvasionClanId,
             CapturerId = CapturerId,
             PreviousOwnerClanId = PreviousOwnerClanId,
             OwnershipObserved = OwnershipObserved,
@@ -150,16 +150,16 @@ namespace CustomSpawns.Invasions.Adapters
     public sealed class InvasionFootholdSaveData
     {
         [SaveableField(1)] public string SettlementId = "";
-        [SaveableField(2)] public string GroupId = "";
+        [SaveableField(2)] public string InvasionClanId = "";
         [SaveableField(3)] public long CaptureId;
 
         internal static InvasionFootholdSaveData FromState(InvasionFoothold value) => new()
         {
             SettlementId = value.SettlementId,
-            GroupId = value.GroupId,
+            InvasionClanId = value.InvasionClanId,
             CaptureId = value.CaptureId
         };
 
-        internal InvasionFoothold ToState() => new(SettlementId, GroupId, CaptureId);
+        internal InvasionFoothold ToState() => new(SettlementId, InvasionClanId, CaptureId);
     }
 }

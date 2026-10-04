@@ -16,7 +16,7 @@ namespace CustomSpawns.Invasions.Adapters
         /**
          * The lord of a party the ledger is about to forget, or nothing if that party was fighting no
          * live invasion. The two statements are in this order and not the other one: forgetting the
-         * party can spend its group or reconcile it away, and the question would then have no answer
+         * party can spend its invasion or reconcile it away, and the question would then have no answer
          * left to give. Forgetting is passed in so the order is stated once, here, rather than left to
          * whichever caller happens to hold the ledger. It takes rather than finds: the forgetting is the
          * point of the call, and answering is what it does on the way.
@@ -25,7 +25,7 @@ namespace CustomSpawns.Invasions.Adapters
             string partyId, Hero? leader, Action forgetParty)
         {
             bool wasFightingAnInvasion = leader != null &&
-                invasionState.FindFightingGroup(clanId)?.MemberPartyIds.Contains(partyId) == true;
+                invasionState.FindFightingInvasion(clanId)?.MemberPartyIds.Contains(partyId) == true;
 
             forgetParty();
 
@@ -64,14 +64,14 @@ namespace CustomSpawns.Invasions.Adapters
          * settle it, because a lord's child carries the lord occupation from birth.
          *
          * A lord that has just lost its invasion party is asked about no further: flight destroys the
-         * party before it says the lord fled, and destroying the last party of a group spends it or
+         * party before it says the lord fled, and destroying the last party of a invasion spends it or
          * deletes it outright, so by the time the answer is wanted the ledger no longer holds it. The
          * answer taken while the party was still a member stands in for the one the ledger can no
-         * longer give, and it is the same answer: the group that party belonged to was fighting.
+         * longer give, and it is the same answer: the invasion that party belonged to was fighting.
          */
         internal static bool IsRemovableInvasionLord(InvasionState invasionState, string? clanId, bool isMainHero,
             bool belongsToPlayerClan, bool isChild, bool isAlive, bool isLord, bool lostItsInvasionParty) =>
             !isMainHero && !belongsToPlayerClan && !isChild && isAlive && isLord &&
-            (lostItsInvasionParty || invasionState.FindFightingGroup(clanId) != null);
+            (lostItsInvasionParty || invasionState.FindFightingInvasion(clanId) != null);
     }
 }

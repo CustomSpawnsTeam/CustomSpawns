@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CustomSpawns.CampaignData.Implementations;
@@ -45,7 +45,7 @@ namespace CustomSpawns.Spawn
             DailyLogger dailyLogger,
             ModDebug modDebug,
             PartySizeCalculatedSubject partySizeCalculatedSubject,
-            Func<CsPartyData, bool> hasPersistentInvasionGroup
+            Func<CsPartyData, bool> hasPersistentInvasion
         )
         {
             _spawnGroupService = spawnGroupService;
@@ -58,7 +58,7 @@ namespace CustomSpawns.Spawn
             _numberOfSpawns = new();
             _configLoader = configLoader;
             _dailyLogger = dailyLogger;
-            _hasPersistentInvasionGroup = hasPersistentInvasionGroup;
+            _hasPersistentInvasionGroup = hasPersistentInvasion;
             saveInitialiser.RunCallbackOnFirstCampaignTick(OnSaveStart);
             // Set the party size of a custom party to the size of the actual spawned party
             // This cancels the speed malus that is applied to non-lordly parties that are too big
@@ -299,10 +299,10 @@ namespace CustomSpawns.Spawn
         }
 
         internal static bool ShouldSuppressDeathMessage(CsPartyData partyData,
-            Func<CsPartyData, bool> hasPersistentInvasionGroup)
+            Func<CsPartyData, bool> hasPersistentInvasion)
         {
             return partyData.IsIndependentReinforcement || partyData.IsAdopted ||
-                   (partyData.IsPrimarySpawn && hasPersistentInvasionGroup(partyData));
+                   (partyData.IsPrimarySpawn && hasPersistentInvasion(partyData));
         }
 
         #endregion

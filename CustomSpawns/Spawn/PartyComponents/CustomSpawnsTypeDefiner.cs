@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using CustomSpawns.AI.Behaviours;
 using CustomSpawns.AI.Model;
 using CustomSpawns.Invasions.Adapters;
@@ -23,8 +23,8 @@ namespace CustomSpawns.Spawn.PartyComponents
             AddClassDefinition(typeof(CsPartyData), 2);
             AddClassDefinition(typeof(PatrolAroundClosestLestInterruptedAndSwitchBehaviour.PatrolState), 3);
             AddClassDefinition(typeof(SettlementOffensiveBehaviourState), 4);
-            AddClassDefinition(typeof(InvasionSaveData), 6);
-            AddClassDefinition(typeof(InvasionGroupSaveData), 7);
+            AddClassDefinition(typeof(InvasionStateSaveData), 6);
+            AddClassDefinition(typeof(InvasionSaveData), 7);
             AddClassDefinition(typeof(InvasionCaptureSaveData), 8);
             AddClassDefinition(typeof(InvasionFootholdSaveData), 9);
             AddClassDefinition(typeof(InvasionCaptureEvidenceSaveData), 10);
@@ -38,7 +38,7 @@ namespace CustomSpawns.Spawn.PartyComponents
 
         protected override void DefineContainerDefinitions()
         {
-            ConstructContainerDefinition(typeof(List<InvasionGroupSaveData>));
+            ConstructContainerDefinition(typeof(List<InvasionSaveData>));
             ConstructContainerDefinition(typeof(List<InvasionCaptureSaveData>));
             ConstructContainerDefinition(typeof(List<InvasionFootholdSaveData>));
             ConstructContainerDefinition(typeof(List<InvasionCaptureEvidenceSaveData>));

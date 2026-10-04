@@ -87,15 +87,15 @@ namespace CustomSpawns.Invasions.Adapters
 
         // Ownership and aftermath reach us as two unrelated native callbacks. Each records its half, and the
         // capture is confirmed only once both halves agree they describe the same siege.
-        internal bool ObserveOwnership(long captureId, string groupId, string capturerId, string previousOwnerClanId,
+        internal bool ObserveOwnership(long captureId, string invasionClanId, string capturerId, string previousOwnerClanId,
             string newOwnerClanId, bool bySiege)
         {
             var capture = _invasionState.FindCapture(captureId);
-            var group = _invasionState.FindGroup(groupId);
-            if (capture == null || capture.Cancelled || capture.IsConfirmed || group == null || group.IsSuspended ||
-                !bySiege || group.ClanId != newOwnerClanId || !group.Members.Contains(capturerId)) return false;
+            var invasion = _invasionState.FindInvasion(invasionClanId);
+            if (capture == null || capture.Cancelled || capture.IsConfirmed || invasion == null || invasion.IsSuspended ||
+                !bySiege || invasion.ClanId != newOwnerClanId || !invasion.Members.Contains(capturerId)) return false;
             if (capture.OwnershipObserved) return false;
-            capture.CapturingGroupId = groupId;
+            capture.CapturingInvasionClanId = invasionClanId;
             capture.CapturerId = capturerId;
             capture.PreviousOwnerClanId = previousOwnerClanId;
             capture.OwnershipObserved = true;
@@ -104,13 +104,13 @@ namespace CustomSpawns.Invasions.Adapters
         }
 
         internal bool ObserveAftermath(long captureId, string attackerId, string previousOwnerClanId,
-            IReadOnlyDictionary<string, string> participantGroups)
+            IReadOnlyDictionary<string, string> participantInvasions)
         {
             var capture = _invasionState.FindCapture(captureId);
             if (capture == null || capture.Cancelled || capture.IsConfirmed || capture.StartingAttackerId != attackerId) return false;
             if (capture.HasParticipants) return false;
             capture.AftermathPreviousOwnerClanId = previousOwnerClanId;
-            capture.Participants = participantGroups.Where(p => _invasionState.FindGroup(p.Value)?.Members.Contains(p.Key) == true)
+            capture.Participants = participantInvasions.Where(p => _invasionState.FindInvasion(p.Value)?.Members.Contains(p.Key) == true)
                 .ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
             capture.HasParticipants = true;
             TryConfirm(capture);
@@ -121,11 +121,11 @@ namespace CustomSpawns.Invasions.Adapters
         {
             if (!capture.OwnershipObserved || !capture.HasParticipants ||
                 capture.PreviousOwnerClanId != capture.AftermathPreviousOwnerClanId ||
-                !capture.Participants.TryGetValue(capture.CapturerId!, out string capturerGroupId) ||
-                capturerGroupId != capture.CapturingGroupId) return;
-            InvasionGroupState? group = _invasionState.FindGroup(capture.CapturingGroupId);
-            if (group == null || group.IsSuspended) return;
-            capture.Participants = capture.Participants.Where(p => p.Value == group.ClanId)
+                !capture.Participants.TryGetValue(capture.CapturerId!, out string capturerInvasionClanId) ||
+                capturerInvasionClanId != capture.CapturingInvasionClanId) return;
+            Invasion? invasion = _invasionState.FindInvasion(capture.CapturingInvasionClanId);
+            if (invasion == null || invasion.IsSuspended) return;
+            capture.Participants = capture.Participants.Where(p => p.Value == invasion.ClanId)
                 .ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
             capture.IsConfirmed = true;
             if (_invasionState.FootholdIndex.TryGetValue(capture.SettlementId, out var previous))
@@ -133,7 +133,7 @@ namespace CustomSpawns.Invasions.Adapters
                 var previousCapture = _invasionState.FindCapture(previous.CaptureId);
                 if (previousCapture != null) previousCapture.Cancelled = true;
             }
-            _invasionState.FootholdIndex[capture.SettlementId] = new InvasionFoothold(capture.SettlementId, group.ClanId, capture.Id);
+            _invasionState.FootholdIndex[capture.SettlementId] = new InvasionFoothold(capture.SettlementId, invasion.ClanId, capture.Id);
         }
 
         internal void Prune()
@@ -150,7 +150,7 @@ namespace CustomSpawns.Invasions.Adapters
             var capture = _invasionState.FindCapture(captureId);
             if (capturer == null || capture == null || !capture.OwnershipObserved || capture.IsConfirmed || capture.Cancelled ||
                 capture.PreviousOwnerClanId != previousOwnerClanId ||
-                _invasionState.FindGroup(capture.CapturingGroupId)?.ClanId != expectedOwnerClanId) return false;
+                _invasionState.FindInvasion(capture.CapturingInvasionClanId)?.ClanId != expectedOwnerClanId) return false;
             _events.Add(new object(), new NativeResult(captureId, previousOwnerClanId)
             {
                 Verified = true, Capturer = capturer, ExpectedOwnerClanId = expectedOwnerClanId,

@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using CustomSpawns.AI;
 using CustomSpawns.AI.Adapters;
 using CustomSpawns.AI.Barterables;
@@ -155,7 +155,7 @@ namespace CustomSpawns
                 _customSpawnsClanDiplomacyProvider, nonMercenaryCustomSpawnsFactionsProvider, _dailyLogger);
             _partySizeCalculatedSubject = new PartySizeCalculatedSubject();
             _spawnBehaviour = new SpawnBehaviour(_spawnGroupService, _spawnDao, _dynamicSpawnData, _saveInitialiser, _devestationMetricData, _configLoader, _messageBoxService, _dailyLogger, _modDebug, _partySizeCalculatedSubject,
-                _invasionCampaignBehaviour.HasPersistentInvasionGroup);
+                _invasionCampaignBehaviour.HasPersistentInvasion);
             _safePassageBehaviour = new SafePassageBehaviour(_spawnDao);
             _spawnCheats = new SpawnCheats(_spawnGroupService, _spawnDao);
         }

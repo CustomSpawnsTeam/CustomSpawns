@@ -52,11 +52,11 @@ namespace CustomSpawns.Invasions
 
     internal readonly struct InvasionReinforcementDraw
     {
-        internal InvasionReinforcementDraw(InvasionGroupState group, string ruleId,
+        internal InvasionReinforcementDraw(Invasion invasion, string ruleId,
             InvasionReinforcementOutcome outcome, string? landingSettlementId, string? clanId,
             double permittedStrength = 0)
         {
-            Group = group;
+            Invasion = invasion;
             RuleId = ruleId;
             Outcome = outcome;
             LandingSettlementId = landingSettlementId;
@@ -64,7 +64,7 @@ namespace CustomSpawns.Invasions
             PermittedStrength = permittedStrength;
         }
 
-        internal InvasionGroupState Group { get; }
+        internal Invasion Invasion { get; }
         // Which stream drew. The arrival is counted against this rule alone and spawns its template.
         internal string RuleId { get; }
         internal InvasionReinforcementOutcome Outcome { get; }
@@ -83,13 +83,13 @@ namespace CustomSpawns.Invasions
     {
         double NowInDays { get; }
         // In configuration order. Null when the invasion has nothing left to send with.
-        IReadOnlyList<InvasionReinforcementRule>? GetRules(InvasionGroupState group);
+        IReadOnlyList<InvasionReinforcementRule>? GetRules(Invasion invasion);
         bool IsCoastalTown(string settlementId);
-        // Towns the group holds that can take a landing.
-        IReadOnlyList<string> GetLandingSites(InvasionGroupState group);
-        int CountActiveReinforcements(InvasionGroupState group, string ruleId);
+        // Towns the invasion holds that can take a landing.
+        IReadOnlyList<string> GetLandingSites(Invasion invasion);
+        int CountActiveReinforcements(Invasion invasion, string ruleId);
         // Read again for every draw, so that a party landed a moment ago is already part of the strength.
-        InvasionStrengthBudget GetStrengthBudget(InvasionGroupState group);
+        InvasionStrengthBudget GetStrengthBudget(Invasion invasion);
         // Vanilla caps war parties per clan tier; a clan at its limit cannot take another arrival.
         bool HasPartySlot(string clanId);
     }
@@ -97,7 +97,7 @@ namespace CustomSpawns.Invasions
     /**
      * Reinforcements come by sea on a fixed cadence: taking a coastal town winds one clock per configured
      * rule, and every time one comes due the invasion draws a party at a port it still holds. The clocks
-     * are kept on the group so that they survive a save; every rule that winds or reads one lives here.
+     * are kept on the invasion so that they survive a save; every rule that winds or reads one lives here.
      */
     internal sealed class InvasionReinforcements
     {
@@ -114,26 +114,26 @@ namespace CustomSpawns.Invasions
         }
 
         // The clocks are wound once, by the first coastal town the invasion takes and holds.
-        internal InvasionGroupState? StartSchedule(long captureId)
+        internal Invasion? StartSchedule(long captureId)
         {
             InvasionCapture? capture = _invasionState.FindCapture(captureId);
-            InvasionGroupState? group = _invasionState.FindGroup(capture?.CapturingGroupId);
-            if (capture?.IsConfirmed != true || group == null) return null;
+            Invasion? invasion = _invasionState.FindInvasion(capture?.CapturingInvasionClanId);
+            if (capture?.IsConfirmed != true || invasion == null) return null;
 
-            IReadOnlyList<InvasionReinforcementRule>? rules = _invasionReinforcementQuery.GetRules(group);
+            IReadOnlyList<InvasionReinforcementRule>? rules = _invasionReinforcementQuery.GetRules(invasion);
             if (rules == null || !_invasionReinforcementQuery.IsCoastalTown(capture.SettlementId)) return null;
 
             double nowDays = _invasionReinforcementQuery.NowInDays;
             bool wound = false;
 
             foreach (InvasionReinforcementRule rule in rules.Where(rule =>
-                         group.FindReinforcementSchedule(rule.Id) == null))
+                         invasion.FindReinforcementSchedule(rule.Id) == null))
             {
-                group.WindReinforcementSchedule(rule.Id, rule.IntervalInDays, nowDays + rule.IntervalInDays);
+                invasion.WindReinforcementSchedule(rule.Id, rule.IntervalInDays, nowDays + rule.IntervalInDays);
                 wound = true;
             }
 
-            return wound ? group : null;
+            return wound ? invasion : null;
         }
 
         /**
@@ -149,16 +149,16 @@ namespace CustomSpawns.Invasions
         {
             double nowDays = _invasionReinforcementQuery.NowInDays;
 
-            foreach (InvasionGroupState group in new List<InvasionGroupState>(_invasionState.Groups))
+            foreach (Invasion invasion in new List<Invasion>(_invasionState.Invasions))
             {
-                IReadOnlyList<InvasionReinforcementRule> rules = _invasionReinforcementQuery.GetRules(group) ??
+                IReadOnlyList<InvasionReinforcementRule> rules = _invasionReinforcementQuery.GetRules(invasion) ??
                                                                  new List<InvasionReinforcementRule>();
 
-                foreach (InvasionReinforcementSchedule schedule in DrawOrder(group, rules))
+                foreach (InvasionReinforcementSchedule schedule in DrawOrder(invasion, rules))
                 {
                     if (TryClaimSlot(schedule, nowDays))
                     {
-                        yield return Draw(group, rules.FirstOrDefault(rule => rule.Id == schedule.RuleId), schedule);
+                        yield return Draw(invasion, rules.FirstOrDefault(rule => rule.Id == schedule.RuleId), schedule);
                     }
                 }
             }
@@ -194,12 +194,12 @@ namespace CustomSpawns.Invasions
          * contended in the order it was written. A clock whose rule the configuration no longer declares
          * draws last, and only to spend its slot.
          */
-        private static IReadOnlyList<InvasionReinforcementSchedule> DrawOrder(InvasionGroupState group,
+        private static IReadOnlyList<InvasionReinforcementSchedule> DrawOrder(Invasion invasion,
             IReadOnlyList<InvasionReinforcementRule> rules)
         {
-            var ordered = rules.Select(rule => group.FindReinforcementSchedule(rule.Id))
+            var ordered = rules.Select(rule => invasion.FindReinforcementSchedule(rule.Id))
                 .Where(schedule => schedule != null).Select(schedule => schedule!).ToList();
-            ordered.AddRange(group.ReinforcementSchedules.Where(schedule =>
+            ordered.AddRange(invasion.ReinforcementSchedules.Where(schedule =>
                 rules.All(rule => rule.Id != schedule.RuleId)));
             return ordered;
         }
@@ -215,28 +215,28 @@ namespace CustomSpawns.Invasions
             return true;
         }
 
-        private InvasionReinforcementDraw Draw(InvasionGroupState group, InvasionReinforcementRule? rule,
+        private InvasionReinforcementDraw Draw(Invasion invasion, InvasionReinforcementRule? rule,
             InvasionReinforcementSchedule schedule)
         {
-            if (rule == null || group.IsSuspended)
-                return new InvasionReinforcementDraw(group, schedule.RuleId,
+            if (rule == null || invasion.IsSuspended)
+                return new InvasionReinforcementDraw(invasion, schedule.RuleId,
                     InvasionReinforcementOutcome.Unavailable, null, null);
-            if (_invasionReinforcementQuery.CountActiveReinforcements(group, rule.Id) >= rule.MaxConcurrentParties)
-                return new InvasionReinforcementDraw(group, rule.Id,
+            if (_invasionReinforcementQuery.CountActiveReinforcements(invasion, rule.Id) >= rule.MaxConcurrentParties)
+                return new InvasionReinforcementDraw(invasion, rule.Id,
                     InvasionReinforcementOutcome.MaxConcurrentPartiesReached, null, null);
 
-            double headroom = Headroom(_invasionReinforcementQuery.GetStrengthBudget(group));
+            double headroom = Headroom(_invasionReinforcementQuery.GetStrengthBudget(invasion));
             if (headroom <= 0)
-                return new InvasionReinforcementDraw(group, rule.Id,
+                return new InvasionReinforcementDraw(invasion, rule.Id,
                     InvasionReinforcementOutcome.FactionStrengthReached, null, null);
 
-            IReadOnlyList<string> landingSites = _invasionReinforcementQuery.GetLandingSites(group);
+            IReadOnlyList<string> landingSites = _invasionReinforcementQuery.GetLandingSites(invasion);
             // The arrival joins the first clan of the invasion that still has room for a war party.
             return landingSites.Count == 0
-                ? new InvasionReinforcementDraw(group, rule.Id, InvasionReinforcementOutcome.NoLandingSite, null, null)
-                : new InvasionReinforcementDraw(group, rule.Id, InvasionReinforcementOutcome.Landing,
+                ? new InvasionReinforcementDraw(invasion, rule.Id, InvasionReinforcementOutcome.NoLandingSite, null, null)
+                : new InvasionReinforcementDraw(invasion, rule.Id, InvasionReinforcementOutcome.Landing,
                     landingSites[_selectIndex(landingSites.Count)],
-                    group.ClanIds.FirstOrDefault(_invasionReinforcementQuery.HasPartySlot), headroom);
+                    invasion.ClanIds.FirstOrDefault(_invasionReinforcementQuery.HasPartySlot), headroom);
         }
     }
 }
