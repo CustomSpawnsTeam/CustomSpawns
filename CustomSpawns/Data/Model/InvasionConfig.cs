@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Xml.Serialization;
 
 namespace CustomSpawns.Data.Model
@@ -26,6 +27,17 @@ namespace CustomSpawns.Data.Model
 
     public sealed class InvasionReinforcementsConfig
     {
+        [XmlElement("Rule")]
+        public List<InvasionReinforcementRuleConfig> Rules { get; set; } = new();
+    }
+
+    public sealed class InvasionReinforcementRuleConfig
+    {
+        // Names the rule's own clock and its own concurrent count, so editing or reordering the
+        // configuration does not move a running schedule onto another rule.
+        [XmlElement("Id")]
+        public string? Id { get; set; }
+
         [XmlElement("PartyTemplateId")]
         public string? PartyTemplateId { get; set; }
 
@@ -44,24 +56,50 @@ namespace CustomSpawns.Data.Model
             {
                 throw new ArgumentNullException(nameof(config));
             }
-            if (config.Supplies == null || config.Reinforcements == null)
+            if (config.Supplies == null || config.Reinforcements?.Rules == null)
             {
                 throw new ArgumentException("Invasion configuration groups cannot be null.");
             }
 
             ValidateNonNegativeFinite("Invasion Supplies FoodStockFloor", config.Supplies.FoodStockFloor);
             ValidateNonNegativeFinite("Invasion Supplies DailyFoodBonus", config.Supplies.DailyFoodBonus);
-            if (string.IsNullOrWhiteSpace(config.Reinforcements.PartyTemplateId))
+            if (config.Reinforcements.Rules.Count == 0)
             {
-                throw new ArgumentException("Invasion Reinforcements PartyTemplateId is required.");
+                throw new ArgumentException("Invasion Reinforcements requires at least one Rule.");
             }
-            if (!IsFinite(config.Reinforcements.IntervalInDays) || config.Reinforcements.IntervalInDays <= 0f)
+
+            var ids = new HashSet<string>(StringComparer.Ordinal);
+
+            foreach (InvasionReinforcementRuleConfig rule in config.Reinforcements.Rules)
             {
-                throw new ArgumentException("Invasion Reinforcements IntervalInDays must be finite and greater than zero.");
+                ValidateRule(rule, ids);
             }
-            if (config.Reinforcements.MaxConcurrentParties <= 0)
+        }
+
+        private static void ValidateRule(InvasionReinforcementRuleConfig rule, HashSet<string> ids)
+        {
+            if (string.IsNullOrWhiteSpace(rule.Id))
             {
-                throw new ArgumentException("Invasion Reinforcements MaxConcurrentParties must be greater than zero.");
+                throw new ArgumentException("Invasion Reinforcements Rule Id is required.");
+            }
+            if (!ids.Add(rule.Id!))
+            {
+                throw new ArgumentException("Invasion Reinforcements Rule Id '" + rule.Id + "' is used twice.");
+            }
+            if (string.IsNullOrWhiteSpace(rule.PartyTemplateId))
+            {
+                throw new ArgumentException("Invasion Reinforcements Rule '" + rule.Id +
+                                           "' PartyTemplateId is required.");
+            }
+            if (!IsFinite(rule.IntervalInDays) || rule.IntervalInDays <= 0f)
+            {
+                throw new ArgumentException("Invasion Reinforcements Rule '" + rule.Id +
+                                           "' IntervalInDays must be finite and greater than zero.");
+            }
+            if (rule.MaxConcurrentParties <= 0)
+            {
+                throw new ArgumentException("Invasion Reinforcements Rule '" + rule.Id +
+                                           "' MaxConcurrentParties must be greater than zero.");
             }
         }
 

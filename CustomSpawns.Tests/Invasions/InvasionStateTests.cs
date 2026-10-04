@@ -24,9 +24,10 @@ namespace CustomSpawns.Tests.Invasions
         [Test]
         public void OriginalsAndEscortsShareGroupAndDeadlineButOtherClansAndTemplatesAreIsolated()
         {
-            _group.NextReinforcementDeadlineDays = 12;
+            _group.WindReinforcementSchedule("infantry", 7, 12);
             Assert.AreSame(_group, _state.RegisterMember("invasion", "clan", "second-original"));
-            Assert.AreEqual(12, _state.RegisterMember("invasion", "clan", "escort").NextReinforcementDeadlineDays);
+            Assert.AreEqual(12, _state.RegisterMember("invasion", "clan", "escort").ReinforcementSchedules
+                .Single(schedule => schedule.RuleId == "infantry").NextDeadlineDays);
             Assert.AreNotSame(_group, _state.RegisterMember("invasion", "other-clan", "foreign"));
             Assert.AreNotSame(_group, _state.RegisterMember("other-template", "clan", "other-group"));
             Assert.That(_group.MemberPartyIds, Is.EquivalentTo(new[] { "capturer", "second-original", "escort" }));
@@ -183,13 +184,13 @@ namespace CustomSpawns.Tests.Invasions
         public void ConfirmedPendingSurvivesSaveWithNoLiveMapEventAndNoDuplicatePackage()
         {
             var capture = Conquer();
-            _group.NextReinforcementDeadlineDays = 45.5;
+            _group.WindReinforcementSchedule("infantry", 7, 45.5);
             _state = RoundTrip();
             _state.DiscardUnboundCaptures(new HashSet<long>());
             var saved = _state.FindCapture(capture.Id)!;
             Assert.True(saved.IsConfirmed);
             Assert.False(saved.Cancelled);
-            Assert.AreEqual(45.5, _state.Groups.Single().NextReinforcementDeadlineDays);
+            Assert.AreEqual(45.5, _state.Groups.Single().ReinforcementSchedules.Single().NextDeadlineDays);
             Assert.That(saved.ParticipantPartyIds, Is.EquivalentTo(new[] { "capturer" }));
             Assert.True(_state.CompleteOccupation(saved.Id, "clan"));
             Assert.False(RoundTrip().CompleteOccupation(saved.Id, "clan"));

@@ -28,6 +28,7 @@ namespace CustomSpawns.Spawn.PartyComponents
             AddClassDefinition(typeof(InvasionCaptureSaveData), 8);
             AddClassDefinition(typeof(InvasionFootholdSaveData), 9);
             AddClassDefinition(typeof(InvasionCaptureEvidenceSaveData), 10);
+            AddClassDefinition(typeof(InvasionReinforcementScheduleSaveData), 11);
         }
 
         protected override void DefineEnumTypes()
@@ -41,6 +42,7 @@ namespace CustomSpawns.Spawn.PartyComponents
             ConstructContainerDefinition(typeof(List<InvasionCaptureSaveData>));
             ConstructContainerDefinition(typeof(List<InvasionFootholdSaveData>));
             ConstructContainerDefinition(typeof(List<InvasionCaptureEvidenceSaveData>));
+            ConstructContainerDefinition(typeof(List<InvasionReinforcementScheduleSaveData>));
             ConstructContainerDefinition(typeof(List<MobileParty>));
             ConstructContainerDefinition(typeof(List<string>));
             ConstructContainerDefinition(typeof(Dictionary<string, string>));

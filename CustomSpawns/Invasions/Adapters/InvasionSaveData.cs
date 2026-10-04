@@ -56,10 +56,9 @@ namespace CustomSpawns.Invasions.Adapters
         [SaveableField(2)] public string SpawnTemplateId = "";
         [SaveableField(3)] public string ClanId = "";
         [SaveableField(5)] public bool IsSuspended;
-        [SaveableField(6)] public double NextReinforcementDeadlineDays;
         [SaveableField(7)] public List<string> Members = new();
-        [SaveableField(8)] public double ReinforcementIntervalDays;
         [SaveableField(9)] public List<string> ClanIds = new();
+        [SaveableField(10)] public List<InvasionReinforcementScheduleSaveData> ReinforcementSchedules = new();
 
         internal static InvasionGroupSaveData FromState(InvasionGroupState value) => new()
         {
@@ -67,10 +66,10 @@ namespace CustomSpawns.Invasions.Adapters
             SpawnTemplateId = value.SpawnTemplateId,
             ClanId = value.ClanId,
             IsSuspended = value.IsSuspended,
-            NextReinforcementDeadlineDays = value.NextReinforcementDeadlineDays,
-            ReinforcementIntervalDays = value.ReinforcementIntervalDays,
             Members = value.Members.ToList(),
-            ClanIds = value.ClanIds.ToList()
+            ClanIds = value.ClanIds.ToList(),
+            ReinforcementSchedules = value.ReinforcementSchedules
+                .Select(InvasionReinforcementScheduleSaveData.FromState).ToList()
         };
 
         internal InvasionGroupState ToState()
@@ -78,14 +77,28 @@ namespace CustomSpawns.Invasions.Adapters
             var group = new InvasionGroupState(Id, SpawnTemplateId, ClanId)
             {
                 IsSuspended = IsSuspended,
-                NextReinforcementDeadlineDays = NextReinforcementDeadlineDays,
-                ReinforcementIntervalDays = ReinforcementIntervalDays,
                 Members = new HashSet<string>(Members ?? new List<string>(), StringComparer.Ordinal)
             };
             // A save taken before the invasion could expand carries the founding clan alone.
             foreach (string clanId in ClanIds ?? new List<string>()) group.AddClan(clanId);
+            foreach (var schedule in ReinforcementSchedules ?? new List<InvasionReinforcementScheduleSaveData>())
+                group.WindReinforcementSchedule(schedule.RuleId, schedule.IntervalDays, schedule.NextDeadlineDays);
             return group;
         }
+    }
+
+    public sealed class InvasionReinforcementScheduleSaveData
+    {
+        [SaveableField(1)] public string RuleId = "";
+        [SaveableField(2)] public double IntervalDays;
+        [SaveableField(3)] public double NextDeadlineDays;
+
+        internal static InvasionReinforcementScheduleSaveData FromState(InvasionReinforcementSchedule value) => new()
+        {
+            RuleId = value.RuleId,
+            IntervalDays = value.IntervalDays,
+            NextDeadlineDays = value.NextDeadlineDays
+        };
     }
 
     public sealed class InvasionCaptureSaveData

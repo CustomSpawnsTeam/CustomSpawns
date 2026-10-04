@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using CustomSpawns.Data.Dto;
 using CustomSpawns.Data.Model;
 
@@ -8,10 +10,11 @@ namespace CustomSpawns.Data.Adapter
         public static InvasionData Adapt(InvasionConfig config)
         {
             InvasionConfigValidator.Validate(config);
+            List<InvasionReinforcementRuleData> rules = config.Reinforcements.Rules
+                .Select(rule => new InvasionReinforcementRuleData(rule.Id!, rule.PartyTemplateId!,
+                    rule.IntervalInDays, rule.MaxConcurrentParties)).ToList();
             return new InvasionData(config.RequiresFirstCoastalConquest, config.Supplies.FoodStockFloor,
-                config.Supplies.DailyFoodBonus,
-                config.Reinforcements.PartyTemplateId!, config.Reinforcements.IntervalInDays,
-                config.Reinforcements.MaxConcurrentParties);
+                config.Supplies.DailyFoodBonus, rules);
         }
     }
 }

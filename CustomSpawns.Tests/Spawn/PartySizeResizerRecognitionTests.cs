@@ -50,7 +50,13 @@ namespace CustomSpawns.Tests.Spawn
             spawnDao.Setup(dao => dao.FindAllSubPartyTemplateId()).Returns(new HashSet<string> { "escort_party" });
             spawnDao.Setup(dao => dao.FindAll()).Returns(new List<SpawnDto>
             {
-                new() { Invasion = new InvasionData(false, 0, 0, "reinforcement_party", 0, 0) }
+                new()
+                {
+                    Invasion = new InvasionData(false, 0, 0, new[]
+                    {
+                        new InvasionReinforcementRuleData("infantry", "reinforcement_party", 7, 1)
+                    })
+                }
             });
 
             // The resizer keeps its collaborators statically: constructing it is how they are installed.

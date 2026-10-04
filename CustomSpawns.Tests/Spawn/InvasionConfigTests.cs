@@ -31,8 +31,9 @@ namespace CustomSpawns.Tests.Spawn
         {
             const string invasion = "<Invasion><Supplies><FoodStockFloor>30</FoodStockFloor><DailyFoodBonus>5</DailyFoodBonus>" +
                                     "</Supplies>" +
-                                    "<Reinforcements><PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId>" +
-                                    "<MaxConcurrentParties>2</MaxConcurrentParties></Reinforcements></Invasion>";
+                                    "<Reinforcements><Rule><Id>infantry</Id>" +
+                                    "<PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId>" +
+                                    "<MaxConcurrentParties>2</MaxConcurrentParties></Rule></Reinforcements></Invasion>";
             Spawns spawns = Read("<RegularBanditDailySpawnData party_template=\"PartyTemplate.invasion\">" + invasion +
                                  "</RegularBanditDailySpawnData>", out List<System.Exception> errors);
 
@@ -44,18 +45,77 @@ namespace CustomSpawns.Tests.Spawn
                 Assert.That(data.RequiresFirstCoastalConquest, Is.False);
                 Assert.That(data.FoodStockFloor, Is.EqualTo(30f));
                 Assert.That(data.DailyFoodBonus, Is.EqualTo(5f));
-                Assert.That(data.ReinforcementPartyTemplateId, Is.EqualTo("PartyTemplate.reinforcements"));
-                Assert.That(data.ReinforcementIntervalInDays, Is.EqualTo(7f));
-                Assert.That(data.ReinforcementMaxConcurrentParties, Is.EqualTo(2));
+                Assert.That(data.ReinforcementRules.Single().Id, Is.EqualTo("infantry"));
+                Assert.That(data.ReinforcementRules.Single().PartyTemplateId, Is.EqualTo("PartyTemplate.reinforcements"));
+                Assert.That(data.ReinforcementRules.Single().IntervalInDays, Is.EqualTo(7f));
+                Assert.That(data.ReinforcementRules.Single().MaxConcurrentParties, Is.EqualTo(2));
             });
+        }
+
+        [Test]
+        public void Adapt_SeveralRulesKeepTheirConfigurationOrder()
+        {
+            const string invasion = "<Invasion><Reinforcements>" +
+                                    "<Rule><Id>infantry</Id><PartyTemplateId>PartyTemplate.infantry</PartyTemplateId>" +
+                                    "<IntervalInDays>5</IntervalInDays></Rule>" +
+                                    "<Rule><Id>cavalry</Id><PartyTemplateId>PartyTemplate.cavalry</PartyTemplateId>" +
+                                    "<IntervalInDays>21</IntervalInDays><MaxConcurrentParties>3</MaxConcurrentParties>" +
+                                    "</Rule></Reinforcements></Invasion>";
+            Spawns spawns = Read("<RegularBanditDailySpawnData party_template=\"PartyTemplate.invasion\">" + invasion +
+                                 "</RegularBanditDailySpawnData>", out List<System.Exception> errors);
+
+            InvasionData data = InvasionDtoAdapter.Adapt(spawns.AllSpawns.Single().Invasion!);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(errors, Is.Empty);
+                Assert.That(data.ReinforcementRules.Select(rule => rule.Id), Is.EqualTo(new[] { "infantry", "cavalry" }));
+                Assert.That(data.ReinforcementRules.Select(rule => rule.IntervalInDays), Is.EqualTo(new[] { 5f, 21f }));
+                Assert.That(data.ReinforcementRules.Select(rule => rule.MaxConcurrentParties), Is.EqualTo(new[] { 1, 3 }));
+            });
+        }
+
+        [Test]
+        public void Adapt_RejectsTwoRulesSharingOneId()
+        {
+            InvasionConfig config = ValidConfig();
+            config.Reinforcements.Rules.Add(new InvasionReinforcementRuleConfig
+            {
+                Id = "infantry", PartyTemplateId = "PartyTemplate.other"
+            });
+
+            ArgumentException error = Assert.Throws<ArgumentException>(() => InvasionDtoAdapter.Adapt(config))!;
+
+            Assert.That(error.Message, Does.Contain("'infantry' is used twice"));
+        }
+
+        [Test]
+        public void Adapt_RejectsARuleWithoutAnId()
+        {
+            InvasionConfig config = ValidConfig();
+            config.Reinforcements.Rules.Single().Id = null;
+
+            ArgumentException error = Assert.Throws<ArgumentException>(() => InvasionDtoAdapter.Adapt(config))!;
+
+            Assert.That(error.Message, Does.Contain("Id"));
+        }
+
+        [Test]
+        public void Adapt_RejectsAnInvasionWithoutAnyRule()
+        {
+            InvasionConfig config = ValidConfig();
+            config.Reinforcements.Rules.Clear();
+
+            Assert.Throws<ArgumentException>(() => InvasionDtoAdapter.Adapt(config));
         }
 
         [Test]
         public void Adapt_ExplicitCoastalConquestRequirementEnablesInitialCoastalTargeting()
         {
             const string invasion = "<Invasion><RequiresFirstCoastalConquest>true</RequiresFirstCoastalConquest>" +
-                                    "<Reinforcements><PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId>" +
-                                    "</Reinforcements></Invasion>";
+                                    "<Reinforcements><Rule><Id>infantry</Id>" +
+                                    "<PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId>" +
+                                    "</Rule></Reinforcements></Invasion>";
             Spawns spawns = Read("<RegularBanditDailySpawnData party_template=\"PartyTemplate.invasion\">" +
                                  invasion + "</RegularBanditDailySpawnData>", out List<System.Exception> errors);
 
@@ -72,9 +132,9 @@ namespace CustomSpawns.Tests.Spawn
         public void DeserializeAndResolve_LegacyCoastalTownElementsAreIgnored()
         {
             const string invasion = "<Invasion><Foothold><CoastalTownIds><TownId>town_V7</TownId>" +
-                                    "</CoastalTownIds></Foothold><Reinforcements>" +
+                                    "</CoastalTownIds></Foothold><Reinforcements><Rule><Id>infantry</Id>" +
                                     "<PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId>" +
-                                    "</Reinforcements></Invasion>";
+                                    "</Rule></Reinforcements></Invasion>";
             Spawns spawns = Read("<RegularBanditDailySpawnData party_template=\"PartyTemplate.invasion\">" +
                                  invasion + "</RegularBanditDailySpawnData>", out List<System.Exception> errors);
 
@@ -83,8 +143,8 @@ namespace CustomSpawns.Tests.Spawn
             Assert.Multiple(() =>
             {
                 Assert.That(errors, Is.Empty);
-                Assert.That(data.ReinforcementPartyTemplateId, Is.EqualTo("PartyTemplate.reinforcements"));
-                Assert.That(data.ReinforcementIntervalInDays, Is.EqualTo(7f));
+                Assert.That(data.ReinforcementRules.Single().PartyTemplateId, Is.EqualTo("PartyTemplate.reinforcements"));
+                Assert.That(data.ReinforcementRules.Single().IntervalInDays, Is.EqualTo(7f));
             });
         }
 
@@ -93,7 +153,8 @@ namespace CustomSpawns.Tests.Spawn
         {
             const string invalid = "<RegularBanditDailySpawnData party_template=\"PartyTemplate.invalid\"><Invasion>" +
                                    "<Supplies><FoodStockFloor>-1</FoodStockFloor></Supplies>" +
-                                   "<Reinforcements><PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId></Reinforcements>" +
+                                   "<Reinforcements><Rule><Id>infantry</Id>" +
+                                   "<PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId></Rule></Reinforcements>" +
                                    "</Invasion></RegularBanditDailySpawnData>";
             const string valid = "<RegularBanditDailySpawnData party_template=\"PartyTemplate.legacy\" />";
 
@@ -128,10 +189,10 @@ namespace CustomSpawns.Tests.Spawn
 
             ArgumentException template = Assert.Throws<ArgumentException>(() =>
                 InvasionRuntimeConfigurationValidator.ValidateReferences(invasion, "PartyTemplate.origin", false,
-                    false))!;
+                    _ => false))!;
             ArgumentException bandit = Assert.Throws<ArgumentException>(() =>
                 InvasionRuntimeConfigurationValidator.ValidateReferences(invasion, "PartyTemplate.origin", true,
-                    true))!;
+                    _ => true))!;
 
             Assert.Multiple(() =>
             {
@@ -165,7 +226,7 @@ namespace CustomSpawns.Tests.Spawn
                 0f, 0f, 1f, 0f, 0f, 0f);
 
             Assert.DoesNotThrow(() => InvasionRuntimeConfigurationValidator.ValidateReferences(invasion,
-                "PartyTemplate.origin", false, true));
+                "PartyTemplate.origin", false, _ => true));
             Assert.DoesNotThrow(() => InvasionRuntimeConfigurationValidator.ValidateEffectiveSiegeTemplate(
                 "PartyTemplate.origin", "siege", true, new PriorityPartyBehaviourData[] { townTargeting }));
         }
@@ -186,7 +247,13 @@ namespace CustomSpawns.Tests.Spawn
         {
             return new InvasionConfig
             {
-                Reinforcements = new InvasionReinforcementsConfig { PartyTemplateId = "PartyTemplate.reinforcements" }
+                Reinforcements = new InvasionReinforcementsConfig
+                {
+                    Rules = new List<InvasionReinforcementRuleConfig>
+                    {
+                        new() { Id = "infantry", PartyTemplateId = "PartyTemplate.reinforcements" }
+                    }
+                }
             };
         }
     }

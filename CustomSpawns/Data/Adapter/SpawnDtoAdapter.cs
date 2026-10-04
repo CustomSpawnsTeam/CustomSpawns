@@ -131,7 +131,7 @@ namespace CustomSpawns.Data.Adapter
             {
                 dat.Invasion = InvasionDtoAdapter.Adapt(spawn.Invasion);
                 InvasionRuntimeConfigurationValidator.ValidateReferences(dat.Invasion, spawn.PartyTemplate,
-                    dat.SpawnClan.IsBanditFaction, ReinforcementTemplateExists(dat.Invasion.ReinforcementPartyTemplateId));
+                    dat.SpawnClan.IsBanditFaction, ReinforcementTemplateExists);
                 ValidateInvasionBehaviourTemplate(spawn.PartyTemplate, dat.PriorityPartyBehaviourTemplateId);
             }
 

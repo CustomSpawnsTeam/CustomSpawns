@@ -51,8 +51,9 @@ namespace CustomSpawns.Invasions.Adapters
             }
 
             Logger.Info("Invasion coastal foothold gained: group=" + group.Id + " town=" +
-                        _invasionState.FindCapture(captureId)!.SettlementId + " next_arrival_day=" +
-                        group.NextReinforcementDeadlineDays);
+                        _invasionState.FindCapture(captureId)!.SettlementId + " next_arrival_days=" +
+                        string.Join(",", group.ReinforcementSchedules.Select(schedule =>
+                            schedule.RuleId + "@" + schedule.NextDeadlineDays)));
         }
 
         internal void LandDue()
@@ -66,7 +67,7 @@ namespace CustomSpawns.Invasions.Adapters
                 else
                 {
                     Logger.Info("Invasion reinforcement slot skipped: group=" + draw.Group.Id +
-                                " reason=" + SkipReason(draw.Outcome));
+                                " rule=" + draw.RuleId + " reason=" + SkipReason(draw.Outcome));
                 }
             }
         }
@@ -77,17 +78,17 @@ namespace CustomSpawns.Invasions.Adapters
 
         private void Land(InvasionReinforcementDraw draw)
         {
-            InvasionData? configuration = GetConfiguration(draw.Group);
+            InvasionReinforcementRuleData? rule = FindRule(draw.Group, draw.RuleId);
             SpawnDto? spawn = _spawnDao.FindByPartyTemplateId(draw.Group.SpawnTemplateId);
             Settlement? landing = Settlement.Find(draw.LandingSettlementId!);
-            PartyTemplateObject? template = configuration == null ? null :
-                Campaign.Current.ObjectManager.GetObject<PartyTemplateObject>(configuration.ReinforcementPartyTemplateId);
+            PartyTemplateObject? template = rule == null ? null :
+                Campaign.Current.ObjectManager.GetObject<PartyTemplateObject>(rule.PartyTemplateId);
 
             if (spawn == null || template == null || landing == null ||
                 !IsEligibleLandingSettlement(landing, draw.Group))
             {
                 Logger.Info("Invasion reinforcement slot skipped: group=" + draw.Group.Id +
-                            " reason=template_or_port_changed");
+                            " rule=" + draw.RuleId + " reason=template_or_port_changed");
                 return;
             }
 
@@ -98,14 +99,16 @@ namespace CustomSpawns.Invasions.Adapters
             if (clan == null)
             {
                 Logger.Info("Invasion reinforcement slot skipped: group=" + draw.Group.Id +
-                            " reason=no_clan_to_take_the_party");
+                            " rule=" + draw.RuleId + " reason=no_clan_to_take_the_party");
                 return;
             }
 
-            MobileParty? reinforcement = _spawnGroupService.SpawnInvasionReinforcement(spawn, template, landing, clan);
+            MobileParty? reinforcement = _spawnGroupService.SpawnInvasionReinforcement(spawn, template, landing, clan,
+                draw.RuleId);
             Logger.Info("Invasion reinforcement " + (reinforcement == null ? "failed" : "arrived") + ": group=" +
-                        draw.Group.Id + " clan=" + clan.StringId + " town=" + landing.StringId +
-                        " next_arrival_day=" + draw.Group.NextReinforcementDeadlineDays);
+                        draw.Group.Id + " rule=" + draw.RuleId + " clan=" + clan.StringId + " town=" +
+                        landing.StringId + " next_arrival_day=" +
+                        draw.Group.FindReinforcementSchedule(draw.RuleId)?.NextDeadlineDays);
         }
 
         /**
@@ -154,15 +157,15 @@ namespace CustomSpawns.Invasions.Adapters
 
         double IInvasionReinforcementQuery.NowInDays => CampaignTime.Now.ToDays;
 
-        InvasionReinforcementSettings? IInvasionReinforcementQuery.GetSettings(InvasionGroupState group)
+        IReadOnlyList<InvasionReinforcementRule>? IInvasionReinforcementQuery.GetRules(InvasionGroupState group)
         {
             InvasionData? configuration = GetConfiguration(group);
             Clan? clan = Clan.FindFirst(candidate => candidate.StringId == group.ClanId);
 
             return configuration == null || clan?.IsEliminated != false
                 ? null
-                : new InvasionReinforcementSettings(configuration.ReinforcementIntervalInDays,
-                    configuration.ReinforcementMaxConcurrentParties);
+                : configuration.ReinforcementRules.Select(rule => new InvasionReinforcementRule(rule.Id,
+                    rule.IntervalInDays, rule.MaxConcurrentParties)).ToList();
         }
 
         bool IInvasionReinforcementQuery.IsCoastalTown(string settlementId) =>
@@ -172,9 +175,11 @@ namespace CustomSpawns.Invasions.Adapters
             Settlement.All.Where(settlement => IsEligibleLandingSettlement(settlement, group))
                 .Select(settlement => settlement.StringId).ToList();
 
-        int IInvasionReinforcementQuery.CountActiveReinforcements(InvasionGroupState group) =>
+        // Each rule holds its own count, so a stream at its ceiling never holds another stream off.
+        int IInvasionReinforcementQuery.CountActiveReinforcements(InvasionGroupState group, string ruleId) =>
             MobileParty.All.Count(party => party.IsActive && _dynamicSpawnData.GetDynamicSpawnData(party) is { } data &&
-                CountsAgainstMaxConcurrentParties(data, group));
+                CountsAgainstMaxConcurrentParties(data, group) &&
+                string.Equals(data.ReinforcementRuleId, ruleId, StringComparison.Ordinal));
 
         /**
          * Only a party this invasion landed spends its cap. A party it merely took back from the game
@@ -223,5 +228,8 @@ namespace CustomSpawns.Invasions.Adapters
 
         private InvasionData? GetConfiguration(InvasionGroupState group) =>
             _spawnDao.FindByPartyTemplateId(group.SpawnTemplateId)?.Invasion;
+
+        private InvasionReinforcementRuleData? FindRule(InvasionGroupState group, string ruleId) =>
+            GetConfiguration(group)?.ReinforcementRules.FirstOrDefault(rule => rule.Id == ruleId);
     }
 }

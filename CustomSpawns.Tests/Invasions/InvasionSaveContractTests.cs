@@ -17,6 +17,7 @@ namespace CustomSpawns.Tests.Invasions
         [TestCase(typeof(InvasionCaptureSaveData), 8)]
         [TestCase(typeof(InvasionFootholdSaveData), 9)]
         [TestCase(typeof(InvasionCaptureEvidenceSaveData), 10)]
+        [TestCase(typeof(InvasionReinforcementScheduleSaveData), 11)]
         public void SaveTypesAppendAfterExistingIds(Type type, int localId)
         {
             var context = new DefinitionContext();
@@ -34,7 +35,7 @@ namespace CustomSpawns.Tests.Invasions
         [Test]
         public void PureStateHasNoSaveAttributesOrEngineFields()
         {
-            foreach (Type type in new[] { typeof(InvasionState), typeof(InvasionGroupState), typeof(InvasionFoothold), typeof(InvasionCapture) })
+            foreach (Type type in new[] { typeof(InvasionState), typeof(InvasionGroupState), typeof(InvasionFoothold), typeof(InvasionCapture), typeof(InvasionReinforcementSchedule) })
             foreach (FieldInfo field in type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
             {
                 Assert.IsNull(field.GetCustomAttribute<SaveableFieldAttribute>(), type.Name + "." + field.Name);
@@ -47,6 +48,7 @@ namespace CustomSpawns.Tests.Invasions
         [TestCase(typeof(InvasionCaptureSaveData))]
         [TestCase(typeof(InvasionFootholdSaveData))]
         [TestCase(typeof(InvasionCaptureEvidenceSaveData))]
+        [TestCase(typeof(InvasionReinforcementScheduleSaveData))]
         public void BoundarySnapshotFieldsAllHaveDistinctSaveIds(Type type)
         {
             var fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public);

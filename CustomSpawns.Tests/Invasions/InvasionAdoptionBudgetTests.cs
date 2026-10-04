@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
 using CustomSpawns.Data.Adapter;
@@ -51,6 +52,12 @@ namespace CustomSpawns.Tests.Invasions
         public void TheBudgetIsThePrimariesTheSpawnerKeepsPlusTheLandingsTheInvasionMayHold()
         {
             Assert.AreEqual(6, InvasionMembership.PartyBudget(Spawn(maximumOnMap: 2, maxConcurrentParties: 3)));
+        }
+
+        [Test]
+        public void TheBudgetCountsTheLandingsOfEveryReinforcementRule()
+        {
+            Assert.AreEqual(9, InvasionMembership.PartyBudget(Spawn(maximumOnMap: 2, new[] { 3, 2, 1 })));
         }
 
         // The spawner tests its count before incrementing it, so MaximumOnMap names one primary fewer than it keeps.
@@ -124,7 +131,10 @@ namespace CustomSpawns.Tests.Invasions
             return new InvasionMembership(_state, spawnDao, _dynamicSpawnData, null!);
         }
 
-        private static SpawnDto Spawn(int maximumOnMap, int maxConcurrentParties)
+        private static SpawnDto Spawn(int maximumOnMap, int maxConcurrentParties) =>
+            Spawn(maximumOnMap, new[] { maxConcurrentParties });
+
+        private static SpawnDto Spawn(int maximumOnMap, IReadOnlyList<int> maxConcurrentPartiesPerRule)
         {
             var template = (PartyTemplateObject)FormatterServices.GetUninitializedObject(typeof(PartyTemplateObject));
             template.StringId = "invasion";
@@ -133,7 +143,9 @@ namespace CustomSpawns.Tests.Invasions
                 PartyTemplate = template,
                 MaximumOnMap = maximumOnMap,
                 SpawnAlongWith = new ReadOnlyCollection<AccompanyingParty>(new List<AccompanyingParty>()),
-                Invasion = new InvasionData(false, 0f, 0f, "reinforcement", 1f, maxConcurrentParties)
+                Invasion = new InvasionData(false, 0f, 0f, maxConcurrentPartiesPerRule
+                    .Select((maxConcurrentParties, index) => new InvasionReinforcementRuleData("rule_" + index,
+                        "reinforcement", 1f, maxConcurrentParties)).ToList())
             };
         }
 

@@ -62,8 +62,8 @@ namespace CustomSpawns.Spawn.PartySize
             string isolatedPartyStringId = CampaignUtils.IsolateMobilePartyStringID(mobileParty);
             return _spawnDao!.FindAllPartyTemplateId().Any(spawnId => spawnId.Equals(isolatedPartyStringId))
                    || _spawnDao.FindAllSubPartyTemplateId().Any(spawnId => spawnId.Equals(isolatedPartyStringId))
-                   || _spawnDao.FindAll().Any(spawn => spawn.Invasion?.ReinforcementPartyTemplateId ==
-                       isolatedPartyStringId);
+                   || _spawnDao.FindAll().Any(spawn => spawn.Invasion?.ReinforcementRules
+                       .Any(rule => rule.PartyTemplateId == isolatedPartyStringId) == true);
         }
         
         private static bool IsInitialPartySizeResized(ExplainedNumber explainedPartySize)

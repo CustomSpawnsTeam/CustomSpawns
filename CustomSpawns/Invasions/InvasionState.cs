@@ -143,12 +143,34 @@ namespace CustomSpawns.Invasions
         public bool HoldsClan(string? clanId) => clanId != null && Clans.Contains(clanId);
         internal void AddClan(string clanId) { if (!Clans.Contains(clanId)) Clans.Add(clanId); }
         public bool IsSuspended { get; internal set; }
-        // Zero means no deadline has been established yet. Scheduling is a separate feature.
-        public double NextReinforcementDeadlineDays { get; internal set; }
-        // Retained after configuration removal so a due slot is consumed once rather than retried daily.
-        public double ReinforcementIntervalDays { get; internal set; }
+        // One clock per configured reinforcement rule. An invasion that has taken no coastal town has none.
+        internal List<InvasionReinforcementSchedule> Schedules = new();
+        public IReadOnlyList<InvasionReinforcementSchedule> ReinforcementSchedules => Schedules;
+
+        internal InvasionReinforcementSchedule? FindReinforcementSchedule(string ruleId) =>
+            Schedules.FirstOrDefault(schedule => schedule.RuleId == ruleId);
+
+        internal InvasionReinforcementSchedule WindReinforcementSchedule(string ruleId, double intervalDays,
+            double nextDeadlineDays)
+        {
+            var schedule = new InvasionReinforcementSchedule(ruleId, intervalDays, nextDeadlineDays);
+            Schedules.Add(schedule);
+            return schedule;
+        }
+
         internal HashSet<string> Members = new(StringComparer.Ordinal);
         public IReadOnlyCollection<string> MemberPartyIds => Members;
+    }
+
+    // A running reinforcement clock. Its interval is kept so that a rule the configuration has since
+    // dropped still spends its due slot once rather than being retried daily.
+    public sealed class InvasionReinforcementSchedule
+    {
+        internal InvasionReinforcementSchedule(string ruleId, double intervalDays, double nextDeadlineDays)
+        { RuleId = ruleId; IntervalDays = intervalDays; NextDeadlineDays = nextDeadlineDays; }
+        public string RuleId { get; }
+        public double IntervalDays { get; }
+        public double NextDeadlineDays { get; internal set; }
     }
 
     public sealed class InvasionFoothold

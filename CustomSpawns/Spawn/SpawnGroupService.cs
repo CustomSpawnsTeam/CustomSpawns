@@ -48,13 +48,14 @@ namespace CustomSpawns.Spawn
         }
 
         public MobileParty? SpawnInvasionReinforcement(SpawnDto spawn, PartyTemplateObject reinforcementTemplate,
-            Settlement landingSettlement, Clan invasionClan)
+            Settlement landingSettlement, Clan invasionClan, string reinforcementRuleId)
         {
             MobileParty? reinforcement = _spawner.SpawnParty(landingSettlement, invasionClan, reinforcementTemplate,
                 new TextObject(spawn.Name), spawn.PriorityPartyBehaviourTemplateId);
             if (reinforcement != null)
             {
-                _dynamicSpawnData.RegisterInvasionReinforcementParty(reinforcement, spawn.PartyTemplate.StringId);
+                _dynamicSpawnData.RegisterInvasionReinforcementParty(reinforcement, spawn.PartyTemplate.StringId,
+                    reinforcementRuleId);
             }
             return reinforcement;
         }

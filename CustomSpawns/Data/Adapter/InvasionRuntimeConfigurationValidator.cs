@@ -7,17 +7,24 @@ namespace CustomSpawns.Data.Adapter
 {
     internal static class InvasionRuntimeConfigurationValidator
     {
+        // Each rule brings its own troop template, so existence is asked per rule rather than once.
         public static void ValidateReferences(InvasionData invasion, string spawnPartyTemplateId, bool spawnClanIsBandit,
-            bool reinforcementTemplateExists)
+            Func<string, bool> reinforcementTemplateExists)
         {
             if (spawnClanIsBandit)
             {
                 throw new ArgumentException("Invasion spawn '" + spawnPartyTemplateId + "' cannot use a bandit clan.");
             }
-            if (!reinforcementTemplateExists)
+
+            foreach (InvasionReinforcementRuleData rule in invasion.ReinforcementRules)
             {
-                throw new ArgumentException("Invasion spawn '" + spawnPartyTemplateId + "' references unknown reinforcement party template '" +
-                                            invasion.ReinforcementPartyTemplateId + "'.");
+                if (!reinforcementTemplateExists(rule.PartyTemplateId))
+                {
+                    throw new ArgumentException("Invasion spawn '" + spawnPartyTemplateId +
+                                                "' reinforcement rule '" + rule.Id +
+                                                "' references unknown reinforcement party template '" +
+                                                rule.PartyTemplateId + "'.");
+                }
             }
         }
 

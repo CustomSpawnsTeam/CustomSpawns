@@ -1,24 +1,40 @@
+using System.Collections.Generic;
+
 namespace CustomSpawns.Data.Dto
 {
     public sealed class InvasionData
     {
         public InvasionData(bool requiresFirstCoastalConquest, float foodStockFloor, float dailyFoodBonus,
-            string reinforcementPartyTemplateId, float reinforcementIntervalInDays,
-            int reinforcementMaxConcurrentParties)
+            IReadOnlyList<InvasionReinforcementRuleData> reinforcementRules)
         {
             RequiresFirstCoastalConquest = requiresFirstCoastalConquest;
             FoodStockFloor = foodStockFloor;
             DailyFoodBonus = dailyFoodBonus;
-            ReinforcementPartyTemplateId = reinforcementPartyTemplateId;
-            ReinforcementIntervalInDays = reinforcementIntervalInDays;
-            ReinforcementMaxConcurrentParties = reinforcementMaxConcurrentParties;
+            ReinforcementRules = reinforcementRules;
         }
 
         public bool RequiresFirstCoastalConquest { get; }
         public float FoodStockFloor { get; }
         public float DailyFoodBonus { get; }
-        public string ReinforcementPartyTemplateId { get; }
-        public float ReinforcementIntervalInDays { get; }
-        public int ReinforcementMaxConcurrentParties { get; }
+
+        // In configuration order, which is the order the rules draw in.
+        public IReadOnlyList<InvasionReinforcementRuleData> ReinforcementRules { get; }
+    }
+
+    public sealed class InvasionReinforcementRuleData
+    {
+        public InvasionReinforcementRuleData(string id, string partyTemplateId, float intervalInDays,
+            int maxConcurrentParties)
+        {
+            Id = id;
+            PartyTemplateId = partyTemplateId;
+            IntervalInDays = intervalInDays;
+            MaxConcurrentParties = maxConcurrentParties;
+        }
+
+        public string Id { get; }
+        public string PartyTemplateId { get; }
+        public float IntervalInDays { get; }
+        public int MaxConcurrentParties { get; }
     }
 }

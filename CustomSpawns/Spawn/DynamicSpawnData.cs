@@ -116,9 +116,10 @@ namespace CustomSpawns.Spawn
             RegisterParty(mobileParty, owningSpawnTemplateId, false, supportedParty, "Escort");
         }
 
-        public void RegisterInvasionReinforcementParty(MobileParty mobileParty, string owningSpawnTemplateId)
+        public void RegisterInvasionReinforcementParty(MobileParty mobileParty, string owningSpawnTemplateId,
+            string reinforcementRuleId)
         {
-            RegisterParty(mobileParty, owningSpawnTemplateId, false, null, "Reinforcement");
+            RegisterParty(mobileParty, owningSpawnTemplateId, false, null, "Reinforcement", reinforcementRuleId);
         }
 
         /**
@@ -131,11 +132,11 @@ namespace CustomSpawns.Spawn
         }
 
         private void RegisterParty(MobileParty mobileParty, string owningSpawnTemplateId, bool isPrimarySpawn,
-            MobileParty? supportedParty, string? partyRole = null)
+            MobileParty? supportedParty, string? partyRole = null, string? reinforcementRuleId = null)
         {
             string partyTemplateId = CampaignUtils.IsolateMobilePartyStringID(mobileParty);
             _dynamicSpawnData[mobileParty] = new CsPartyData(partyTemplateId, owningSpawnTemplateId,
-                isPrimarySpawn, GetNearestSettlement(mobileParty), supportedParty, partyRole);
+                isPrimarySpawn, GetNearestSettlement(mobileParty), supportedParty, partyRole, reinforcementRuleId);
             InvalidateAccompanyingParties();
             PartyRegistered?.Invoke(mobileParty, _dynamicSpawnData[mobileParty]);
         }
@@ -247,6 +248,16 @@ namespace CustomSpawns.Spawn
         [SaveableField(8)]
         private string? _partyRole;
 
+        /**
+         * Which configured reinforcement rule landed this party. It is known only at the moment it
+         * spawns, so it is set once here rather than through SetInvasionIdentity, which is called
+         * again whenever the party is re-registered.
+         */
+        [SaveableField(9)]
+        private string? _reinforcementRuleId;
+
+        public string? ReinforcementRuleId => _reinforcementRuleId;
+
         public string? InvasionGroupId => _invasionGroupId;
         public string? InvasionRole => _invasionRole;
 
@@ -277,7 +288,8 @@ namespace CustomSpawns.Spawn
         public MobileParty? SupportedParty => _supportedParty;
 
         public CsPartyData(string partyTemplateId, string? owningSpawnTemplateId, bool isPrimarySpawn,
-            Settlement? latestClosestSettlement, MobileParty? supportedParty = null, string? partyRole = null)
+            Settlement? latestClosestSettlement, MobileParty? supportedParty = null, string? partyRole = null,
+            string? reinforcementRuleId = null)
         {
             _partyTemplateId = partyTemplateId;
             _owningSpawnTemplateId = owningSpawnTemplateId;
@@ -285,6 +297,7 @@ namespace CustomSpawns.Spawn
             _latestClosestSettlement = latestClosestSettlement;
             _supportedParty = supportedParty;
             _partyRole = partyRole;
+            _reinforcementRuleId = reinforcementRuleId;
         }
     }
 }
