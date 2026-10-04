@@ -97,7 +97,7 @@ namespace CustomSpawns.Invasions.Adapters
 
                 if (group != null && group.HoldsClan(party.ActualClan?.StringId))
                 {
-                    participants[party.StringId] = group.Id;
+                    participants[party.StringId] = group.ClanId;
                 }
             }
 
@@ -156,7 +156,7 @@ namespace CustomSpawns.Invasions.Adapters
                 return null;
             }
 
-            _invasionCaptureCorrelation.ObserveOwnership(capture.Id, group.Id, party.StringId,
+            _invasionCaptureCorrelation.ObserveOwnership(capture.Id, group.ClanId, party.StringId,
                 oldOwner?.Clan?.StringId ?? "", newOwner?.Clan?.StringId ?? "", true);
             return capture.Id;
         }

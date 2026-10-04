@@ -125,7 +125,7 @@ namespace CustomSpawns.Invasions.Adapters
                 capturerGroupId != capture.CapturingGroupId) return;
             InvasionGroupState? group = _invasionState.FindGroup(capture.CapturingGroupId);
             if (group == null || group.IsSuspended) return;
-            capture.Participants = capture.Participants.Where(p => p.Value == group.Id)
+            capture.Participants = capture.Participants.Where(p => p.Value == group.ClanId)
                 .ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
             capture.IsConfirmed = true;
             if (_invasionState.FootholdIndex.TryGetValue(capture.SettlementId, out var previous))
@@ -133,7 +133,7 @@ namespace CustomSpawns.Invasions.Adapters
                 var previousCapture = _invasionState.FindCapture(previous.CaptureId);
                 if (previousCapture != null) previousCapture.Cancelled = true;
             }
-            _invasionState.FootholdIndex[capture.SettlementId] = new InvasionFoothold(capture.SettlementId, group.Id, capture.Id);
+            _invasionState.FootholdIndex[capture.SettlementId] = new InvasionFoothold(capture.SettlementId, group.ClanId, capture.Id);
         }
 
         internal void Prune()

@@ -63,8 +63,8 @@ namespace CustomSpawns.Tests.Invasions
         [Test]
         public void AnAdoptedLordDoesNotSpendTheInvasionsLandingBudget()
         {
-            Assert.False(InvasionReinforcementArrivals.CountsAgainstMaxConcurrentParties(PartyOfTheGroup("Adopted"), _group));
-            Assert.True(InvasionReinforcementArrivals.CountsAgainstMaxConcurrentParties(PartyOfTheGroup("Reinforcement"),
+            Assert.False(InvasionReinforcementArrivals.CountsAgainstMaxConcurrentParties("clan", PartyOfTheGroup("Adopted"), _group));
+            Assert.True(InvasionReinforcementArrivals.CountsAgainstMaxConcurrentParties("clan", PartyOfTheGroup("Reinforcement"),
                 _group));
         }
 
@@ -91,7 +91,6 @@ namespace CustomSpawns.Tests.Invasions
         private CsPartyData PartyOfTheGroup(string partyRole)
         {
             var data = new CsPartyData("invasion", "invasion", false, null, null, partyRole);
-            data.SetInvasionIdentity(_group.Id, null);
             return data;
         }
 

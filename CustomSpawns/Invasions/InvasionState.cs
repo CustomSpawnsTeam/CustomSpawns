@@ -7,8 +7,8 @@ namespace CustomSpawns.Invasions
     // Authoritative campaign state. Engine objects and save-system attributes belong in the adapter.
     public sealed class InvasionState
     {
-        internal long NextGroupId = 1;
         internal long NextCaptureId = 1;
+        // Keyed by the clan each invasion was founded for: a clan is invaded for at most once.
         internal readonly Dictionary<string, InvasionGroupState> GroupIndex = new(StringComparer.Ordinal);
         internal readonly Dictionary<long, InvasionCapture> CaptureIndex = new();
         internal readonly Dictionary<string, InvasionFoothold> FootholdIndex = new(StringComparer.Ordinal);
@@ -18,19 +18,29 @@ namespace CustomSpawns.Invasions
 
         public InvasionGroupState RegisterMember(string templateId, string clanId, string partyId)
         {
-            InvasionGroupState? group = Groups.SingleOrDefault(g => g.SpawnTemplateId == templateId && g.HoldsClan(clanId));
+            InvasionGroupState? group = FindGroupHolding(clanId);
             if (group == null)
             {
-                group = new InvasionGroupState((NextGroupId++).ToString(System.Globalization.CultureInfo.InvariantCulture), templateId, clanId);
-                GroupIndex.Add(group.Id, group);
+                group = new InvasionGroupState(templateId, clanId);
+                GroupIndex.Add(group.ClanId, group);
             }
-            foreach (InvasionGroupState other in Groups.Where(g => g.Id != group.Id)) other.Members.Remove(partyId);
+            foreach (InvasionGroupState other in Groups.Where(g => g.ClanId != group.ClanId)) other.Members.Remove(partyId);
             group.Members.Add(partyId);
             return group;
         }
 
-        public InvasionGroupState? FindGroup(string? id) => id != null && GroupIndex.TryGetValue(id, out var group) ? group : null;
+        public InvasionGroupState? FindGroup(string? foundingClanId) =>
+            foundingClanId != null && GroupIndex.TryGetValue(foundingClanId, out var group) ? group : null;
+
+        // The invasion a clan belongs to, whether it founded it or was expanded into. There is only ever one.
+        public InvasionGroupState? FindGroupHolding(string? clanId) =>
+            clanId == null ? null : Groups.SingleOrDefault(group => group.HoldsClan(clanId));
+
         public InvasionGroupState? FindMemberGroup(string partyId) => Groups.SingleOrDefault(g => g.Members.Contains(partyId));
+
+        // Whether the invasion a spawn template feeds is still being fought.
+        public bool HasGroupOf(string? spawnTemplateId) =>
+            spawnTemplateId != null && Groups.Any(group => group.SpawnTemplateId == spawnTemplateId);
         public InvasionFoothold? FindFoothold(string settlementId) => FootholdIndex.TryGetValue(settlementId, out var foothold) ? foothold : null;
         public InvasionCapture? FindCapture(long id) => CaptureIndex.TryGetValue(id, out var capture) ? capture : null;
 
@@ -39,26 +49,32 @@ namespace CustomSpawns.Invasions
         // what it lost and no more, so a group already fielding its configured budget adopts nothing; saved
         // membership can still name parties the engine has dropped, so the budget is read against a live count.
         public InvasionGroupState? FindAdoptingGroup(string? clanId, Func<InvasionGroupState, int> countLiveMembers,
-            Func<InvasionGroupState, int> partyBudget) =>
-            FindFightingGroups(clanId).FirstOrDefault(group => countLiveMembers(group) < partyBudget(group));
+            Func<InvasionGroupState, int> partyBudget)
+        {
+            InvasionGroupState? group = FindFightingGroup(clanId);
+            return group != null && countLiveMembers(group) < partyBudget(group) ? group : null;
+        }
 
-        // The live invasions a clan fights for: adoption offers a party to them, and a refused adoption names them.
-        public IEnumerable<InvasionGroupState> FindFightingGroups(string? clanId) =>
-            Groups.Where(group => !group.IsSuspended && !IsGroupSpent(group) && group.HoldsClan(clanId));
+        // The live invasion a clan fights for: adoption offers a party to it, and a refused adoption names it.
+        public InvasionGroupState? FindFightingGroup(string? clanId)
+        {
+            InvasionGroupState? group = FindGroupHolding(clanId);
+            return group != null && !group.IsSuspended && !IsGroupSpent(group) ? group : null;
+        }
 
         // A kingdom carrying a live invasion must outlive the loss of its last settlement so the invasion can retake one.
         public bool ProtectsKingdomOf(IEnumerable<string> clanIds) =>
-            clanIds.Any(clanId => Groups.Any(group => !group.IsSuspended && !IsGroupSpent(group) && group.HoldsClan(clanId)));
+            clanIds.Any(clanId => FindFightingGroup(clanId) != null);
 
         // An invasion left with no town to hold and no party to retake one has nothing left to fight with.
         public bool IsGroupSpent(InvasionGroupState group) =>
-            group.Members.Count == 0 && !Footholds.Any(foothold => foothold.GroupId == group.Id);
+            group.Members.Count == 0 && !Footholds.Any(foothold => foothold.GroupId == group.ClanId);
 
         // A group holding no town is put back on the offensive; vanilla steers its lords while it still holds one.
-        public bool IsGroupWithoutTown(string? groupId)
+        public bool IsGroupWithoutTown(string? clanId)
         {
-            InvasionGroupState? group = FindGroup(groupId);
-            return group != null && !group.IsSuspended && !Footholds.Any(foothold => foothold.GroupId == group.Id);
+            InvasionGroupState? group = FindGroupHolding(clanId);
+            return group != null && !group.IsSuspended && !Footholds.Any(foothold => foothold.GroupId == group.ClanId);
         }
 
         public InvasionCapture StartCapture(string settlementId, long battleStartTimeBits, string attackerLeaderId)
@@ -110,8 +126,8 @@ namespace CustomSpawns.Invasions
                 group.IsSuspended = !effectsEnabled(group);
                 // A spent group outlives itself while the kingdom it leaves behind still has to be retired: it is what names that kingdom.
                 if (!IsGroupSpent(group) || awaitsKingdomRetirement(group)) continue;
-                GroupIndex.Remove(group.Id);
-                foreach (var capture in Captures.Where(c => c.CapturingGroupId == group.Id)) capture.Cancelled = true;
+                GroupIndex.Remove(group.ClanId);
+                foreach (var capture in Captures.Where(c => c.CapturingGroupId == group.ClanId)) capture.Cancelled = true;
             }
             foreach (var capture in Captures.Where(c => c.Cancelled).ToList()) CaptureIndex.Remove(capture.Id);
         }
@@ -131,11 +147,13 @@ namespace CustomSpawns.Invasions
 
     public sealed class InvasionGroupState
     {
-        internal InvasionGroupState(string id, string templateId, string clanId)
-        { Id = id; SpawnTemplateId = templateId; ClanId = clanId; Clans.Add(clanId); }
-        public string Id { get; }
+        internal InvasionGroupState(string templateId, string clanId)
+        { SpawnTemplateId = templateId; ClanId = clanId; Clans.Add(clanId); }
         public string SpawnTemplateId { get; }
-        // The clan that founded the invasion: it is the one that rules the kingdom the invasion leaves behind.
+        /**
+         * The clan the invasion was founded for. It rules the kingdom the invasion leaves behind, and it
+         * identifies the invasion: a clan is invaded for at most once, so nothing else has to.
+         */
         public string ClanId { get; }
         // An invasion outgrows the war party limit of one clan, so it expands into further clans of its kingdom.
         internal List<string> Clans = new();

@@ -74,7 +74,7 @@ namespace CustomSpawns.Invasions.Adapters
 
                 if (_invasionState.CompleteOccupation(capture.Id, town.Settlement.OwnerClan?.StringId ?? ""))
                 {
-                    Logger.Info("Invasion occupation applied: group=" + group.Id + " town=" + town.Settlement.StringId);
+                    Logger.Info("Invasion occupation applied: group=" + group.ClanId + " town=" + town.Settlement.StringId);
                 }
             }
         }
@@ -110,7 +110,7 @@ namespace CustomSpawns.Invasions.Adapters
         {
             Clan? clan = group == null ? null : Clan.FindFirst(candidate => candidate.StringId == group.ClanId);
             InvasionFoothold? foothold = _invasionState.FindFoothold(town.Settlement.StringId);
-            return InvasionFoodSupportRules.IsEligibleForOngoingSupport(foothold?.GroupId == group?.Id,
+            return InvasionFoodSupportRules.IsEligibleForOngoingSupport(foothold?.GroupId == group?.ClanId,
                 configuration != null && _invasionCoastalTownResolver.IsCoastalTown(town.Settlement),
                 group?.HoldsClan(town.Settlement.OwnerClan?.StringId) == true, configuration != null && !group!.IsSuspended &&
                 clan?.IsEliminated == false, town.Settlement.SiegeEvent != null);

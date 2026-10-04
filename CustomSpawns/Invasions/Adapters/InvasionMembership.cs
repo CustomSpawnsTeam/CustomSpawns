@@ -35,28 +35,36 @@ namespace CustomSpawns.Invasions.Adapters
 
         internal void Register(MobileParty party, CsPartyData data)
         {
-            // Saved membership survives removed configurations so cleanup remains possible.
-            InvasionGroupState? saved = _invasionState.FindGroup(data.InvasionGroupId);
-
-            if (saved != null && saved.HoldsClan(party.ActualClan?.StringId) && saved.SpawnTemplateId == data.OwningSpawnTemplateId)
-            {
-                saved.Members.Add(party.StringId);
-                data.SetInvasionIdentity(saved.Id, data.InvasionRole ?? RoleFor(data));
-                return;
-            }
-
             string? templateId = data.OwningSpawnTemplateId;
             Clan? clan = party.ActualClan;
+            // The party's clan names its invasion, and it survives the rebuilds that lose everything we
+            // write on the party. Membership therefore outlives a removed configuration, so cleanup
+            // remains possible.
+            InvasionGroupState? saved = _invasionState.FindGroupHolding(clan?.StringId);
+
+            if (saved != null)
+            {
+                // Another spawn of the same faction is not the invasion's: it only shares its clan.
+                if (saved.SpawnTemplateId != templateId)
+                {
+                    data.SetInvasionRole(null);
+                    return;
+                }
+
+                saved.Members.Add(party.StringId);
+                data.SetInvasionRole(data.InvasionRole ?? RoleFor(data));
+                return;
+            }
 
             if (templateId == null || clan == null || clan.IsEliminated || clan.IsBanditFaction ||
                 _spawnDao.FindByPartyTemplateId(templateId)?.Invasion == null)
             {
-                data.SetInvasionIdentity(null, null);
+                data.SetInvasionRole(null);
                 return;
             }
 
-            var group = _invasionState.RegisterMember(templateId, clan.StringId, party.StringId);
-            data.SetInvasionIdentity(group.Id, RoleFor(data));
+            _invasionState.RegisterMember(templateId, clan.StringId, party.StringId);
+            data.SetInvasionRole(RoleFor(data));
         }
 
         /**
@@ -104,9 +112,11 @@ namespace CustomSpawns.Invasions.Adapters
                 return;
             }
 
-            foreach (InvasionGroupState group in _invasionState.FindFightingGroups(party.ActualClan?.StringId))
+            InvasionGroupState? group = _invasionState.FindFightingGroup(party.ActualClan?.StringId);
+
+            if (group != null)
             {
-                Logger.Info("Invasion adoption refused: group=" + group.Id + " party=" + party.StringId +
+                Logger.Info("Invasion adoption refused: group=" + group.ClanId + " party=" + party.StringId +
                             " counted_parties=" + countLiveMembers(group) + " budget=" + partyBudget(group));
             }
         }

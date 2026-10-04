@@ -239,9 +239,6 @@ namespace CustomSpawns.Spawn
         [SaveableField(5)]
         private MobileParty? _supportedParty;
 
-        [SaveableField(6)]
-        private string? _invasionGroupId;
-
         [SaveableField(7)]
         private string? _invasionRole;
 
@@ -250,7 +247,7 @@ namespace CustomSpawns.Spawn
 
         /**
          * Which configured reinforcement rule landed this party. It is known only at the moment it
-         * spawns, so it is set once here rather than through SetInvasionIdentity, which is called
+         * spawns, so it is set once here rather than through SetInvasionRole, which is called
          * again whenever the party is re-registered.
          */
         [SaveableField(9)]
@@ -258,12 +255,10 @@ namespace CustomSpawns.Spawn
 
         public string? ReinforcementRuleId => _reinforcementRuleId;
 
-        public string? InvasionGroupId => _invasionGroupId;
         public string? InvasionRole => _invasionRole;
 
-        public void SetInvasionIdentity(string? groupId, string? role)
+        public void SetInvasionRole(string? role)
         {
-            _invasionGroupId = groupId;
             _invasionRole = role;
         }
 

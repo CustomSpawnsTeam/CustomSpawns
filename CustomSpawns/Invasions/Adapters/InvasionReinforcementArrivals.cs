@@ -51,7 +51,7 @@ namespace CustomSpawns.Invasions.Adapters
                 return;
             }
 
-            Logger.Info("Invasion coastal foothold gained: group=" + group.Id + " town=" +
+            Logger.Info("Invasion coastal foothold gained: group=" + group.ClanId + " town=" +
                         _invasionState.FindCapture(captureId)!.SettlementId + " next_arrival_days=" +
                         string.Join(",", group.ReinforcementSchedules.Select(schedule =>
                             schedule.RuleId + "@" + schedule.NextDeadlineDays)));
@@ -67,7 +67,7 @@ namespace CustomSpawns.Invasions.Adapters
                 }
                 else
                 {
-                    Logger.Info("Invasion reinforcement slot skipped: group=" + draw.Group.Id +
+                    Logger.Info("Invasion reinforcement slot skipped: group=" + draw.Group.ClanId +
                                 " rule=" + draw.RuleId + " reason=" + SkipReason(draw.Outcome));
                 }
             }
@@ -89,7 +89,7 @@ namespace CustomSpawns.Invasions.Adapters
             if (spawn == null || template == null || landing == null ||
                 !IsEligibleLandingSettlement(landing, draw.Group))
             {
-                Logger.Info("Invasion reinforcement slot skipped: group=" + draw.Group.Id +
+                Logger.Info("Invasion reinforcement slot skipped: group=" + draw.Group.ClanId +
                             " rule=" + draw.RuleId + " reason=template_or_port_changed");
                 return;
             }
@@ -100,7 +100,7 @@ namespace CustomSpawns.Invasions.Adapters
 
             if (clan == null)
             {
-                Logger.Info("Invasion reinforcement slot skipped: group=" + draw.Group.Id +
+                Logger.Info("Invasion reinforcement slot skipped: group=" + draw.Group.ClanId +
                             " rule=" + draw.RuleId + " reason=no_clan_to_take_the_party");
                 return;
             }
@@ -109,7 +109,7 @@ namespace CustomSpawns.Invasions.Adapters
                 draw.RuleId);
             int landed = reinforcement == null ? 0 : TrimToPermittedStrength(reinforcement, draw.PermittedStrength);
             Logger.Info("Invasion reinforcement " + (reinforcement == null ? "failed" : "arrived") + ": group=" +
-                        draw.Group.Id + " rule=" + draw.RuleId + " clan=" + clan.StringId + " town=" +
+                        draw.Group.ClanId + " rule=" + draw.RuleId + " clan=" + clan.StringId + " town=" +
                         landing.StringId + " men=" + landed + " next_arrival_day=" +
                         draw.Group.FindReinforcementSchedule(draw.RuleId)?.NextDeadlineDays);
         }
@@ -178,7 +178,7 @@ namespace CustomSpawns.Invasions.Adapters
             ChangeKingdomAction.ApplyByJoinToKingdom(clan, kingdom, default, false);
             CampaignEventDispatcher.Instance.OnClanCreated(clan, false);
             group.AddClan(clan.StringId);
-            Logger.Info("Invasion clan founded: group=" + group.Id + " clan=" + clan.StringId +
+            Logger.Info("Invasion clan founded: group=" + group.ClanId + " clan=" + clan.StringId +
                         " kingdom=" + kingdom.StringId);
             return clan;
         }
@@ -206,7 +206,7 @@ namespace CustomSpawns.Invasions.Adapters
         // Each rule holds its own count, so a stream at its ceiling never holds another stream off.
         int IInvasionReinforcementQuery.CountActiveReinforcements(InvasionGroupState group, string ruleId) =>
             MobileParty.All.Count(party => party.IsActive && _dynamicSpawnData.GetDynamicSpawnData(party) is { } data &&
-                CountsAgainstMaxConcurrentParties(data, group) &&
+                CountsAgainstMaxConcurrentParties(party.ActualClan?.StringId, data, group) &&
                 string.Equals(data.ReinforcementRuleId, ruleId, StringComparison.Ordinal));
 
         /**
@@ -238,8 +238,9 @@ namespace CustomSpawns.Invasions.Adapters
          * Only a party this invasion landed spends its cap. A party it merely took back from the game
          * costs it nothing, or the first adopted lord would hold the landings off for as long as it lives.
          */
-        internal static bool CountsAgainstMaxConcurrentParties(CsPartyData data, InvasionGroupState group) =>
-            data.InvasionGroupId == group.Id && data.IsIndependentReinforcement;
+        internal static bool CountsAgainstMaxConcurrentParties(string? clanId, CsPartyData data,
+            InvasionGroupState group) =>
+            group.HoldsClan(clanId) && data.IsIndependentReinforcement;
 
         bool IInvasionReinforcementQuery.HasPartySlot(string clanId)
         {
@@ -274,7 +275,7 @@ namespace CustomSpawns.Invasions.Adapters
         {
             InvasionFoothold? foothold = _invasionState.FindFoothold(settlement.StringId);
 
-            return foothold?.GroupId == group.Id && settlement.IsTown &&
+            return foothold?.GroupId == group.ClanId && settlement.IsTown &&
                    group.HoldsClan(settlement.OwnerClan?.StringId) && settlement.SiegeEvent == null &&
                    _invasionCoastalTownResolver.IsCoastalTown(settlement);
         }

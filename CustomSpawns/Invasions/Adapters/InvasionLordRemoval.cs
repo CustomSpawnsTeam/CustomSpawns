@@ -24,8 +24,8 @@ namespace CustomSpawns.Invasions.Adapters
         internal static Hero? TakeLordOfRemovedInvasionParty(InvasionState invasionState, string? clanId,
             string partyId, Hero? leader, Action forgetParty)
         {
-            bool wasFightingAnInvasion = leader != null && invasionState.FindFightingGroups(clanId)
-                .Any(group => group.MemberPartyIds.Contains(partyId));
+            bool wasFightingAnInvasion = leader != null &&
+                invasionState.FindFightingGroup(clanId)?.MemberPartyIds.Contains(partyId) == true;
 
             forgetParty();
 
@@ -72,6 +72,6 @@ namespace CustomSpawns.Invasions.Adapters
         internal static bool IsRemovableInvasionLord(InvasionState invasionState, string? clanId, bool isMainHero,
             bool belongsToPlayerClan, bool isChild, bool isAlive, bool isLord, bool lostItsInvasionParty) =>
             !isMainHero && !belongsToPlayerClan && !isChild && isAlive && isLord &&
-            (lostItsInvasionParty || invasionState.FindFightingGroups(clanId).Any());
+            (lostItsInvasionParty || invasionState.FindFightingGroup(clanId) != null);
     }
 }

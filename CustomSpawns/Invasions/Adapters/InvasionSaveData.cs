@@ -10,7 +10,6 @@ namespace CustomSpawns.Invasions.Adapters
     // Save DTOs are boundary copies, never a second live state holder.
     public sealed class InvasionSaveData
     {
-        [SaveableField(1)] public long NextGroupId = 1;
         [SaveableField(2)] public long NextCaptureId = 1;
         [SaveableField(3)] public List<InvasionGroupSaveData> Groups = new();
         [SaveableField(4)] public List<InvasionCaptureSaveData> Captures = new();
@@ -19,7 +18,6 @@ namespace CustomSpawns.Invasions.Adapters
 
         internal static InvasionSaveData FromState(InvasionState state) => new()
         {
-            NextGroupId = state.NextGroupId,
             NextCaptureId = state.NextCaptureId,
             Groups = state.Groups.Select(InvasionGroupSaveData.FromState).ToList(),
             Captures = state.Captures.Select(InvasionCaptureSaveData.FromState).ToList(),
@@ -28,8 +26,8 @@ namespace CustomSpawns.Invasions.Adapters
 
         internal InvasionState ToState()
         {
-            var state = new InvasionState { NextGroupId = Math.Max(1, NextGroupId), NextCaptureId = Math.Max(1, NextCaptureId) };
-            foreach (var group in Groups ?? new List<InvasionGroupSaveData>()) state.GroupIndex.Add(group.Id, group.ToState());
+            var state = new InvasionState { NextCaptureId = Math.Max(1, NextCaptureId) };
+            foreach (var group in Groups ?? new List<InvasionGroupSaveData>()) state.GroupIndex.Add(group.ClanId, group.ToState());
             foreach (var capture in Captures ?? new List<InvasionCaptureSaveData>()) state.CaptureIndex.Add(capture.Id, capture.ToState());
             foreach (var foothold in Footholds ?? new List<InvasionFootholdSaveData>())
                 if (state.FindGroup(foothold.GroupId) != null && state.FindCapture(foothold.CaptureId)?.IsConfirmed == true)
@@ -52,7 +50,6 @@ namespace CustomSpawns.Invasions.Adapters
 
     public sealed class InvasionGroupSaveData
     {
-        [SaveableField(1)] public string Id = "";
         [SaveableField(2)] public string SpawnTemplateId = "";
         [SaveableField(3)] public string ClanId = "";
         [SaveableField(5)] public bool IsSuspended;
@@ -62,7 +59,6 @@ namespace CustomSpawns.Invasions.Adapters
 
         internal static InvasionGroupSaveData FromState(InvasionGroupState value) => new()
         {
-            Id = value.Id,
             SpawnTemplateId = value.SpawnTemplateId,
             ClanId = value.ClanId,
             IsSuspended = value.IsSuspended,
@@ -74,7 +70,7 @@ namespace CustomSpawns.Invasions.Adapters
 
         internal InvasionGroupState ToState()
         {
-            var group = new InvasionGroupState(Id, SpawnTemplateId, ClanId)
+            var group = new InvasionGroupState(SpawnTemplateId, ClanId)
             {
                 IsSuspended = IsSuspended,
                 Members = new HashSet<string>(Members ?? new List<string>(), StringComparer.Ordinal)

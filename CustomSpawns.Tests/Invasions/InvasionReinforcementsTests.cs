@@ -270,10 +270,10 @@ namespace CustomSpawns.Tests.Invasions
         {
             var correlation = new InvasionCaptureCorrelation(_state);
             InvasionCapture capture = _state.StartCapture("town", 100, "capturer");
-            correlation.ObserveOwnership(capture.Id, _group.Id, "capturer", "enemy", "clan", true);
+            correlation.ObserveOwnership(capture.Id, _group.ClanId, "capturer", "enemy", "clan", true);
             correlation.ObserveAftermath(capture.Id, "capturer", "enemy", new Dictionary<string, string>
             {
-                ["capturer"] = _group.Id
+                ["capturer"] = _group.ClanId
             });
             return capture;
         }

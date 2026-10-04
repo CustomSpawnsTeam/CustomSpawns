@@ -179,7 +179,8 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionOccupations.ApplyReady();
         }
 
-        public bool HasPersistentInvasionGroup(CsPartyData partyData) => State.FindGroup(partyData.InvasionGroupId) != null;
+        // The party itself no longer says which invasion it serves, so the spawn it came from is asked instead.
+        public bool HasPersistentInvasionGroup(CsPartyData partyData) => State.HasGroupOf(partyData.OwningSpawnTemplateId);
 
         Func<Settlement, bool>? IInvasionLandingQuery.GetInitialCoastalTargetFilter(MobileParty party)
         {
@@ -230,7 +231,7 @@ namespace CustomSpawns.Invasions.Adapters
         bool IPartySteeringQuery.RequiresCustomSpawnsSteering(MobileParty party)
         {
             Initialize();
-            return State.IsGroupWithoutTown(_dynamicSpawnData.GetDynamicSpawnData(party)?.InvasionGroupId);
+            return State.IsGroupWithoutTown(party.ActualClan?.StringId);
         }
 
         private void CanKingdomBeDiscontinued(Kingdom kingdom, ref bool result)

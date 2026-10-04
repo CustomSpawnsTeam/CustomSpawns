@@ -38,7 +38,7 @@ namespace CustomSpawns.Invasions.Adapters
                     continue;
                 }
 
-                Logger.Info("Invasion spent: group=" + group.Id + " kingdom=" + kingdom.StringId);
+                Logger.Info("Invasion spent: group=" + group.ClanId + " kingdom=" + kingdom.StringId);
                 DiscontinueKingdom(kingdom);
             }
         }
