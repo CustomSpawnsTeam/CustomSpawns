@@ -12,6 +12,15 @@ namespace CustomSpawns.Data.Model
         [XmlElement("Supplies")]
         public InvasionSuppliesConfig Supplies { get; set; } = new();
 
+        // The strength the whole invasion may field at once, shared by all of its reinforcement rules.
+        // Left out, the invasion is uncapped.
+        [XmlElement("MaxFactionStrength")]
+        public float MaxFactionStrength { get; set; }
+
+        // Raises that ceiling for every town the invasion currently holds.
+        [XmlElement("StrengthPerTownHeld")]
+        public float StrengthPerTownHeld { get; set; }
+
         [XmlElement("Reinforcements")]
         public InvasionReinforcementsConfig Reinforcements { get; set; } = new();
     }
@@ -63,6 +72,8 @@ namespace CustomSpawns.Data.Model
 
             ValidateNonNegativeFinite("Invasion Supplies FoodStockFloor", config.Supplies.FoodStockFloor);
             ValidateNonNegativeFinite("Invasion Supplies DailyFoodBonus", config.Supplies.DailyFoodBonus);
+            ValidateNonNegativeFinite("Invasion MaxFactionStrength", config.MaxFactionStrength);
+            ValidateNonNegativeFinite("Invasion StrengthPerTownHeld", config.StrengthPerTownHeld);
             if (config.Reinforcements.Rules.Count == 0)
             {
                 throw new ArgumentException("Invasion Reinforcements requires at least one Rule.");

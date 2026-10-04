@@ -9,15 +9,26 @@ An optional, element-only `Invasion` block in a spawn definition enables invasio
     <FoodStockFloor>100</FoodStockFloor>
     <DailyFoodBonus>5</DailyFoodBonus>
   </Supplies>
+  <MaxFactionStrength>900</MaxFactionStrength>
+  <StrengthPerTownHeld>300</StrengthPerTownHeld>
   <Reinforcements>
-    <PartyTemplateId>cs_makko_invasion_reinforcement</PartyTemplateId>
-    <IntervalInDays>7</IntervalInDays>
-    <MaxConcurrentParties>3</MaxConcurrentParties>
+    <Rule>
+      <Id>infantry_wave</Id>
+      <PartyTemplateId>cs_makko_invasion_reinforcement</PartyTemplateId>
+      <IntervalInDays>7</IntervalInDays>
+      <MaxConcurrentParties>3</MaxConcurrentParties>
+    </Rule>
+    <Rule>
+      <Id>cavalry_wave</Id>
+      <PartyTemplateId>cs_makko_invasion_horse</PartyTemplateId>
+      <IntervalInDays>21</IntervalInDays>
+      <MaxConcurrentParties>1</MaxConcurrentParties>
+    </Rule>
   </Reinforcements>
 </Invasion>
 ```
 
-These are initial sample balance values, not a guarantee of positive food, rebellion prevention or siege success. The Makkonian and Humarian invasion definitions are the only sample spawns opted in. Their dedicated reinforcement templates contain 222–333 and 252–405 troops respectively, before the generated leader. Scouts, ordinary armies, original spawn chances/caps and shared behaviour templates are unchanged.
+These are illustrative values, not a guarantee of positive food, rebellion prevention or siege success. No spawn definition in this repository currently carries an `Invasion` block, so the numbers above are a starting point to balance against, not shipped balance. Scouts, ordinary armies, original spawn chances/caps and shared behaviour templates are unchanged.
 
 ## Configuration
 
@@ -26,11 +37,15 @@ These are initial sample balance values, not a guarantee of positive food, rebel
 | `RequiresFirstCoastalConquest` | When `true`, restricts the invasion to coastal towns while its current faction owns no coastal town; default `false`. |
 | `Supplies/FoodStockFloor` | One-time minimum food stock after occupation, limited by actual capacity; default 0. Existing stock is never reduced. |
 | `Supplies/DailyFoodBonus` | Additive daily `Overseas supplies` food-model contribution; default 0. |
-| `Reinforcements/PartyTemplateId` | Required raw troop-template ID, without the `PartyTemplate.` prefix. |
-| `Reinforcements/IntervalInDays` | Positive interval for both the first and later arrivals; default 7. |
-| `Reinforcements/MaxConcurrentParties` | Positive cap on surviving registered reinforcements in this group; default 1. The sample explicitly uses 3. |
+| `MaxFactionStrength` | Ceiling on the strength the invasion's clans may field at once, shared by all of its rules; default 0, which leaves it uncapped. |
+| `StrengthPerTownHeld` | What every town the invasion holds right now adds to that ceiling; default 0. Read live, so losing a town lowers the ceiling again. |
+| `Reinforcements/Rule` | One reinforcement stream. At least one is required; declare as many as the invasion needs, and they draw in the order written. |
+| `Reinforcements/Rule/Id` | Required non-blank name, unique within the invasion. It names the rule's own clock and its own concurrent count, so editing or reordering the configuration does not move a running schedule onto another rule. |
+| `Reinforcements/Rule/PartyTemplateId` | Required raw troop-template ID, without the `PartyTemplate.` prefix. Each rule brings its own. |
+| `Reinforcements/Rule/IntervalInDays` | Positive interval for both the first and later arrivals of this rule; default 7. |
+| `Reinforcements/Rule/MaxConcurrentParties` | Positive cap on this rule's own surviving registered reinforcements in this group; default 1. |
 
-All quantities must be finite and nonnegative. Runtime validation checks troop-template references, non-bandit ownership and an effective behaviour template able to besiege towns. Invalid opt-ins are diagnosed without breaking unrelated valid spawn definitions. Reinforcements inherit the original `PriorityPartyBehaviourTemplateId`; there is no second behaviour configuration.
+All quantities must be finite and nonnegative, and `MaxFactionStrength` is measured in vanilla's own faction strength — the same estimate the game uses, counting the clans' parties on the map **and** the troops sitting in their garrisons. Occupation deliberately dumps the whole escort roster into the captured town's garrison, so a capture eats a large part of the budget immediately; `StrengthPerTownHeld` is what offsets that, and must be sized against garrison strength rather than against a field party. Runtime validation checks each rule's troop-template reference, non-bandit ownership and an effective behaviour template able to besiege towns. Invalid opt-ins are diagnosed without breaking unrelated valid spawn definitions. Reinforcements inherit the original `PriorityPartyBehaviourTemplateId`; there is no second behaviour configuration.
 
 ## Groups, conquests and supply
 
@@ -48,13 +63,15 @@ Occupation waits until ownership and the actual battle participant snapshot agre
 
 The transfer is unconditional: every still-active escort party among the capture's recorded participants has its whole `MemberRoster` added to the town's garrison, and the emptied party is then destroyed. There is no configured or capacity-derived bound on the resulting garrison, and no filtering of wounded troops or heroes — the roster moves as it stands. Non-escort participants, parties that are no longer active and other groups are excluded. Native wages, recruitment and desertion remain in force; there is no wage subsidy or weekly garrison top-up.
 
-The group's first arrival is due at its first coastal foothold plus the configured interval. A daily check considers the group once and chooses one held, eligible, non-besieged port. An arrival uses the land gate, its own troop template and generated leader, fresh AI state, and the original behaviour configuration. It has no `SupportedParty` and creates no escorts. Its creation/death does not change original `MaximumOnMap` accounting.
+Every rule's first arrival is due at the group's first coastal foothold plus that rule's own interval, and each rule runs its own clock from there, so a stream at its ceiling never holds the others off. A daily check considers each due rule once and chooses one held, eligible, non-besieged port. An arrival uses the land gate, its rule's troop template and a generated leader, fresh AI state, and the original behaviour configuration. It has no `SupportedParty` and creates no escorts. Its creation/death does not change original `MaximumOnMap` accounting. Each landed party remembers which rule sent it, which is what that rule's concurrent count is read from.
+
+All of an invasion's rules draw against one shared strength ceiling. When several come due on the same day they are served in configuration order: the first takes the room it needs, the next ones get what is left, and a rule that finds nothing left spends its slot and waits for its next interval. An arrival worth more than the remaining headroom is not cancelled — it lands cut back to its share, down to a single man, and the party-size limit then fits whatever it actually arrived with, so a trimmed party takes no speed penalty. The ceiling itself is never saved: it is recomputed from the configuration and the towns the invasion holds at that moment.
 
 Two paths hand an invasion clan an ordinary lord party under a name no spawn template matches, so that it carries on outside its invasion. The common one runs all campaign: a spawned party is handed to its clan leader as owner, and unless a lord is generated to lead it that clan leader stays its owner without ever standing in a roster, so the game reads it as having no party and fields one for it whenever the clan sits under its tier party limit. A generated besieging lord is not that hero — it both owns and leads the party it was made for, and is enrolled in its roster. The other is a living invasion party changing component, as one does when the invasion becomes a kingdom and loses its only coastal town. Either party is adopted back into its clan's group: it is registered under that group's spawn template and carries the `"Adopted"` role across saves. That restores its membership, food eligibility, steering and spawn-sized party limit. Its roster is left as the game filled it: adoption restores the invasion identity the party lost, not the troops standing in it.
 
-Adoption is bounded by the group's budget -- `MaximumConcurrentPrimaries` plus `Reinforcements/MaxConcurrentParties` -- weighed against the group's live non-escort members, so a clan that keeps losing lords does not accumulate invasion parties without end. Escorts are outside that count, and an adopted lord spends no landing slot against the reinforcement cap. The bound is on adopting, not on how many parties are alive: the spawner keeps its own separate count.
+Adoption is bounded by the group's budget -- `MaximumConcurrentPrimaries` plus the `MaxConcurrentParties` of every reinforcement rule added together -- weighed against the group's live non-escort members, so a clan that keeps losing lords does not accumulate invasion parties without end. Escorts are outside that count, and an adopted lord spends no landing slot against the reinforcement cap. The bound is on adopting, not on how many parties are alive: the spawner keeps its own separate count.
 
-A due slot blocked by the cap, unavailable port/configuration/template, or spawn failure is skipped until the next interval. There is no backlog or catch-up loop; advancing multiple weeks produces at most one current arrival. Port ownership is rechecked at the spawn call. Membership and deadlines persist, while active counts are reconciled from surviving registered parties. Losing the original army does not stop an eligible surviving foothold; a group disappears only when it has neither a foothold nor surviving members and the kingdom it leaves behind has been retired.
+A due slot blocked by either cap, unavailable port/configuration/template, or spawn failure is skipped until that rule's next interval. There is no backlog or catch-up loop; advancing multiple weeks produces at most one current arrival per rule. Port ownership is rechecked at the spawn call. Membership and the per-rule deadlines persist, while active counts are reconciled from surviving registered parties. A clock whose rule the configuration no longer declares spends its due slot once and lands nothing, rather than being retried daily. Losing the original army does not stop an eligible surviving foothold; a group disappears only when it has neither a foothold nor surviving members and the kingdom it leaves behind has been retired.
 
 ## Defeat removes the lord
 
@@ -76,12 +93,12 @@ While the coastal restriction applies — the initial landing, and every retake 
 
 An invasion with no surviving member and no foothold is spent, and the kingdom it was given is retired. The veto stops applying at that point, but vanilla only asks whether a kingdom can be discontinued when a settlement changes hands or the player switches kingdom, so the missing trigger is supplied on the hourly tick. The rule that decides is vanilla's own — not eliminated, not the player kingdom, holding no settlement, and the event dispatcher consulted so other mods keep their vote — and so are the actions that end it: each clan leaves as an independent with its map and siege events finalised, the ruling clan is cleared, and the kingdom is destroyed. Departing clans then get the usual native time to survive on their own.
 
-The end is deliberately gradual. Reinforcements need a foothold port, still eligible, that the group owns and that is not under siege, so a townless group draws none and can only bleed down while it keeps attacking. A spent group is kept in state only until its kingdom has been retired, since it is what names that kingdom; the next reconciliation then drops it and cancels its remaining captures. Nothing here is persisted: both the offensive switch and the spent condition are derived from live membership and footholds.
+The end is deliberately gradual. Reinforcements need a foothold port, still eligible, that the group owns and that is not under siege, so a townless group draws none and can only bleed down while it keeps attacking. A capped invasion also loses the `StrengthPerTownHeld` share of every town it loses, so its ceiling falls with its holdings and it cannot rebuild to the strength it had at its height. A spent group is kept in state only until its kingdom has been retired, since it is what names that kingdom; the next reconciliation then drops it and cancels its remaining captures. Nothing here is persisted: both the offensive switch and the spent condition are derived from live membership and footholds.
 
 ## Save compatibility and verification
 
 Existing save IDs and original-spawn meanings are retained. Group, role, foothold, capture evidence, occupation completion and scheduling data are appended. Legacy saves adopt identifiable parties prospectively, without inferring old conquests from clan ownership. Ambiguous capture history gets no retroactive food or troop transfer. Removed configuration or eliminated clans suspend new effects while allowing saved state to be cleaned up.
 
-Compile references remain v1.4.7; installed v1.4.8 is the accepted native verification runtime. Focused tests establish rule, mapping and adapter-boundary behaviour, not live campaign balance. Before treating sample balance as verified, record a new campaign and pre-feature-save load, occupation/deadline reloads, and at least three weekly cycles with food, loyalty, security, militia, garrison strength, donor counts/XP, clan wages and party counts. Each reinforcement must demonstrate the existing 1.5 target-strength and 1.2 roaming-hostile ratios against a real candidate; troop counts alone are not proof.
+Compile references remain v1.4.7; installed v1.4.8 is the accepted native verification runtime. Focused tests establish rule, mapping and adapter-boundary behaviour, not live campaign balance. The strength ceiling is exercised against plain numbers only: what the game reports as a clan's strength, and how much of a roster a trim actually removes, are reachable only through the adapter and are not pinned by a test. Before treating sample balance as verified, record a new campaign and pre-feature-save load, occupation/deadline reloads, and at least three weekly cycles with food, loyalty, security, militia, garrison strength, donor counts/XP, clan wages and party counts — including one cycle at the ceiling, to confirm a trimmed arrival rather than a cancelled one. Each reinforcement must demonstrate the existing 1.5 target-strength and 1.2 roaming-hostile ratios against a real candidate; troop counts alone are not proof.
 
 Runtime verification status and exact build/test evidence belong in the implementation report. Do not infer a successful live playtest from this configuration example.

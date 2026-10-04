@@ -8,6 +8,7 @@ using NLog;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
@@ -74,6 +75,7 @@ namespace CustomSpawns.Invasions.Adapters
 
         private static string SkipReason(InvasionReinforcementOutcome outcome) =>
             outcome == InvasionReinforcementOutcome.MaxConcurrentPartiesReached ? "max_concurrent" :
+            outcome == InvasionReinforcementOutcome.FactionStrengthReached ? "faction_strength" :
             outcome == InvasionReinforcementOutcome.NoLandingSite ? "no_held_port" : "configuration_or_clan";
 
         private void Land(InvasionReinforcementDraw draw)
@@ -105,10 +107,36 @@ namespace CustomSpawns.Invasions.Adapters
 
             MobileParty? reinforcement = _spawnGroupService.SpawnInvasionReinforcement(spawn, template, landing, clan,
                 draw.RuleId);
+            int landed = reinforcement == null ? 0 : TrimToPermittedStrength(reinforcement, draw.PermittedStrength);
             Logger.Info("Invasion reinforcement " + (reinforcement == null ? "failed" : "arrived") + ": group=" +
                         draw.Group.Id + " rule=" + draw.RuleId + " clan=" + clan.StringId + " town=" +
-                        landing.StringId + " next_arrival_day=" +
+                        landing.StringId + " men=" + landed + " next_arrival_day=" +
                         draw.Group.FindReinforcementSchedule(draw.RuleId)?.NextDeadlineDays);
+        }
+
+        /**
+         * A party worth more than the invasion has room for lands smaller rather than not at all. How much
+         * of it is allowed is the engine's answer; this only takes the men off the roster, from the back,
+         * leaving the heroes alone because a party without its leader has nobody to march it.
+         */
+        private static int TrimToPermittedStrength(MobileParty reinforcement, double permittedStrength)
+        {
+            TroopRoster roster = reinforcement.MemberRoster;
+            int permitted = InvasionReinforcements.PermittedMemberCount(roster.TotalManCount,
+                reinforcement.Party.EstimatedStrength, permittedStrength);
+
+            for (int index = roster.Count - 1; index >= 0 && roster.TotalManCount > permitted; index--)
+            {
+                TroopRosterElement element = roster.GetElementCopyAtIndex(index);
+
+                if (!element.Character.IsHero)
+                {
+                    roster.RemoveTroop(element.Character,
+                        Math.Min(element.Number, roster.TotalManCount - permitted));
+                }
+            }
+
+            return roster.TotalManCount;
         }
 
         /**
@@ -180,6 +208,26 @@ namespace CustomSpawns.Invasions.Adapters
             MobileParty.All.Count(party => party.IsActive && _dynamicSpawnData.GetDynamicSpawnData(party) is { } data &&
                 CountsAgainstMaxConcurrentParties(data, group) &&
                 string.Equals(data.ReinforcementRuleId, ruleId, StringComparison.Ordinal));
+
+        /**
+         * Vanilla's own measure of what a faction fields, narrowed to the clans of this invasion: the
+         * parties on the map plus the garrisons, which is where an occupation puts the escort it arrived
+         * with. Summed here rather than read off the cached faction total, so that a party landed a moment
+         * ago already counts against the next rule of the same day.
+         */
+        InvasionStrengthBudget IInvasionReinforcementQuery.GetStrengthBudget(InvasionGroupState group)
+        {
+            InvasionData? configuration = GetConfiguration(group);
+            List<Clan> clans = Clan.All.Where(clan => group.HoldsClan(clan.StringId)).ToList();
+
+            double currentStrength = clans.Sum(clan =>
+                clan.WarPartyComponents.Sum(warParty => (double)warParty.MobileParty.Party.EstimatedStrength) +
+                clan.Fiefs.Sum(fief => fief.GarrisonParty == null ? 0 : (double)fief.GarrisonParty.Party.EstimatedStrength));
+
+            return new InvasionStrengthBudget(configuration?.MaxFactionStrength ?? 0,
+                configuration?.StrengthPerTownHeld ?? 0, clans.Sum(clan => clan.Fiefs.Count(fief => fief.IsTown)),
+                currentStrength);
+        }
 
         /**
          * Only a party this invasion landed spends its cap. A party it merely took back from the game

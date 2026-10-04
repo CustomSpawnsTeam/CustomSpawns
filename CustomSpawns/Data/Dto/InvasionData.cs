@@ -5,17 +5,29 @@ namespace CustomSpawns.Data.Dto
     public sealed class InvasionData
     {
         public InvasionData(bool requiresFirstCoastalConquest, float foodStockFloor, float dailyFoodBonus,
-            IReadOnlyList<InvasionReinforcementRuleData> reinforcementRules)
+            IReadOnlyList<InvasionReinforcementRuleData> reinforcementRules, float maxFactionStrength = 0f,
+            float strengthPerTownHeld = 0f)
         {
             RequiresFirstCoastalConquest = requiresFirstCoastalConquest;
             FoodStockFloor = foodStockFloor;
             DailyFoodBonus = dailyFoodBonus;
             ReinforcementRules = reinforcementRules;
+            MaxFactionStrength = maxFactionStrength;
+            StrengthPerTownHeld = strengthPerTownHeld;
         }
 
         public bool RequiresFirstCoastalConquest { get; }
         public float FoodStockFloor { get; }
         public float DailyFoodBonus { get; }
+
+        /**
+         * The strength every reinforcement rule of the invasion draws against, shared between them.
+         * Zero leaves the invasion uncapped, which is what a configuration that does not mention it means.
+         */
+        public float MaxFactionStrength { get; }
+
+        // What each town the invasion holds right now adds to that ceiling. Losing the town lowers it again.
+        public float StrengthPerTownHeld { get; }
 
         // In configuration order, which is the order the rules draw in.
         public IReadOnlyList<InvasionReinforcementRuleData> ReinforcementRules { get; }

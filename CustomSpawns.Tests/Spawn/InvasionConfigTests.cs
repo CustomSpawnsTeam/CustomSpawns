@@ -183,6 +183,42 @@ namespace CustomSpawns.Tests.Spawn
         }
 
         [Test]
+        public void Adapt_ReadsTheSharedStrengthCeilingAndItsPerTownBonus()
+        {
+            const string invasion = "<Invasion><MaxFactionStrength>900</MaxFactionStrength>" +
+                                    "<StrengthPerTownHeld>300</StrengthPerTownHeld>" +
+                                    "<Reinforcements><Rule><Id>infantry</Id>" +
+                                    "<PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId>" +
+                                    "</Rule></Reinforcements></Invasion>";
+            Spawns spawns = Read("<RegularBanditDailySpawnData party_template=\"PartyTemplate.invasion\">" + invasion +
+                                 "</RegularBanditDailySpawnData>", out List<System.Exception> errors);
+
+            InvasionData data = InvasionDtoAdapter.Adapt(spawns.AllSpawns.Single().Invasion!);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(errors, Is.Empty);
+                Assert.That(data.MaxFactionStrength, Is.EqualTo(900f));
+                Assert.That(data.StrengthPerTownHeld, Is.EqualTo(300f));
+                // An invasion that does not mention a ceiling is uncapped, which is what zero means.
+                Assert.That(AdaptValidConfig().MaxFactionStrength, Is.EqualTo(0f));
+            });
+        }
+
+        [TestCase(-1f)]
+        [TestCase(float.NaN)]
+        [TestCase(float.PositiveInfinity)]
+        public void Adapt_RejectsInvalidStrengthCeiling(float maxFactionStrength)
+        {
+            InvasionConfig config = ValidConfig();
+            config.MaxFactionStrength = maxFactionStrength;
+
+            ArgumentException error = Assert.Throws<ArgumentException>(() => InvasionDtoAdapter.Adapt(config))!;
+
+            Assert.That(error.Message, Does.Contain("MaxFactionStrength"));
+        }
+
+        [Test]
         public void ValidateReferences_RejectsUnknownTemplateAndBanditSpawn()
         {
             InvasionData invasion = AdaptValidConfig();

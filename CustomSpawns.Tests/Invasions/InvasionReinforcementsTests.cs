@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CustomSpawns.Invasions;
@@ -135,7 +136,7 @@ namespace CustomSpawns.Tests.Invasions
             _campaign.ActiveReinforcements["infantry"] = 2;
 
             _campaign.Now = 17;
-            IReadOnlyList<InvasionReinforcementDraw> draws = _reinforcements.DrawDue();
+            IReadOnlyList<InvasionReinforcementDraw> draws = _reinforcements.DrawDue().ToList();
 
             Assert.AreEqual(new[] { "infantry", "cavalry" }, draws.Select(draw => draw.RuleId).ToArray());
             Assert.AreEqual(InvasionReinforcementOutcome.MaxConcurrentPartiesReached, draws[0].Outcome);
@@ -165,7 +166,7 @@ namespace CustomSpawns.Tests.Invasions
             _reinforcements.StartSchedule(Conquer().Id);
 
             _campaign.Now = 17;
-            IReadOnlyList<InvasionReinforcementDraw> draws = _reinforcements.DrawDue();
+            IReadOnlyList<InvasionReinforcementDraw> draws = _reinforcements.DrawDue().ToList();
 
             Assert.AreEqual(new[] { "cavalry", "infantry" }, draws.Select(draw => draw.RuleId).ToArray());
             Assert.AreEqual(InvasionReinforcementOutcome.Landing, draws[0].Outcome);
@@ -187,6 +188,73 @@ namespace CustomSpawns.Tests.Invasions
                 group.ReinforcementSchedules.Select(schedule => schedule.IntervalDays).ToArray());
             Assert.AreEqual(new[] { 17d, 30d },
                 group.ReinforcementSchedules.Select(schedule => schedule.NextDeadlineDays).ToArray());
+        }
+
+        [Test]
+        public void TheCeilingRisesWithEveryTownHeldAndFallsAgainWhenOneIsLost()
+        {
+            // No configured ceiling at all leaves the invasion unbounded, whatever it already fields.
+            Assert.AreEqual(double.PositiveInfinity,
+                InvasionReinforcements.Headroom(new InvasionStrengthBudget(0, 300, 2, 5000)));
+            Assert.AreEqual(900, InvasionReinforcements.Headroom(new InvasionStrengthBudget(900, 300, 0, 0)));
+            Assert.AreEqual(900, InvasionReinforcements.Headroom(new InvasionStrengthBudget(900, 300, 2, 600)));
+            Assert.AreEqual(600, InvasionReinforcements.Headroom(new InvasionStrengthBudget(900, 300, 1, 600)));
+        }
+
+        [Test]
+        public void AnArrivalWorthMoreThanTheHeadroomIsCutBackToItInsteadOfBeingCancelled()
+        {
+            Assert.AreEqual(60, InvasionReinforcements.PermittedMemberCount(60, 600, 600));
+            Assert.AreEqual(60, InvasionReinforcements.PermittedMemberCount(60, 600, double.PositiveInfinity));
+            Assert.AreEqual(30, InvasionReinforcements.PermittedMemberCount(60, 600, 300));
+            // Never cut to nothing: what barely fits still lands a man.
+            Assert.AreEqual(1, InvasionReinforcements.PermittedMemberCount(60, 600, 1));
+        }
+
+        [Test]
+        public void AnInvasionAtItsStrengthCeilingSpendsTheSlotWithoutLanding()
+        {
+            Wind();
+            _campaign.MaxFactionStrength = 900;
+            _campaign.CurrentStrength = 900;
+
+            _campaign.Now = 17;
+            Assert.AreEqual(InvasionReinforcementOutcome.FactionStrengthReached,
+                _reinforcements.DrawDue().Single().Outcome);
+            Assert.AreEqual(24, Schedule(_group, "infantry").NextDeadlineDays);
+        }
+
+        [Test]
+        public void RulesDueTheSameDayDrawAgainstOneSharedHeadroomInConfigurationOrder()
+        {
+            _campaign.Rules.Clear();
+            _campaign.Rules.Add(new InvasionReinforcementRule("first", 7, 1));
+            _campaign.Rules.Add(new InvasionReinforcementRule("second", 7, 1));
+            _campaign.Rules.Add(new InvasionReinforcementRule("third", 7, 1));
+            Wind();
+            // 500 of ceiling and one town held at 100 the town: 600 to share between the three rules.
+            _campaign.MaxFactionStrength = 500;
+            _campaign.StrengthPerTownHeld = 100;
+
+            _campaign.Now = 17;
+            var landed = new List<string>();
+
+            foreach (InvasionReinforcementDraw draw in _reinforcements.DrawDue())
+            {
+                if (draw.Outcome != InvasionReinforcementOutcome.Landing)
+                {
+                    landed.Add(draw.RuleId + "=" + draw.Outcome);
+                    continue;
+                }
+
+                // Each stream wants 400, trimmed to its share, and what it landed with is what the next
+                // stream of the same day has to draw against.
+                _campaign.CurrentStrength += Math.Min(400, draw.PermittedStrength);
+                landed.Add(draw.RuleId + "=" + draw.PermittedStrength);
+            }
+
+            Assert.AreEqual(new[] { "first=600", "second=200", "third=FactionStrengthReached" }, landed.ToArray());
+            Assert.AreEqual(24, Schedule(_group, "third").NextDeadlineDays);
         }
 
         private void Wind()
@@ -221,8 +289,16 @@ namespace CustomSpawns.Tests.Invasions
                 new() { new InvasionReinforcementRule("infantry", 7, 2) };
             internal readonly List<string> LandingSites = new() { "town" };
             internal readonly HashSet<string> FullClans = new();
+            internal double MaxFactionStrength;
+            internal double StrengthPerTownHeld;
+            internal int TownsHeld = 1;
+            internal double CurrentStrength;
 
             public double NowInDays => Now;
+
+            public InvasionStrengthBudget GetStrengthBudget(InvasionGroupState group) =>
+                new(MaxFactionStrength, StrengthPerTownHeld, TownsHeld, CurrentStrength);
+
             public IReadOnlyList<InvasionReinforcementRule>? GetRules(InvasionGroupState group) => Rules;
             public bool IsCoastalTown(string settlementId) => Coastal;
             public IReadOnlyList<string> GetLandingSites(InvasionGroupState group) => LandingSites;

@@ -24,20 +24,44 @@ namespace CustomSpawns.Invasions
         // Nothing left to send with: no configuration, a retired spawn template, or no clan.
         Unavailable,
         MaxConcurrentPartiesReached,
+        FactionStrengthReached,
         NoLandingSite,
         Landing
+    }
+
+    /**
+     * What bounds how much an invasion may still field: its configured ceiling, what each town it holds
+     * adds to that ceiling, the towns it holds now, and the strength it already has on the map.
+     */
+    internal readonly struct InvasionStrengthBudget
+    {
+        internal InvasionStrengthBudget(double maxFactionStrength, double strengthPerTownHeld, int townsHeld,
+            double currentStrength)
+        {
+            MaxFactionStrength = maxFactionStrength;
+            StrengthPerTownHeld = strengthPerTownHeld;
+            TownsHeld = townsHeld;
+            CurrentStrength = currentStrength;
+        }
+
+        internal double MaxFactionStrength { get; }
+        internal double StrengthPerTownHeld { get; }
+        internal int TownsHeld { get; }
+        internal double CurrentStrength { get; }
     }
 
     internal readonly struct InvasionReinforcementDraw
     {
         internal InvasionReinforcementDraw(InvasionGroupState group, string ruleId,
-            InvasionReinforcementOutcome outcome, string? landingSettlementId, string? clanId)
+            InvasionReinforcementOutcome outcome, string? landingSettlementId, string? clanId,
+            double permittedStrength = 0)
         {
             Group = group;
             RuleId = ruleId;
             Outcome = outcome;
             LandingSettlementId = landingSettlementId;
             ClanId = clanId;
+            PermittedStrength = permittedStrength;
         }
 
         internal InvasionGroupState Group { get; }
@@ -47,6 +71,11 @@ namespace CustomSpawns.Invasions
         internal string? LandingSettlementId { get; }
         // No clan on a landing means every clan of the invasion is full and the arrival founds another one.
         internal string? ClanId { get; }
+        /**
+         * How much strength this arrival may bring: the headroom left under the invasion's shared ceiling
+         * once the earlier rules of the same day have taken theirs. Infinite when the invasion is uncapped.
+         */
+        internal double PermittedStrength { get; }
     }
 
     // Campaign facts the reinforcement rules read. Bannerlord access stays behind this boundary.
@@ -59,6 +88,8 @@ namespace CustomSpawns.Invasions
         // Towns the group holds that can take a landing.
         IReadOnlyList<string> GetLandingSites(InvasionGroupState group);
         int CountActiveReinforcements(InvasionGroupState group, string ruleId);
+        // Read again for every draw, so that a party landed a moment ago is already part of the strength.
+        InvasionStrengthBudget GetStrengthBudget(InvasionGroupState group);
         // Vanilla caps war parties per clan tier; a clan at its limit cannot take another arrival.
         bool HasPartySlot(string clanId);
     }
@@ -108,11 +139,15 @@ namespace CustomSpawns.Invasions
         /**
          * One draw per rule whose clock has come due. The slot is claimed before anything else is checked,
          * so a refused or a failed landing waits for the next interval rather than retrying daily.
+         *
+         * Drawn one at a time on purpose: the rules of one invasion share a single strength ceiling, and
+         * only a party's caller knows what it actually landed with. Each draw is therefore computed after
+         * the previous one has been acted on, which is what makes the first rule take its room and the
+         * next ones have to make do with what is left.
          */
-        internal IReadOnlyList<InvasionReinforcementDraw> DrawDue()
+        internal IEnumerable<InvasionReinforcementDraw> DrawDue()
         {
             double nowDays = _invasionReinforcementQuery.NowInDays;
-            var draws = new List<InvasionReinforcementDraw>();
 
             foreach (InvasionGroupState group in new List<InvasionGroupState>(_invasionState.Groups))
             {
@@ -123,12 +158,35 @@ namespace CustomSpawns.Invasions
                 {
                     if (TryClaimSlot(schedule, nowDays))
                     {
-                        draws.Add(Draw(group, rules.FirstOrDefault(rule => rule.Id == schedule.RuleId), schedule));
+                        yield return Draw(group, rules.FirstOrDefault(rule => rule.Id == schedule.RuleId), schedule);
                     }
                 }
             }
+        }
 
-            return draws;
+        /**
+         * What the invasion may still field under its shared ceiling. An unconfigured ceiling leaves it
+         * unbounded; every town it holds right now raises the ceiling, and losing one lowers it again.
+         */
+        internal static double Headroom(InvasionStrengthBudget budget)
+        {
+            return budget.MaxFactionStrength <= 0
+                ? double.PositiveInfinity
+                : budget.MaxFactionStrength + budget.StrengthPerTownHeld * budget.TownsHeld - budget.CurrentStrength;
+        }
+
+        /**
+         * How much of an arrival fits in the headroom left. An arrival worth more than that is cut back to
+         * its share rather than turned away, down to a single man, which is the edge case this answers.
+         */
+        internal static int PermittedMemberCount(int memberCount, double partyStrength, double permittedStrength)
+        {
+            if (partyStrength <= permittedStrength || partyStrength <= 0)
+            {
+                return memberCount;
+            }
+
+            return Math.Max(1, (int)Math.Floor(memberCount * permittedStrength / partyStrength));
         }
 
         /**
@@ -167,13 +225,18 @@ namespace CustomSpawns.Invasions
                 return new InvasionReinforcementDraw(group, rule.Id,
                     InvasionReinforcementOutcome.MaxConcurrentPartiesReached, null, null);
 
+            double headroom = Headroom(_invasionReinforcementQuery.GetStrengthBudget(group));
+            if (headroom <= 0)
+                return new InvasionReinforcementDraw(group, rule.Id,
+                    InvasionReinforcementOutcome.FactionStrengthReached, null, null);
+
             IReadOnlyList<string> landingSites = _invasionReinforcementQuery.GetLandingSites(group);
             // The arrival joins the first clan of the invasion that still has room for a war party.
             return landingSites.Count == 0
                 ? new InvasionReinforcementDraw(group, rule.Id, InvasionReinforcementOutcome.NoLandingSite, null, null)
                 : new InvasionReinforcementDraw(group, rule.Id, InvasionReinforcementOutcome.Landing,
                     landingSites[_selectIndex(landingSites.Count)],
-                    group.ClanIds.FirstOrDefault(_invasionReinforcementQuery.HasPartySlot));
+                    group.ClanIds.FirstOrDefault(_invasionReinforcementQuery.HasPartySlot), headroom);
         }
     }
 }
