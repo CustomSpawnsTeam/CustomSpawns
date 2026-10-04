@@ -237,6 +237,56 @@ namespace CustomSpawns.Tests.Spawn
             });
         }
 
+        /**
+         * An invasion is identified by the clan it invades for, so a spawn that would roll a different clan
+         * every time it fires, or take whichever clan owns the settlement it lands at, has no one invasion.
+         */
+        [Test]
+        public void ValidateFixedInvasionClan_RejectsAClanTheSpawnPicksRatherThanTheConfiguration()
+        {
+            ArgumentException overriden = Assert.Throws<ArgumentException>(() =>
+                InvasionRuntimeConfigurationValidator.ValidateFixedInvasionClan("PartyTemplate.origin", 2, false))!;
+            ArgumentException inherited = Assert.Throws<ArgumentException>(() =>
+                InvasionRuntimeConfigurationValidator.ValidateFixedInvasionClan("PartyTemplate.origin", 0, true))!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(overriden.Message, Does.Contain("OverridenClanSpawns"));
+                Assert.That(inherited.Message, Does.Contain("InheritClanFromSettlement"));
+                Assert.DoesNotThrow(() => InvasionRuntimeConfigurationValidator.ValidateFixedInvasionClan(
+                    "PartyTemplate.origin", 0, false));
+            });
+        }
+
+        // One faction, one invasion: the first spawn to name a clan keeps it and every later one is refused.
+        [Test]
+        public void FindInvasionsSharingAClan_RefusesEveryInvasionAfterTheFirstToNameAClan()
+        {
+            IReadOnlyList<string> refused = InvasionRuntimeConfigurationValidator.FindInvasionsSharingAClan(new[]
+            {
+                new KeyValuePair<string, string>("northern_landing", "hunnar"),
+                new KeyValuePair<string, string>("makko_landing", "makko"),
+                new KeyValuePair<string, string>("southern_landing", "hunnar"),
+                new KeyValuePair<string, string>("third_landing", "hunnar")
+            });
+
+            Assert.That(refused, Is.EqualTo(new[] { "southern_landing", "third_landing" }));
+        }
+
+        /**
+         * Several waves of one invasion are one spawn firing again, not a second spawn, so nothing about
+         * this rule stands between an invasion and the reinforcements or re-landings it is configured for.
+         */
+        [Test]
+        public void FindInvasionsSharingAClan_AcceptsOneInvasionPerClan()
+        {
+            Assert.That(InvasionRuntimeConfigurationValidator.FindInvasionsSharingAClan(new[]
+            {
+                new KeyValuePair<string, string>("hunnar_landing", "hunnar"),
+                new KeyValuePair<string, string>("makko_landing", "makko")
+            }), Is.Empty);
+        }
+
         [Test]
         public void ValidateEffectiveSiegeTemplate_RejectsCastleOnlyWithoutMutatingSharedBehaviour()
         {

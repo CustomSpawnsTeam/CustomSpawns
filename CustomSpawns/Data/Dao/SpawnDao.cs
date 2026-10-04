@@ -54,8 +54,28 @@ namespace CustomSpawns.Data.Dao
                     })
                     .Where(spawn => spawn != null)
                     .ToList()!;
+                RefuseInvasionsSharingAClan(_spawns);
             }
             return _spawns;
+        }
+
+        // A clan may be invaded for once. The refusal is reported and the spawn dropped, the way an
+        // invalid spawn is, since the invasion it configures cannot be told apart from the first one's.
+        private void RefuseInvasionsSharingAClan(List<SpawnDto> spawns)
+        {
+            IReadOnlyList<string> refused = InvasionRuntimeConfigurationValidator.FindInvasionsSharingAClan(spawns
+                .Where(spawn => spawn.Invasion != null)
+                .Select(spawn => new KeyValuePair<string, string>(spawn.PartyTemplate.StringId,
+                    spawn.SpawnClan.StringId)));
+
+            foreach (string partyTemplateId in refused)
+            {
+                SpawnDto spawn = spawns.First(candidate => candidate.PartyTemplate.StringId == partyTemplateId);
+                _messageBoxService.ShowMessage("Custom Spawns ignored the invasion spawn '" + partyTemplateId +
+                                               "' because clan '" + spawn.SpawnClan.StringId +
+                                               "' is already invaded for by an earlier spawn. A clan may be invaded for once.");
+                spawns.Remove(spawn);
+            }
         }
 
         public IList<SpawnDto> FindAll()
