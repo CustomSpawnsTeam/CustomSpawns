@@ -282,7 +282,7 @@ namespace CustomSpawns.Invasions.Adapters
                 return _invasionState.HoldsCapital(invasion) ? null : settlement => settlement.StringId == capitalId;
             }
 
-            bool factionHasSupplyBase = Settlement.All.Any(settlement => settlement.IsTown &&
+            bool factionHasSupplyBase = Settlement.All.Any(settlement =>
                 settlement.MapFaction == party.MapFaction && _invasionSupplyBases.IsSupplyBase(settlement));
 
             return factionHasSupplyBase ? null : _invasionSupplyBases.IsSupplyBase;
@@ -292,7 +292,7 @@ namespace CustomSpawns.Invasions.Adapters
         {
             InvasionFoothold? foothold = _invasionState.FindFoothold(settlement.StringId);
 
-            return foothold?.InvasionClanId == invasion.ClanId && settlement.IsTown &&
+            return foothold?.InvasionClanId == invasion.ClanId &&
                    invasion.HoldsClan(settlement.OwnerClan?.StringId) && settlement.SiegeEvent == null &&
                    _invasionSupplyBases.IsSupplyBase(settlement);
         }
