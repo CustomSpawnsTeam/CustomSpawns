@@ -134,6 +134,8 @@ namespace CustomSpawns.Invasions.Adapters
                 if (previousCapture != null) previousCapture.Cancelled = true;
             }
             _invasionState.FootholdIndex[capture.SettlementId] = new InvasionFoothold(capture.SettlementId, invasion.ClanId, capture.Id);
+            // The first settlement the invasion ever holds is the one it founds its kingdom on.
+            invasion.CapitalSettlementId ??= capture.SettlementId;
         }
 
         internal void Prune()

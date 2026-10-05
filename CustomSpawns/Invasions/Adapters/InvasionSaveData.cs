@@ -53,6 +53,7 @@ namespace CustomSpawns.Invasions.Adapters
         [SaveableField(2)] public string SpawnTemplateId = "";
         [SaveableField(3)] public string ClanId = "";
         [SaveableField(5)] public bool IsSuspended;
+        [SaveableField(6)] public string? CapitalSettlementId;
         [SaveableField(7)] public List<string> Members = new();
         [SaveableField(9)] public List<string> ClanIds = new();
         [SaveableField(10)] public List<InvasionReinforcementScheduleSaveData> ReinforcementSchedules = new();
@@ -62,6 +63,7 @@ namespace CustomSpawns.Invasions.Adapters
             SpawnTemplateId = value.SpawnTemplateId,
             ClanId = value.ClanId,
             IsSuspended = value.IsSuspended,
+            CapitalSettlementId = value.CapitalSettlementId,
             Members = value.Members.ToList(),
             ClanIds = value.ClanIds.ToList(),
             ReinforcementSchedules = value.ReinforcementSchedules
@@ -73,6 +75,7 @@ namespace CustomSpawns.Invasions.Adapters
             var invasion = new Invasion(SpawnTemplateId, ClanId)
             {
                 IsSuspended = IsSuspended,
+                CapitalSettlementId = CapitalSettlementId,
                 Members = new HashSet<string>(Members ?? new List<string>(), StringComparer.Ordinal)
             };
             // A save taken before the invasion could expand carries the founding clan alone.

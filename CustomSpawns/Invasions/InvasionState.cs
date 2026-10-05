@@ -70,17 +70,17 @@ namespace CustomSpawns.Invasions
         public bool IsInvasionSpent(Invasion invasion) =>
             invasion.Members.Count == 0 && !Footholds.Any(foothold => foothold.InvasionClanId == invasion.ClanId);
 
-        // Steering changes hands at the settlement: an invasion that holds one leaves every one of its parties to
-        // vanilla, and an invasion that holds none takes them all back. Parties of no invasion are always ours.
-        public bool RequiresCustomSpawnsSteering(string? clanId) =>
-            FindInvasionHolding(clanId) == null || IsInvasionWithoutTown(clanId);
-
-        // A invasion holding no town is put back on the offensive; vanilla steers its parties while it still holds one.
-        public bool IsInvasionWithoutTown(string? clanId)
+        // Steering changes hands at the capital: an invasion that holds it leaves every one of its parties to
+        // vanilla, and an invasion that has lost it takes them all back to retake it, whatever else it still
+        // holds. Parties of no invasion are always ours.
+        public bool RequiresCustomSpawnsSteering(string? clanId)
         {
             Invasion? invasion = FindInvasionHolding(clanId);
-            return invasion != null && !invasion.IsSuspended && !Footholds.Any(foothold => foothold.InvasionClanId == invasion.ClanId);
+            return invasion == null || (!invasion.IsSuspended && !HoldsCapital(invasion));
         }
+
+        private bool HoldsCapital(Invasion invasion) => invasion.CapitalSettlementId != null &&
+            FindFoothold(invasion.CapitalSettlementId)?.InvasionClanId == invasion.ClanId;
 
         public InvasionCapture StartCapture(string settlementId, long battleStartTimeBits, string attackerLeaderId)
         {
@@ -166,6 +166,12 @@ namespace CustomSpawns.Invasions
         public bool HoldsClan(string? clanId) => clanId != null && Clans.Contains(clanId);
         internal void AddClan(string clanId) { if (!Clans.Contains(clanId)) Clans.Add(clanId); }
         public bool IsSuspended { get; internal set; }
+        /**
+         * The settlement the invasion founded its kingdom on. Kept once the invasion loses it, because losing
+         * it is what puts the invasion back on the offensive: later conquests are the kingdom's own business,
+         * but the capital it landed for has to be retaken.
+         */
+        public string? CapitalSettlementId { get; internal set; }
         // One clock per configured reinforcement rule. An invasion that holds no supply base has none.
         internal List<InvasionReinforcementSchedule> Schedules = new();
         public IReadOnlyList<InvasionReinforcementSchedule> ReinforcementSchedules => Schedules;

@@ -278,23 +278,7 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
-        public void AnInvasionIsBackOnTheOffensiveOnlyOnceItHoldsNoTownAtAll()
-        {
-            Assert.True(_state.IsInvasionWithoutTown(_invasion.ClanId));
-            Assert.False(_state.IsInvasionWithoutTown("absent"));
-
-            Conquer();
-            Assert.False(_state.IsInvasionWithoutTown(_invasion.ClanId));
-
-            _state.ObserveOwner("town", "enemy");
-            Assert.True(_state.IsInvasionWithoutTown(_invasion.ClanId));
-
-            _state.Reconcile(new[] { "capturer" }, _ => "clan", _ => false, _ => false);
-            Assert.False(_state.IsInvasionWithoutTown(_invasion.ClanId));
-        }
-
-        [Test]
-        public void SteeringOfEveryPartyChangesHandsWhenTheInvasionTakesOrLosesItsSettlement()
+        public void SteeringOfEveryPartyChangesHandsWhenTheInvasionTakesOrLosesItsCapital()
         {
             Assert.True(_state.RequiresCustomSpawnsSteering(_invasion.ClanId));
             // A party of no invasion is never released, whatever any invasion holds.
@@ -302,6 +286,7 @@ namespace CustomSpawns.Tests.Invasions
             Assert.True(_state.RequiresCustomSpawnsSteering(null));
 
             Conquer();
+            Assert.That(_invasion.CapitalSettlementId, Is.EqualTo("town"));
             Assert.False(_state.RequiresCustomSpawnsSteering(_invasion.ClanId));
             Assert.True(_state.RequiresCustomSpawnsSteering("absent"));
 
@@ -310,16 +295,35 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
-        public void LosingOneOfTwoTownsLeavesTheInvasionHoldingAFoothold()
+        public void OnlyTheLossOfTheCapitalTakesTheInvasionBackOffVanillaSteering()
         {
             Conquer();
             var second = _state.StartCapture("second-town", 300, "capturer");
             Correlation.ObserveOwnership(second.Id, _invasion.ClanId, "capturer", "enemy", "clan", true);
             Aftermath(second);
             Assert.That(_state.Footholds.Count, Is.EqualTo(2));
+            // A second conquest never displaces the capital the invasion landed for.
+            Assert.That(_invasion.CapitalSettlementId, Is.EqualTo("town"));
+
+            _state.ObserveOwner("second-town", "enemy");
+            Assert.False(_state.RequiresCustomSpawnsSteering(_invasion.ClanId));
 
             _state.ObserveOwner("town", "enemy");
-            Assert.False(_state.IsInvasionWithoutTown(_invasion.ClanId));
+            Assert.True(_state.RequiresCustomSpawnsSteering(_invasion.ClanId));
+        }
+
+        [Test]
+        public void LosingTheCapitalWhileHoldingASecondTownStillPutsTheInvasionBackOnTheOffensive()
+        {
+            Conquer();
+            var second = _state.StartCapture("second-town", 300, "capturer");
+            Correlation.ObserveOwnership(second.Id, _invasion.ClanId, "capturer", "enemy", "clan", true);
+            Aftermath(second);
+
+            _state.ObserveOwner("town", "enemy");
+
+            Assert.That(_state.Footholds.Count, Is.EqualTo(1));
+            Assert.True(_state.RequiresCustomSpawnsSteering(_invasion.ClanId));
         }
 
         [Test]
