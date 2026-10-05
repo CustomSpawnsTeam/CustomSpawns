@@ -28,17 +28,17 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly SpawnDao _spawnDao;
         private readonly DynamicSpawnData _dynamicSpawnData;
         private readonly SpawnGroupService _spawnGroupService;
-        private readonly InvasionCoastalTownResolver _invasionCoastalTownResolver;
+        private readonly InvasionSupplyBases _invasionSupplyBases;
         private readonly InvasionReinforcements _invasionReinforcements;
 
         internal InvasionReinforcementArrivals(InvasionState state, SpawnDao spawns, DynamicSpawnData parties,
-            SpawnGroupService spawnGroups, InvasionCoastalTownResolver coastalTownResolver, Func<int, int> randomIndex)
+            SpawnGroupService spawnGroups, InvasionSupplyBases supplyBases, Func<int, int> randomIndex)
         {
             _invasionState = state;
             _spawnDao = spawns;
             _dynamicSpawnData = parties;
             _spawnGroupService = spawnGroups;
-            _invasionCoastalTownResolver = coastalTownResolver;
+            _invasionSupplyBases = supplyBases;
             _invasionReinforcements = new InvasionReinforcements(state, this, randomIndex);
         }
 
@@ -196,8 +196,8 @@ namespace CustomSpawns.Invasions.Adapters
                     rule.IntervalInDays, rule.MaxConcurrentParties)).ToList();
         }
 
-        bool IInvasionReinforcementQuery.IsCoastalTown(string settlementId) =>
-            _invasionCoastalTownResolver.IsCoastalTown(Settlement.Find(settlementId));
+        bool IInvasionReinforcementQuery.IsSupplyBase(string settlementId) =>
+            _invasionSupplyBases.IsSupplyBase(Settlement.Find(settlementId));
 
         IReadOnlyList<string> IInvasionReinforcementQuery.GetLandingSites(Invasion invasion) =>
             Settlement.All.Where(settlement => IsEligibleLandingSettlement(settlement, invasion))
@@ -265,10 +265,10 @@ namespace CustomSpawns.Invasions.Adapters
                 return null;
             }
 
-            bool factionHasCoastalTown = Settlement.All.Any(settlement => settlement.IsTown &&
-                settlement.MapFaction == party.MapFaction && _invasionCoastalTownResolver.IsCoastalTown(settlement));
+            bool factionHasSupplyBase = Settlement.All.Any(settlement => settlement.IsTown &&
+                settlement.MapFaction == party.MapFaction && _invasionSupplyBases.IsSupplyBase(settlement));
 
-            return factionHasCoastalTown ? null : _invasionCoastalTownResolver.IsCoastalTown;
+            return factionHasSupplyBase ? null : _invasionSupplyBases.IsSupplyBase;
         }
 
         private bool IsEligibleLandingSettlement(Settlement settlement, Invasion invasion)
@@ -277,7 +277,7 @@ namespace CustomSpawns.Invasions.Adapters
 
             return foothold?.InvasionClanId == invasion.ClanId && settlement.IsTown &&
                    invasion.HoldsClan(settlement.OwnerClan?.StringId) && settlement.SiegeEvent == null &&
-                   _invasionCoastalTownResolver.IsCoastalTown(settlement);
+                   _invasionSupplyBases.IsSupplyBase(settlement);
         }
 
         private InvasionData? GetConfiguration(Invasion invasion) =>

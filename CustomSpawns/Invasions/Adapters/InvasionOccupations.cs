@@ -22,15 +22,15 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly InvasionState _invasionState;
         private readonly SpawnDao _spawnDao;
         private readonly DynamicSpawnData _dynamicSpawnData;
-        private readonly InvasionCoastalTownResolver _invasionCoastalTownResolver;
+        private readonly InvasionSupplyBases _invasionSupplyBases;
 
         internal InvasionOccupations(InvasionState state, SpawnDao spawns, DynamicSpawnData parties,
-            InvasionCoastalTownResolver coastalTownResolver)
+            InvasionSupplyBases supplyBases)
         {
             _invasionState = state;
             _spawnDao = spawns;
             _dynamicSpawnData = parties;
-            _invasionCoastalTownResolver = coastalTownResolver;
+            _invasionSupplyBases = supplyBases;
         }
 
         internal float GetOngoingFoodSupport(Town town)
@@ -111,7 +111,7 @@ namespace CustomSpawns.Invasions.Adapters
             Clan? clan = invasion == null ? null : Clan.FindFirst(candidate => candidate.StringId == invasion.ClanId);
             InvasionFoothold? foothold = _invasionState.FindFoothold(town.Settlement.StringId);
             return InvasionFoodSupportRules.IsEligibleForOngoingSupport(foothold?.InvasionClanId == invasion?.ClanId,
-                configuration != null && _invasionCoastalTownResolver.IsCoastalTown(town.Settlement),
+                configuration != null && _invasionSupplyBases.IsSupplyBase(town.Settlement),
                 invasion?.HoldsClan(town.Settlement.OwnerClan?.StringId) == true, configuration != null && !invasion!.IsSuspended &&
                 clan?.IsEliminated == false, town.Settlement.SiegeEvent != null);
         }

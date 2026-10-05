@@ -24,16 +24,16 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
-        public void OnlyTheFirstCoastalTownWindsThePersistentClock()
+        public void OnlyTheFirstSupplyBaseWindsThePersistentClock()
         {
             InvasionCapture capture = Conquer();
             _campaign.Now = 10;
-            _campaign.Coastal = false;
+            _campaign.SupplyBase = false;
 
             Assert.IsNull(_reinforcements.StartSchedule(capture.Id));
             Assert.That(_invasion.ReinforcementSchedules, Is.Empty);
 
-            _campaign.Coastal = true;
+            _campaign.SupplyBase = true;
             Assert.AreSame(_invasion, _reinforcements.StartSchedule(capture.Id));
             Assert.IsNull(_reinforcements.StartSchedule(capture.Id));
             Assert.AreEqual(17, Schedule(_invasion, "infantry").NextDeadlineDays);
@@ -283,7 +283,7 @@ namespace CustomSpawns.Tests.Invasions
         private sealed class CampaignStub : IInvasionReinforcementQuery
         {
             internal double Now;
-            internal bool Coastal = true;
+            internal bool SupplyBase = true;
             internal readonly Dictionary<string, int> ActiveReinforcements = new();
             internal readonly List<InvasionReinforcementRule> Rules =
                 new() { new InvasionReinforcementRule("infantry", 7, 2) };
@@ -300,7 +300,7 @@ namespace CustomSpawns.Tests.Invasions
                 new(MaxFactionStrength, StrengthPerTownHeld, TownsHeld, CurrentStrength);
 
             public IReadOnlyList<InvasionReinforcementRule>? GetRules(Invasion invasion) => Rules;
-            public bool IsCoastalTown(string settlementId) => Coastal;
+            public bool IsSupplyBase(string settlementId) => SupplyBase;
             public IReadOnlyList<string> GetLandingSites(Invasion invasion) => LandingSites;
 
             public int CountActiveReinforcements(Invasion invasion, string ruleId) =>

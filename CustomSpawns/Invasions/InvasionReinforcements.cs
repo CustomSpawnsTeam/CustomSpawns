@@ -84,8 +84,9 @@ namespace CustomSpawns.Invasions
         double NowInDays { get; }
         // In configuration order. Null when the invasion has nothing left to send with.
         IReadOnlyList<InvasionReinforcementRule>? GetRules(Invasion invasion);
-        bool IsCoastalTown(string settlementId);
-        // Towns the invasion holds that can take a landing.
+        // Whether a settlement can supply the invasion: wind its clocks, and take its arrivals.
+        bool IsSupplyBase(string settlementId);
+        // Settlements the invasion holds that can take an arrival.
         IReadOnlyList<string> GetLandingSites(Invasion invasion);
         int CountActiveReinforcements(Invasion invasion, string ruleId);
         // Read again for every draw, so that a party landed a moment ago is already part of the strength.
@@ -95,9 +96,10 @@ namespace CustomSpawns.Invasions
     }
 
     /**
-     * Reinforcements come by sea on a fixed cadence: taking a coastal town winds one clock per configured
-     * rule, and every time one comes due the invasion draws a party at a port it still holds. The clocks
-     * are kept on the invasion so that they survive a save; every rule that winds or reads one lives here.
+     * Reinforcements come on a fixed cadence: taking a settlement that can supply the invasion winds one
+     * clock per configured rule, and every time one comes due the invasion draws a party at a supply base
+     * it still holds. The clocks are kept on the invasion so that they survive a save; every rule that
+     * winds or reads one lives here.
      */
     internal sealed class InvasionReinforcements
     {
@@ -113,7 +115,7 @@ namespace CustomSpawns.Invasions
             _selectIndex = selectIndex;
         }
 
-        // The clocks are wound once, by the first coastal town the invasion takes and holds.
+        // The clocks are wound once, by the first supply base the invasion takes and holds.
         internal Invasion? StartSchedule(long captureId)
         {
             InvasionCapture? capture = _invasionState.FindCapture(captureId);
@@ -121,7 +123,7 @@ namespace CustomSpawns.Invasions
             if (capture?.IsConfirmed != true || invasion == null) return null;
 
             IReadOnlyList<InvasionReinforcementRule>? rules = _invasionReinforcementQuery.GetRules(invasion);
-            if (rules == null || !_invasionReinforcementQuery.IsCoastalTown(capture.SettlementId)) return null;
+            if (rules == null || !_invasionReinforcementQuery.IsSupplyBase(capture.SettlementId)) return null;
 
             double nowDays = _invasionReinforcementQuery.NowInDays;
             bool wound = false;

@@ -5,10 +5,10 @@ namespace CustomSpawns.Invasions
     // Pure admission and stock-floor rules. Campaign-state lookup belongs in the adapter.
     internal static class InvasionFoodSupportRules
     {
-        internal static bool IsEligibleForOngoingSupport(bool hasFoothold, bool isLiveCoastalTown,
+        internal static bool IsEligibleForOngoingSupport(bool hasFoothold, bool isLiveSupplyBase,
             bool isOwnedByHoldingInvasion, bool isConfigurationEnabled, bool isUnderSiege)
         {
-            return hasFoothold && isLiveCoastalTown && isOwnedByHoldingInvasion &&
+            return hasFoothold && isLiveSupplyBase && isOwnedByHoldingInvasion &&
                    isConfigurationEnabled && !isUnderSiege;
         }
 

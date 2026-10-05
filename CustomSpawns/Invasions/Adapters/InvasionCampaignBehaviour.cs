@@ -21,7 +21,7 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly SpawnDao _spawnDao;
         private readonly DynamicSpawnData _dynamicSpawnData;
         private readonly SpawnGroupService _spawnGroupService;
-        private readonly InvasionCoastalTownResolver _invasionCoastalTownResolver = new();
+        private readonly InvasionSupplyBases _invasionSupplyBases = new();
         private readonly Func<int, int> _randomIndex;
         private InvasionCaptureCorrelation _invasionCaptureCorrelation;
         private InvasionReinforcementArrivals _invasionReinforcementArrivals;
@@ -105,15 +105,15 @@ namespace CustomSpawns.Invasions.Adapters
             }
 
             _initialized = false;
-            _invasionCoastalTownResolver.ClearCache();
+            _invasionSupplyBases.ClearCache();
         }
 
         private InvasionReinforcementArrivals NewArrivals() =>
-            new(State, _spawnDao, _dynamicSpawnData, _spawnGroupService, _invasionCoastalTownResolver,
+            new(State, _spawnDao, _dynamicSpawnData, _spawnGroupService, _invasionSupplyBases,
                 _randomIndex);
 
         private InvasionOccupations NewOccupations() =>
-            new(State, _spawnDao, _dynamicSpawnData, _invasionCoastalTownResolver);
+            new(State, _spawnDao, _dynamicSpawnData, _invasionSupplyBases);
 
         private void Initialize()
         {

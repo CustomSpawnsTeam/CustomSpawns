@@ -161,7 +161,7 @@ namespace CustomSpawns.Invasions
         public bool HoldsClan(string? clanId) => clanId != null && Clans.Contains(clanId);
         internal void AddClan(string clanId) { if (!Clans.Contains(clanId)) Clans.Add(clanId); }
         public bool IsSuspended { get; internal set; }
-        // One clock per configured reinforcement rule. An invasion that has taken no coastal town has none.
+        // One clock per configured reinforcement rule. An invasion that holds no supply base has none.
         internal List<InvasionReinforcementSchedule> Schedules = new();
         public IReadOnlyList<InvasionReinforcementSchedule> ReinforcementSchedules => Schedules;
 
