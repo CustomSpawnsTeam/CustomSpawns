@@ -168,7 +168,7 @@ namespace CustomSpawns.Invasions
 
         /**
          * What the invasion may still field under its shared ceiling. An unconfigured ceiling leaves it
-         * unbounded; every town it holds right now raises the ceiling, and losing one lowers it again.
+         * unbounded; every town its kingdom holds right now raises the ceiling, and losing one lowers it again.
          */
         internal static double Headroom(InvasionStrengthBudget budget)
         {

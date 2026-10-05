@@ -229,9 +229,16 @@ namespace CustomSpawns.Invasions.Adapters
                 currentStrength += clan.CurrentTotalStrength;
             }
 
+            // The per-town bonus is the kingdom's, not the invading clans': a town held by any member of the
+            // kingdom raises the ceiling, however that member came by it. The engine keeps the kingdom's fief
+            // list live, so a town lost stops counting the moment it changes hands.
+            Kingdom? kingdom = clans.Select(clan => clan.Kingdom).FirstOrDefault(candidate => candidate != null);
+            int townsHeld = kingdom == null
+                ? clans.Sum(clan => clan.Fiefs.Count(fief => fief.IsTown))
+                : kingdom.Fiefs.Count(fief => fief.IsTown);
+
             return new InvasionStrengthBudget(configuration?.MaxFactionStrength ?? 0,
-                configuration?.StrengthPerTownHeld ?? 0, clans.Sum(clan => clan.Fiefs.Count(fief => fief.IsTown)),
-                currentStrength);
+                configuration?.StrengthPerTownHeld ?? 0, townsHeld, currentStrength);
         }
 
         /**
