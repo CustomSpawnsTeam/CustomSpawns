@@ -294,6 +294,22 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
+        public void SteeringOfEveryPartyChangesHandsWhenTheInvasionTakesOrLosesItsSettlement()
+        {
+            Assert.True(_state.RequiresCustomSpawnsSteering(_invasion.ClanId));
+            // A party of no invasion is never released, whatever any invasion holds.
+            Assert.True(_state.RequiresCustomSpawnsSteering("absent"));
+            Assert.True(_state.RequiresCustomSpawnsSteering(null));
+
+            Conquer();
+            Assert.False(_state.RequiresCustomSpawnsSteering(_invasion.ClanId));
+            Assert.True(_state.RequiresCustomSpawnsSteering("absent"));
+
+            _state.ObserveOwner("town", "enemy");
+            Assert.True(_state.RequiresCustomSpawnsSteering(_invasion.ClanId));
+        }
+
+        [Test]
         public void LosingOneOfTwoTownsLeavesTheInvasionHoldingAFoothold()
         {
             Conquer();

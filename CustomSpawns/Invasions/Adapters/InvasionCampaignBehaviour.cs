@@ -231,7 +231,7 @@ namespace CustomSpawns.Invasions.Adapters
         bool IPartySteeringQuery.RequiresCustomSpawnsSteering(MobileParty party)
         {
             Initialize();
-            return State.IsInvasionWithoutTown(party.ActualClan?.StringId);
+            return State.RequiresCustomSpawnsSteering(party.ActualClan?.StringId);
         }
 
         private void CanKingdomBeDiscontinued(Kingdom kingdom, ref bool result)

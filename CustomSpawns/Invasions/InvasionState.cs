@@ -70,7 +70,12 @@ namespace CustomSpawns.Invasions
         public bool IsInvasionSpent(Invasion invasion) =>
             invasion.Members.Count == 0 && !Footholds.Any(foothold => foothold.InvasionClanId == invasion.ClanId);
 
-        // A invasion holding no town is put back on the offensive; vanilla steers its lords while it still holds one.
+        // Steering changes hands at the settlement: an invasion that holds one leaves every one of its parties to
+        // vanilla, and an invasion that holds none takes them all back. Parties of no invasion are always ours.
+        public bool RequiresCustomSpawnsSteering(string? clanId) =>
+            FindInvasionHolding(clanId) == null || IsInvasionWithoutTown(clanId);
+
+        // A invasion holding no town is put back on the offensive; vanilla steers its parties while it still holds one.
         public bool IsInvasionWithoutTown(string? clanId)
         {
             Invasion? invasion = FindInvasionHolding(clanId);

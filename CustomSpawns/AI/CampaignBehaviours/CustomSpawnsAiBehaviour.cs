@@ -5,11 +5,10 @@ using CustomSpawns.AI.Behaviours;
 using CustomSpawns.Spawn;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
-using TaleWorlds.CampaignSystem.Party.PartyComponents;
 
 namespace CustomSpawns.AI
 {
-    // Whether a lord party should keep being steered by CustomSpawns instead of being released to vanilla AI.
+    // Whether a party should keep being steered by CustomSpawns instead of being released to vanilla AI.
     internal interface IPartySteeringQuery
     {
         bool RequiresCustomSpawnsSteering(MobileParty party);
@@ -65,12 +64,6 @@ namespace CustomSpawns.AI
             }
 
             scoreSink.AddBehaviorScore(behavior, DominantAiBehaviorScore);
-        }
-
-        // A promoted lord is steered by vanilla unless its domain still requires CustomSpawns control.
-        internal static bool IsSteeredByCustomSpawns(bool isLordParty, bool requiresCustomSpawnsSteering)
-        {
-            return !isLordParty || requiresCustomSpawnsSteering;
         }
 
         internal static EscortDecisionLockAction GetEscortDecisionLockAction(bool keepFormation,
@@ -130,8 +123,7 @@ namespace CustomSpawns.AI
                     return;
                 }
 
-                if (!IsSteeredByCustomSpawns(party.PartyComponent is LordPartyComponent,
-                        _partySteeringQuery.RequiresCustomSpawnsSteering(party)))
+                if (!_partySteeringQuery.RequiresCustomSpawnsSteering(party))
                 {
                     return;
                 }

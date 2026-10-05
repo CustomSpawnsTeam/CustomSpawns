@@ -83,14 +83,6 @@ namespace CustomSpawns.Tests.AI
             Assert.That(shared.SyncCount, Is.EqualTo(1));
         }
 
-        [Test]
-        public void LordPartiesAreLeftToVanillaUnlessTheirInvasionHoldsNoTown()
-        {
-            Assert.True(CustomSpawnsAiBehaviour.IsSteeredByCustomSpawns(false, false));
-            Assert.False(CustomSpawnsAiBehaviour.IsSteeredByCustomSpawns(true, false));
-            Assert.True(CustomSpawnsAiBehaviour.IsSteeredByCustomSpawns(true, true));
-        }
-
         private sealed class SyncStub : ISyncsCampaignData
         {
             public int SyncCount { get; private set; }
