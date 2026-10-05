@@ -14,7 +14,8 @@ namespace CustomSpawns.Data.Adapter
                 .Select(rule => new InvasionReinforcementRuleData(rule.Id!, rule.PartyTemplateId!,
                     rule.IntervalInDays, rule.MaxConcurrentParties)).ToList();
             return new InvasionData(config.RequiresFirstCoastalConquest, config.Supplies.FoodStockFloor,
-                config.Supplies.DailyFoodBonus, rules, config.MaxFactionStrength, config.StrengthPerTownHeld);
+                config.Supplies.DailyFoodBonus, rules, config.MaxFactionStrength, config.StrengthPerTownHeld,
+                config.SupplyLine);
         }
     }
 }

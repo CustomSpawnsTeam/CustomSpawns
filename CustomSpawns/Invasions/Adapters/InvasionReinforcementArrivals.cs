@@ -87,7 +87,7 @@ namespace CustomSpawns.Invasions.Adapters
                 Campaign.Current.ObjectManager.GetObject<PartyTemplateObject>(rule.PartyTemplateId);
 
             if (spawn == null || template == null || landing == null ||
-                !IsEligibleLandingSettlement(landing, draw.Invasion))
+                !IsEligibleLandingSettlement(landing, draw.Invasion, spawn.Invasion))
             {
                 Logger.Info("Invasion reinforcement slot skipped: invasion=" + draw.Invasion.ClanId +
                             " rule=" + draw.RuleId + " reason=template_or_port_changed");
@@ -196,12 +196,17 @@ namespace CustomSpawns.Invasions.Adapters
                     rule.IntervalInDays, rule.MaxConcurrentParties)).ToList();
         }
 
-        bool IInvasionReinforcementQuery.IsSupplyBase(string settlementId) =>
-            _invasionSupplyBases.IsSupplyBase(Settlement.Find(settlementId));
+        bool IInvasionReinforcementQuery.IsSupplyBase(Invasion invasion, string settlementId) =>
+            _invasionSupplyBases.IsSupplyBase(Settlement.Find(settlementId), GetConfiguration(invasion));
 
-        IReadOnlyList<string> IInvasionReinforcementQuery.GetLandingSites(Invasion invasion) =>
-            Settlement.All.Where(settlement => IsEligibleLandingSettlement(settlement, invasion))
+        IReadOnlyList<string> IInvasionReinforcementQuery.GetLandingSites(Invasion invasion)
+        {
+            InvasionData? configuration = GetConfiguration(invasion);
+
+            return Settlement.All
+                .Where(settlement => IsEligibleLandingSettlement(settlement, invasion, configuration))
                 .Select(settlement => settlement.StringId).ToList();
+        }
 
         // Each rule holds its own count, so a stream at its ceiling never holds another stream off.
         int IInvasionReinforcementQuery.CountActiveReinforcements(Invasion invasion, string ruleId) =>
@@ -283,18 +288,22 @@ namespace CustomSpawns.Invasions.Adapters
             }
 
             bool factionHasSupplyBase = Settlement.All.Any(settlement =>
-                settlement.MapFaction == party.MapFaction && _invasionSupplyBases.IsSupplyBase(settlement));
+                settlement.MapFaction == party.MapFaction &&
+                _invasionSupplyBases.IsSupplyBase(settlement, configuration));
 
-            return factionHasSupplyBase ? null : _invasionSupplyBases.IsSupplyBase;
+            return factionHasSupplyBase
+                ? null
+                : settlement => _invasionSupplyBases.IsSupplyBase(settlement, configuration);
         }
 
-        private bool IsEligibleLandingSettlement(Settlement settlement, Invasion invasion)
+        private bool IsEligibleLandingSettlement(Settlement settlement, Invasion invasion,
+            InvasionData? configuration)
         {
             InvasionFoothold? foothold = _invasionState.FindFoothold(settlement.StringId);
 
             return foothold?.InvasionClanId == invasion.ClanId &&
                    invasion.HoldsClan(settlement.OwnerClan?.StringId) && settlement.SiegeEvent == null &&
-                   _invasionSupplyBases.IsSupplyBase(settlement);
+                   _invasionSupplyBases.IsSupplyBase(settlement, configuration);
         }
 
         private InvasionData? GetConfiguration(Invasion invasion) =>

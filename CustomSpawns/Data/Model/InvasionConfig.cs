@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Xml.Serialization;
+using CustomSpawns.Invasions;
 
 namespace CustomSpawns.Data.Model
 {
@@ -8,6 +9,11 @@ namespace CustomSpawns.Data.Model
     {
         [XmlElement("RequiresFirstCoastalConquest")]
         public bool RequiresFirstCoastalConquest { get; set; }
+
+        // Where the invasion's supplies may come from: Coastal, Free or None. Left out, supplies come by
+        // sea, which is what every invasion did before there was a choice.
+        [XmlElement("SupplyLine")]
+        public string? SupplyLine { get; set; }
 
         [XmlElement("Supplies")]
         public InvasionSuppliesConfig Supplies { get; set; } = new();
@@ -68,6 +74,12 @@ namespace CustomSpawns.Data.Model
             if (config.Supplies == null || config.Reinforcements?.Rules == null)
             {
                 throw new ArgumentException("Invasion configuration groups cannot be null.");
+            }
+
+            if (InvasionSupplyLines.Find(config.SupplyLine) == null)
+            {
+                throw new ArgumentException("Invasion SupplyLine '" + config.SupplyLine + "' must be one of " +
+                                           InvasionSupplyLines.KnownNames + ".");
             }
 
             ValidateNonNegativeFinite("Invasion Supplies FoodStockFloor", config.Supplies.FoodStockFloor);

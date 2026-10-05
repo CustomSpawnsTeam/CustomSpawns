@@ -84,8 +84,8 @@ namespace CustomSpawns.Invasions
         double NowInDays { get; }
         // In configuration order. Null when the invasion has nothing left to send with.
         IReadOnlyList<InvasionReinforcementRule>? GetRules(Invasion invasion);
-        // Whether a settlement can supply the invasion: wind its clocks, and take its arrivals.
-        bool IsSupplyBase(string settlementId);
+        // Whether a settlement can supply this invasion, under the supply doctrine it was configured with.
+        bool IsSupplyBase(Invasion invasion, string settlementId);
         // Settlements the invasion holds that can take an arrival.
         IReadOnlyList<string> GetLandingSites(Invasion invasion);
         int CountActiveReinforcements(Invasion invasion, string ruleId);
@@ -123,7 +123,7 @@ namespace CustomSpawns.Invasions
             if (capture?.IsConfirmed != true || invasion == null) return null;
 
             IReadOnlyList<InvasionReinforcementRule>? rules = _invasionReinforcementQuery.GetRules(invasion);
-            if (rules == null || !_invasionReinforcementQuery.IsSupplyBase(capture.SettlementId)) return null;
+            if (rules == null || !_invasionReinforcementQuery.IsSupplyBase(invasion, capture.SettlementId)) return null;
 
             double nowDays = _invasionReinforcementQuery.NowInDays;
             bool wound = false;

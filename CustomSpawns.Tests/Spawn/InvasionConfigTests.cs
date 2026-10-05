@@ -76,6 +76,36 @@ namespace CustomSpawns.Tests.Spawn
         }
 
         [Test]
+        public void Adapt_SupplyLineIsCarriedThroughAndDefaultsToCoastalWhenUnnamed()
+        {
+            const string invasion = "<Invasion><SupplyLine>Free</SupplyLine><Reinforcements><Rule><Id>infantry</Id>" +
+                                    "<PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId>" +
+                                    "</Rule></Reinforcements></Invasion>";
+            Spawns spawns = Read("<RegularBanditDailySpawnData party_template=\"PartyTemplate.invasion\">" + invasion +
+                                 "</RegularBanditDailySpawnData>", out List<System.Exception> errors);
+
+            InvasionData data = InvasionDtoAdapter.Adapt(spawns.AllSpawns.Single().Invasion!);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(errors, Is.Empty);
+                Assert.That(data.SupplyLine, Is.EqualTo("Free"));
+                Assert.That(InvasionDtoAdapter.Adapt(ValidConfig()).SupplyLine, Is.Null);
+            });
+        }
+
+        [Test]
+        public void Adapt_RejectsAnUnknownSupplyLine()
+        {
+            InvasionConfig config = ValidConfig();
+            config.SupplyLine = "Inland";
+
+            ArgumentException error = Assert.Throws<ArgumentException>(() => InvasionDtoAdapter.Adapt(config))!;
+
+            Assert.That(error.Message, Does.Contain("SupplyLine 'Inland' must be one of Coastal, Free, None"));
+        }
+
+        [Test]
         public void Adapt_RejectsTwoRulesSharingOneId()
         {
             InvasionConfig config = ValidConfig();

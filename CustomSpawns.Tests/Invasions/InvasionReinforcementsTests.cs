@@ -300,7 +300,7 @@ namespace CustomSpawns.Tests.Invasions
                 new(MaxFactionStrength, StrengthPerTownHeld, TownsHeld, CurrentStrength);
 
             public IReadOnlyList<InvasionReinforcementRule>? GetRules(Invasion invasion) => Rules;
-            public bool IsSupplyBase(string settlementId) => SupplyBase;
+            public bool IsSupplyBase(Invasion invasion, string settlementId) => SupplyBase;
             public IReadOnlyList<string> GetLandingSites(Invasion invasion) => LandingSites;
 
             public int CountActiveReinforcements(Invasion invasion, string ruleId) =>

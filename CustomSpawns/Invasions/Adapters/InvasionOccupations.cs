@@ -111,7 +111,7 @@ namespace CustomSpawns.Invasions.Adapters
             Clan? clan = invasion == null ? null : Clan.FindFirst(candidate => candidate.StringId == invasion.ClanId);
             InvasionFoothold? foothold = _invasionState.FindFoothold(town.Settlement.StringId);
             return InvasionFoodSupportRules.IsEligibleForOngoingSupport(foothold?.InvasionClanId == invasion?.ClanId,
-                configuration != null && _invasionSupplyBases.IsSupplyBase(town.Settlement),
+                configuration != null && _invasionSupplyBases.IsSupplyBase(town.Settlement, configuration),
                 invasion?.HoldsClan(town.Settlement.OwnerClan?.StringId) == true, configuration != null && !invasion!.IsSuspended &&
                 clan?.IsEliminated == false, town.Settlement.SiegeEvent != null);
         }

@@ -6,8 +6,9 @@ namespace CustomSpawns.Data.Dto
     {
         public InvasionData(bool requiresFirstCoastalConquest, float foodStockFloor, float dailyFoodBonus,
             IReadOnlyList<InvasionReinforcementRuleData> reinforcementRules, float maxFactionStrength = 0f,
-            float strengthPerTownHeld = 0f)
+            float strengthPerTownHeld = 0f, string? supplyLine = null)
         {
+            SupplyLine = supplyLine;
             RequiresFirstCoastalConquest = requiresFirstCoastalConquest;
             FoodStockFloor = foodStockFloor;
             DailyFoodBonus = dailyFoodBonus;
@@ -17,6 +18,9 @@ namespace CustomSpawns.Data.Dto
         }
 
         public bool RequiresFirstCoastalConquest { get; }
+
+        // Which supply doctrine the invasion lives under. Null means supplies come by sea.
+        public string? SupplyLine { get; }
         public float FoodStockFloor { get; }
         public float DailyFoodBonus { get; }
 
