@@ -272,7 +272,10 @@ namespace CustomSpawns.Invasions.Adapters
 
             InvasionData? configuration = GetConfiguration(invasion);
 
-            if (configuration?.RequiresFirstCoastalConquest != true)
+            // An invasion that depends on no supply base has no base to go back for, so it is left to pick
+            // its own targets even where the configuration asks for the restriction.
+            if (configuration?.RequiresFirstCoastalConquest != true ||
+                !_invasionSupplyBases.DependsOnASupplyBase(configuration))
             {
                 return null;
             }

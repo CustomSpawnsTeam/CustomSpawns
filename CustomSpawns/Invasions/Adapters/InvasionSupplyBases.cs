@@ -23,6 +23,10 @@ namespace CustomSpawns.Invasions.Adapters
                     () => _invasionCoastalTownResolver.IsCoastalTown(settlement)));
         }
 
+        // Whether holding a supply base is something this invasion has to fight for at all.
+        internal bool DependsOnASupplyBase(InvasionData? configuration) =>
+            InvasionSupplyLines.Find(configuration?.SupplyLine)?.DependsOnASupplyBase == true;
+
         internal void ClearCache() => _invasionCoastalTownResolver.ClearCache();
     }
 }

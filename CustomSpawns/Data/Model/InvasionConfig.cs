@@ -10,7 +10,7 @@ namespace CustomSpawns.Data.Model
         [XmlElement("RequiresFirstCoastalConquest")]
         public bool RequiresFirstCoastalConquest { get; set; }
 
-        // Where the invasion's supplies may come from: Coastal, Free or None. Left out, supplies come by
+        // Where the invasion's supplies may come from: Coastal, Any or None. Left out, supplies come by
         // sea, which is what every invasion did before there was a choice.
         [XmlElement("SupplyLine")]
         public string? SupplyLine { get; set; }

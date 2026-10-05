@@ -23,32 +23,35 @@ namespace CustomSpawns.Tests.Invasions
                 Assert.IsTrue(supplyLine.IsSupplyBase(Facts(isTown: true, isCastle: false, isCoastalTown: true)));
                 Assert.IsFalse(supplyLine.IsSupplyBase(Facts(isTown: true, isCastle: false, isCoastalTown: false)));
                 Assert.IsFalse(supplyLine.IsSupplyBase(Facts(isTown: false, isCastle: true, isCoastalTown: false)));
+                Assert.IsTrue(supplyLine.DependsOnASupplyBase);
             });
         }
 
         [Test]
-        public void FreeSupplyFeedsFromAnyFortificationWithoutAskingAboutTheSea()
+        public void AnySupplyFeedsFromAnyFortificationWithoutAskingAboutTheSea()
         {
-            IInvasionSupplyLine supplyLine = InvasionSupplyLines.Find("Free")!;
+            IInvasionSupplyLine supplyLine = InvasionSupplyLines.Find("Any")!;
 
             Assert.Multiple(() =>
             {
                 Assert.IsTrue(supplyLine.IsSupplyBase(Facts(isTown: true, isCastle: false, isCoastalTown: false)));
                 Assert.IsTrue(supplyLine.IsSupplyBase(Facts(isTown: false, isCastle: true, isCoastalTown: false)));
                 Assert.IsFalse(supplyLine.IsSupplyBase(Facts(isTown: false, isCastle: false, isCoastalTown: false)));
+                Assert.IsTrue(supplyLine.DependsOnASupplyBase);
                 Assert.AreEqual(0, _coastalQuestions);
             });
         }
 
         [Test]
-        public void NoSupplyLineFeedsFromNothingAtAll()
+        public void NoSupplyLineIsFedByEverythingItHoldsAndDependsOnNoBase()
         {
             IInvasionSupplyLine supplyLine = InvasionSupplyLines.Find("None")!;
 
             Assert.Multiple(() =>
             {
-                Assert.IsFalse(supplyLine.IsSupplyBase(Facts(isTown: true, isCastle: false, isCoastalTown: true)));
-                Assert.IsFalse(supplyLine.IsSupplyBase(Facts(isTown: false, isCastle: true, isCoastalTown: false)));
+                Assert.IsTrue(supplyLine.IsSupplyBase(Facts(isTown: true, isCastle: false, isCoastalTown: true)));
+                Assert.IsTrue(supplyLine.IsSupplyBase(Facts(isTown: false, isCastle: false, isCoastalTown: false)));
+                Assert.IsFalse(supplyLine.DependsOnASupplyBase);
                 Assert.AreEqual(0, _coastalQuestions);
             });
         }
