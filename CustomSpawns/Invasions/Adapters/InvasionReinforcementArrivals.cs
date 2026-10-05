@@ -265,6 +265,16 @@ namespace CustomSpawns.Invasions.Adapters
                 return null;
             }
 
+            // Until the invasion has landed anywhere, any supply base will do. Once it has a capital, that
+            // capital is the only target that lifts the restriction, so losing it sends every party back for
+            // it rather than at whichever other port happens to be closest.
+            if (invasion.CapitalSettlementId != null)
+            {
+                string capitalId = invasion.CapitalSettlementId;
+
+                return _invasionState.HoldsCapital(invasion) ? null : settlement => settlement.StringId == capitalId;
+            }
+
             bool factionHasSupplyBase = Settlement.All.Any(settlement => settlement.IsTown &&
                 settlement.MapFaction == party.MapFaction && _invasionSupplyBases.IsSupplyBase(settlement));
 

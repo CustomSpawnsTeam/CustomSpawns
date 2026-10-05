@@ -79,7 +79,7 @@ namespace CustomSpawns.Invasions
             return invasion == null || (!invasion.IsSuspended && !HoldsCapital(invasion));
         }
 
-        private bool HoldsCapital(Invasion invasion) => invasion.CapitalSettlementId != null &&
+        public bool HoldsCapital(Invasion invasion) => invasion.CapitalSettlementId != null &&
             FindFoothold(invasion.CapitalSettlementId)?.InvasionClanId == invasion.ClanId;
 
         public InvasionCapture StartCapture(string settlementId, long battleStartTimeBits, string attackerLeaderId)
