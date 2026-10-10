@@ -166,6 +166,13 @@ namespace CustomSpawns.Invasions
          * but the capital it landed for has to be retaken.
          */
         public string? CapitalSettlementId { get; internal set; }
+        /**
+         * When the next food convoy is due at the capital, in campaign days, or null while none has been
+         * scheduled. It is its own clock on purpose: supplying the capital has nothing to do with how often
+         * the invasion is reinforced.
+         */
+        public double? NextFoodConvoyDays { get; internal set; }
+
         // One clock per configured reinforcement rule. An invasion that holds no supply base has none.
         internal List<InvasionReinforcementSchedule> Schedules = new();
         public IReadOnlyList<InvasionReinforcementSchedule> ReinforcementSchedules => Schedules;

@@ -57,6 +57,8 @@ namespace CustomSpawns.Invasions.Adapters
         [SaveableField(7)] public List<string> Members = new();
         [SaveableField(9)] public List<string> ClanIds = new();
         [SaveableField(10)] public List<InvasionReinforcementScheduleSaveData> ReinforcementSchedules = new();
+        // Negative for a convoy clock that has yet to be wound, which is every invasion without a capital.
+        [SaveableField(11)] public double NextFoodConvoyDays = -1;
 
         internal static InvasionSaveData FromState(Invasion value) => new()
         {
@@ -67,7 +69,8 @@ namespace CustomSpawns.Invasions.Adapters
             Members = value.Members.ToList(),
             ClanIds = value.ClanIds.ToList(),
             ReinforcementSchedules = value.ReinforcementSchedules
-                .Select(InvasionReinforcementScheduleSaveData.FromState).ToList()
+                .Select(InvasionReinforcementScheduleSaveData.FromState).ToList(),
+            NextFoodConvoyDays = value.NextFoodConvoyDays ?? -1
         };
 
         internal Invasion ToState()
@@ -76,6 +79,7 @@ namespace CustomSpawns.Invasions.Adapters
             {
                 IsSuspended = IsSuspended,
                 CapitalSettlementId = CapitalSettlementId,
+                NextFoodConvoyDays = NextFoodConvoyDays < 0 ? null : NextFoodConvoyDays,
                 Members = new HashSet<string>(Members ?? new List<string>(), StringComparer.Ordinal)
             };
             // A save taken before the invasion could expand carries the founding clan alone.

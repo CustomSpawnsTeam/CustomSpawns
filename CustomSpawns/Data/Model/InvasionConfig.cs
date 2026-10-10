@@ -29,8 +29,24 @@ namespace CustomSpawns.Data.Model
         [XmlElement("MinimumCapitalGarrison")]
         public int MinimumCapitalGarrison { get; set; }
 
+        // The food convoys the invasion runs into its capital, on their own cadence.
+        [XmlElement("Supplies")]
+        public InvasionSuppliesConfig Supplies { get; set; } = new();
+
         [XmlElement("Reinforcements")]
         public InvasionReinforcementsConfig Reinforcements { get; set; } = new();
+    }
+
+    public sealed class InvasionSuppliesConfig
+    {
+        // How much food each convoy unloads into the capital's market, for the town to live off as it does
+        // off any other food in it. Left out, the invasion runs no convoys and its capital feeds itself.
+        [XmlElement("FoodPerConvoy")]
+        public int FoodPerConvoy { get; set; }
+
+        // How often a convoy arrives.
+        [XmlElement("IntervalInDays")]
+        public float IntervalInDays { get; set; } = 7f;
     }
 
     public sealed class InvasionReinforcementsConfig
@@ -71,7 +87,7 @@ namespace CustomSpawns.Data.Model
             {
                 throw new ArgumentNullException(nameof(config));
             }
-            if (config.Reinforcements?.Rules == null)
+            if (config.Supplies == null || config.Reinforcements?.Rules == null)
             {
                 throw new ArgumentException("Invasion configuration groups cannot be null.");
             }
@@ -85,6 +101,13 @@ namespace CustomSpawns.Data.Model
             ValidateNonNegativeFinite("Invasion MaxFactionStrength", config.MaxFactionStrength);
             ValidateNonNegativeFinite("Invasion StrengthPerTownHeld", config.StrengthPerTownHeld);
             ValidateNonNegative("Invasion MinimumCapitalGarrison", config.MinimumCapitalGarrison);
+            ValidateNonNegative("Invasion Supplies FoodPerConvoy", config.Supplies.FoodPerConvoy);
+            // Convoys are looked at once a day, so a shorter interval than that would only lie about itself.
+            if (config.Supplies.FoodPerConvoy > 0 &&
+                (!IsFinite(config.Supplies.IntervalInDays) || config.Supplies.IntervalInDays < 1f))
+            {
+                throw new ArgumentException("Invasion Supplies IntervalInDays must be finite and at least one day.");
+            }
             if (config.Reinforcements.Rules.Count == 0)
             {
                 throw new ArgumentException("Invasion Reinforcements requires at least one Rule.");

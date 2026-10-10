@@ -9,6 +9,10 @@ An optional, element-only `Invasion` block in a spawn definition enables invasio
   <MinimumCapitalGarrison>400</MinimumCapitalGarrison>
   <MaxFactionStrength>900</MaxFactionStrength>
   <StrengthPerTownHeld>300</StrengthPerTownHeld>
+  <Supplies>
+    <FoodPerConvoy>200</FoodPerConvoy>
+    <IntervalInDays>7</IntervalInDays>
+  </Supplies>
   <Reinforcements>
     <Rule>
       <Id>infantry_wave</Id>
@@ -36,6 +40,8 @@ These are illustrative values, not a guarantee of rebellion prevention or siege 
 | `MinimumCapitalGarrison` | How many men the invasion keeps standing in its capital: the floor its lords draw that garrison down to but never below; default 0. It says nothing about any other town the invasion holds. |
 | `MaxFactionStrength` | Ceiling on the strength the invasion's clans may field at once, shared by all of its rules; default 0, which leaves it uncapped. |
 | `StrengthPerTownHeld` | What every town the invasion's kingdom holds right now adds to that ceiling; default 0. The bonus is the kingdom's, not the invading clans': a town held by an allied clan of the same kingdom raises the ceiling as much as one the invasion took itself, however that clan came by it. Read live, so a town lost stops counting the moment it changes hands. |
+| `Supplies/FoodPerConvoy` | How much food each convoy unloads into the capital's own market; default 0, which runs no convoys at all and leaves the capital feeding itself. Size it against what the capital's garrison eats, since that garrison is the invasion's troop bank and is the reason the town needs more food than it produces. |
+| `Supplies/IntervalInDays` | How often a convoy arrives; default 7, minimum 1. Its own cadence — changing how often the invasion is reinforced leaves its supplies alone, and the other way round. Ignored when no food is configured. |
 | `Reinforcements/Rule` | One reinforcement stream. At least one is required; declare as many as the invasion needs, and they draw in the order written. |
 | `Reinforcements/Rule/Id` | Required non-blank name, unique within the invasion. It names the rule's own clock, so editing or reordering the configuration does not move a running schedule onto another rule. |
 | `Reinforcements/Rule/PartyTemplateId` | Required raw troop-template ID, without the `PartyTemplate.` prefix. Each rule brings its own. |
@@ -55,7 +61,13 @@ When `RequiresFirstCoastalConquest` is enabled and the invasion party's current 
 
 Ownership loss deletes the foothold and pending occupation effects. Peaceful reacquisition does not restore them. A new attributable siege capture creates a new transition. Assault victories and winning besieger-side sally-out results use native ownership handling; successful occupation promotes the capturing invasion clan into its own kingdom.
 
-Invasion food support has been removed. An invasion used to stock a captured town once and then feed it daily, and both of those, along with their configuration, are gone: a flat allowance either leaves a conquest short, which drops its loyalty and invites the rebellion the support was meant to prevent, or is generous enough that nothing the invasion holds ever runs short at all. A different solution is planned. Until it lands, a town the invasion takes lives on what it produces, like any other town that changes hands. What a foothold's supply status still decides is which capture winds the reinforcement clocks, and which settlement the invasion is sent back to retake when it loses one.
+An invasion supplies its capital by convoy, and by nothing else. Every `IntervalInDays` a convoy unloads `FoodPerConvoy` worth of grain into the capital's own market, and the town then lives off it exactly as it lives off anything a trader brings in: hunger, loyalty and rebellion stay vanilla's to work out, and nothing writes a food balance or grants a town an allowance. That is the whole of it — no other town the invasion holds is supplied, and a town it takes and does not make its capital lives on what it produces, like any other town that changes hands.
+
+This replaces the food support the invasion used to have, which stocked a captured town once and then fed it daily. A flat allowance either left a conquest short, which dropped its loyalty and invited the rebellion the support was meant to prevent, or was generous enough that nothing the invasion held ever ran short at all. A convoy has neither problem: it is a quantity of real food arriving at a known rate, so a capital whose garrison outgrows the convoy goes hungry on vanilla's terms, and the men in the bank are what the hunger is charged against.
+
+The first convoy is due an interval after the capital falls, not on the day of it, because the clock is wound by the capture rather than spent by it. While the capital is lost or besieged the clock holds where it is instead of running on — a convoy cannot be unloaded into a town the invasion cannot reach, and a siege is already starving that town by vanilla's own rules — so whatever was due is unloaded once the way in is open again. That is deliberately the opposite of a reinforcement wave, which spends a slot it could not deliver: a wave refused is one the invasion can afford to lose, and a convoy refused is food it was going to need either way.
+
+What a foothold's supply status still decides is which capture winds the reinforcement clocks, and which settlement the invasion is sent back to retake when it loses one.
 
 ## Occupation and reinforcement lifecycle
 

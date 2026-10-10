@@ -31,6 +31,7 @@ namespace CustomSpawns.Invasions.Adapters
         private InvasionSieges _invasionSieges;
         private InvasionMembership _invasionMembership;
         private InvasionLordWarbands _invasionLordWarbands;
+        private InvasionFoodConvoys _invasionFoodConvoys;
         private bool _initialized;
         private Hero? _lordOfRemovedInvasionParty;
         public InvasionState State { get; private set; } = new();
@@ -52,6 +53,7 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionMembership = new InvasionMembership(State, _spawnDao, _dynamicSpawnData,
                 _invasionCaptureCorrelation);
             _invasionLordWarbands = new InvasionLordWarbands(State, _spawnDao);
+            _invasionFoodConvoys = new InvasionFoodConvoys(State, _spawnDao);
 
             // DynamicSpawnData registers its discovery callback first; scheduling/AI are composed later.
             initialiser.RunCallbackOnFirstCampaignTick(Initialize);
@@ -71,6 +73,7 @@ namespace CustomSpawns.Invasions.Adapters
             CampaignEvents.CharacterBecameFugitiveEvent.AddNonSerializedListener(this, OnCharacterBecameFugitive);
             CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, OnHourlyTick);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, ScheduleReinforcements);
+            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, UnloadFoodConvoys);
         }
 
         public override void SyncData(IDataStore dataStore)
@@ -103,6 +106,7 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionMembership = new InvasionMembership(State, _spawnDao, _dynamicSpawnData,
                 _invasionCaptureCorrelation);
             _invasionLordWarbands = new InvasionLordWarbands(State, _spawnDao);
+            _invasionFoodConvoys = new InvasionFoodConvoys(State, _spawnDao);
 
             foreach (var evidence in saved?.OwnedCaptureEvidence ?? new List<InvasionCaptureEvidenceSaveData>())
             {
@@ -273,6 +277,13 @@ namespace CustomSpawns.Invasions.Adapters
 
             _invasionMembership.Reconcile();
             _invasionReinforcementArrivals.SendDue();
+        }
+
+        // Its own clock, so a change to how often the invasion is reinforced leaves its supplies alone.
+        private void UnloadFoodConvoys()
+        {
+            Initialize();
+            _invasionFoodConvoys.UnloadDue();
         }
     }
 }

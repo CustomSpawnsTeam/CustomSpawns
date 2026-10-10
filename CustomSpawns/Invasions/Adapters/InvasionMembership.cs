@@ -73,9 +73,9 @@ namespace CustomSpawns.Invasions.Adapters
          * the party it was made for, and is enrolled in its roster. The other path is a living invasion
          * party changing component, as one does when the invasion becomes a kingdom and loses its only
          * coastal town. Either way the party arrives under a StringId no recognition path of ours
-         * matches, so it carries on without its membership, its food eligibility, its steering and its
-         * spawn-sized party limit. Registering it under its invasion's spawn template gives it back the
-         * party data all four are read from. A defeated lord is not a case here: it is removed rather
+         * matches, so it carries on without its membership, its steering and its spawn-sized party
+         * limit. Registering it under its invasion's spawn template gives it back the party data all
+         * three are read from. A defeated lord is not a case here: it is removed rather
          * than left to come back.
          */
         internal void Adopt(MobileParty party)

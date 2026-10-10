@@ -166,6 +166,43 @@ namespace CustomSpawns.Tests.Spawn
             Assert.That(error.Message, Does.Contain("SupplyLine 'Inland' must be one of Coastal, Any, None"));
         }
 
+        /**
+         * The food convoys keep their own cadence, so nothing here is read from the reinforcement rules.
+         * Convoys are looked at once a day, so a shorter interval than a day is refused rather than quietly
+         * behaving like one.
+         */
+        [Test]
+        public void Adapt_ReadsTheFoodConvoyAndRefusesAnIntervalShorterThanTheDailyCheck()
+        {
+            const string invasion = "<Invasion><Supplies><FoodPerConvoy>600</FoodPerConvoy>" +
+                                    "<IntervalInDays>10</IntervalInDays></Supplies>" +
+                                    "<Reinforcements><Rule><Id>infantry</Id>" +
+                                    "<PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId>" +
+                                    "</Rule></Reinforcements></Invasion>";
+            Spawns spawns = Read("<RegularBanditDailySpawnData party_template=\"PartyTemplate.invasion\">" + invasion +
+                                 "</RegularBanditDailySpawnData>", out List<System.Exception> errors);
+
+            InvasionData data = InvasionDtoAdapter.Adapt(spawns.AllSpawns.Single().Invasion!);
+            InvasionConfig tooOften = ValidConfig();
+            tooOften.Supplies.FoodPerConvoy = 600;
+            tooOften.Supplies.IntervalInDays = 0.5f;
+            InvasionConfig negative = ValidConfig();
+            negative.Supplies.FoodPerConvoy = -1;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(errors, Is.Empty);
+                Assert.That(data.FoodPerConvoy, Is.EqualTo(600));
+                Assert.That(data.FoodConvoyIntervalInDays, Is.EqualTo(10f));
+                // An invasion that mentions no convoy runs none, and its capital feeds itself.
+                Assert.That(AdaptValidConfig().FoodPerConvoy, Is.EqualTo(0));
+                Assert.That(Assert.Throws<ArgumentException>(() => InvasionDtoAdapter.Adapt(tooOften))!.Message,
+                    Does.Contain("at least one day"));
+                Assert.That(Assert.Throws<ArgumentException>(() => InvasionDtoAdapter.Adapt(negative))!.Message,
+                    Does.Contain("FoodPerConvoy"));
+            });
+        }
+
         [Test]
         public void Adapt_RejectsTwoRulesSharingOneId()
         {

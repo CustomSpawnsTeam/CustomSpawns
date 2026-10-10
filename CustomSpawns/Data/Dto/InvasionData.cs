@@ -6,8 +6,11 @@ namespace CustomSpawns.Data.Dto
     {
         public InvasionData(bool requiresFirstCoastalConquest,
             IReadOnlyList<InvasionReinforcementRuleData> reinforcementRules, float maxFactionStrength = 0f,
-            float strengthPerTownHeld = 0f, string? supplyLine = null, int minimumCapitalGarrison = 0)
+            float strengthPerTownHeld = 0f, string? supplyLine = null, int minimumCapitalGarrison = 0,
+            int foodPerConvoy = 0, float foodConvoyIntervalInDays = 0f)
         {
+            FoodPerConvoy = foodPerConvoy;
+            FoodConvoyIntervalInDays = foodConvoyIntervalInDays;
             SupplyLine = supplyLine;
             RequiresFirstCoastalConquest = requiresFirstCoastalConquest;
             ReinforcementRules = reinforcementRules;
@@ -24,6 +27,12 @@ namespace CustomSpawns.Data.Dto
         // The garrison the invasion keeps standing in its capital: the floor its lords may draw the bank
         // down to but not below.
         public int MinimumCapitalGarrison { get; }
+
+        // How much food each convoy unloads into the capital's market. Zero runs no convoys at all.
+        public int FoodPerConvoy { get; }
+
+        // How often a convoy arrives, in days. Nothing to do with the reinforcement cadence.
+        public float FoodConvoyIntervalInDays { get; }
 
         /**
          * The strength every reinforcement rule of the invasion draws against, shared between them.
