@@ -90,7 +90,7 @@ namespace CustomSpawns.Tests.Invasions
                 PartyTemplate = template,
                 MaximumOnMap = 1,
                 SpawnAlongWith = new ReadOnlyCollection<AccompanyingParty>(new List<AccompanyingParty>()),
-                Invasion = new InvasionData(false, 0f, 0f,
+                Invasion = new InvasionData(false,
                     new[] { new InvasionReinforcementRuleData("rule", "reinforcement", 1f) })
             };
         }

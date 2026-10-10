@@ -17,8 +17,8 @@ namespace CustomSpawns.Invasions.Adapters
      * Vanilla hands every lord it fields a free warband rolled from his clan's party template, and it does
      * so for a lord who has just been beaten and come back exactly as for one who has just arrived with a
      * wave. That free warband is what would make the bank meaningless, so it is given back and the lord
-     * takes out whatever stands above the minimum garrison instead. An empty bank means he rides out alone
-     * and has to recruit Calradians like anybody else.
+     * takes out whatever stands above the minimum capital garrison instead. An empty bank means he rides
+     * out alone and has to recruit Calradians like anybody else.
      */
     internal sealed class InvasionLordWarbands
     {
@@ -54,7 +54,7 @@ namespace CustomSpawns.Invasions.Adapters
             }
 
             int returned = Surrender(party.MemberRoster);
-            int drawn = Draw(garrison, party, configuration.MinimumGarrison);
+            int drawn = Draw(garrison, party, configuration.MinimumCapitalGarrison);
             Logger.Info("Invasion lord drew his warband from the capital: clan=" + party.ActualClan!.StringId +
                         " party=" + party.StringId + " free_troops_returned=" + returned + " men=" + drawn +
                         " garrison=" + garrison.TotalManCount);
@@ -83,12 +83,12 @@ namespace CustomSpawns.Invasions.Adapters
          * He fills his party to the size he is able to lead, and takes the garrison's newest men first,
          * which are the ones the last wave paid in. The floor is never broken into.
          */
-        private static int Draw(TroopRoster garrison, MobileParty party, int minimumGarrison)
+        private static int Draw(TroopRoster garrison, MobileParty party, int minimumCapitalGarrison)
         {
             int wanted = InvasionTroopBank.Drawable(
                 (int)Campaign.Current.Models.PartySizeLimitModel.GetPartyMemberSizeLimit(party.Party, false)
                     .ResultNumber - party.MemberRoster.TotalManCount,
-                garrison.TotalManCount, minimumGarrison);
+                garrison.TotalManCount, minimumCapitalGarrison);
             int drawn = 0;
 
             for (int index = garrison.Count - 1; index >= 0 && drawn < wanted; index--)

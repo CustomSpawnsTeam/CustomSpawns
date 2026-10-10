@@ -13,8 +13,8 @@ using TaleWorlds.CampaignSystem.Settlements;
 namespace CustomSpawns.Invasions.Adapters
 {
     /**
-     * What a captured town becomes: its escorts are absorbed into the garrison, its capturer becomes a
-     * lord of the realm the invasion founds, and the invasion keeps feeding it while it holds it.
+     * What a captured town becomes: its escorts are absorbed into the garrison, and its capturer becomes a
+     * lord of the realm the invasion founds.
      */
     internal sealed class InvasionOccupations
     {
@@ -22,30 +22,17 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly InvasionState _invasionState;
         private readonly SpawnDao _spawnDao;
         private readonly DynamicSpawnData _dynamicSpawnData;
-        private readonly InvasionSupplyBases _invasionSupplyBases;
         private readonly IInvasionCapitalRepository _invasionCapitals;
         private readonly IInvasionClanRepository _invasionClans;
 
         internal InvasionOccupations(InvasionState state, SpawnDao spawns, DynamicSpawnData parties,
-            InvasionSupplyBases supplyBases, IInvasionCapitalRepository invasionCapitals,
-            IInvasionClanRepository invasionClans)
+            IInvasionCapitalRepository invasionCapitals, IInvasionClanRepository invasionClans)
         {
             _invasionState = state;
             _spawnDao = spawns;
             _dynamicSpawnData = parties;
-            _invasionSupplyBases = supplyBases;
             _invasionCapitals = invasionCapitals;
             _invasionClans = invasionClans;
-        }
-
-        internal InvasionFoodTerms? FindTerms(Town town)
-        {
-            InvasionFoothold? foothold = _invasionState.FindFoothold(town.Settlement.StringId);
-            Invasion? invasion = _invasionState.FindInvasion(foothold?.InvasionClanId);
-            InvasionData? configuration = invasion == null ? null : GetConfiguration(invasion);
-            return IsEligibleForFood(town, invasion, configuration)
-                ? new InvasionFoodTerms(configuration!.MinimumGarrison, configuration.TownFoodAllowance)
-                : null;
         }
 
         internal void ApplyReady()
@@ -67,11 +54,6 @@ namespace CustomSpawns.Invasions.Adapters
                 {
                     town.GarrisonParty.MemberRoster.Add(party.MemberRoster);
                     DestroyPartyAction.Apply(null, party);
-                }
-
-                if (IsEligibleForFood(town, invasion, configuration))
-                {
-                    InvasionOccupationFood.Apply(town, configuration.FoodStockFloor);
                 }
 
                 Clan? capturerClan = PromoteCapturer(capture, town, invasion);
@@ -130,16 +112,6 @@ namespace CustomSpawns.Invasions.Adapters
             }
 
             return clan;
-        }
-
-        private bool IsEligibleForFood(Town town, Invasion? invasion, InvasionData? configuration)
-        {
-            Clan? clan = invasion == null ? null : Clan.FindFirst(candidate => candidate.StringId == invasion.ClanId);
-            InvasionFoothold? foothold = _invasionState.FindFoothold(town.Settlement.StringId);
-            return InvasionFoodSupportRules.IsEligibleForOngoingSupport(foothold?.InvasionClanId == invasion?.ClanId,
-                configuration != null && _invasionSupplyBases.IsSupplyBase(town.Settlement, configuration),
-                invasion?.HoldsClan(town.Settlement.OwnerClan?.StringId) == true, configuration != null && !invasion!.IsSuspended &&
-                clan?.IsEliminated == false, town.Settlement.SiegeEvent != null);
         }
 
         // Occupation is applied on the hourly tick after Bannerlord has finished the capture callbacks.

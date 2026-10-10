@@ -13,9 +13,8 @@ namespace CustomSpawns.Data.Adapter
             List<InvasionReinforcementRuleData> rules = config.Reinforcements.Rules
                 .Select(rule => new InvasionReinforcementRuleData(rule.Id!, rule.PartyTemplateId!,
                     rule.IntervalInDays, rule.LordsPerWave, rule.MaxWaves)).ToList();
-            return new InvasionData(config.RequiresFirstCoastalConquest, config.Supplies.FoodStockFloor,
-                config.Supplies.TownFoodAllowance, rules, config.MaxFactionStrength, config.StrengthPerTownHeld,
-                config.SupplyLine, config.MinimumGarrison);
+            return new InvasionData(config.RequiresFirstCoastalConquest, rules, config.MaxFactionStrength,
+                config.StrengthPerTownHeld, config.SupplyLine, config.MinimumCapitalGarrison);
         }
     }
 }

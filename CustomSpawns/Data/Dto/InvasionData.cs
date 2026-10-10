@@ -4,32 +4,26 @@ namespace CustomSpawns.Data.Dto
 {
     public sealed class InvasionData
     {
-        public InvasionData(bool requiresFirstCoastalConquest, float foodStockFloor, float townFoodAllowance,
+        public InvasionData(bool requiresFirstCoastalConquest,
             IReadOnlyList<InvasionReinforcementRuleData> reinforcementRules, float maxFactionStrength = 0f,
-            float strengthPerTownHeld = 0f, string? supplyLine = null, int minimumGarrison = 0)
+            float strengthPerTownHeld = 0f, string? supplyLine = null, int minimumCapitalGarrison = 0)
         {
             SupplyLine = supplyLine;
             RequiresFirstCoastalConquest = requiresFirstCoastalConquest;
-            FoodStockFloor = foodStockFloor;
-            TownFoodAllowance = townFoodAllowance;
             ReinforcementRules = reinforcementRules;
             MaxFactionStrength = maxFactionStrength;
             StrengthPerTownHeld = strengthPerTownHeld;
-            MinimumGarrison = minimumGarrison;
+            MinimumCapitalGarrison = minimumCapitalGarrison;
         }
 
         public bool RequiresFirstCoastalConquest { get; }
 
         // Which supply doctrine the invasion lives under. Null means supplies come by sea.
         public string? SupplyLine { get; }
-        public float FoodStockFloor { get; }
 
-        // What the supplies cover each day on top of feeding the minimum garrison.
-        public float TownFoodAllowance { get; }
-
-        // The garrison the invasion keeps in the town it holds: what its supplies are sized to feed, and the
-        // floor its lords may draw down to but not below.
-        public int MinimumGarrison { get; }
+        // The garrison the invasion keeps standing in its capital: the floor its lords may draw the bank
+        // down to but not below.
+        public int MinimumCapitalGarrison { get; }
 
         /**
          * The strength every reinforcement rule of the invasion draws against, shared between them.

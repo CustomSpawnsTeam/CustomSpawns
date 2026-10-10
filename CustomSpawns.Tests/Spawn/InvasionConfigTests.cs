@@ -29,8 +29,7 @@ namespace CustomSpawns.Tests.Spawn
         [Test]
         public void Adapt_ValidInvasionPreservesConfigurationAndDefaultSevenDayInterval()
         {
-            const string invasion = "<Invasion><Supplies><FoodStockFloor>30</FoodStockFloor>" +
-                                    "<TownFoodAllowance>5</TownFoodAllowance></Supplies>" +
+            const string invasion = "<Invasion>" +
                                     "<Reinforcements><Rule><Id>infantry</Id>" +
                                     "<PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId>" +
                                     "</Rule></Reinforcements></Invasion>";
@@ -43,8 +42,6 @@ namespace CustomSpawns.Tests.Spawn
             {
                 Assert.That(errors, Is.Empty);
                 Assert.That(data.RequiresFirstCoastalConquest, Is.False);
-                Assert.That(data.FoodStockFloor, Is.EqualTo(30f));
-                Assert.That(data.TownFoodAllowance, Is.EqualTo(5f));
                 Assert.That(data.ReinforcementRules.Single().Id, Is.EqualTo("infantry"));
                 Assert.That(data.ReinforcementRules.Single().PartyTemplateId, Is.EqualTo("PartyTemplate.reinforcements"));
                 Assert.That(data.ReinforcementRules.Single().IntervalInDays, Is.EqualTo(7f));
@@ -54,7 +51,7 @@ namespace CustomSpawns.Tests.Spawn
         [Test]
         public void Adapt_ReadsTheGarrisonFloorAndTheLordsEachWaveBrings()
         {
-            const string invasion = "<Invasion><MinimumGarrison>400</MinimumGarrison>" +
+            const string invasion = "<Invasion><MinimumCapitalGarrison>400</MinimumCapitalGarrison>" +
                                     "<Reinforcements><Rule><Id>infantry</Id>" +
                                     "<PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId>" +
                                     "<LordsPerWave>3</LordsPerWave></Rule></Reinforcements></Invasion>";
@@ -66,10 +63,10 @@ namespace CustomSpawns.Tests.Spawn
             Assert.Multiple(() =>
             {
                 Assert.That(errors, Is.Empty);
-                Assert.That(data.MinimumGarrison, Is.EqualTo(400));
+                Assert.That(data.MinimumCapitalGarrison, Is.EqualTo(400));
                 Assert.That(data.ReinforcementRules.Single().LordsPerWave, Is.EqualTo(3));
                 // An invasion that mentions neither keeps no floor and brings troops only.
-                Assert.That(AdaptValidConfig().MinimumGarrison, Is.EqualTo(0));
+                Assert.That(AdaptValidConfig().MinimumCapitalGarrison, Is.EqualTo(0));
                 Assert.That(AdaptValidConfig().ReinforcementRules.Single().LordsPerWave, Is.EqualTo(0));
             });
         }
@@ -104,12 +101,12 @@ namespace CustomSpawns.Tests.Spawn
             });
         }
 
-        [TestCase(-1, 0, "MinimumGarrison")]
+        [TestCase(-1, 0, "MinimumCapitalGarrison")]
         [TestCase(0, -1, "LordsPerWave")]
-        public void Adapt_RejectsNegativeGarrisonAndLordCounts(int minimumGarrison, int lordsPerWave, string expected)
+        public void Adapt_RejectsNegativeGarrisonAndLordCounts(int minimumCapitalGarrison, int lordsPerWave, string expected)
         {
             InvasionConfig config = ValidConfig();
-            config.MinimumGarrison = minimumGarrison;
+            config.MinimumCapitalGarrison = minimumCapitalGarrison;
             config.Reinforcements.Rules.Single().LordsPerWave = lordsPerWave;
 
             ArgumentException error = Assert.Throws<ArgumentException>(() => InvasionDtoAdapter.Adapt(config))!;
@@ -246,7 +243,7 @@ namespace CustomSpawns.Tests.Spawn
         public void DeserializeAndResolve_InvalidInvasionReportsItsSpawnAndKeepsUnrelatedSpawns()
         {
             const string invalid = "<RegularBanditDailySpawnData party_template=\"PartyTemplate.invalid\"><Invasion>" +
-                                   "<Supplies><FoodStockFloor>-1</FoodStockFloor></Supplies>" +
+                                   "<MinimumCapitalGarrison>-1</MinimumCapitalGarrison>" +
                                    "<Reinforcements><Rule><Id>infantry</Id>" +
                                    "<PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId></Rule></Reinforcements>" +
                                    "</Invasion></RegularBanditDailySpawnData>";
@@ -259,21 +256,8 @@ namespace CustomSpawns.Tests.Spawn
                 Assert.That(spawns.AllSpawns.Select(spawn => spawn.PartyTemplate), Is.EqualTo(new[] { "PartyTemplate.legacy" }));
                 Assert.That(errors, Has.Count.EqualTo(1));
                 Assert.That(errors[0].Message, Does.Contain("PartyTemplate.invalid"));
-                Assert.That(errors[0].Message, Does.Contain("FoodStockFloor"));
+                Assert.That(errors[0].Message, Does.Contain("MinimumCapitalGarrison"));
             });
-        }
-
-        [TestCase(-1f)]
-        [TestCase(float.NaN)]
-        [TestCase(float.PositiveInfinity)]
-        public void Adapt_RejectsInvalidFoodFloor(float foodStockFloor)
-        {
-            InvasionConfig config = ValidConfig();
-            config.Supplies.FoodStockFloor = foodStockFloor;
-
-            ArgumentException error = Assert.Throws<ArgumentException>(() => InvasionDtoAdapter.Adapt(config))!;
-
-            Assert.That(error.Message, Does.Contain("FoodStockFloor"));
         }
 
         [Test]

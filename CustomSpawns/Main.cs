@@ -22,7 +22,6 @@ using CustomSpawns.Spawn;
 using CustomSpawns.Spawn.PartySize;
 using CustomSpawns.UtilityBehaviours;
 using CustomSpawns.Utils;
-using NLog;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.ComponentInterfaces;
 using TaleWorlds.Core;
@@ -35,7 +34,6 @@ namespace CustomSpawns
 
     public class Main : MBSubModuleBase
     {
-        private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         public static string ModuleName = "CustomSpawns";
 
         #region Dependencies
@@ -223,13 +221,7 @@ namespace CustomSpawns
                 starter.AddBehavior(_customSpawnsAiBehaviour);
                 starter.AddBehavior(_accompanyingPartySiegeBehaviour);
                 starter.AddBehavior(_aiDecisionLoggerBehaviour);
-                
-                SettlementFoodModel foodModel = starter.GetModel<SettlementFoodModel>();
-                var invasionFoodModel = new InvasionSettlementFoodModel(foodModel,
-                    _invasionCampaignBehaviour);
-                starter.AddModel(invasionFoodModel);
-                _saveInitialiser.RunCallbackOnFirstCampaignTick(() => Logger.Info(
-                    "Invasion food model selected: " + Campaign.Current.Models.SettlementFoodModel.GetType().FullName));
+
                 starter.AddModel(_customSpawnsDiplomacyModel);
                 starter.AddModel(new CustomSpawnsPartySizeLimitModel(starter.GetModel<PartySizeLimitModel>(),
                     _partySizeCalculatedSubject));

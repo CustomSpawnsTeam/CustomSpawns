@@ -22,10 +22,9 @@ namespace CustomSpawns.Invasions
     }
 
     /**
-     * Where an invasion's supplies can come from: which settlement can supply it -- which decides at once
-     * which capture winds its reinforcement clocks and which of its settlements keeps being fed -- and
-     * whether it depends on holding such a settlement at all, which is what sends it back to retake the
-     * one it lost.
+     * Where an invasion's supplies can come from: which settlement can supply it, which decides which
+     * capture winds its reinforcement clocks, and whether it depends on holding such a settlement at all,
+     * which is what sends it back to retake the one it lost.
      */
     internal interface IInvasionSupplyLine
     {

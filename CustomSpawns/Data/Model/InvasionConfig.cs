@@ -15,9 +15,6 @@ namespace CustomSpawns.Data.Model
         [XmlElement("SupplyLine")]
         public string? SupplyLine { get; set; }
 
-        [XmlElement("Supplies")]
-        public InvasionSuppliesConfig Supplies { get; set; } = new();
-
         // The strength the whole invasion may field at once, shared by all of its reinforcement rules.
         // Left out, the invasion is uncapped.
         [XmlElement("MaxFactionStrength")]
@@ -27,24 +24,13 @@ namespace CustomSpawns.Data.Model
         [XmlElement("StrengthPerTownHeld")]
         public float StrengthPerTownHeld { get; set; }
 
-        // How many men the invasion keeps in the town it holds. Its supplies are sized to feed that many,
-        // and its lords draw the garrison down to it but never below it.
-        [XmlElement("MinimumGarrison")]
-        public int MinimumGarrison { get; set; }
+        // How many men stay standing in the invasion's capital: its lords draw that garrison down to this
+        // but never below it.
+        [XmlElement("MinimumCapitalGarrison")]
+        public int MinimumCapitalGarrison { get; set; }
 
         [XmlElement("Reinforcements")]
         public InvasionReinforcementsConfig Reinforcements { get; set; } = new();
-    }
-
-    public sealed class InvasionSuppliesConfig
-    {
-        [XmlElement("FoodStockFloor")]
-        public float FoodStockFloor { get; set; }
-
-        // What the supplies cover each day beyond feeding the minimum garrison. The town's own people are
-        // left to live on what the town itself produces.
-        [XmlElement("TownFoodAllowance")]
-        public float TownFoodAllowance { get; set; }
     }
 
     public sealed class InvasionReinforcementsConfig
@@ -85,7 +71,7 @@ namespace CustomSpawns.Data.Model
             {
                 throw new ArgumentNullException(nameof(config));
             }
-            if (config.Supplies == null || config.Reinforcements?.Rules == null)
+            if (config.Reinforcements?.Rules == null)
             {
                 throw new ArgumentException("Invasion configuration groups cannot be null.");
             }
@@ -96,11 +82,9 @@ namespace CustomSpawns.Data.Model
                                            InvasionSupplyLines.KnownNames + ".");
             }
 
-            ValidateNonNegativeFinite("Invasion Supplies FoodStockFloor", config.Supplies.FoodStockFloor);
-            ValidateNonNegativeFinite("Invasion Supplies TownFoodAllowance", config.Supplies.TownFoodAllowance);
             ValidateNonNegativeFinite("Invasion MaxFactionStrength", config.MaxFactionStrength);
             ValidateNonNegativeFinite("Invasion StrengthPerTownHeld", config.StrengthPerTownHeld);
-            ValidateNonNegative("Invasion MinimumGarrison", config.MinimumGarrison);
+            ValidateNonNegative("Invasion MinimumCapitalGarrison", config.MinimumCapitalGarrison);
             if (config.Reinforcements.Rules.Count == 0)
             {
                 throw new ArgumentException("Invasion Reinforcements requires at least one Rule.");

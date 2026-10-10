@@ -16,7 +16,7 @@ using TaleWorlds.Library;
 namespace CustomSpawns.Invasions.Adapters
 {
     public sealed class InvasionCampaignBehaviour : CampaignBehaviorBase, IPartySteeringQuery,
-        IInvasionLandingQuery, IInvasionFoodSupply
+        IInvasionLandingQuery
     {
         private readonly SpawnDao _spawnDao;
         private readonly DynamicSpawnData _dynamicSpawnData;
@@ -118,7 +118,7 @@ namespace CustomSpawns.Invasions.Adapters
             new(State, _spawnDao, _invasionSupplyBases, new InvasionTroopBanking(_spawnDao, _invaderHeroes));
 
         private InvasionOccupations NewOccupations() =>
-            new(State, _spawnDao, _dynamicSpawnData, _invasionSupplyBases, _invasionCapitals, _invasionClans);
+            new(State, _spawnDao, _dynamicSpawnData, _invasionCapitals, _invasionClans);
 
         private void Initialize()
         {
@@ -274,9 +274,5 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionMembership.Reconcile();
             _invasionReinforcementArrivals.SendDue();
         }
-
-        // The food model asks per town, so it holds the behaviour and not the occupation pass,
-        // which is replaced whenever a save rebinds the state.
-        InvasionFoodTerms? IInvasionFoodSupply.FindTerms(Town town) => _invasionOccupations.FindTerms(town);
     }
 }

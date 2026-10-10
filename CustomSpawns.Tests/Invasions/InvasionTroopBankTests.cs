@@ -6,7 +6,7 @@ namespace CustomSpawns.Tests.Invasions
     public class InvasionTroopBankTests
     {
         [Test]
-        public void ALordDrawsOnlyWhatStandsAboveTheMinimumGarrison()
+        public void ALordDrawsOnlyWhatStandsAboveTheMinimumCapitalGarrison()
         {
             Assert.AreEqual(200, InvasionTroopBank.Drawable(500, 600, 400));
         }

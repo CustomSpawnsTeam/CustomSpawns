@@ -4,11 +4,9 @@ using TaleWorlds.CampaignSystem.Settlements;
 namespace CustomSpawns.Invasions.Adapters
 {
     /**
-     * The one place that answers whether a settlement can supply an invasion. Two questions used to ask it
-     * separately -- whether a capture winds the reinforcement clocks, and which held settlement keeps being
-     * fed -- so a change of supply doctrine had to be made in two places. Here the invasion's configured
-     * doctrine answers both, the kind of settlement that may be a base included, which callers must not
-     * test again for themselves.
+     * The one place that answers whether a settlement can supply an invasion -- which is what decides
+     * whether a capture winds the reinforcement clocks. The invasion's configured doctrine answers it, the
+     * kind of settlement that may be a base included, which callers must not test again for themselves.
      */
     internal sealed class InvasionSupplyBases
     {

@@ -52,7 +52,7 @@ namespace CustomSpawns.Tests.Spawn
             {
                 new()
                 {
-                    Invasion = new InvasionData(false, 0, 0, new[]
+                    Invasion = new InvasionData(false, new[]
                     {
                         new InvasionReinforcementRuleData("infantry", "reinforcement_party", 7, 1)
                     })
