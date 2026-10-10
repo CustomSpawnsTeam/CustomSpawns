@@ -30,7 +30,8 @@ namespace CustomSpawns.Data.Dto
          */
         public float MaxFactionStrength { get; }
 
-        // What each town the invasion holds right now adds to that ceiling. Losing the town lowers it again.
+        // What each town the invasion's kingdom holds right now adds to that ceiling, whichever of its clans
+        // owns it. Losing the town lowers it again.
         public float StrengthPerTownHeld { get; }
 
         // In configuration order, which is the order the rules draw in.

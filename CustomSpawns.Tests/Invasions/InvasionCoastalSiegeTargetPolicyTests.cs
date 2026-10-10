@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.Serialization;
+using CustomSpawns.AI.Model;
 using CustomSpawns.AI.Offensives;
+using CustomSpawns.Data.Adapter;
 using CustomSpawns.Invasions.Adapters;
 using NUnit.Framework;
 using TaleWorlds.CampaignSystem;
@@ -16,25 +18,68 @@ namespace CustomSpawns.Tests.Invasions
     public class InvasionCoastalSiegeTargetPolicyTests
     {
         [Test]
-        public void AttackingForce_ExcludesALandingPartyStrandedAwayFromTheDecidingParty()
+        public void AttackingForce_CountsALandingPartyOnTheSameObjectiveHoweverFarItStillIs()
         {
             MobileParty party = PartyAt(0f, 0f);
-            MobileParty stranded = PartyAt(0f, 40f);
+            MobileParty comrade = PartyAt(0f, 400f);
+            Settlement objective = UnbesiegedTown();
 
             var policy = new InvasionCoastalSiegeTargetPolicy(
-                Landing(_ => _ => true, party, stranded), MapPaths());
+                Landing(_ => _ => true, party, comrade), MapPaths(),
+                Objectives((party, objective), (comrade, objective)));
+
+            Assert.That(policy.GetAttackingForce(party), Is.EqualTo(new[] { party, comrade }));
+        }
+
+        [Test]
+        public void AttackingForce_ExcludesALandingPartyOnAnotherObjective()
+        {
+            MobileParty party = PartyAt(0f, 0f);
+            MobileParty elsewhere = PartyAt(0f, 5f);
+
+            var policy = new InvasionCoastalSiegeTargetPolicy(
+                Landing(_ => _ => true, party, elsewhere), MapPaths(),
+                Objectives((party, UnbesiegedTown()), (elsewhere, UnbesiegedTown())));
 
             Assert.That(policy.GetAttackingForce(party), Is.EqualTo(new[] { party }));
         }
 
         [Test]
-        public void AttackingForce_IncludesALandingPartyGatheredWithTheDecidingParty()
+        public void AttackingForce_ExcludesALandingPartyWithNoObjectiveOfItsOwnYet()
         {
             MobileParty party = PartyAt(0f, 0f);
-            MobileParty comrade = PartyAt(0f, 20f);
+            MobileParty undecided = PartyAt(0f, 5f);
 
             var policy = new InvasionCoastalSiegeTargetPolicy(
-                Landing(_ => _ => true, party, comrade), MapPaths());
+                Landing(_ => _ => true, party, undecided), MapPaths(),
+                Objectives((party, UnbesiegedTown())));
+
+            Assert.That(policy.GetAttackingForce(party), Is.EqualTo(new[] { party }));
+        }
+
+        [Test]
+        public void AttackingForce_PoolsNoObjectiveForAPartyThatServesNoLiveInvasion()
+        {
+            MobileParty party = PartyAt(0f, 0f);
+            MobileParty comrade = PartyAt(0f, 400f);
+            Settlement objective = UnbesiegedTown();
+
+            var policy = new InvasionCoastalSiegeTargetPolicy(
+                NoLiveInvasion(party, comrade), MapPaths(),
+                Objectives((party, objective), (comrade, objective)));
+
+            Assert.That(policy.GetAttackingForce(party), Is.EqualTo(new[] { party }));
+        }
+
+        [Test]
+        public void AttackingForce_StillPoolsCampMatesForAPartyThatServesNoLiveInvasion()
+        {
+            BesiegerCamp camp = EmptyCamp();
+            MobileParty party = PartyInCamp(camp, 0f, 0f);
+            MobileParty comrade = PartyInCamp(camp, 0f, 100f);
+
+            var policy = new InvasionCoastalSiegeTargetPolicy(
+                NoLiveInvasion(party, comrade), MapPaths());
 
             Assert.That(policy.GetAttackingForce(party), Is.EqualTo(new[] { party, comrade }));
         }
@@ -49,33 +94,6 @@ namespace CustomSpawns.Tests.Invasions
                 Landing(_ => _ => true, stranded), MapPaths());
 
             Assert.That(withoutTheDecidingParty.GetAttackingForce(party), Is.EqualTo(new[] { party }));
-        }
-
-        [Test]
-        public void AttackingForce_LeavesTheDecidingPartyAloneOnceItsInvasionHoldsAFoothold()
-        {
-            MobileParty party = PartyAt(0f, 0f);
-            MobileParty comrade = PartyAt(0f, 1f);
-
-            var settled = new InvasionCoastalSiegeTargetPolicy(
-                Landing(_ => null, party, comrade), MapPaths());
-
-            Assert.That(settled.GetAttackingForce(party), Is.EqualTo(new[] { party }));
-        }
-
-        [TestCase(30f, true)]
-        [TestCase(30.5f, false)]
-        public void AttackingForce_CountsALandingPartyUpToTheGatheringRadius(float distance, bool isInTheForce)
-        {
-            MobileParty party = PartyAt(0f, 0f);
-            MobileParty comrade = PartyAt(0f, distance);
-
-            var policy = new InvasionCoastalSiegeTargetPolicy(
-                Landing(_ => _ => true, party, comrade), MapPaths());
-
-            Assert.That(policy.GetAttackingForce(party), Is.EqualTo(isInTheForce
-                ? new[] { party, comrade }
-                : new[] { party }));
         }
 
         [Test]
@@ -140,6 +158,83 @@ namespace CustomSpawns.Tests.Invasions
                 Landing(_ => _ => true, party, elsewhere), MapPaths());
 
             Assert.That(policy.GetAttackingForce(party), Is.EqualTo(new[] { party }));
+        }
+
+        [Test]
+        public void TargetDistance_PrefersASiblingObjectiveOverACandidateThatIsNotClearlyCloser()
+        {
+            MobileParty party = PartyAt(0f, 0f);
+            MobileParty sibling = PartyAt(0f, 10f);
+            Settlement siblingObjective = UnbesiegedTown();
+
+            var policy = new InvasionCoastalSiegeTargetPolicy(
+                Landing(_ => _ => true, party, sibling), MapPaths(),
+                Objectives((sibling, siblingObjective)));
+
+            Func<SiegeTargetCandidate, float> distance = policy.GetTargetDistance(party);
+
+            Assert.That(distance(Candidate(siblingObjective, 200f)),
+                Is.LessThan(distance(Candidate(UnbesiegedTown(), 150f))));
+        }
+
+        [Test]
+        public void TargetDistance_KeepsItsOwnCandidateWhenThatOneIsClearlyCloser()
+        {
+            MobileParty party = PartyAt(0f, 0f);
+            MobileParty sibling = PartyAt(0f, 10f);
+            Settlement siblingObjective = UnbesiegedTown();
+
+            var policy = new InvasionCoastalSiegeTargetPolicy(
+                Landing(_ => _ => true, party, sibling), MapPaths(),
+                Objectives((sibling, siblingObjective)));
+
+            Func<SiegeTargetCandidate, float> distance = policy.GetTargetDistance(party);
+
+            Assert.That(distance(Candidate(siblingObjective, 240f)),
+                Is.GreaterThan(distance(Candidate(UnbesiegedTown(), 150f))));
+        }
+
+        [Test]
+        public void TargetDistance_IgnoresASiblingObjectiveBeyondTheGatheringReach()
+        {
+            MobileParty party = PartyAt(0f, 0f);
+            MobileParty sibling = PartyAt(0f, 10f);
+            Settlement siblingObjective = UnbesiegedTown();
+
+            var policy = new InvasionCoastalSiegeTargetPolicy(
+                Landing(_ => _ => true, party, sibling), MapPaths(),
+                Objectives((sibling, siblingObjective)));
+
+            Assert.That(policy.GetTargetDistance(party)(Candidate(siblingObjective, 300f)),
+                Is.EqualTo(300f));
+        }
+
+        [Test]
+        public void TargetDistance_DiscountsNothingForAPartyThatServesNoLiveInvasion()
+        {
+            MobileParty party = PartyAt(0f, 0f);
+            MobileParty sibling = PartyAt(0f, 10f);
+            Settlement siblingObjective = UnbesiegedTown();
+
+            var policy = new InvasionCoastalSiegeTargetPolicy(
+                NoLiveInvasion(party, sibling), MapPaths(), Objectives((sibling, siblingObjective)));
+
+            Assert.That(policy.GetTargetDistance(party)(Candidate(siblingObjective, 200f)),
+                Is.EqualTo(200f));
+        }
+
+        [Test]
+        public void GathersBeforeAssault_OnlyWhileThePartyServesALiveInvasion()
+        {
+            MobileParty party = PartyAt(0f, 0f);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(new InvasionCoastalSiegeTargetPolicy(
+                    Landing(_ => _ => true, party), MapPaths()).GathersBeforeAssault(party), Is.True);
+                Assert.That(new InvasionCoastalSiegeTargetPolicy(
+                    NoLiveInvasion(party), MapPaths()).GathersBeforeAssault(party), Is.False);
+            });
         }
 
         [Test]
@@ -210,24 +305,53 @@ namespace CustomSpawns.Tests.Invasions
         private static IInvasionLandingQuery Landing(Func<MobileParty, Func<Settlement, bool>?> filter,
             params MobileParty[] landingParties)
         {
-            return new LandingStub(filter, landingParties);
+            return new LandingStub(filter, landingParties, true);
+        }
+
+        private static IInvasionLandingQuery NoLiveInvasion(params MobileParty[] landingParties)
+        {
+            return new LandingStub(_ => _ => true, landingParties, false);
         }
 
         private sealed class LandingStub : IInvasionLandingQuery
         {
             private readonly Func<MobileParty, Func<Settlement, bool>?> _filter;
             private readonly IReadOnlyList<MobileParty> _landingParties;
+            private readonly bool _servesLiveInvasion;
 
             internal LandingStub(Func<MobileParty, Func<Settlement, bool>?> filter,
-                IReadOnlyList<MobileParty> landingParties)
+                IReadOnlyList<MobileParty> landingParties, bool servesLiveInvasion)
             {
                 _filter = filter;
                 _landingParties = landingParties;
+                _servesLiveInvasion = servesLiveInvasion;
             }
 
             public Func<Settlement, bool>? GetInitialCoastalTargetFilter(MobileParty party) => _filter(party);
 
             public IReadOnlyList<MobileParty> GetLandingParties(MobileParty party) => _landingParties;
+
+            public bool ServesLiveInvasion(MobileParty party) => _servesLiveInvasion;
+        }
+
+        // The objectives the siege behaviour has recorded, which is what the policy reads to tell who
+        // belongs to one force and which objectives a party's siblings are already on.
+        private static Func<MobileParty, Settlement?> Objectives(
+            params (MobileParty Party, Settlement Objective)[] objectives)
+        {
+            var recorded = new Dictionary<MobileParty, Settlement>();
+
+            foreach ((MobileParty party, Settlement objective) in objectives)
+            {
+                recorded[party] = objective;
+            }
+
+            return party => recorded.TryGetValue(party, out Settlement? objective) ? objective : null;
+        }
+
+        private static SiegeTargetCandidate Candidate(Settlement target, float distance)
+        {
+            return new SiegeTargetCandidate(target, true, true, SpawnSettlementType.Town, false, distance, 0f);
         }
 
         private static IMapPathQuery MapPaths()
@@ -238,8 +362,6 @@ namespace CustomSpawns.Tests.Invasions
         private sealed class MapPathStub : IMapPathQuery
         {
             public bool HasReachableLandGate(MobileParty party, Settlement target) => true;
-
-            public float GetDistanceToGate(MobileParty party, Settlement settlement) => 0f;
         }
 
         private static MobileParty PartyAt(float x, float y)

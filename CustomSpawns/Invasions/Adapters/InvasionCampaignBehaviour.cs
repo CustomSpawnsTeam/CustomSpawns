@@ -194,6 +194,14 @@ namespace CustomSpawns.Invasions.Adapters
             return _invasionMembership.FindLiveMembers(party);
         }
 
+        bool IInvasionLandingQuery.ServesLiveInvasion(MobileParty party)
+        {
+            Initialize();
+            Invasion? invasion = State.FindInvasionOfParty(party.StringId);
+            return invasion != null && !invasion.IsSuspended &&
+                   invasion.HoldsClan(party.ActualClan?.StringId);
+        }
+
         private void OnMapEventStarted(MapEvent mapEvent, PartyBase attacker, PartyBase defender)
         {
             Initialize();

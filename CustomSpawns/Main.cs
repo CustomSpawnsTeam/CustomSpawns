@@ -4,6 +4,8 @@ using CustomSpawns.AI.Adapters;
 using CustomSpawns.AI.Barterables;
 using CustomSpawns.AI.Behaviours;
 using CustomSpawns.AI.CampaignBehaviours;
+using CustomSpawns.AI.Model;
+using CustomSpawns.AI.Offensives;
 using CustomSpawns.CampaignData.Config;
 using CustomSpawns.CampaignData.Implementations;
 using CustomSpawns.Config;
@@ -129,11 +131,16 @@ namespace CustomSpawns
                 _spawnGroupService, _saveInitialiser);
             _devestationMetricData = new DevestationMetricData(_mobilePartyTrackingBehaviour, _campaignDataConfigLoader, _saveInitialiser, _messageBoxService, _modDebug);
             _dailyLogger = new DailyLogger(_devestationMetricData, _messageBoxService);
+            // The siege behaviour's own state, held here so that the targeting policy can read which
+            // objective each party of an invasion has committed to. The behaviour still owns saving it.
+            var siegeStates = new PartyStateStore<SettlementOffensiveBehaviourState>(
+                BesiegeClosestSettlementBehaviour.SaveKey);
             var invasionCoastalSiegeTargetPolicy = new InvasionCoastalSiegeTargetPolicy(
-                _invasionCampaignBehaviour, new BannerlordMapPathQuery());
+                _invasionCampaignBehaviour, new BannerlordMapPathQuery(),
+                party => siegeStates.Find(party)?.Target);
             IPriorityPartyBehaviour[] priorityPartyBehaviours =
                 PartyBehaviourRegistrations.CreateBehaviours(_dynamicSpawnData,
-                    invasionCoastalSiegeTargetPolicy);
+                    invasionCoastalSiegeTargetPolicy, siegeStates);
             var partyBehaviourLookup = new SpawnPartyBehaviourLookup(_spawnDao, _partyBehaviourDao,
                 _messageBoxService);
             var priorityPartyBehaviourRegistry = new PriorityPartyBehaviourRegistry(priorityPartyBehaviours);
@@ -142,11 +149,13 @@ namespace CustomSpawns
             var partyBehaviourResolver = new PartyBehaviourResolver(
                 partyBehaviourLookup, priorityPartyBehaviourRegistry, homeSettlementPatrolBehaviour,
                 new FollowSupportedPartyBehaviour());
-            _customSpawnsAiBehaviour = new CustomSpawnsAiBehaviour(_dynamicSpawnData, partyBehaviourResolver,
-                _invasionCampaignBehaviour,
+            var steeredParties = new SteeredPartyLookup(_dynamicSpawnData, _invasionCampaignBehaviour);
+            _customSpawnsAiBehaviour = new CustomSpawnsAiBehaviour(steeredParties, partyBehaviourResolver,
                 new List<ISyncsCampaignData>(priorityPartyBehaviours) { homeSettlementPatrolBehaviour });
-            _accompanyingPartySiegeBehaviour = new AccompanyingPartySiegeBehaviour(_dynamicSpawnData);
-            _aiDecisionLoggerBehaviour = new AiDecisionLoggerBehaviour(_dailyLogger);
+            _accompanyingPartySiegeBehaviour = new AccompanyingPartySiegeBehaviour(steeredParties);
+            _aiDecisionLoggerBehaviour = new AiDecisionLoggerBehaviour(_dailyLogger, siegeStates,
+                invasionCoastalSiegeTargetPolicy.GetAttackingForce,
+                _dynamicSpawnData.FindAccompanyingParties);
             NonMercenaryCustomSpawnsFactionsProvider nonMercenaryCustomSpawnsFactionsProvider =
                 new NonMercenaryCustomSpawnsFactionsProvider(_diplomacyDataReader);
             _customSpawnsDiplomacyFactionsProvider = new CustomSpawnsDiplomacyFactionsProvider(_diplomacyDataReader);

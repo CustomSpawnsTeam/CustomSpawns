@@ -11,15 +11,13 @@ namespace CustomSpawns.Invasions
     {
         private readonly Func<bool> _isCoastalTown;
 
-        internal InvasionSettlementFacts(bool isTown, bool isCastle, Func<bool> isCoastalTown)
+        internal InvasionSettlementFacts(bool isTown, Func<bool> isCoastalTown)
         {
             IsTown = isTown;
-            IsCastle = isCastle;
             _isCoastalTown = isCoastalTown;
         }
 
         internal bool IsTown { get; }
-        internal bool IsCastle { get; }
         internal bool IsCoastalTown => _isCoastalTown();
     }
 
@@ -42,10 +40,10 @@ namespace CustomSpawns.Invasions
         public bool DependsOnASupplyBase => true;
     }
 
-    // Supplies come overland, so any fortification can forward them, inland ones included.
+    // Supplies come overland, so any town can forward them, inland ones included.
     internal sealed class AnySupplyLine : IInvasionSupplyLine
     {
-        public bool IsSupplyBase(InvasionSettlementFacts settlement) => settlement.IsTown || settlement.IsCastle;
+        public bool IsSupplyBase(InvasionSettlementFacts settlement) => settlement.IsTown;
         public bool DependsOnASupplyBase => true;
     }
 

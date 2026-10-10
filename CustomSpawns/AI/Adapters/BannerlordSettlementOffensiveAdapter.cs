@@ -60,12 +60,6 @@ namespace CustomSpawns.AI.Adapters
         protected IEnumerable<MobileParty> GetAccompanyingParties(MobileParty party) =>
             _getAccompanyingParties(party);
 
-        protected float GetActiveSiegeDefenderStrength(MobileParty observer, float garrisonStrength)
-        {
-            return OffensiveStrengthRules.CalculateActiveSiegeDefenderStrength(garrisonStrength,
-                _getRoamingParties(observer), _getSeeingRange(observer));
-        }
-
         public Settlement? FindClosestNonHostileSettlement(MobileParty party)
         {
             return Settlement.All.Where(s => s.IsActive && (s.IsTown || s.IsCastle || s.IsVillage) &&
@@ -82,12 +76,16 @@ namespace CustomSpawns.AI.Adapters
 
         protected static IEnumerable<RoamingPartyStrength> ObserveRoamingParties(MobileParty observer)
         {
+            // Every reader of this sweep wants live hostiles and nobody else, and working out what a party
+            // is worth is the expensive part of describing one. So the ones no reader can use are dropped
+            // before that, rather than priced first and discarded after, once an hour for every party.
             return MobileParty.All
-                .Where(p => p.CurrentSettlement is null && p.MapEvent is null)
+                .Where(p => p.CurrentSettlement is null && p.MapEvent is null && p.IsActive &&
+                            p.MapFaction.IsAtWarWith(observer.MapFaction))
                 .Select(p => new RoamingPartyStrength(p == observer, p.IsActive,
-                    p.MapFaction.IsAtWarWith(observer.MapFaction), p.Army,
+                    p.MapFaction.IsAtWarWith(observer.MapFaction),
                     observer.Position.Distance(p.Position), p.Party.CalculateCurrentStrength(),
-                    p.IsLordParty, p.IsFleeing()));
+                    p.IsLordParty, p.IsFleeing(), p.IsVillager || p.IsCaravan));
         }
     }
 }

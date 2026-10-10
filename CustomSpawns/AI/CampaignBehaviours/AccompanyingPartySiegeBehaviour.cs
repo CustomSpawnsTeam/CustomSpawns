@@ -1,4 +1,3 @@
-using CustomSpawns.Spawn;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 
@@ -10,11 +9,11 @@ namespace CustomSpawns.AI.CampaignBehaviours
      */
     public class AccompanyingPartySiegeBehaviour : CampaignBehaviorBase
     {
-        private readonly DynamicSpawnData _dynamicSpawnData;
+        private readonly SteeredPartyLookup _steeredParties;
 
-        public AccompanyingPartySiegeBehaviour(DynamicSpawnData dynamicSpawnData)
+        internal AccompanyingPartySiegeBehaviour(SteeredPartyLookup steeredParties)
         {
-            _dynamicSpawnData = dynamicSpawnData;
+            _steeredParties = steeredParties;
         }
 
         public override void RegisterEvents()
@@ -28,7 +27,7 @@ namespace CustomSpawns.AI.CampaignBehaviours
 
         private void MatchSupportedPartySiege(MobileParty party)
         {
-            MobileParty? supportedParty = _dynamicSpawnData.GetDynamicSpawnData(party)?.SupportedParty;
+            MobileParty? supportedParty = _steeredParties.GetSteeredPartyData(party)?.SupportedParty;
             if (supportedParty is null)
             {
                 return;

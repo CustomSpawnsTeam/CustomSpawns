@@ -198,8 +198,11 @@ namespace CustomSpawns.Tests.Spawn
         [Test]
         public void AdaptPriorityPartyBehaviours_RejectsEmptyOrUnsupportedSiegeTargetList()
         {
-            Assert.Throws<ArgumentException>(() => AdaptXml(
-                "<BesiegeClosestSettlement><TargetTypes/></BesiegeClosestSettlement>"));
+            // An explicitly empty list must be rejected rather than silently defaulting to Town and Castle:
+            // the serializer records the element's presence, so an empty one is told apart from an omitted one.
+            ArgumentException emptyList = Assert.Throws<ArgumentException>(() => AdaptXml(
+                "<BesiegeClosestSettlement><TargetTypes/></BesiegeClosestSettlement>"))!;
+            Assert.That(emptyList.Message, Does.Contain("at least one target type"));
             Assert.Throws<ArgumentException>(() => Adapt(new BesiegeClosestSettlementConfig
             {
                 TargetTypes = new List<SpawnSettlementType> { SpawnSettlementType.Village }

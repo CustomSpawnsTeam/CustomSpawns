@@ -5,13 +5,10 @@ namespace CustomSpawns.AI.Offensives
 {
     /**
      * What the campaign map answers about reaching a settlement: whether a party can march to its gate
-     * overland, and how far that gate is. A party that cannot cross water asks this to rule out the
-     * towns it can only reach by sea, and to rank the ones it can.
+     * overland. A party that cannot cross water asks this to rule out the towns it can only reach by sea.
      */
     internal interface IMapPathQuery
     {
         bool HasReachableLandGate(MobileParty party, Settlement target);
-
-        float GetDistanceToGate(MobileParty party, Settlement settlement);
     }
 }

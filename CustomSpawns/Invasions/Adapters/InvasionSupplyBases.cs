@@ -19,7 +19,7 @@ namespace CustomSpawns.Invasions.Adapters
             IInvasionSupplyLine? supplyLine = InvasionSupplyLines.Find(configuration?.SupplyLine);
 
             return settlement != null && supplyLine != null && supplyLine.IsSupplyBase(
-                new InvasionSettlementFacts(settlement.IsTown, settlement.IsCastle,
+                new InvasionSettlementFacts(settlement.IsTown,
                     () => _invasionCoastalTownResolver.IsCoastalTown(settlement)));
         }
 

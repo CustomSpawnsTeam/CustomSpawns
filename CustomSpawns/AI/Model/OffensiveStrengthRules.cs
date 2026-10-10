@@ -19,25 +19,42 @@ namespace CustomSpawns.AI.Model
         {
             return parties.Where(p => !p.IsSelf && p.IsActive && p.IsHostile &&
                                       IsWithinSeeingRange(p.Distance, observerSeeingRange))
-                .GroupBy(p => p.ArmyIdentity)
-                .Sum(army => army.Sum(p => p.PartyStrength));
+                .Sum(p => p.PartyStrength);
         }
 
         internal static float SumVisibleHostileLordStrength(
             IEnumerable<RoamingPartyStrength> parties, float observerSeeingRange)
         {
+            // A lord stack in flight is not a threat near the target: it is running past it, and the
+            // force on the other side of this ratio has its own runaways taken out for that very reason.
             return parties.Where(p => !p.IsSelf && p.IsActive && p.IsHostile && p.IsLordParty &&
+                                      !p.IsFleeing &&
                                       IsWithinSeeingRange(p.Distance, observerSeeingRange))
-                .GroupBy(p => p.ArmyIdentity)
-                .Sum(army => army.Sum(p => p.PartyStrength));
+                .Sum(p => p.PartyStrength);
         }
 
-        internal static float CalculateActiveSiegeDefenderStrength(float garrisonStrength,
-            IEnumerable<RoamingPartyStrength> parties, float observerSeeingRange)
+        /**
+         * What a camp standing at a town has against it: the town itself, and the hostile parties near it
+         * that could lift the siege. A merchant train or a peasant cart is near the town constantly and
+         * can lift nothing, so neither counts, any more than they count as defenders inside the walls.
+         */
+        internal static float CalculateActiveSiegeDefenderStrength(float defenderStrength,
+            IEnumerable<RoamingPartyStrength> parties, float seeingRange)
         {
-            return garrisonStrength + parties
+            return defenderStrength + parties
                 .Where(p => !p.IsSelf && p.IsActive && p.IsHostile && !p.IsFleeing &&
-                            IsWithinSeeingRange(p.Distance, observerSeeingRange))
+                            !p.IsNonCombatant && IsWithinSeeingRange(p.Distance, seeingRange))
+                .Sum(p => p.PartyStrength);
+        }
+
+        /**
+         * What the parties that have turned up at a target can bring to its walls: those within their own
+         * sight of it, and nothing else. What a party is worth on paper deliberately does not enter: an
+         * army total or an escort still a province away is exactly what this figure exists to leave out.
+         */
+        internal static float CalculateArrivedAttackerStrength(IEnumerable<AttackingPartyStrength> force)
+        {
+            return force.Where(p => IsWithinSeeingRange(p.DistanceToTarget, p.SeeingRange))
                 .Sum(p => p.PartyStrength);
         }
 

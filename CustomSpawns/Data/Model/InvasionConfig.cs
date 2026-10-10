@@ -23,7 +23,7 @@ namespace CustomSpawns.Data.Model
         [XmlElement("MaxFactionStrength")]
         public float MaxFactionStrength { get; set; }
 
-        // Raises that ceiling for every town the invasion currently holds.
+        // Raises that ceiling for every town the invasion's kingdom currently holds, allies' towns included.
         [XmlElement("StrengthPerTownHeld")]
         public float StrengthPerTownHeld { get; set; }
 

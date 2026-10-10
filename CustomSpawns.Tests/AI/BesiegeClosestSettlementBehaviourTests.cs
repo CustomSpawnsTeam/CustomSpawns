@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
 using CustomSpawns.AI.Adapters;
@@ -199,51 +200,33 @@ namespace CustomSpawns.Tests.AI
             Assert.That(result, Is.Null);
         }
 
+        // A gathering party commits to its objective before it can take it, so the garrison is not
+        // weighed when the objective is chosen; a party that does not gather still skips what it cannot take.
         [Test]
-        public void ConcreteAdapter_BeforeFirstCoastalConquestTakesTheTownNearestToTheWholeInvasion()
+        public void ConcreteAdapter_AGatheringPartyCommitsToATownItIsTooWeakToTakeAlone()
         {
             MobileParty party = DummyParty();
-            MobileParty comrade = DummyParty();
-            Settlement nearestToParty = DummySettlement();
-            Settlement nearestToBoth = DummySettlement();
+            Settlement strongTown = DummySettlement();
+            Settlement weakTown = DummySettlement();
             var candidates = new[]
             {
-                Candidate(nearestToParty, SpawnSettlementType.Town, 1f, 10f, true, "coastal-town"),
-                Candidate(nearestToBoth, SpawnSettlementType.Town, 4f, 10f, true, "coastal-town")
+                Candidate(strongTown, SpawnSettlementType.Town, 1f, 200f, true, "coastal-town"),
+                Candidate(weakTown, SpawnSettlementType.Town, 4f, 10f, true, "coastal-town")
             };
-            Func<MobileParty, Settlement, float> comradeDistance =
-                (_, settlement) => settlement == nearestToParty ? 20f : 2f;
 
-            Settlement? alone = new BannerlordBesiegeClosestSettlementAdapter(_ => 5f,
+            Settlement? gathering = new BannerlordBesiegeClosestSettlementAdapter(_ => 5f,
                     _ => new RoamingPartyStrength[0], _ => candidates, _ => new MobileParty[0],
                     new InvasionCoastalSiegeTargetPolicy(Landing(_ => _ => true, party),
-                        MapPaths(_ => true, comradeDistance)),
-                    (_, _) => new RoamingPartyStrength[0])
+                        MapPaths(_ => true)), (_, _) => new RoamingPartyStrength[0])
                 .FindClosestSiegeTarget(party, 100f, 1.5f, new[] { SpawnSettlementType.Town });
-            Settlement? together = new BannerlordBesiegeClosestSettlementAdapter(_ => 5f,
+            Settlement? alone = new BannerlordBesiegeClosestSettlementAdapter(_ => 5f,
                     _ => new RoamingPartyStrength[0], _ => candidates, _ => new MobileParty[0],
-                    new InvasionCoastalSiegeTargetPolicy(Landing(_ => _ => true, party, comrade),
-                        MapPaths(_ => true, comradeDistance)),
+                    new InvasionCoastalSiegeTargetPolicy(NoLiveInvasion(party), MapPaths(_ => true)),
                     (_, _) => new RoamingPartyStrength[0])
                 .FindClosestSiegeTarget(party, 100f, 1.5f, new[] { SpawnSettlementType.Town });
 
-            Assert.That(alone, Is.SameAs(nearestToParty));
-            Assert.That(together, Is.SameAs(nearestToBoth));
-        }
-
-        [Test]
-        public void ConcreteAdapter_BeforeFirstCoastalConquestWeighsGarrisonsAgainstTheGatheredInvasion()
-        {
-            MobileParty party = DummyParty();
-            MobileParty comrade = DummyParty();
-
-            var landing = new InvasionCoastalSiegeTargetPolicy(
-                Landing(_ => _ => true, party, comrade), MapPaths(_ => true));
-            var settled = new InvasionCoastalSiegeTargetPolicy(
-                Landing(_ => null, party, comrade), MapPaths(_ => true));
-
-            Assert.That(landing.GetAttackingForce(party), Is.EqualTo(new[] { party, comrade }));
-            Assert.That(settled.GetAttackingForce(party), Is.EqualTo(new[] { party }));
+            Assert.That(gathering, Is.SameAs(strongTown));
+            Assert.That(alone, Is.SameAs(weakTown));
         }
 
         [Test]
@@ -263,7 +246,7 @@ namespace CustomSpawns.Tests.AI
                     Candidate(incompatibleTown, SpawnSettlementType.Town, 3f, 10f, false, "coastal-town"),
                     Candidate(viableTown, SpawnSettlementType.Town, 4f, 10f, true, "coastal-town")
                 }, _ => new MobileParty[0], new InvasionCoastalSiegeTargetPolicy(
-                    Landing(_ => _ => true, party), MapPaths(_ => true)),
+                    NoLiveInvasion(party), MapPaths(_ => true)),
                 (_, _) => new RoamingPartyStrength[0]);
 
             Settlement? result = operations.FindClosestSiegeTarget(party, 100f, 1.5f,
@@ -401,8 +384,8 @@ namespace CustomSpawns.Tests.AI
             MobileParty shorterObserver = DummyParty();
             var observations = new[]
             {
-                new RoamingPartyStrength(false, true, true, null, 5f, 20f),
-                new RoamingPartyStrength(false, true, true, null, 5.001f, 100f)
+                new RoamingPartyStrength(false, true, true, 5f, 20f),
+                new RoamingPartyStrength(false, true, true, 5.001f, 100f)
             };
             var operations = new BannerlordBesiegeClosestSettlementAdapter(
                 observer => observer == boundaryObserver ? 5f : 4.999f,
@@ -419,8 +402,8 @@ namespace CustomSpawns.Tests.AI
             Settlement target = DummySettlement();
             var observations = new[]
             {
-                new RoamingPartyStrength(false, true, true, null, 5f, 20f, true),
-                new RoamingPartyStrength(false, true, true, null, 5f, 100f)
+                new RoamingPartyStrength(false, true, true, 5f, 20f, true),
+                new RoamingPartyStrength(false, true, true, 5f, 100f)
             };
             var operations = new BannerlordBesiegeClosestSettlementAdapter(_ => 5f,
                 _ => new RoamingPartyStrength[0], _ => new SiegeTargetCandidate[0],
@@ -544,6 +527,29 @@ namespace CustomSpawns.Tests.AI
         }
 
         [Test]
+        public void Reconnaissance_WatchesTheChosenTownInsteadOfMarchingToFriendlyGround()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            Settlement friendlyGround = DummySettlement();
+            var operations = new OperationsStub
+            {
+                SiegeTarget = target,
+                PatrolTarget = friendlyGround,
+                TargetStrength = 100f
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+
+            PartyBehaviourResult result = Evaluate(provider, party);
+
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
+            Assert.That(state.Phase, Is.EqualTo(SettlementOffensivePhase.Recon));
+            Assert.That(result.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.PatrolAroundPoint));
+            Assert.That(result.AIBehavior?.Party, Is.SameAs(target));
+            Assert.That(result.AIBehavior?.Party, Is.Not.SameAs(friendlyGround));
+        }
+
+        [Test]
         public void TooWeakForApproachedTarget_DropsItInsteadOfPressingADoomedSiege()
         {
             MobileParty party = DummyParty();
@@ -606,6 +612,418 @@ namespace CustomSpawns.Tests.AI
         }
 
         [Test]
+        public void Gathering_HoldsNearTheTargetWhileTheForceThatHasArrivedIsTooWeak()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            var operations = new OperationsStub
+            {
+                SiegeTarget = target,
+                PatrolTarget = DummySettlement(),
+                Gathers = true,
+                ArrivedAttackerStrength = 5f
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+            Evaluate(provider, party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
+            state.Phase = SettlementOffensivePhase.Approach;
+
+            PartyBehaviourResult result = Evaluate(provider, party);
+
+            Assert.That(state.Target, Is.SameAs(target));
+            Assert.That(state.Phase, Is.EqualTo(SettlementOffensivePhase.Gather));
+            Assert.That(result.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.PatrolAroundPoint));
+        }
+
+        [Test]
+        public void Gathering_AttacksOnceTheForceThatHasArrivedIsStrongEnough()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            var operations = new OperationsStub
+            {
+                SiegeTarget = target,
+                PatrolTarget = DummySettlement(),
+                Gathers = true,
+                ArrivedAttackerStrength = 5f
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+            Evaluate(provider, party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
+            state.Phase = SettlementOffensivePhase.Approach;
+
+            PartyBehaviourResult held = Evaluate(provider, party);
+            operations.ArrivedAttackerStrength = 100f;
+            PartyBehaviourResult launched = Evaluate(provider, party);
+
+            Assert.That(held.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.PatrolAroundPoint));
+            Assert.That(state.Phase, Is.EqualTo(SettlementOffensivePhase.Approach));
+            Assert.That(launched.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.BesiegeSettlement));
+        }
+
+        [Test]
+        public void Gathering_DoesNotTurnBackTheMomentTheArrivedForceDipsUnderTheLine()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            // Marching is what moves the parties the arrived figure is counted from, so a force sitting on
+            // the line must not step forward and back for the whole operation window.
+            var operations = new OperationsStub
+            {
+                SiegeTarget = target,
+                PatrolTarget = DummySettlement(),
+                Gathers = true,
+                ArrivedAttackerStrength = 100f
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+            Evaluate(provider, party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
+            state.Phase = SettlementOffensivePhase.Approach;
+
+            operations.ArrivedAttackerStrength = 9f;
+            PartyBehaviourResult stillMarching = Evaluate(provider, party);
+            operations.ArrivedAttackerStrength = 7f;
+            PartyBehaviourResult turnedBack = Evaluate(provider, party);
+
+            Assert.That(stillMarching.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.BesiegeSettlement));
+            Assert.That(turnedBack.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.PatrolAroundPoint));
+            Assert.That(state.Phase, Is.EqualTo(SettlementOffensivePhase.Gather));
+        }
+
+        [Test]
+        public void Gathering_AsksForTheWholeRequirementOnItsFirstDecisionAfterRecon()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            // A party that has just finished looking has not set off, so the slack a marching force is
+            // given must not be handed to it: it has to hold until its force can take the place.
+            var operations = new OperationsStub
+            {
+                SiegeTarget = target,
+                PatrolTarget = DummySettlement(),
+                Gathers = true,
+                ArrivedAttackerStrength = 9f
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+
+            PartyBehaviourResult result = Evaluate(provider, party);
+
+            Assert.That(_states.GetOrAdd(party).Phase, Is.EqualTo(SettlementOffensivePhase.Gather));
+            Assert.That(result.AIBehavior?.Party, Is.SameAs(target));
+        }
+
+        [Test]
+        public void Gathering_WeighsWhatItBringsAgainstLordsNearTheTargetWhileNothingHasArrived()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            // Nothing has arrived, so reconnaissance can only weigh what the party is bringing. Were it to
+            // read the arrived figure alone it would find itself outnumbered by lords it outmatches two to
+            // one, and would sit in reconnaissance instead of closing on its objective.
+            var operations = new OperationsStub
+            {
+                SiegeTarget = target,
+                PatrolTarget = DummySettlement(),
+                Gathers = true,
+                AttackerStrength = 100f,
+                ArrivedAttackerStrength = 0f,
+                HostileLordStrengthNearTarget = 50f,
+                TargetStrength = 50f
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+
+            PartyBehaviourResult result = Evaluate(provider, party);
+
+            Assert.That(_states.GetOrAdd(party).Phase, Is.EqualTo(SettlementOffensivePhase.Gather));
+            Assert.That(result.AIBehavior?.Party, Is.SameAs(target));
+        }
+
+        [Test]
+        public void GatheringOperationWindowExpiry_EntersCooldownAndFallsThrough()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            // A hold nobody joins is ended by the operation window, which is the only thing that ends it.
+            var operations = new OperationsStub
+            {
+                SiegeTarget = target,
+                PatrolTarget = DummySettlement(),
+                Gathers = true,
+                ArrivedAttackerStrength = 5f
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+            Evaluate(provider, party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
+            state.Phase = SettlementOffensivePhase.Gather;
+            state.ElapsedOperationDays = state.OperationWindowDays;
+
+            PartyBehaviourResult result = Evaluate(provider, party);
+
+            Assert.That(result.IsApplicable, Is.False);
+            Assert.That(state.Phase, Is.EqualTo(SettlementOffensivePhase.Cooldown));
+            Assert.That(state.Target, Is.Null);
+            Assert.That(state.CooldownRemainingDays, Is.EqualTo(3f));
+        }
+
+        [Test]
+        public void Gathering_MarchesToSupportASiegeAlreadyRunningOnItsTarget()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            var operations = new OperationsStub
+            {
+                SiegeTarget = target,
+                PatrolTarget = DummySettlement(),
+                Gathers = true,
+                ArrivedAttackerStrength = 0f,
+                SupportableSiegeActive = true
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+            Evaluate(provider, party);
+            _states.GetOrAdd(party).Phase = SettlementOffensivePhase.Approach;
+
+            PartyBehaviourResult result = Evaluate(provider, party);
+
+            Assert.That(result.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.BesiegeSettlement));
+        }
+
+        [Test]
+        public void Gathering_KeepsItsObjectiveWhileStillMarchingPastLordsNearTheTarget()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            // Nothing has arrived yet, which is the normal state of a party that has just committed. Recon
+            // must weigh the lords near the target against the force the party is bringing, or no gather
+            // ever survives its first tick.
+            var operations = new OperationsStub
+            {
+                SiegeTarget = target,
+                PatrolTarget = DummySettlement(),
+                Gathers = true,
+                ArrivedAttackerStrength = 0f,
+                AttackerStrength = 100f,
+                HostileLordStrengthNearTarget = 10f,
+                TargetStrength = 200f
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+            Evaluate(provider, party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
+            operations.SiegeTarget = null;
+
+            Evaluate(provider, party);
+
+            Assert.That(state.Target, Is.SameAs(target));
+            Assert.That(state.Phase, Is.EqualTo(SettlementOffensivePhase.Recon));
+        }
+
+        [Test]
+        public void ActiveCamp_WithdrawsWhenOnlyPartiesStillMarchingWouldHoldIt()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            var retreat = new AIBehaviorData(DummyParty(), AiBehavior.FleeToPoint,
+                MobileParty.NavigationType.Default, false, false, false);
+            // The camp stands at the town, so the relief force is weighed against what is standing there,
+            // not against siblings a province away.
+            var operations = new OperationsStub
+            {
+                SiegeTarget = target,
+                MatchingSiegeActive = true,
+                AttackerStrength = 1000f,
+                ArrivedAttackerStrength = 10f,
+                ActiveSiegeDefenderStrength = 100f,
+                RetreatBehavior = retreat
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+            Evaluate(provider, party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
+            state.Target = target;
+
+            PartyBehaviourResult result = Evaluate(provider, party);
+
+            Assert.That(result.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.FleeToPoint));
+            Assert.That(state.Target, Is.Null);
+        }
+
+        [Test]
+        public void ActiveCamp_KeepsACampFoundedOnTheMarginTheMarchWasLetThroughOn()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            var retreat = new AIBehaviorData(DummyParty(), AiBehavior.FleeToPoint,
+                MobileParty.NavigationType.Default, false, false, false);
+            // The march that built this camp was let through just under the requirement. Asking the camp
+            // for the whole requirement would tear it down the tick after it was built, and the retreat
+            // would walk the force away from the town it is trying to mass at.
+            var operations = new OperationsStub
+            {
+                SiegeTarget = target,
+                Gathers = true,
+                MatchingSiegeActive = true,
+                ArrivedAttackerStrength = 8.5f,
+                ActiveSiegeDefenderStrength = 10f,
+                RetreatBehavior = retreat
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+            Evaluate(provider, party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
+            state.Target = target;
+
+            PartyBehaviourResult result = Evaluate(provider, party);
+
+            Assert.That(operations.AbandonSiegeCalls, Is.Zero);
+            Assert.That(state.Target, Is.SameAs(target));
+            Assert.That(result.AIBehavior?.AiBehavior, Is.Not.EqualTo(AiBehavior.FleeToPoint));
+        }
+
+        [Test]
+        public void Gathering_IsNotTalkedOutOfItsTargetByTheStrengthRatio()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            var operations = new OperationsStub
+            {
+                SiegeTarget = target,
+                PatrolTarget = DummySettlement(),
+                Gathers = true,
+                ArrivedAttackerStrength = 5f
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+            Evaluate(provider, party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
+            state.Phase = SettlementOffensivePhase.Approach;
+            operations.TargetStrength = 200f;
+            operations.SiegeTarget = null;
+
+            Evaluate(provider, party);
+
+            Assert.That(state.Target, Is.SameAs(target));
+            Assert.That(state.Phase, Is.EqualTo(SettlementOffensivePhase.Gather));
+        }
+
+        [Test]
+        public void Gathering_HoldsItsObjectiveInReconInsteadOfLookingForQuieterGround()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            Settlement quieterGround = DummySettlement();
+            // The recorded objective is what makes the siblings one force, so a gathering party keeps it
+            // while the ground is dangerous. A party attacking alone moves on, which the lord-threat
+            // reselection test states.
+            var operations = new OperationsStub
+            {
+                SiegeTarget = target,
+                AlternativeSiegeTarget = DummySettlement(),
+                PatrolTarget = quieterGround,
+                Gathers = true,
+                AttackerStrength = 0f,
+                ArrivedAttackerStrength = 0f,
+                HostileLordStrengthNearTarget = 200f
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+
+            PartyBehaviourResult result = Evaluate(provider, party);
+
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
+            Assert.That(state.Target, Is.SameAs(target));
+            Assert.That(state.Phase, Is.EqualTo(SettlementOffensivePhase.Recon));
+            // Holding means watching the town it has chosen, not walking off to the nearest friendly
+            // ground: the objective stays recorded and the party stays on it.
+            Assert.That(result.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.PatrolAroundPoint));
+            Assert.That(result.AIBehavior?.Party, Is.SameAs(target));
+            Assert.That(result.AIBehavior?.Party, Is.Not.SameAs(quieterGround));
+        }
+
+        [Test]
+        public void ActiveCampInBattle_StandsItsGroundInsteadOfWithdrawingMidFight()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            var retreat = new AIBehaviorData(DummyParty(), AiBehavior.FleeToPoint,
+                MobileParty.NavigationType.Default, false, false, false);
+            // The relief force the camp is fighting counts towards the defenders, so the withdrawal test
+            // would always fail while the fight is on, over a fight the camp may well be winning.
+            var operations = new OperationsStub
+            {
+                SiegeTarget = target,
+                MatchingSiegeActive = true,
+                ForcePinnedInBattle = true,
+                ArrivedAttackerStrength = 10f,
+                ActiveSiegeDefenderStrength = 100f,
+                RetreatBehavior = retreat
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+            Evaluate(provider, party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
+            state.Target = target;
+
+            PartyBehaviourResult result = Evaluate(provider, party);
+
+            Assert.That(state.Target, Is.SameAs(target));
+            Assert.That(operations.AbandonSiegeCalls, Is.EqualTo(0));
+            Assert.That(result.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.BesiegeSettlement));
+        }
+
+        [Test]
+        public void ActiveCampWithSiblingsInTheFight_HoldsInsteadOfLeavingThemToIt()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            var retreat = new AIBehaviorData(DummyParty(), AiBehavior.FleeToPoint,
+                MobileParty.NavigationType.Default, false, false, false);
+            // The siblings taken into the fight stop counting towards what holds the camp, while the town
+            // they are all besieging counts whole, so the ones left over read themselves as alone against
+            // it. Packing up on that reading is what splits the force the moment it is attacked.
+            var operations = new OperationsStub
+            {
+                SiegeTarget = target,
+                Gathers = true,
+                MatchingSiegeActive = true,
+                ForcePinnedInBattle = true,
+                ArrivedAttackerStrength = 1f,
+                ActiveSiegeDefenderStrength = 100f,
+                RetreatBehavior = retreat
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+            Evaluate(provider, party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
+            state.Target = target;
+
+            PartyBehaviourResult result = Evaluate(provider, party);
+
+            Assert.That(state.Target, Is.SameAs(target));
+            Assert.That(operations.AbandonSiegeCalls, Is.EqualTo(0));
+            Assert.That(result.AIBehavior?.AiBehavior, Is.Not.EqualTo(AiBehavior.FleeToPoint));
+        }
+
+        [Test]
+        public void JustCommittedParty_WeighsTheForceItHasJoinedAndNotItselfAlone()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            // Joining an objective is what makes the party part of its force, so the figure taken before
+            // the objective was recorded counted the party alone and is too small to clear the target by
+            // the margin that sends a force straight at it without scouting first.
+            var operations = new OperationsStub
+            {
+                SiegeTarget = target,
+                AlternativeSiegeTarget = DummySettlement(),
+                PatrolTarget = DummySettlement(),
+                AttackerStrength = 10f,
+                AttackerStrengthOnceCommitted = 100f,
+                HostileLordStrengthNearTarget = 20f,
+                TargetStrength = 50f
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+
+            PartyBehaviourResult result = Evaluate(provider, party);
+
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
+            Assert.That(state.Target, Is.SameAs(target));
+            Assert.That(result.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.BesiegeSettlement));
+        }
+
+        [Test]
         public void ConcreteAdapter_AddsTheAccompanyingPartiesOfTheAssessedPartyToItsOwnStrength()
         {
             MobileParty party = DummyPartyWithPartyBase();
@@ -622,7 +1040,10 @@ namespace CustomSpawns.Tests.AI
             operations.GetAttackerStrength(party);
 
             Assert.That(assessedParty, Is.SameAs(party));
-            Assert.That(counted, Is.EqualTo(new[] { accompanyingParty }));
+            // The escorts are asked for twice, once for the party's own assessment and once for the force
+            // it belongs to, and which of the two is the greater is what counts. No party is counted twice
+            // within either, which is what the set says.
+            Assert.That(counted.Distinct(), Is.EqualTo(new[] { accompanyingParty }));
         }
 
         [Test]
@@ -641,7 +1062,7 @@ namespace CustomSpawns.Tests.AI
 
             operations.GetAttackerStrength(party);
 
-            Assert.That(counted, Is.EqualTo(new[] { accompanyingParty }));
+            Assert.That(counted.Distinct(), Is.EqualTo(new[] { accompanyingParty }));
         }
 
         [TestCase(false)]
@@ -678,7 +1099,9 @@ namespace CustomSpawns.Tests.AI
             {
                 SiegeTarget = target,
                 MatchingSiegeActive = true,
-                ActiveSiegeDefenderStrength = 101f,
+                // A camp is given the same slack a march is given, so the relief force has to put the
+                // camp clearly short rather than a hair short before it packs up.
+                ActiveSiegeDefenderStrength = 200f,
                 RetreatBehavior = retreat
             };
             BesiegeClosestSettlementBehaviour provider = Provider(operations);
@@ -689,6 +1112,177 @@ namespace CustomSpawns.Tests.AI
             Assert.That(result.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.FleeToPoint));
             Assert.That(_states.GetOrAdd(party).Target, Is.Null);
             Assert.That(operations.AbandonSiegeCalls, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void CampDrivenOff_SitsOutTheCooldownInsteadOfMarchingStraightBack()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            var retreat = new AIBehaviorData(DummyParty(), AiBehavior.FleeToPoint,
+                MobileParty.NavigationType.Default, false, false, false);
+            // A force that masses weighs no strength when it chooses, so nothing but the cooldown stops it
+            // picking the very town that has just thrown it off.
+            var operations = new OperationsStub
+            {
+                SiegeTarget = target,
+                PatrolTarget = DummySettlement(),
+                Gathers = true,
+                MatchingSiegeActive = true,
+                ActiveSiegeDefenderStrength = 200f,
+                RetreatBehavior = retreat
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+            Evaluate(provider, party);
+            Evaluate(provider, party);
+
+            PartyBehaviourResult afterWithdrawing = Evaluate(provider, party);
+
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
+            Assert.That(state.Phase, Is.EqualTo(SettlementOffensivePhase.Cooldown));
+            Assert.That(state.Target, Is.Null);
+            Assert.That(afterWithdrawing.AIBehavior?.AiBehavior,
+                Is.Not.EqualTo(AiBehavior.BesiegeSettlement));
+            Assert.That(operations.AbandonSiegeCalls, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void TargetReinforcedMidMarch_SwitchesToAnotherTownRatherThanBenchingItself()
+        {
+            MobileParty party = DummyParty();
+            Settlement reinforced = DummySettlement();
+            Settlement weaker = DummySettlement();
+            // Nothing drove this party off anything: it is still marching, and the choice that picked the
+            // town weighed the very strength that has now turned against it, so it will not pick it again.
+            var operations = new OperationsStub
+            {
+                SiegeTarget = reinforced,
+                PatrolTarget = DummySettlement()
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+            Evaluate(provider, party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
+            state.Phase = SettlementOffensivePhase.Approach;
+            operations.TargetStrength = 200f;
+            operations.SiegeTarget = weaker;
+
+            Evaluate(provider, party);
+
+            Assert.That(state.Target, Is.SameAs(weaker));
+            Assert.That(state.Phase, Is.Not.EqualTo(SettlementOffensivePhase.Cooldown));
+            Assert.That(operations.AbandonSiegeCalls, Is.Zero);
+        }
+
+        [Test]
+        public void ReliefForceNearTheTown_IsWeighedBeforeTheForceIsLetOffItsHold()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            // The town's own walls are weak enough for this force, but a relief force stands beside it, and
+            // that is the sum the camp it would found is judged against. Reading the walls alone would send
+            // it in only for the camp gate to throw it straight back out.
+            var operations = new OperationsStub
+            {
+                SiegeTarget = target,
+                PatrolTarget = DummySettlement(),
+                Gathers = true,
+                ArrivedAttackerStrength = 20f,
+                TargetStrength = 10f,
+                ActiveSiegeDefenderStrength = 50f
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+            Evaluate(provider, party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
+            state.Phase = SettlementOffensivePhase.Approach;
+
+            PartyBehaviourResult result = Evaluate(provider, party);
+
+            Assert.That(state.Target, Is.SameAs(target));
+            Assert.That(state.Phase, Is.EqualTo(SettlementOffensivePhase.Gather));
+            Assert.That(result.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.PatrolAroundPoint));
+        }
+
+        [Test]
+        public void SalliedOutOnShortOfTheWalls_AttacksIntoTheFightInsteadOfWaitingItOut()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            // The fight takes its own side out of the arrived figure and leaves the town whole, so the hold
+            // can only ever fail while it runs. Asking it anyway leaves the rest of the force milling about
+            // short of the walls while the sally eats the parties that are in it.
+            var operations = new OperationsStub
+            {
+                SiegeTarget = target,
+                PatrolTarget = DummySettlement(),
+                Gathers = true,
+                ForcePinnedInBattle = true,
+                ArrivedAttackerStrength = 1f,
+                ActiveSiegeDefenderStrength = 100f
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+            Evaluate(provider, party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
+            state.Phase = SettlementOffensivePhase.Approach;
+
+            PartyBehaviourResult result = Evaluate(provider, party);
+
+            Assert.That(state.Phase, Is.EqualTo(SettlementOffensivePhase.Approach));
+            Assert.That(result.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.BesiegeSettlement));
+        }
+
+        [Test]
+        public void LoneBesieger_WithdrawsOnTheThresholdItWasNeverGivenSlackOn()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            // The slack belongs to a force that was let through on it. A party that besieges on its own was
+            // never held short of anything, so standing at this figure is standing too weak, not standing
+            // on a margin it earned.
+            var operations = new OperationsStub
+            {
+                SiegeTarget = target,
+                PatrolTarget = DummySettlement(),
+                MatchingSiegeActive = true,
+                ArrivedAttackerStrength = 8.5f,
+                ActiveSiegeDefenderStrength = 10f,
+                RetreatBehavior = new AIBehaviorData(DummySettlement(), AiBehavior.FleeToPoint,
+                    MobileParty.NavigationType.Default, false, false, false)
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+
+            Evaluate(provider, party);
+            PartyBehaviourResult result = Evaluate(provider, party);
+
+            Assert.That(operations.AbandonSiegeCalls, Is.EqualTo(1));
+            Assert.That(result.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.FleeToPoint));
+        }
+
+        [Test]
+        public void DepletedPartyWhoseForceHasMassed_IsNotScaredOffByLordsItsForceOutweighs()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            // What can be brought against the lords nearby is the greater of what this party has and what
+            // the force standing at the gate has. Weighing the party alone drops a spent leader back to
+            // looking around, and a lone besieger gives up the objective its siblings are standing on.
+            var operations = new OperationsStub
+            {
+                SiegeTarget = target,
+                PatrolTarget = DummySettlement(),
+                AttackerStrength = 10f,
+                ArrivedAttackerStrength = 100f,
+                HostileLordStrengthNearTarget = 50f
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+            Evaluate(provider, party);
+            SettlementOffensiveBehaviourState state = _states.GetOrAdd(party);
+            state.Phase = SettlementOffensivePhase.Approach;
+
+            PartyBehaviourResult result = Evaluate(provider, party);
+
+            Assert.That(state.Target, Is.SameAs(target));
+            Assert.That(state.Phase, Is.EqualTo(SettlementOffensivePhase.Approach));
+            Assert.That(result.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.BesiegeSettlement));
         }
 
         [Test]
@@ -817,7 +1411,7 @@ namespace CustomSpawns.Tests.AI
 
         private static RoamingPartyStrength LordThreat(float distance, float strength)
         {
-            return new RoamingPartyStrength(false, true, true, null, distance, strength, true);
+            return new RoamingPartyStrength(false, true, true, distance, strength, true);
         }
 
         private BesiegeClosestSettlementBehaviour Provider(OperationsStub operations)
@@ -848,49 +1442,51 @@ namespace CustomSpawns.Tests.AI
         private static IInvasionLandingQuery Landing(Func<MobileParty, Func<Settlement, bool>?> filter,
             params MobileParty[] landingParties)
         {
-            return new LandingStub(filter, landingParties);
+            return new LandingStub(filter, landingParties, true);
+        }
+
+        private static IInvasionLandingQuery NoLiveInvasion(params MobileParty[] landingParties)
+        {
+            return new LandingStub(_ => null, landingParties, false);
         }
 
         private sealed class LandingStub : IInvasionLandingQuery
         {
             private readonly Func<MobileParty, Func<Settlement, bool>?> _filter;
             private readonly IReadOnlyList<MobileParty> _landingParties;
+            private readonly bool _servesLiveInvasion;
 
             internal LandingStub(Func<MobileParty, Func<Settlement, bool>?> filter,
-                IReadOnlyList<MobileParty> landingParties)
+                IReadOnlyList<MobileParty> landingParties, bool servesLiveInvasion)
             {
                 _filter = filter;
                 _landingParties = landingParties;
+                _servesLiveInvasion = servesLiveInvasion;
             }
 
             public Func<Settlement, bool>? GetInitialCoastalTargetFilter(MobileParty party) => _filter(party);
 
             public IReadOnlyList<MobileParty> GetLandingParties(MobileParty party) => _landingParties;
+
+            public bool ServesLiveInvasion(MobileParty party) => _servesLiveInvasion;
         }
 
-        private static IMapPathQuery MapPaths(Func<Settlement, bool> hasReachableLandGate,
-            Func<MobileParty, Settlement, float>? getDistanceToGate = null)
+        private static IMapPathQuery MapPaths(Func<Settlement, bool> hasReachableLandGate)
         {
-            return new MapPathStub(hasReachableLandGate, getDistanceToGate);
+            return new MapPathStub(hasReachableLandGate);
         }
 
         private sealed class MapPathStub : IMapPathQuery
         {
             private readonly Func<Settlement, bool> _hasReachableLandGate;
-            private readonly Func<MobileParty, Settlement, float> _getDistanceToGate;
 
-            internal MapPathStub(Func<Settlement, bool> hasReachableLandGate,
-                Func<MobileParty, Settlement, float>? getDistanceToGate)
+            internal MapPathStub(Func<Settlement, bool> hasReachableLandGate)
             {
                 _hasReachableLandGate = hasReachableLandGate;
-                _getDistanceToGate = getDistanceToGate ?? ((_, _) => 0f);
             }
 
             public bool HasReachableLandGate(MobileParty party, Settlement target) =>
                 _hasReachableLandGate(target);
-
-            public float GetDistanceToGate(MobileParty party, Settlement settlement) =>
-                _getDistanceToGate(party, settlement);
         }
 
         private static MobileParty DummyParty()
@@ -924,6 +1520,9 @@ namespace CustomSpawns.Tests.AI
         private sealed class OperationsStub : ISiegeOperations
         {
             public float AttackerStrength { get; set; } = 100f;
+            // What the party is worth once it has an objective and so a force. Left unset, the party is
+            // worth the same whether or not it has committed, which is every test but the pooling one.
+            public float AttackerStrengthOnceCommitted { get; set; } = -1f;
             public float VisibleHostileStrength { get; set; }
             public float HostileLordStrengthNearTarget { get; set; }
             public float TargetStrength { get; set; } = 10f;
@@ -935,10 +1534,29 @@ namespace CustomSpawns.Tests.AI
             public bool MatchingAssaultActive { get; set; }
             public bool CurrentTargetValid { get; set; } = true;
             public bool TargetComplete { get; set; }
+            public bool Gathers { get; set; }
+            public bool SupportableSiegeActive { get; set; }
+            public bool ForcePinnedInBattle { get; set; }
+            // A party standing in its own siege camp has arrived, so the default mirrors the party's own
+            // assessment; the gathering tests state their own figure.
+            public float ArrivedAttackerStrength { get; set; } = 100f;
             public AIBehaviorData? RetreatBehavior { get; set; }
             public int AbandonSiegeCalls { get; private set; }
+            private bool _attackerStrengthAsked;
 
-            public float GetAttackerStrength(MobileParty party) => AttackerStrength;
+            // The first answer is the one taken before an objective is recorded, so every answer after it
+            // is a party that has joined a force.
+            public float GetAttackerStrength(MobileParty party)
+            {
+                if (_attackerStrengthAsked && AttackerStrengthOnceCommitted >= 0f)
+                {
+                    return AttackerStrengthOnceCommitted;
+                }
+
+                _attackerStrengthAsked = true;
+                return AttackerStrength;
+            }
+
             public float GetVisibleHostileStrength(MobileParty party) => VisibleHostileStrength;
             public Settlement? FindClosestSiegeTarget(MobileParty party, float attackerStrength,
                 float minimumTargetRatio, float minimumRoamingHostilesRatio,
@@ -958,6 +1576,16 @@ namespace CustomSpawns.Tests.AI
             public bool IsCurrentTargetValid(MobileParty party, Settlement target,
                 bool matchingOperationActive, IFaction? intendedTargetFaction) => CurrentTargetValid;
             public bool IsTargetComplete(MobileParty party, Settlement target) => TargetComplete;
+            public bool GathersBeforeAssault(MobileParty party) => Gathers;
+            public bool IsSupportableSiegeActive(MobileParty party, Settlement target) =>
+                SupportableSiegeActive;
+            public bool IsForcePinnedInBattle(MobileParty party, Settlement target) =>
+                ForcePinnedInBattle;
+            public float GetArrivedAttackerStrength(MobileParty party, Settlement target) =>
+                ArrivedAttackerStrength;
+            // What the party has with it, which pooling never enters: the figure taken before an objective
+            // was recorded is exactly that, so the stub answers with it however often it is asked.
+            public float GetOwnAttackerStrength(MobileParty party) => AttackerStrength;
             public AIBehaviorData CreatePatrolBehavior(MobileParty party, Settlement target)
             {
                 return new AIBehaviorData(target, AiBehavior.PatrolAroundPoint,

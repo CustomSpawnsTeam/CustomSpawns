@@ -24,46 +24,19 @@ namespace CustomSpawns.Tests.AI
         }
 
         [Test]
-        public void VisibleHostiles_CountOnlyVisibleArmyMembersOnce()
+        public void VisibleHostiles_AreWeighedOneByOneWhoeverTheyMarchWith()
         {
-            object army = new();
+            // Marching together buys a stack nothing here: each party is judged on its own distance, so a
+            // stack straddling the edge of sight counts the near half and leaves the far half out.
             var parties = new[]
             {
-                Strength(1f, 20f, army),
-                Strength(1f, 30f, army),
-                Strength(5.001f, 100f, army)
+                Strength(1f, 20f),
+                Strength(1f, 30f),
+                Strength(5.001f, 100f)
             };
 
             Assert.That(OffensiveStrengthRules.SumVisibleHostileStrength(parties, 5f),
                 Is.EqualTo(50f));
-        }
-
-        [Test]
-        public void VisibleHostiles_CountVisibleAttachmentWhenLeaderIsOutsideRange()
-        {
-            object army = new();
-            var parties = new[]
-            {
-                Strength(5.001f, 20f, army),
-                Strength(5f, 30f, army)
-            };
-
-            Assert.That(OffensiveStrengthRules.SumVisibleHostileStrength(parties, 5f),
-                Is.EqualTo(30f));
-        }
-
-        [Test]
-        public void VisibleHostiles_DoNotCountInvisibleAttachmentsThroughVisibleLeader()
-        {
-            object army = new();
-            var parties = new[]
-            {
-                Strength(5f, 20f, army),
-                Strength(5.001f, 30f, army)
-            };
-
-            Assert.That(OffensiveStrengthRules.SumVisibleHostileStrength(parties, 5f),
-                Is.EqualTo(20f));
         }
 
         [Test]
@@ -83,7 +56,20 @@ namespace CustomSpawns.Tests.AI
         }
 
         [Test]
-        public void ActiveSiegeThreat_AddsGarrisonAndExcludesFleeingOrOutOfRangeParties()
+        public void RoutedLordNearTheTarget_IsNoLongerATheatreThreat()
+        {
+            var parties = new[]
+            {
+                Strength(5f, 20f, isLordParty: true),
+                Strength(5f, 500f, isLordParty: true, isFleeing: true)
+            };
+
+            Assert.That(OffensiveStrengthRules.SumVisibleHostileLordStrength(parties, 5f),
+                Is.EqualTo(20f));
+        }
+
+        [Test]
+        public void ActiveSiegeThreat_AddsTheTownAndExcludesFleeingOrOutOfRangeParties()
         {
             var parties = new[]
             {
@@ -95,6 +81,50 @@ namespace CustomSpawns.Tests.AI
 
             Assert.That(OffensiveStrengthRules.CalculateActiveSiegeDefenderStrength(
                 30f, parties, 5f), Is.EqualTo(50f));
+        }
+
+        [Test]
+        public void ActiveSiegeThreat_ExcludesTradeAndPeasantTrafficPassingTheTown()
+        {
+            // Carts and caravans pass a town constantly and lift no siege, so a camp must not pack up
+            // over them.
+            var parties = new[]
+            {
+                Strength(1f, 20f),
+                Strength(1f, 500f, isNonCombatant: true)
+            };
+
+            Assert.That(OffensiveStrengthRules.CalculateActiveSiegeDefenderStrength(
+                30f, parties, 5f), Is.EqualTo(50f));
+        }
+
+        [Test]
+        public void ArrivedAttackers_CountOnlyThoseWithinTheirOwnSightOfTheTarget()
+        {
+            var force = new[]
+            {
+                Arriving(distanceToTarget: 5f, seeingRange: 5f, partyStrength: 20f),
+                Arriving(distanceToTarget: 5.001f, seeingRange: 5f, partyStrength: 100f),
+                Arriving(distanceToTarget: 6f, seeingRange: 7f, partyStrength: 30f)
+            };
+
+            Assert.That(OffensiveStrengthRules.CalculateArrivedAttackerStrength(force),
+                Is.EqualTo(50f));
+        }
+
+        [Test]
+        public void ArrivedAttackers_CountNothingWhileTheWholeForceIsStillMarching()
+        {
+            // Whatever the parties are worth, none of it is at the walls yet. There is no paper figure to
+            // fall back on: that is what would launch an assault on troops a province away.
+            var force = new[]
+            {
+                Arriving(5.001f, 5f, 200f),
+                Arriving(400f, 20f, 300f)
+            };
+
+            Assert.That(OffensiveStrengthRules.CalculateArrivedAttackerStrength(force),
+                Is.EqualTo(0f));
         }
 
         [Test]
@@ -117,11 +147,18 @@ namespace CustomSpawns.Tests.AI
         }
 
         private static RoamingPartyStrength Strength(float distance, float partyStrength,
-            object? armyIdentity = null, bool isSelf = false, bool isActive = true,
-            bool isHostile = true, bool isLordParty = false, bool isFleeing = false)
+            bool isSelf = false, bool isActive = true,
+            bool isHostile = true, bool isLordParty = false, bool isFleeing = false,
+            bool isNonCombatant = false)
         {
-            return new RoamingPartyStrength(isSelf, isActive, isHostile, armyIdentity,
-                distance, partyStrength, isLordParty, isFleeing);
+            return new RoamingPartyStrength(isSelf, isActive, isHostile,
+                distance, partyStrength, isLordParty, isFleeing, isNonCombatant);
+        }
+
+        private static AttackingPartyStrength Arriving(float distanceToTarget, float seeingRange,
+            float partyStrength)
+        {
+            return new AttackingPartyStrength(distanceToTarget, seeingRange, partyStrength);
         }
     }
 }

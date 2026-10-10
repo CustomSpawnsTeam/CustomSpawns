@@ -20,23 +20,22 @@ namespace CustomSpawns.Tests.Invasions
 
             Assert.Multiple(() =>
             {
-                Assert.IsTrue(supplyLine.IsSupplyBase(Facts(isTown: true, isCastle: false, isCoastalTown: true)));
-                Assert.IsFalse(supplyLine.IsSupplyBase(Facts(isTown: true, isCastle: false, isCoastalTown: false)));
-                Assert.IsFalse(supplyLine.IsSupplyBase(Facts(isTown: false, isCastle: true, isCoastalTown: false)));
+                Assert.IsTrue(supplyLine.IsSupplyBase(Facts(isTown: true, isCoastalTown: true)));
+                Assert.IsFalse(supplyLine.IsSupplyBase(Facts(isTown: true, isCoastalTown: false)));
+                Assert.IsFalse(supplyLine.IsSupplyBase(Facts(isTown: false, isCoastalTown: false)));
                 Assert.IsTrue(supplyLine.DependsOnASupplyBase);
             });
         }
 
         [Test]
-        public void AnySupplyFeedsFromAnyFortificationWithoutAskingAboutTheSea()
+        public void AnySupplyFeedsFromAnyTownWithoutAskingAboutTheSea()
         {
             IInvasionSupplyLine supplyLine = InvasionSupplyLines.Find("Any")!;
 
             Assert.Multiple(() =>
             {
-                Assert.IsTrue(supplyLine.IsSupplyBase(Facts(isTown: true, isCastle: false, isCoastalTown: false)));
-                Assert.IsTrue(supplyLine.IsSupplyBase(Facts(isTown: false, isCastle: true, isCoastalTown: false)));
-                Assert.IsFalse(supplyLine.IsSupplyBase(Facts(isTown: false, isCastle: false, isCoastalTown: false)));
+                Assert.IsTrue(supplyLine.IsSupplyBase(Facts(isTown: true, isCoastalTown: false)));
+                Assert.IsFalse(supplyLine.IsSupplyBase(Facts(isTown: false, isCoastalTown: false)));
                 Assert.IsTrue(supplyLine.DependsOnASupplyBase);
                 Assert.AreEqual(0, _coastalQuestions);
             });
@@ -49,8 +48,8 @@ namespace CustomSpawns.Tests.Invasions
 
             Assert.Multiple(() =>
             {
-                Assert.IsTrue(supplyLine.IsSupplyBase(Facts(isTown: true, isCastle: false, isCoastalTown: true)));
-                Assert.IsTrue(supplyLine.IsSupplyBase(Facts(isTown: false, isCastle: false, isCoastalTown: false)));
+                Assert.IsTrue(supplyLine.IsSupplyBase(Facts(isTown: true, isCoastalTown: true)));
+                Assert.IsTrue(supplyLine.IsSupplyBase(Facts(isTown: false, isCoastalTown: false)));
                 Assert.IsFalse(supplyLine.DependsOnASupplyBase);
                 Assert.AreEqual(0, _coastalQuestions);
             });
@@ -68,8 +67,8 @@ namespace CustomSpawns.Tests.Invasions
             });
         }
 
-        private InvasionSettlementFacts Facts(bool isTown, bool isCastle, bool isCoastalTown) =>
-            new(isTown, isCastle, () =>
+        private InvasionSettlementFacts Facts(bool isTown, bool isCoastalTown) =>
+            new(isTown, () =>
             {
                 _coastalQuestions++;
                 return isCoastalTown;

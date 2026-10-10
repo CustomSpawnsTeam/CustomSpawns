@@ -38,6 +38,13 @@ namespace CustomSpawns.AI.Adapters
             return state;
         }
 
+        // The state a party already keeps, or null. Asking what another party is working on must not
+        // enrol that party in the behaviour, which is what GetOrAdd would do.
+        internal TState? Find(MobileParty party)
+        {
+            return _states.TryGetValue(party, out TState? state) ? state : null;
+        }
+
         internal void SyncData(IDataStore dataStore)
         {
             DropDepartedParties();

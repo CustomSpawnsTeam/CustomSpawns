@@ -5,22 +5,22 @@ namespace CustomSpawns.AI.Model
         public bool IsSelf { get; }
         public bool IsActive { get; }
         public bool IsHostile { get; }
-        public object? ArmyIdentity { get; }
         public bool IsLordParty { get; }
         public bool IsFleeing { get; }
+        public bool IsNonCombatant { get; }
         public float Distance { get; }
         public float PartyStrength { get; }
 
         public RoamingPartyStrength(bool isSelf, bool isActive, bool isHostile,
-            object? armyIdentity, float distance, float partyStrength,
-            bool isLordParty = false, bool isFleeing = false)
+            float distance, float partyStrength,
+            bool isLordParty = false, bool isFleeing = false, bool isNonCombatant = false)
         {
             IsSelf = isSelf;
             IsActive = isActive;
             IsHostile = isHostile;
-            ArmyIdentity = armyIdentity;
             IsLordParty = isLordParty;
             IsFleeing = isFleeing;
+            IsNonCombatant = isNonCombatant;
             Distance = distance;
             PartyStrength = partyStrength;
         }

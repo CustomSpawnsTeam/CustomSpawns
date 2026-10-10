@@ -20,6 +20,10 @@ namespace CustomSpawns.AI.Offensives
 
         // The parties whose strength a garrison is weighed against: whoever attacks the town together.
         IReadOnlyList<MobileParty> GetAttackingForce(MobileParty party);
+
+        // Whether this party commits to an objective before it is strong enough to take it, massing on
+        // the objective and asking the ratio again of the force that has arrived.
+        bool GathersBeforeAssault(MobileParty party);
     }
 
     internal sealed class NoRestrictionSiegeTargetPolicy : ISiegeTargetPolicy
@@ -34,5 +38,7 @@ namespace CustomSpawns.AI.Offensives
             candidate => candidate.Distance;
 
         public IReadOnlyList<MobileParty> GetAttackingForce(MobileParty party) => new[] { party };
+
+        public bool GathersBeforeAssault(MobileParty party) => false;
     }
 }

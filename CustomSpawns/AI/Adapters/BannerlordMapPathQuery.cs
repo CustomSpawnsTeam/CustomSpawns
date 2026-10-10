@@ -33,10 +33,5 @@ namespace CustomSpawns.AI.Adapters
             return hasPath && !float.IsNaN(pathDistance) && !float.IsInfinity(pathDistance) &&
                 pathDistance >= 0f;
         }
-
-        public float GetDistanceToGate(MobileParty party, Settlement settlement)
-        {
-            return party.Position.Distance(settlement.GatePosition);
-        }
     }
 }

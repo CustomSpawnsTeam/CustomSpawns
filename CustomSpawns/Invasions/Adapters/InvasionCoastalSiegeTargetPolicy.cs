@@ -20,25 +20,46 @@ namespace CustomSpawns.Invasions.Adapters
 
         // The parties that land together, so one town can be the nearest for the invasion as a whole.
         IReadOnlyList<MobileParty> GetLandingParties(MobileParty party);
+
+        // Whether this party serves a live invasion, which is what makes it mass on one objective.
+        bool ServesLiveInvasion(MobileParty party);
     }
 
     internal sealed class InvasionCoastalSiegeTargetPolicy : ISiegeTargetPolicy
     {
-        // How far apart two parties of one landing may be and still count as marching together. A landing
-        // is scattered over 10 map units around its port (MobilePartySpawnFactory.SpawnParty), so two of
-        // its parties can start 20 apart and spread further as they set off, which sets the floor. There
-        // is no ceiling that also separates two neighbouring ports: on the DADG map the closest pair of
-        // port towns is 21.4 apart, inside that floor. So this tells a stranded remnant from the force at
-        // hand only once the two are roughly a town apart, which is the case the playtest reported.
-        private const float GatheringRadius = 30f;
+        // How far a party may be drawn onto an objective its siblings are already on. Grouping vanilla
+        // Calradia's fortifications by owning kingdom, a kingdom spans 145 to 414 end to end, median 240,
+        // so a kingdom's own territory is about this wide: an invasion masses within its own conquest and
+        // not across the map.
+        private const float GatheringReach = 250f;
+
+        // How much closer a party's own nearest candidate must be to keep it from joining its siblings:
+        // the sibling objective wins while it is no further than this multiple of that candidate.
+        private const float JoinBias = 1.5f;
 
         private readonly IInvasionLandingQuery _invasionLandingQuery;
         private readonly IMapPathQuery _mapPathQuery;
+        private readonly Func<MobileParty, Settlement?> _findObjective;
 
+        // For the cases where no party has recorded an objective yet, which is also how an invasion starts.
         internal InvasionCoastalSiegeTargetPolicy(IInvasionLandingQuery landing, IMapPathQuery mapPaths)
+            : this(landing, mapPaths, _ => null)
+        {
+        }
+
+        internal InvasionCoastalSiegeTargetPolicy(IInvasionLandingQuery landing, IMapPathQuery mapPaths,
+            Func<MobileParty, Settlement?> findObjective)
         {
             _invasionLandingQuery = landing;
             _mapPathQuery = mapPaths;
+            _findObjective = findObjective;
+        }
+
+        // Objective selection does not weigh strength for an invasion that gathers: it commits first and
+        // masses afterwards, and the ratio is asked again of the force that has actually arrived.
+        public bool GathersBeforeAssault(MobileParty party)
+        {
+            return _invasionLandingQuery.ServesLiveInvasion(party);
         }
 
         public bool IsCandidateAllowed(MobileParty party, SiegeTargetCandidate candidate)
@@ -69,49 +90,62 @@ namespace CustomSpawns.Invasions.Adapters
                 .Any(landingParty => IsBesieging(landingParty, settlement));
         }
 
+        /**
+         * Choosing a target is joining an objective, so a party prefers one its siblings are already on
+         * unless its own nearest candidate is clearly closer. Discounting a sibling objective's distance
+         * by the join bias is exactly that comparison: the sibling wins while its distance is under the
+         * bias times the party's own best. The reach bounds it, so a party whose siblings are a map away
+         * takes its own target however little else there is nearby.
+         */
         public Func<SiegeTargetCandidate, float> GetTargetDistance(MobileParty party)
         {
-            // An invasion lands as one force, so the town it heads for is the nearest for all of its
-            // parties together rather than the nearest for whichever party is deciding. The set this
-            // ranks over is no longer just the landing: adopting the lord parties the game fields for an
-            // invasion clan grows it over campaign time, so a member far from the rest still pulls the
-            // ranking towards itself. Unlike the strength pooling above, this is deliberately not
-            // narrowed to the parties at hand -- ranking by the whole invasion is what keeps a scattered
-            // invasion converging on one town.
-            List<MobileParty> others = GetLandingForce(party)
-                .Where(landingParty => landingParty != party).ToList();
-            return candidate => candidate.Distance +
-                                others.Sum(other => _mapPathQuery.GetDistanceToGate(other, candidate.Target));
+            if (!_invasionLandingQuery.ServesLiveInvasion(party))
+            {
+                return candidate => candidate.Distance;
+            }
+
+            HashSet<Settlement> siblingObjectives = FindSiblingObjectives(party);
+
+            return candidate =>
+                siblingObjectives.Contains(candidate.Target) && candidate.Distance <= GatheringReach
+                    ? candidate.Distance / JoinBias
+                    : candidate.Distance;
         }
 
-        // That same force says how strong the invasion is, but only the part of it that is actually here:
-        // while the landing is still looking for a foothold its gathered parties take a town together, so
-        // a garrison is weighed against them and not against a remnant stranded elsewhere on the map.
+        // Who attacks the town together: the parties of the invasion that recorded this same objective,
+        // whether they have arrived yet or not, plus the besiegers of the town this party is marching on.
+        // What counts at the assault is a separate question, asked of the gate.
+        // Only a party serving a live invasion pools by objective, as only such a party gathers. A shared
+        // besieger camp is a real force whatever the invasion's state, so camp mates always pool.
         public IReadOnlyList<MobileParty> GetAttackingForce(MobileParty party)
         {
+            Settlement? objective = _invasionLandingQuery.ServesLiveInvasion(party)
+                ? _findObjective(party)
+                : null;
             List<MobileParty> force = new List<MobileParty> { party };
 
-            force.AddRange(GetLandingForce(party)
-                .Where(landingParty => landingParty != party &&
-                                       (IsGatheredWith(party, landingParty) ||
-                                        IsCampMateOf(party, landingParty))));
+            force.AddRange(_invasionLandingQuery.GetLandingParties(party)
+                .Where(member => member != party &&
+                                 ((objective != null && _findObjective(member) == objective) ||
+                                  IsCampMateOf(party, member))));
 
             return force;
         }
 
-        private IReadOnlyList<MobileParty> GetLandingForce(MobileParty party)
+        private HashSet<Settlement> FindSiblingObjectives(MobileParty party)
         {
-            if (_invasionLandingQuery.GetInitialCoastalTargetFilter(party) == null)
+            HashSet<Settlement> objectives = new HashSet<Settlement>();
+
+            foreach (MobileParty member in _invasionLandingQuery.GetLandingParties(party))
             {
-                return new[] { party };
+                Settlement? objective = member == party ? null : _findObjective(member);
+                if (objective != null)
+                {
+                    objectives.Add(objective);
+                }
             }
 
-            return _invasionLandingQuery.GetLandingParties(party);
-        }
-
-        private static bool IsGatheredWith(MobileParty party, MobileParty landingParty)
-        {
-            return landingParty.Position.Distance(party.Position) <= GatheringRadius;
+            return objectives;
         }
 
         // Parties of one besieger camp are one force however far their camp positions spread them, and the

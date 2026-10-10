@@ -89,8 +89,8 @@ namespace CustomSpawns.Tests.AI
             MobileParty shortRangeObserver = DummyParty();
             var observations = new[]
             {
-                new RoamingPartyStrength(false, true, true, null, 5f, 20f),
-                new RoamingPartyStrength(false, true, true, null, 5.001f, 100f)
+                new RoamingPartyStrength(false, true, true, 5f, 20f),
+                new RoamingPartyStrength(false, true, true, 5.001f, 100f)
             };
             int rangeReads = 0;
             int observationReads = 0;

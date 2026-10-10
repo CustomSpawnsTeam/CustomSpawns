@@ -20,12 +20,12 @@ namespace CustomSpawns.AI
 
         private readonly PartyBehaviorDecisionCoordinator _decisionCoordinator;
 
-        internal CustomSpawnsAiBehaviour(DynamicSpawnData dynamicSpawnData,
-            PartyBehaviourResolver partyBehaviourResolver, IPartySteeringQuery partySteeringQuery,
+        internal CustomSpawnsAiBehaviour(SteeredPartyLookup steeredParties,
+            PartyBehaviourResolver partyBehaviourResolver,
             IEnumerable<ISyncsCampaignData> syncTargets)
         {
             _decisionCoordinator = new PartyBehaviorDecisionCoordinator(
-                dynamicSpawnData, partyBehaviourResolver, partySteeringQuery, syncTargets);
+                steeredParties, partyBehaviourResolver, syncTargets);
         }
 
         public override void RegisterEvents()
@@ -81,19 +81,17 @@ namespace CustomSpawns.AI
 
         private sealed class PartyBehaviorDecisionCoordinator
         {
-            private readonly DynamicSpawnData _dynamicSpawnData;
+            private readonly SteeredPartyLookup _steeredParties;
             private readonly PartyBehaviourResolver _partyBehaviourResolver;
-            private readonly IPartySteeringQuery _partySteeringQuery;
             private readonly IReadOnlyList<ISyncsCampaignData> _syncTargets;
             private readonly HashSet<MobileParty> _escortDecisionLocks = new();
 
             public PartyBehaviorDecisionCoordinator(
-                DynamicSpawnData dynamicSpawnData, PartyBehaviourResolver partyBehaviourResolver,
-                IPartySteeringQuery partySteeringQuery, IEnumerable<ISyncsCampaignData> syncTargets)
+                SteeredPartyLookup steeredParties, PartyBehaviourResolver partyBehaviourResolver,
+                IEnumerable<ISyncsCampaignData> syncTargets)
             {
-                _dynamicSpawnData = dynamicSpawnData;
+                _steeredParties = steeredParties;
                 _partyBehaviourResolver = partyBehaviourResolver;
-                _partySteeringQuery = partySteeringQuery;
 
                 var distinctTargets = new HashSet<object>(ReferenceEqualityComparer.Instance);
                 var targets = new List<ISyncsCampaignData>();
@@ -117,13 +115,8 @@ namespace CustomSpawns.AI
 
             public void AddBehaviorScore(MobileParty party, PartyThinkParams thinkParams)
             {
-                CsPartyData? partyData = _dynamicSpawnData.GetDynamicSpawnData(party);
+                CsPartyData? partyData = _steeredParties.GetSteeredPartyData(party);
                 if (partyData is null)
-                {
-                    return;
-                }
-
-                if (!_partySteeringQuery.RequiresCustomSpawnsSteering(party))
                 {
                     return;
                 }
@@ -140,7 +133,9 @@ namespace CustomSpawns.AI
 
             public void UpdateEscortCohesion(MobileParty party)
             {
-                CsPartyData? partyData = _dynamicSpawnData.GetDynamicSpawnData(party);
+                // A party released to vanilla must not stay silenced: the gate answering with nothing
+                // clears the formation condition, which releases the decision lock instead of leaking it.
+                CsPartyData? partyData = _steeredParties.GetSteeredPartyData(party);
                 MobileParty? supportedParty = partyData?.SupportedParty;
                 bool keepFormation = partyData?.IsEscort == true && supportedParty is not null &&
                                      !ReferenceEquals(party, supportedParty) && supportedParty.IsActive &&
