@@ -30,15 +30,18 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly SpawnGroupService _spawnGroupService;
         private readonly InvasionSupplyBases _invasionSupplyBases;
         private readonly InvasionReinforcements _invasionReinforcements;
+        private readonly IInvasionClanRepository _invasionClans;
 
         internal InvasionReinforcementArrivals(InvasionState state, SpawnDao spawns, DynamicSpawnData parties,
-            SpawnGroupService spawnGroups, InvasionSupplyBases supplyBases, Func<int, int> randomIndex)
+            SpawnGroupService spawnGroups, InvasionSupplyBases supplyBases,
+            IInvasionClanRepository invasionClans, Func<int, int> randomIndex)
         {
             _invasionState = state;
             _spawnDao = spawns;
             _dynamicSpawnData = parties;
             _spawnGroupService = spawnGroups;
             _invasionSupplyBases = supplyBases;
+            _invasionClans = invasionClans;
             _invasionReinforcements = new InvasionReinforcements(state, this, randomIndex);
         }
 
@@ -146,7 +149,7 @@ namespace CustomSpawns.Invasions.Adapters
          * its own. A lord beaten in the field is no longer among them: it is removed rather than fielded
          * again.
          */
-        private static Clan? FoundClan(Invasion invasion, Settlement landing)
+        private Clan? FoundClan(Invasion invasion, Settlement landing)
         {
             Clan? founder = Clan.FindFirst(candidate => candidate.StringId == invasion.ClanId);
             Kingdom? kingdom = founder?.Kingdom;
@@ -178,6 +181,7 @@ namespace CustomSpawns.Invasions.Adapters
             ChangeKingdomAction.ApplyByJoinToKingdom(clan, kingdom, default, false);
             CampaignEventDispatcher.Instance.OnClanCreated(clan, false);
             invasion.AddClan(clan.StringId);
+            _invasionClans.Register(invasion.SpawnTemplateId, clan.StringId);
             Logger.Info("Invasion clan founded: invasion=" + invasion.ClanId + " clan=" + clan.StringId +
                         " kingdom=" + kingdom.StringId);
             return clan;
@@ -270,6 +274,15 @@ namespace CustomSpawns.Invasions.Adapters
                 return null;
             }
 
+            // Losing the founding capital is stronger than the optional first-coastal-conquest rule:
+            // every party in the invasion is forced back onto that one objective, and the existing
+            // offensive policy pools those parties into the same attacking force.
+            if (invasion.CapitalSettlementId != null && !_invasionState.HoldsCapital(invasion))
+            {
+                string capitalId = invasion.CapitalSettlementId;
+                return settlement => settlement.StringId == capitalId;
+            }
+
             InvasionData? configuration = GetConfiguration(invasion);
 
             // An invasion that depends on no supply base has no base to go back for, so it is left to pick
@@ -278,16 +291,6 @@ namespace CustomSpawns.Invasions.Adapters
                 !_invasionSupplyBases.DependsOnASupplyBase(configuration))
             {
                 return null;
-            }
-
-            // Until the invasion has landed anywhere, any supply base will do. Once it has a capital, that
-            // capital is the only target that lifts the restriction, so losing it sends every party back for
-            // it rather than at whichever other port happens to be closest.
-            if (invasion.CapitalSettlementId != null)
-            {
-                string capitalId = invasion.CapitalSettlementId;
-
-                return _invasionState.HoldsCapital(invasion) ? null : settlement => settlement.StringId == capitalId;
             }
 
             bool factionHasSupplyBase = Settlement.All.Any(settlement =>

@@ -22,6 +22,8 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly DynamicSpawnData _dynamicSpawnData;
         private readonly SpawnGroupService _spawnGroupService;
         private readonly InvasionSupplyBases _invasionSupplyBases = new();
+        private readonly IInvasionCapitalRepository _invasionCapitals;
+        private readonly IInvasionClanRepository _invasionClans;
         private readonly Func<int, int> _randomIndex;
         private InvasionCaptureCorrelation _invasionCaptureCorrelation;
         private InvasionReinforcementArrivals _invasionReinforcementArrivals;
@@ -34,11 +36,14 @@ namespace CustomSpawns.Invasions.Adapters
         public InvasionState State { get; private set; } = new();
 
         internal InvasionCampaignBehaviour(SpawnDao spawns, DynamicSpawnData parties, SpawnGroupService spawnGroups,
-            SaveInitialiser initialiser, Func<int, int>? randomIndex = null)
+            SaveInitialiser initialiser, IInvasionCapitalRepository invasionCapitals,
+            IInvasionClanRepository invasionClans, Func<int, int>? randomIndex = null)
         {
             _spawnDao = spawns;
             _dynamicSpawnData = parties;
             _spawnGroupService = spawnGroups;
+            _invasionCapitals = invasionCapitals;
+            _invasionClans = invasionClans;
             _randomIndex = randomIndex ?? MBRandom.RandomInt;
             _invasionCaptureCorrelation = new InvasionCaptureCorrelation(State);
             _invasionReinforcementArrivals = NewArrivals();
@@ -110,10 +115,10 @@ namespace CustomSpawns.Invasions.Adapters
 
         private InvasionReinforcementArrivals NewArrivals() =>
             new(State, _spawnDao, _dynamicSpawnData, _spawnGroupService, _invasionSupplyBases,
-                _randomIndex);
+                _invasionClans, _randomIndex);
 
         private InvasionOccupations NewOccupations() =>
-            new(State, _spawnDao, _dynamicSpawnData, _invasionSupplyBases);
+            new(State, _spawnDao, _dynamicSpawnData, _invasionSupplyBases, _invasionCapitals, _invasionClans);
 
         private void Initialize()
         {

@@ -23,14 +23,19 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly SpawnDao _spawnDao;
         private readonly DynamicSpawnData _dynamicSpawnData;
         private readonly InvasionSupplyBases _invasionSupplyBases;
+        private readonly IInvasionCapitalRepository _invasionCapitals;
+        private readonly IInvasionClanRepository _invasionClans;
 
         internal InvasionOccupations(InvasionState state, SpawnDao spawns, DynamicSpawnData parties,
-            InvasionSupplyBases supplyBases)
+            InvasionSupplyBases supplyBases, IInvasionCapitalRepository invasionCapitals,
+            IInvasionClanRepository invasionClans)
         {
             _invasionState = state;
             _spawnDao = spawns;
             _dynamicSpawnData = parties;
             _invasionSupplyBases = supplyBases;
+            _invasionCapitals = invasionCapitals;
+            _invasionClans = invasionClans;
         }
 
         internal float GetOngoingFoodSupport(Town town)
@@ -67,19 +72,24 @@ namespace CustomSpawns.Invasions.Adapters
                     InvasionOccupationFood.Apply(town, configuration.FoodStockFloor);
                 }
 
-                if (!PromoteCapturer(capture, town, invasion))
+                Clan? capturerClan = PromoteCapturer(capture, town, invasion);
+                if (capturerClan?.Kingdom == null)
                 {
                     continue;
                 }
 
+                _invasionClans.Register(invasion.SpawnTemplateId, capturerClan.StringId);
+
                 if (_invasionState.CompleteOccupation(capture.Id, town.Settlement.OwnerClan?.StringId ?? ""))
                 {
-                    Logger.Info("Invasion occupation applied: invasion=" + invasion.ClanId + " town=" + town.Settlement.StringId);
+                    _invasionCapitals.Register(capturerClan.Kingdom.StringId, town.Settlement.StringId);
+                    Logger.Info("Invasion occupation applied: invasion=" + invasion.ClanId + " town=" +
+                                town.Settlement.StringId);
                 }
             }
         }
 
-        private static bool PromoteCapturer(InvasionCapture capture, Town town, Invasion invasion)
+        private static Clan? PromoteCapturer(InvasionCapture capture, Town town, Invasion invasion)
         {
             MobileParty? party = MobileParty.All.FirstOrDefault(candidate => candidate.IsActive &&
                 candidate.StringId == capture.CapturerId);
@@ -89,7 +99,7 @@ namespace CustomSpawns.Invasions.Adapters
             if (party == null || leader == null || clan == null || leader.Clan != clan ||
                 !invasion.HoldsClan(clan.StringId))
             {
-                return false;
+                return null;
             }
 
             if (party.PartyComponent is not LordPartyComponent)
@@ -103,7 +113,7 @@ namespace CustomSpawns.Invasions.Adapters
                 Campaign.Current.KingdomManager.CreateKingdom(clan.Name, clan.InformalName, clan.Culture, clan);
             }
 
-            return true;
+            return clan;
         }
 
         private bool IsEligibleForFood(Town town, Invasion? invasion, InvasionData? configuration)

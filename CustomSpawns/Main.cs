@@ -14,6 +14,7 @@ using CustomSpawns.Data.Dao;
 using CustomSpawns.Data.Reader.Impl;
 using CustomSpawns.Dialogues;
 using CustomSpawns.Diplomacy;
+using CustomSpawns.Invasions;
 using CustomSpawns.Invasions.Adapters;
 using CustomSpawns.ModIntegration;
 using CustomSpawns.RewardSystem;
@@ -58,6 +59,9 @@ namespace CustomSpawns
         private NameSignifierDataReader _nameSignifierDataReader;
         private DynamicSpawnData _dynamicSpawnData;
         private InvasionCampaignBehaviour _invasionCampaignBehaviour;
+        private InvasionCapitalRepository _invasionCapitalRepository;
+        private InvasionClanRepository _invasionClanRepository;
+        private InvasionCapitalOwnershipBehaviour _invasionCapitalOwnershipBehaviour;
         private SpawnDtoAdapter _spawnDtoAdapter;
         private SpawnDao _spawnDao;
         private CampaignDataConfigLoader _campaignDataConfigLoader;
@@ -127,8 +131,15 @@ namespace CustomSpawns
             _mobilePartyTrackingBehaviour = new MobilePartyTrackingBehaviour(_saveInitialiser, _modDebug);
             _dynamicSpawnData = new (_spawnDao, _saveInitialiser);
             _spawnGroupService = new SpawnGroupService(_spawner, _dynamicSpawnData);
+            _invasionCapitalRepository = new InvasionCapitalRepository();
+            _invasionClanRepository = new InvasionClanRepository(_spawnDao, _saveInitialiser);
             _invasionCampaignBehaviour = new InvasionCampaignBehaviour(_spawnDao, _dynamicSpawnData,
-                _spawnGroupService, _saveInitialiser);
+                _spawnGroupService, _saveInitialiser, _invasionCapitalRepository, _invasionClanRepository);
+            _invasionCapitalOwnershipBehaviour =
+                new InvasionCapitalOwnershipBehaviour(_invasionCapitalRepository);
+            var retakeInvasionCapital = new RetakeInvasionCapital(
+                new InvasionCapitalRetakeOrders(_invasionClanRepository, _dynamicSpawnData));
+            _invasionCapitalOwnershipBehaviour.CapitalStatusChanged += retakeInvasionCapital.Handle;
             _devestationMetricData = new DevestationMetricData(_mobilePartyTrackingBehaviour, _campaignDataConfigLoader, _saveInitialiser, _messageBoxService, _modDebug);
             _dailyLogger = new DailyLogger(_devestationMetricData, _messageBoxService);
             // The siege behaviour's own state, held here so that the targeting policy can read which
@@ -203,8 +214,11 @@ namespace CustomSpawns
                 starter.AddBehavior(_spawnBehaviour);
                 starter.AddBehavior(_saveInitialiser);
                 starter.AddBehavior(_safePassageBehaviour);
+                starter.AddBehavior(_invasionCapitalRepository);
+                starter.AddBehavior(_invasionClanRepository);
                 starter.AddBehavior(_dynamicSpawnData);
                 starter.AddBehavior(_invasionCampaignBehaviour);
+                starter.AddBehavior(_invasionCapitalOwnershipBehaviour);
                 starter.AddBehavior(_customSpawnsDiplomacyBehaviour);
                 starter.AddBehavior(_customSpawnsAiBehaviour);
                 starter.AddBehavior(_accompanyingPartySiegeBehaviour);
