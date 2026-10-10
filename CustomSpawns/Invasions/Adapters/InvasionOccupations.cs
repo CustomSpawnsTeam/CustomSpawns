@@ -38,12 +38,14 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionClans = invasionClans;
         }
 
-        internal float GetOngoingFoodSupport(Town town)
+        internal InvasionFoodTerms? FindTerms(Town town)
         {
             InvasionFoothold? foothold = _invasionState.FindFoothold(town.Settlement.StringId);
             Invasion? invasion = _invasionState.FindInvasion(foothold?.InvasionClanId);
             InvasionData? configuration = invasion == null ? null : GetConfiguration(invasion);
-            return IsEligibleForFood(town, invasion, configuration) ? configuration!.DailyFoodBonus : 0f;
+            return IsEligibleForFood(town, invasion, configuration)
+                ? new InvasionFoodTerms(configuration!.MinimumGarrison, configuration.TownFoodAllowance)
+                : null;
         }
 
         internal void ApplyReady()
@@ -110,7 +112,21 @@ namespace CustomSpawns.Invasions.Adapters
             if (clan.Kingdom == null)
             {
                 clan.SetInitialHomeSettlement(town.Settlement);
-                Campaign.Current.KingdomManager.CreateKingdom(clan.Name, clan.InformalName, clan.Culture, clan);
+
+                // The realm is founded once. A clan that is outside the realm it already founded -- it
+                // stays that realm's ruling clan whether it is in it or not -- rejoins that one, instead
+                // of founding another realm on every tick that finds it kingdomless.
+                Kingdom? founded = Kingdom.All.FirstOrDefault(candidate => !candidate.IsEliminated &&
+                    candidate.RulingClan == clan);
+
+                if (founded == null)
+                {
+                    Campaign.Current.KingdomManager.CreateKingdom(clan.Name, clan.InformalName, clan.Culture, clan);
+                }
+                else
+                {
+                    ChangeKingdomAction.ApplyByJoinToKingdom(clan, founded, default, false);
+                }
             }
 
             return clan;

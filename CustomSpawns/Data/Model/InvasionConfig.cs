@@ -27,6 +27,11 @@ namespace CustomSpawns.Data.Model
         [XmlElement("StrengthPerTownHeld")]
         public float StrengthPerTownHeld { get; set; }
 
+        // How many men the invasion keeps in the town it holds. Its supplies are sized to feed that many,
+        // and its lords draw the garrison down to it but never below it.
+        [XmlElement("MinimumGarrison")]
+        public int MinimumGarrison { get; set; }
+
         [XmlElement("Reinforcements")]
         public InvasionReinforcementsConfig Reinforcements { get; set; } = new();
     }
@@ -36,8 +41,10 @@ namespace CustomSpawns.Data.Model
         [XmlElement("FoodStockFloor")]
         public float FoodStockFloor { get; set; }
 
-        [XmlElement("DailyFoodBonus")]
-        public float DailyFoodBonus { get; set; }
+        // What the supplies cover each day beyond feeding the minimum garrison. The town's own people are
+        // left to live on what the town itself produces.
+        [XmlElement("TownFoodAllowance")]
+        public float TownFoodAllowance { get; set; }
     }
 
     public sealed class InvasionReinforcementsConfig
@@ -48,8 +55,8 @@ namespace CustomSpawns.Data.Model
 
     public sealed class InvasionReinforcementRuleConfig
     {
-        // Names the rule's own clock and its own concurrent count, so editing or reordering the
-        // configuration does not move a running schedule onto another rule.
+        // Names the rule's own clock, so editing or reordering the configuration does not move a running
+        // schedule onto another rule.
         [XmlElement("Id")]
         public string? Id { get; set; }
 
@@ -59,8 +66,15 @@ namespace CustomSpawns.Data.Model
         [XmlElement("IntervalInDays")]
         public float IntervalInDays { get; set; } = 7f;
 
-        [XmlElement("MaxConcurrentParties")]
-        public int MaxConcurrentParties { get; set; } = 1;
+        // How many waves the rule ever sends. Left out, it keeps sending for as long as the invasion lives;
+        // one wave makes the rule a single reinforcement that arrives the interval after the capital falls.
+        [XmlElement("MaxWaves")]
+        public int MaxWaves { get; set; }
+
+        // How many lords join the invasion on each wave while it holds its capital. They fill their parties
+        // from the garrison. Left out, a wave brings troops only.
+        [XmlElement("LordsPerWave")]
+        public int LordsPerWave { get; set; }
     }
 
     internal static class InvasionConfigValidator
@@ -83,9 +97,10 @@ namespace CustomSpawns.Data.Model
             }
 
             ValidateNonNegativeFinite("Invasion Supplies FoodStockFloor", config.Supplies.FoodStockFloor);
-            ValidateNonNegativeFinite("Invasion Supplies DailyFoodBonus", config.Supplies.DailyFoodBonus);
+            ValidateNonNegativeFinite("Invasion Supplies TownFoodAllowance", config.Supplies.TownFoodAllowance);
             ValidateNonNegativeFinite("Invasion MaxFactionStrength", config.MaxFactionStrength);
             ValidateNonNegativeFinite("Invasion StrengthPerTownHeld", config.StrengthPerTownHeld);
+            ValidateNonNegative("Invasion MinimumGarrison", config.MinimumGarrison);
             if (config.Reinforcements.Rules.Count == 0)
             {
                 throw new ArgumentException("Invasion Reinforcements requires at least one Rule.");
@@ -114,15 +129,21 @@ namespace CustomSpawns.Data.Model
                 throw new ArgumentException("Invasion Reinforcements Rule '" + rule.Id +
                                            "' PartyTemplateId is required.");
             }
-            if (!IsFinite(rule.IntervalInDays) || rule.IntervalInDays <= 0f)
+            // Waves are looked at once a day, so a shorter interval than that would only lie about itself.
+            if (!IsFinite(rule.IntervalInDays) || rule.IntervalInDays < 1f)
             {
                 throw new ArgumentException("Invasion Reinforcements Rule '" + rule.Id +
-                                           "' IntervalInDays must be finite and greater than zero.");
+                                           "' IntervalInDays must be finite and at least one day.");
             }
-            if (rule.MaxConcurrentParties <= 0)
+            ValidateNonNegative("Invasion Reinforcements Rule '" + rule.Id + "' LordsPerWave", rule.LordsPerWave);
+            ValidateNonNegative("Invasion Reinforcements Rule '" + rule.Id + "' MaxWaves", rule.MaxWaves);
+        }
+
+        private static void ValidateNonNegative(string name, int value)
+        {
+            if (value < 0)
             {
-                throw new ArgumentException("Invasion Reinforcements Rule '" + rule.Id +
-                                           "' MaxConcurrentParties must be greater than zero.");
+                throw new ArgumentException(name + " cannot be negative.");
             }
         }
 

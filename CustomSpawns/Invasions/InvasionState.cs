@@ -44,18 +44,12 @@ namespace CustomSpawns.Invasions
         public InvasionFoothold? FindFoothold(string settlementId) => FootholdIndex.TryGetValue(settlementId, out var foothold) ? foothold : null;
         public InvasionCapture? FindCapture(long id) => CaptureIndex.TryGetValue(id, out var capture) ? capture : null;
 
-        // Vanilla rebuilds a living invasion party under a party name no recognition path of ours matches:
-        // the live invasion that clan still fights for is the one that has to take the party back. It takes back
-        // what it lost and no more, so a invasion already fielding its configured budget adopts nothing; saved
-        // membership can still name parties the engine has dropped, so the budget is read against a live count.
-        public Invasion? FindAdoptingInvasion(string? clanId, Func<Invasion, int> countLiveMembers,
-            Func<Invasion, int> partyBudget)
-        {
-            Invasion? invasion = FindFightingInvasion(clanId);
-            return invasion != null && countLiveMembers(invasion) < partyBudget(invasion) ? invasion : null;
-        }
-
-        // The live invasion a clan fights for: adoption offers a party to it, and a refused adoption names it.
+        /**
+         * The live invasion a clan fights for. Vanilla rebuilds a living invasion party under a party name
+         * no recognition path of ours matches, and this is the invasion that has to take it back: the clan
+         * it belongs to is enough to say so, and how much the invasion may field is the strength ceiling's
+         * question, not adoption's.
+         */
         public Invasion? FindFightingInvasion(string? clanId)
         {
             Invasion? invasion = FindInvasionHolding(clanId);
@@ -180,9 +174,9 @@ namespace CustomSpawns.Invasions
             Schedules.FirstOrDefault(schedule => schedule.RuleId == ruleId);
 
         internal InvasionReinforcementSchedule WindReinforcementSchedule(string ruleId, double intervalDays,
-            double nextDeadlineDays)
+            double nextDeadlineDays, int wavesSent = 0)
         {
-            var schedule = new InvasionReinforcementSchedule(ruleId, intervalDays, nextDeadlineDays);
+            var schedule = new InvasionReinforcementSchedule(ruleId, intervalDays, nextDeadlineDays, wavesSent);
             Schedules.Add(schedule);
             return schedule;
         }
@@ -195,11 +189,14 @@ namespace CustomSpawns.Invasions
     // dropped still spends its due slot once rather than being retried daily.
     public sealed class InvasionReinforcementSchedule
     {
-        internal InvasionReinforcementSchedule(string ruleId, double intervalDays, double nextDeadlineDays)
-        { RuleId = ruleId; IntervalDays = intervalDays; NextDeadlineDays = nextDeadlineDays; }
+        internal InvasionReinforcementSchedule(string ruleId, double intervalDays, double nextDeadlineDays,
+            int wavesSent = 0)
+        { RuleId = ruleId; IntervalDays = intervalDays; NextDeadlineDays = nextDeadlineDays; WavesSent = wavesSent; }
         public string RuleId { get; }
         public double IntervalDays { get; }
         public double NextDeadlineDays { get; internal set; }
+        // Waves this clock has actually delivered, counted against a rule that is allowed only so many.
+        public int WavesSent { get; internal set; }
     }
 
     public sealed class InvasionFoothold

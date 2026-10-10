@@ -89,7 +89,7 @@ namespace CustomSpawns.Diplomacy
         private void EnforceNoKingdom(Clan clan)
         {
             ForceNoKingdomMembershipAction action = _membershipProvider.GetAction(clan.StringId,
-                clan.Kingdom != null, clan.IsUnderMercenaryService);
+                clan.Kingdom != null, clan.IsUnderMercenaryService, clan.Kingdom?.RulingClan == clan);
             if (action == ForceNoKingdomMembershipAction.LeaveKingdomAsMercenary)
             {
                 ChangeKingdomAction.ApplyByLeaveKingdomAsMercenary(clan, false);

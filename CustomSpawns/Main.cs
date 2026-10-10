@@ -134,7 +134,7 @@ namespace CustomSpawns
             _invasionCapitalRepository = new InvasionCapitalRepository();
             _invasionClanRepository = new InvasionClanRepository(_spawnDao, _saveInitialiser);
             _invasionCampaignBehaviour = new InvasionCampaignBehaviour(_spawnDao, _dynamicSpawnData,
-                _spawnGroupService, _saveInitialiser, _invasionCapitalRepository, _invasionClanRepository);
+                _saveInitialiser, _invasionCapitalRepository, _invasionClanRepository);
             _invasionCapitalOwnershipBehaviour =
                 new InvasionCapitalOwnershipBehaviour(_invasionCapitalRepository);
             var retakeInvasionCapital = new RetakeInvasionCapital(
@@ -226,7 +226,7 @@ namespace CustomSpawns
                 
                 SettlementFoodModel foodModel = starter.GetModel<SettlementFoodModel>();
                 var invasionFoodModel = new InvasionSettlementFoodModel(foodModel,
-                    _invasionCampaignBehaviour.GetOngoingFoodSupport);
+                    _invasionCampaignBehaviour);
                 starter.AddModel(invasionFoodModel);
                 _saveInitialiser.RunCallbackOnFirstCampaignTick(() => Logger.Info(
                     "Invasion food model selected: " + Campaign.Current.Models.SettlementFoodModel.GetType().FullName));

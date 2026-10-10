@@ -116,27 +116,18 @@ namespace CustomSpawns.Spawn
             RegisterParty(mobileParty, owningSpawnTemplateId, false, supportedParty, "Escort");
         }
 
-        public void RegisterInvasionReinforcementParty(MobileParty mobileParty, string owningSpawnTemplateId,
-            string reinforcementRuleId)
-        {
-            RegisterParty(mobileParty, owningSpawnTemplateId, false, null, "Reinforcement", reinforcementRuleId);
-        }
-
-        /**
-         * A party the game spawned itself and an invasion took back. It is not a reinforcement: it
-         * costs the invasion none of its landing budget, which counts reinforcements alone.
-         */
+        // A party the game spawned itself and an invasion took back.
         public void RegisterAdoptedParty(MobileParty mobileParty, string owningSpawnTemplateId)
         {
             RegisterParty(mobileParty, owningSpawnTemplateId, false, null, "Adopted");
         }
 
         private void RegisterParty(MobileParty mobileParty, string owningSpawnTemplateId, bool isPrimarySpawn,
-            MobileParty? supportedParty, string? partyRole = null, string? reinforcementRuleId = null)
+            MobileParty? supportedParty, string? partyRole = null)
         {
             string partyTemplateId = CampaignUtils.IsolateMobilePartyStringID(mobileParty);
             _dynamicSpawnData[mobileParty] = new CsPartyData(partyTemplateId, owningSpawnTemplateId,
-                isPrimarySpawn, GetNearestSettlement(mobileParty), supportedParty, partyRole, reinforcementRuleId);
+                isPrimarySpawn, GetNearestSettlement(mobileParty), supportedParty, partyRole);
             InvalidateAccompanyingParties();
             PartyRegistered?.Invoke(mobileParty, _dynamicSpawnData[mobileParty]);
         }
@@ -245,16 +236,6 @@ namespace CustomSpawns.Spawn
         [SaveableField(8)]
         private string? _partyRole;
 
-        /**
-         * Which configured reinforcement rule landed this party. It is known only at the moment it
-         * spawns, so it is set once here rather than through SetInvasionRole, which is called
-         * again whenever the party is re-registered.
-         */
-        [SaveableField(9)]
-        private string? _reinforcementRuleId;
-
-        public string? ReinforcementRuleId => _reinforcementRuleId;
-
         public string? InvasionRole => _invasionRole;
 
         public void SetInvasionRole(string? role)
@@ -265,8 +246,6 @@ namespace CustomSpawns.Spawn
         public string PartyTemplateId => _partyTemplateId;
         public string? OwningSpawnTemplateId => _owningSpawnTemplateId;
         public bool IsPrimarySpawn => _isPrimarySpawn;
-        public bool IsIndependentReinforcement => string.Equals(_partyRole, "Reinforcement",
-            StringComparison.Ordinal);
         public bool IsAdopted => string.Equals(_partyRole, "Adopted", StringComparison.Ordinal);
         public bool IsEscort => string.Equals(_partyRole, "Escort", StringComparison.Ordinal) ||
                                 (_partyRole == null && !_isPrimarySpawn);
@@ -283,8 +262,7 @@ namespace CustomSpawns.Spawn
         public MobileParty? SupportedParty => _supportedParty;
 
         public CsPartyData(string partyTemplateId, string? owningSpawnTemplateId, bool isPrimarySpawn,
-            Settlement? latestClosestSettlement, MobileParty? supportedParty = null, string? partyRole = null,
-            string? reinforcementRuleId = null)
+            Settlement? latestClosestSettlement, MobileParty? supportedParty = null, string? partyRole = null)
         {
             _partyTemplateId = partyTemplateId;
             _owningSpawnTemplateId = owningSpawnTemplateId;
@@ -292,7 +270,6 @@ namespace CustomSpawns.Spawn
             _latestClosestSettlement = latestClosestSettlement;
             _supportedParty = supportedParty;
             _partyRole = partyRole;
-            _reinforcementRuleId = reinforcementRuleId;
         }
     }
 }

@@ -216,7 +216,7 @@ namespace CustomSpawns.Spawn
                 {
                     for (int i = 0; i < spawn.RepeatSpawnRolls; i++)
                     {
-                        // MaximumConcurrentPrimaries is what this test keeps on the map; the invasion adoption budget reads it too.
+                        // MaximumConcurrentPrimaries is what this test keeps on the map.
                         if (_numberOfSpawns[spawn.PartyTemplate.StringId] < spawn.MaximumConcurrentPrimaries && (spawn.MinimumNumberOfDaysUntilSpawn < (int)Math.Ceiling(Campaign.Current.Models.CampaignTimeModel.CampaignStartTime.ElapsedDaysUntilNow)))
                         {
                             float currentChanceOfSpawn = ComputeChanceSpawn(spawn);
@@ -301,7 +301,7 @@ namespace CustomSpawns.Spawn
         internal static bool ShouldSuppressDeathMessage(CsPartyData partyData,
             Func<CsPartyData, bool> hasPersistentInvasion)
         {
-            return partyData.IsIndependentReinforcement || partyData.IsAdopted ||
+            return partyData.IsAdopted ||
                    (partyData.IsPrimarySpawn && hasPersistentInvasion(partyData));
         }
 

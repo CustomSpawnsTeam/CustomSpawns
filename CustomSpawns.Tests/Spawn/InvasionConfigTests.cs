@@ -29,11 +29,11 @@ namespace CustomSpawns.Tests.Spawn
         [Test]
         public void Adapt_ValidInvasionPreservesConfigurationAndDefaultSevenDayInterval()
         {
-            const string invasion = "<Invasion><Supplies><FoodStockFloor>30</FoodStockFloor><DailyFoodBonus>5</DailyFoodBonus>" +
-                                    "</Supplies>" +
+            const string invasion = "<Invasion><Supplies><FoodStockFloor>30</FoodStockFloor>" +
+                                    "<TownFoodAllowance>5</TownFoodAllowance></Supplies>" +
                                     "<Reinforcements><Rule><Id>infantry</Id>" +
                                     "<PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId>" +
-                                    "<MaxConcurrentParties>2</MaxConcurrentParties></Rule></Reinforcements></Invasion>";
+                                    "</Rule></Reinforcements></Invasion>";
             Spawns spawns = Read("<RegularBanditDailySpawnData party_template=\"PartyTemplate.invasion\">" + invasion +
                                  "</RegularBanditDailySpawnData>", out List<System.Exception> errors);
 
@@ -44,12 +44,77 @@ namespace CustomSpawns.Tests.Spawn
                 Assert.That(errors, Is.Empty);
                 Assert.That(data.RequiresFirstCoastalConquest, Is.False);
                 Assert.That(data.FoodStockFloor, Is.EqualTo(30f));
-                Assert.That(data.DailyFoodBonus, Is.EqualTo(5f));
+                Assert.That(data.TownFoodAllowance, Is.EqualTo(5f));
                 Assert.That(data.ReinforcementRules.Single().Id, Is.EqualTo("infantry"));
                 Assert.That(data.ReinforcementRules.Single().PartyTemplateId, Is.EqualTo("PartyTemplate.reinforcements"));
                 Assert.That(data.ReinforcementRules.Single().IntervalInDays, Is.EqualTo(7f));
-                Assert.That(data.ReinforcementRules.Single().MaxConcurrentParties, Is.EqualTo(2));
             });
+        }
+
+        [Test]
+        public void Adapt_ReadsTheGarrisonFloorAndTheLordsEachWaveBrings()
+        {
+            const string invasion = "<Invasion><MinimumGarrison>400</MinimumGarrison>" +
+                                    "<Reinforcements><Rule><Id>infantry</Id>" +
+                                    "<PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId>" +
+                                    "<LordsPerWave>3</LordsPerWave></Rule></Reinforcements></Invasion>";
+            Spawns spawns = Read("<RegularBanditDailySpawnData party_template=\"PartyTemplate.invasion\">" + invasion +
+                                 "</RegularBanditDailySpawnData>", out List<System.Exception> errors);
+
+            InvasionData data = InvasionDtoAdapter.Adapt(spawns.AllSpawns.Single().Invasion!);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(errors, Is.Empty);
+                Assert.That(data.MinimumGarrison, Is.EqualTo(400));
+                Assert.That(data.ReinforcementRules.Single().LordsPerWave, Is.EqualTo(3));
+                // An invasion that mentions neither keeps no floor and brings troops only.
+                Assert.That(AdaptValidConfig().MinimumGarrison, Is.EqualTo(0));
+                Assert.That(AdaptValidConfig().ReinforcementRules.Single().LordsPerWave, Is.EqualTo(0));
+            });
+        }
+
+        /**
+         * A rule may be told to send a given number of waves and then stop, which is what a one-off
+         * reinforcement is. Waves are looked at once a day, so a shorter interval than a day is refused
+         * rather than quietly behaving like one.
+         */
+        [Test]
+        public void Adapt_ReadsAWaveCountAndRefusesAnIntervalShorterThanTheDailyCheck()
+        {
+            const string invasion = "<Invasion><Reinforcements><Rule><Id>landing</Id>" +
+                                    "<PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId>" +
+                                    "<IntervalInDays>1</IntervalInDays><MaxWaves>1</MaxWaves>" +
+                                    "</Rule></Reinforcements></Invasion>";
+            Spawns spawns = Read("<RegularBanditDailySpawnData party_template=\"PartyTemplate.invasion\">" + invasion +
+                                 "</RegularBanditDailySpawnData>", out List<System.Exception> errors);
+
+            InvasionData data = InvasionDtoAdapter.Adapt(spawns.AllSpawns.Single().Invasion!);
+            InvasionConfig tooOften = ValidConfig();
+            tooOften.Reinforcements.Rules.Single().IntervalInDays = 0.5f;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(errors, Is.Empty);
+                Assert.That(data.ReinforcementRules.Single().MaxWaves, Is.EqualTo(1));
+                // A rule that mentions no count keeps sending for as long as the invasion lives.
+                Assert.That(AdaptValidConfig().ReinforcementRules.Single().MaxWaves, Is.EqualTo(0));
+                Assert.That(Assert.Throws<ArgumentException>(() => InvasionDtoAdapter.Adapt(tooOften))!.Message,
+                    Does.Contain("at least one day"));
+            });
+        }
+
+        [TestCase(-1, 0, "MinimumGarrison")]
+        [TestCase(0, -1, "LordsPerWave")]
+        public void Adapt_RejectsNegativeGarrisonAndLordCounts(int minimumGarrison, int lordsPerWave, string expected)
+        {
+            InvasionConfig config = ValidConfig();
+            config.MinimumGarrison = minimumGarrison;
+            config.Reinforcements.Rules.Single().LordsPerWave = lordsPerWave;
+
+            ArgumentException error = Assert.Throws<ArgumentException>(() => InvasionDtoAdapter.Adapt(config))!;
+
+            Assert.That(error.Message, Does.Contain(expected));
         }
 
         [Test]
@@ -59,7 +124,7 @@ namespace CustomSpawns.Tests.Spawn
                                     "<Rule><Id>infantry</Id><PartyTemplateId>PartyTemplate.infantry</PartyTemplateId>" +
                                     "<IntervalInDays>5</IntervalInDays></Rule>" +
                                     "<Rule><Id>cavalry</Id><PartyTemplateId>PartyTemplate.cavalry</PartyTemplateId>" +
-                                    "<IntervalInDays>21</IntervalInDays><MaxConcurrentParties>3</MaxConcurrentParties>" +
+                                    "<IntervalInDays>21</IntervalInDays>" +
                                     "</Rule></Reinforcements></Invasion>";
             Spawns spawns = Read("<RegularBanditDailySpawnData party_template=\"PartyTemplate.invasion\">" + invasion +
                                  "</RegularBanditDailySpawnData>", out List<System.Exception> errors);
@@ -71,7 +136,6 @@ namespace CustomSpawns.Tests.Spawn
                 Assert.That(errors, Is.Empty);
                 Assert.That(data.ReinforcementRules.Select(rule => rule.Id), Is.EqualTo(new[] { "infantry", "cavalry" }));
                 Assert.That(data.ReinforcementRules.Select(rule => rule.IntervalInDays), Is.EqualTo(new[] { 5f, 21f }));
-                Assert.That(data.ReinforcementRules.Select(rule => rule.MaxConcurrentParties), Is.EqualTo(new[] { 1, 3 }));
             });
         }
 

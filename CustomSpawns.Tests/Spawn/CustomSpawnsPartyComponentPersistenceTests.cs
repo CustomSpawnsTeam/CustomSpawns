@@ -53,17 +53,16 @@ namespace CustomSpawns.Tests.Spawn
         }
 
         [Test]
-        public void DeathMessage_SuppressesOnlyReinforcementsAndPersistingOriginalInvasions()
+        public void DeathMessage_SuppressesOnlyAdoptedPartiesAndPersistingOriginalInvasions()
         {
             CsPartyData original = new CsPartyData("primary", "primary", true, null);
             CsPartyData escort = new CsPartyData("escort", "primary", false, null, null, "Escort");
-            CsPartyData reinforcement = new CsPartyData("reinforcement", "primary", false, null, null,
-                "Reinforcement");
+            CsPartyData adopted = new CsPartyData("adopted", "primary", false, null, null, "Adopted");
 
             Assert.True(SpawnBehaviour.ShouldSuppressDeathMessage(original, _ => true));
             Assert.False(SpawnBehaviour.ShouldSuppressDeathMessage(original, _ => false));
             Assert.False(SpawnBehaviour.ShouldSuppressDeathMessage(escort, _ => true));
-            Assert.True(SpawnBehaviour.ShouldSuppressDeathMessage(reinforcement, _ => false));
+            Assert.True(SpawnBehaviour.ShouldSuppressDeathMessage(adopted, _ => false));
         }
 
         [Test]
@@ -89,7 +88,6 @@ namespace CustomSpawns.Tests.Spawn
             Assert.AreEqual(4, SaveId<CsPartyData>("_latestClosestSettlement"));
             Assert.AreEqual(5, SaveId<CsPartyData>("_supportedParty"));
             Assert.AreEqual(8, SaveId<CsPartyData>("_partyRole"));
-            Assert.AreEqual(9, SaveId<CsPartyData>("_reinforcementRuleId"));
         }
 
         [Test]

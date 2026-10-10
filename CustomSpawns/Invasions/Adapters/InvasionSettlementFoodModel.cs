@@ -1,4 +1,3 @@
-using System;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.ComponentInterfaces;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -8,14 +7,14 @@ namespace CustomSpawns.Invasions.Adapters
 {
     internal sealed class InvasionSettlementFoodModel : SettlementFoodModel
     {
-        private static readonly TextObject OverseasSupplies = new TextObject("{=CustomSpawnsOverseasSupplies}Overseas supplies");
+        private static readonly TextObject InvasionSupplies = new TextObject("{=CustomSpawnsInvasionSupplies}Invasion supplies");
         private readonly SettlementFoodModel _settlementFoodModel;
-        private readonly Func<Town, float> _contribution;
+        private readonly IInvasionFoodSupply _foodSupply;
 
-        internal InvasionSettlementFoodModel(SettlementFoodModel inner, Func<Town, float> contribution)
+        internal InvasionSettlementFoodModel(SettlementFoodModel inner, IInvasionFoodSupply foodSupply)
         {
             _settlementFoodModel = inner;
-            _contribution = contribution;
+            _foodSupply = foodSupply;
         }
 
         public override int FoodStocksUpperLimit => _settlementFoodModel.FoodStocksUpperLimit;
@@ -27,8 +26,16 @@ namespace CustomSpawns.Invasions.Adapters
             bool includeDescriptions = false)
         {
             ExplainedNumber result = _settlementFoodModel.CalculateTownFoodStocksChange(town, includeMarketStocks, includeDescriptions);
-            float contribution = _contribution(town);
-            if (contribution != 0f) result.Add(contribution, OverseasSupplies, null!);
+            InvasionFoodTerms? terms = _foodSupply.FindTerms(town);
+            if (terms == null)
+            {
+                return result;
+            }
+            // The shortfall has to be read from the inner model: asking the campaign for the food model
+            // would come straight back here.
+            float supply = InvasionFoodSupportRules.DailySupply(result.ResultNumber, terms.Value.MinimumGarrison,
+                NumberOfMenOnGarrisonToEatOneFood, terms.Value.TownAllowance);
+            if (supply != 0f) result.Add(supply, InvasionSupplies, null!);
             return result;
         }
     }

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using CustomSpawns.Invasions;
@@ -20,22 +19,21 @@ namespace CustomSpawns.Tests.Invasions
             _state = new InvasionState();
             _invasion = _state.RegisterMember("invasion", "clan", "capturer");
             _campaign = new CampaignStub();
-            _reinforcements = new InvasionReinforcements(_state, _campaign, _ => 0);
+            _reinforcements = new InvasionReinforcements(_state, _campaign);
         }
 
         [Test]
-        public void OnlyTheFirstSupplyBaseWindsThePersistentClock()
+        public void OnlyTheCaptureOfTheCapitalWindsThePersistentClock()
         {
-            InvasionCapture capture = Conquer();
+            InvasionCapture capital = Conquer();
             _campaign.Now = 10;
-            _campaign.SupplyBase = false;
 
-            Assert.IsNull(_reinforcements.StartSchedule(capture.Id));
+            // Whatever else the invasion takes is held like any other foothold and winds no clock of its own.
+            Assert.IsNull(_reinforcements.StartSchedule(Conquer("castle", 200).Id));
             Assert.That(_invasion.ReinforcementSchedules, Is.Empty);
 
-            _campaign.SupplyBase = true;
-            Assert.AreSame(_invasion, _reinforcements.StartSchedule(capture.Id));
-            Assert.IsNull(_reinforcements.StartSchedule(capture.Id));
+            Assert.AreSame(_invasion, _reinforcements.StartSchedule(capital.Id));
+            Assert.IsNull(_reinforcements.StartSchedule(capital.Id));
             Assert.AreEqual(17, Schedule(_invasion, "infantry").NextDeadlineDays);
             Assert.AreEqual(7, Schedule(_invasion, "infantry").IntervalDays);
 
@@ -53,9 +51,7 @@ namespace CustomSpawns.Tests.Invasions
             Assert.That(_reinforcements.DrawDue(), Is.Empty);
 
             _campaign.Now = 17;
-            InvasionReinforcementDraw draw = _reinforcements.DrawDue().Single();
-            Assert.AreEqual(InvasionReinforcementOutcome.Landing, draw.Outcome);
-            Assert.AreEqual("town", draw.LandingSettlementId);
+            Assert.AreEqual(InvasionReinforcementOutcome.Banking, _reinforcements.DrawDue().Single().Outcome);
             Assert.AreEqual(24, Schedule(_invasion, "infantry").NextDeadlineDays);
             Assert.That(_reinforcements.DrawDue(), Is.Empty);
         }
@@ -66,7 +62,7 @@ namespace CustomSpawns.Tests.Invasions
             Wind();
 
             _campaign.Now = 50;
-            Assert.AreEqual(InvasionReinforcementOutcome.Landing, _reinforcements.DrawDue().Single().Outcome);
+            Assert.AreEqual(InvasionReinforcementOutcome.Banking, _reinforcements.DrawDue().Single().Outcome);
             Assert.AreEqual(57, Schedule(_invasion, "infantry").NextDeadlineDays);
             Assert.That(_reinforcements.DrawDue(), Is.Empty);
         }
@@ -76,46 +72,42 @@ namespace CustomSpawns.Tests.Invasions
         {
             Wind();
 
-            _campaign.ActiveReinforcements["infantry"] = 2;
+            _campaign.Besieged = true;
             _campaign.Now = 17;
-            Assert.AreEqual(InvasionReinforcementOutcome.MaxConcurrentPartiesReached,
+            Assert.AreEqual(InvasionReinforcementOutcome.CapitalUnavailable,
                 _reinforcements.DrawDue().Single().Outcome);
             Assert.AreEqual(24, Schedule(_invasion, "infantry").NextDeadlineDays);
 
-            _campaign.ActiveReinforcements["infantry"] = 0;
-            _campaign.LandingSites.Clear();
+            _campaign.Besieged = false;
+            _campaign.MaxFactionStrength = 900;
+            _campaign.CurrentStrength = 900;
             _campaign.Now = 24;
-            Assert.AreEqual(InvasionReinforcementOutcome.NoLandingSite, _reinforcements.DrawDue().Single().Outcome);
+            Assert.AreEqual(InvasionReinforcementOutcome.FactionStrengthReached,
+                _reinforcements.DrawDue().Single().Outcome);
             Assert.AreEqual(31, Schedule(_invasion, "infantry").NextDeadlineDays);
         }
 
+        // Nothing arrives for an invasion that has no capital to send it to, or that has lost the one it took.
         [Test]
-        public void AnArrivalJoinsTheFirstInvasionClanThatStillHasRoomForAWarParty()
+        public void LosingTheCapitalStopsTheWavesUntilItIsRetaken()
         {
             Wind();
-            _invasion.AddClan("overflow-clan");
-            _campaign.FullClans.Add("clan");
+            _state.ObserveOwner("town", "enemy");
 
             _campaign.Now = 17;
-            Assert.AreEqual("overflow-clan", _reinforcements.DrawDue().Single().ClanId);
-        }
+            Assert.AreEqual(InvasionReinforcementOutcome.CapitalUnavailable,
+                _reinforcements.DrawDue().Single().Outcome);
 
-        [Test]
-        public void AnArrivalWithEveryInvasionClanFullCarriesNoClanSoOneIsFounded()
-        {
-            Wind();
-            _campaign.FullClans.Add("clan");
-
-            _campaign.Now = 17;
-            InvasionReinforcementDraw draw = _reinforcements.DrawDue().Single();
-            Assert.AreEqual(InvasionReinforcementOutcome.Landing, draw.Outcome);
-            Assert.IsNull(draw.ClanId);
+            // Retaking it is a capture of its own, and the waves resume with it.
+            Conquer();
+            _campaign.Now = 24;
+            Assert.AreEqual(InvasionReinforcementOutcome.Banking, _reinforcements.DrawDue().Single().Outcome);
         }
 
         [Test]
         public void EachRuleRunsItsOwnClockOnTheSameInvasion()
         {
-            _campaign.Rules.Add(new InvasionReinforcementRule("cavalry", 20, 1));
+            _campaign.Rules.Add(new InvasionReinforcementRule("cavalry", 20));
             Wind();
 
             _campaign.Now = 17;
@@ -129,26 +121,11 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
-        public void EachRuleCountsOnlyItsOwnPartiesAgainstItsOwnCeiling()
-        {
-            _campaign.Rules.Add(new InvasionReinforcementRule("cavalry", 7, 1));
-            Wind();
-            _campaign.ActiveReinforcements["infantry"] = 2;
-
-            _campaign.Now = 17;
-            IReadOnlyList<InvasionReinforcementDraw> draws = _reinforcements.DrawDue().ToList();
-
-            Assert.AreEqual(new[] { "infantry", "cavalry" }, draws.Select(draw => draw.RuleId).ToArray());
-            Assert.AreEqual(InvasionReinforcementOutcome.MaxConcurrentPartiesReached, draws[0].Outcome);
-            Assert.AreEqual(InvasionReinforcementOutcome.Landing, draws[1].Outcome);
-        }
-
-        [Test]
         public void RulesDrawInConfigurationOrderWhateverOrderTheirClocksWereWound()
         {
             Wind();
             // A rule added to a running invasion winds later, yet still draws in the order it is declared.
-            _campaign.Rules.Insert(0, new InvasionReinforcementRule("vanguard", 7, 1));
+            _campaign.Rules.Insert(0, new InvasionReinforcementRule("vanguard", 7));
             _campaign.Now = 12;
             _reinforcements.StartSchedule(Conquer().Id);
 
@@ -158,18 +135,18 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
-        public void AClockWhoseRuleTheConfigurationDroppedSpendsItsSlotWithoutLanding()
+        public void AClockWhoseRuleTheConfigurationDroppedSpendsItsSlotWithoutBanking()
         {
             Wind();
             _campaign.Rules.Clear();
-            _campaign.Rules.Add(new InvasionReinforcementRule("cavalry", 7, 1));
+            _campaign.Rules.Add(new InvasionReinforcementRule("cavalry", 7));
             _reinforcements.StartSchedule(Conquer().Id);
 
             _campaign.Now = 17;
             IReadOnlyList<InvasionReinforcementDraw> draws = _reinforcements.DrawDue().ToList();
 
             Assert.AreEqual(new[] { "cavalry", "infantry" }, draws.Select(draw => draw.RuleId).ToArray());
-            Assert.AreEqual(InvasionReinforcementOutcome.Landing, draws[0].Outcome);
+            Assert.AreEqual(InvasionReinforcementOutcome.Banking, draws[0].Outcome);
             Assert.AreEqual(InvasionReinforcementOutcome.Unavailable, draws[1].Outcome);
             Assert.AreEqual(24, Schedule(_invasion, "infantry").NextDeadlineDays);
         }
@@ -177,7 +154,7 @@ namespace CustomSpawns.Tests.Invasions
         [Test]
         public void EveryRuleClockSurvivesASaveRoundTrip()
         {
-            _campaign.Rules.Add(new InvasionReinforcementRule("cavalry", 20, 1));
+            _campaign.Rules.Add(new InvasionReinforcementRule("cavalry", 20));
             Wind();
 
             Invasion invasion = RoundTrip().Invasions.Single();
@@ -202,17 +179,7 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
-        public void AnArrivalWorthMoreThanTheHeadroomIsCutBackToItInsteadOfBeingCancelled()
-        {
-            Assert.AreEqual(60, InvasionReinforcements.PermittedMemberCount(60, 600, 600));
-            Assert.AreEqual(60, InvasionReinforcements.PermittedMemberCount(60, 600, double.PositiveInfinity));
-            Assert.AreEqual(30, InvasionReinforcements.PermittedMemberCount(60, 600, 300));
-            // Never cut to nothing: what barely fits still lands a man.
-            Assert.AreEqual(1, InvasionReinforcements.PermittedMemberCount(60, 600, 1));
-        }
-
-        [Test]
-        public void AnInvasionAtItsStrengthCeilingSpendsTheSlotWithoutLanding()
+        public void AnInvasionAtItsStrengthCeilingSpendsTheSlotWithoutBanking()
         {
             Wind();
             _campaign.MaxFactionStrength = 900;
@@ -224,37 +191,120 @@ namespace CustomSpawns.Tests.Invasions
             Assert.AreEqual(24, Schedule(_invasion, "infantry").NextDeadlineDays);
         }
 
+        /**
+         * The rules of one invasion share one ceiling, and each is decided only after the wave before it has
+         * been banked, so the first rule of a day takes the room and a later one can find none left.
+         */
         [Test]
-        public void RulesDueTheSameDayDrawAgainstOneSharedHeadroomInConfigurationOrder()
+        public void RulesDueTheSameDayDrawAgainstOneSharedCeilingInConfigurationOrder()
         {
-            _campaign.Rules.Clear();
-            _campaign.Rules.Add(new InvasionReinforcementRule("first", 7, 1));
-            _campaign.Rules.Add(new InvasionReinforcementRule("second", 7, 1));
-            _campaign.Rules.Add(new InvasionReinforcementRule("third", 7, 1));
+            _campaign.Rules.Add(new InvasionReinforcementRule("cavalry", 7));
             Wind();
-            // 500 of ceiling and one town held at 100 the town: 600 to share between the three rules.
             _campaign.MaxFactionStrength = 500;
             _campaign.StrengthPerTownHeld = 100;
 
             _campaign.Now = 17;
-            var landed = new List<string>();
+            var drawn = new List<string>();
 
             foreach (InvasionReinforcementDraw draw in _reinforcements.DrawDue())
             {
-                if (draw.Outcome != InvasionReinforcementOutcome.Landing)
-                {
-                    landed.Add(draw.RuleId + "=" + draw.Outcome);
-                    continue;
-                }
+                drawn.Add(draw.RuleId + "=" + draw.Outcome);
 
-                // Each stream wants 400, trimmed to its share, and what it landed with is what the next
-                // stream of the same day has to draw against.
-                _campaign.CurrentStrength += Math.Min(400, draw.PermittedStrength);
-                landed.Add(draw.RuleId + "=" + draw.PermittedStrength);
+                // What the first wave adds to the invasion is what the next one of the same day draws against.
+                if (draw.Outcome == InvasionReinforcementOutcome.Banking)
+                {
+                    _campaign.CurrentStrength += 600;
+                }
             }
 
-            Assert.AreEqual(new[] { "first=600", "second=200", "third=FactionStrengthReached" }, landed.ToArray());
-            Assert.AreEqual(24, Schedule(_invasion, "third").NextDeadlineDays);
+            Assert.AreEqual(new[] { "infantry=Banking", "cavalry=FactionStrengthReached" }, drawn.ToArray());
+            Assert.AreEqual(24, Schedule(_invasion, "cavalry").NextDeadlineDays);
+        }
+
+        /**
+         * A rule allowed one wave is the one-off reinforcement: the town falls, a day later the wave
+         * arrives, and nothing comes after it however long the invasion lives.
+         */
+        [Test]
+        public void ARuleAllowedOneWaveSendsItADayAfterTheCaptureAndNeverAgain()
+        {
+            _campaign.Rules.Clear();
+            _campaign.Rules.Add(new InvasionReinforcementRule("landing", 1, 1));
+            Wind();
+
+            _campaign.Now = 11;
+            Assert.AreEqual(InvasionReinforcementOutcome.Banking, Deliver().Single().Outcome);
+
+            _campaign.Now = 12;
+            Assert.That(_reinforcements.DrawDue(), Is.Empty);
+            _campaign.Now = 400;
+            Assert.That(_reinforcements.DrawDue(), Is.Empty);
+        }
+
+        // Only waves that arrive are counted, so the one wave survives a day it could not be delivered on.
+        [Test]
+        public void ARefusedWaveDoesNotSpendTheRulesWaveCount()
+        {
+            _campaign.Rules.Clear();
+            _campaign.Rules.Add(new InvasionReinforcementRule("landing", 1, 1));
+            Wind();
+            _campaign.Besieged = true;
+
+            _campaign.Now = 11;
+            Assert.AreEqual(InvasionReinforcementOutcome.CapitalUnavailable, Deliver().Single().Outcome);
+
+            _campaign.Besieged = false;
+            _campaign.Now = 12;
+            Assert.AreEqual(InvasionReinforcementOutcome.Banking, Deliver().Single().Outcome);
+        }
+
+        /**
+         * A wave the capital turned out not to be able to take -- its garrison party gone by the time the
+         * men were paid in -- is not counted either, so the one-off wave is still owed.
+         */
+        [Test]
+        public void AWaveThatWasNeverPaidInDoesNotSpendTheRulesWaveCount()
+        {
+            _campaign.Rules.Clear();
+            _campaign.Rules.Add(new InvasionReinforcementRule("landing", 1, 1));
+            Wind();
+
+            _campaign.Now = 11;
+            Assert.AreEqual(InvasionReinforcementOutcome.Banking, _reinforcements.DrawDue().Single().Outcome);
+            Assert.AreEqual(0, Schedule(_invasion, "landing").WavesSent);
+
+            _campaign.Now = 12;
+            Assert.AreEqual(InvasionReinforcementOutcome.Banking, Deliver().Single().Outcome);
+        }
+
+        [Test]
+        public void WhatARuleHasAlreadySentSurvivesASaveRoundTrip()
+        {
+            _campaign.Rules.Clear();
+            _campaign.Rules.Add(new InvasionReinforcementRule("landing", 1, 2));
+            Wind();
+
+            _campaign.Now = 11;
+            Deliver();
+
+            Assert.AreEqual(1, Schedule(RoundTrip().Invasions.Single(), "landing").WavesSent);
+        }
+
+        /**
+         * What the adapter does with a day's draws: it walks them once, and tells the rules which of them
+         * were actually paid into the capital's garrison.
+         */
+        private IReadOnlyList<InvasionReinforcementDraw> Deliver()
+        {
+            List<InvasionReinforcementDraw> draws = _reinforcements.DrawDue().ToList();
+
+            foreach (InvasionReinforcementDraw draw in draws.Where(draw =>
+                         draw.Outcome == InvasionReinforcementOutcome.Banking))
+            {
+                _reinforcements.RecordDelivered(draw);
+            }
+
+            return draws;
         }
 
         private void Wind()
@@ -266,10 +316,10 @@ namespace CustomSpawns.Tests.Invasions
         private static InvasionReinforcementSchedule Schedule(Invasion invasion, string ruleId) =>
             invasion.ReinforcementSchedules.Single(schedule => schedule.RuleId == ruleId);
 
-        private InvasionCapture Conquer()
+        private InvasionCapture Conquer(string settlementId = "town", int settlementIndex = 100)
         {
             var correlation = new InvasionCaptureCorrelation(_state);
-            InvasionCapture capture = _state.StartCapture("town", 100, "capturer");
+            InvasionCapture capture = _state.StartCapture(settlementId, settlementIndex, "capturer");
             correlation.ObserveOwnership(capture.Id, _invasion.ClanId, "capturer", "enemy", "clan", true);
             correlation.ObserveAftermath(capture.Id, "capturer", "enemy", new Dictionary<string, string>
             {
@@ -283,12 +333,9 @@ namespace CustomSpawns.Tests.Invasions
         private sealed class CampaignStub : IInvasionReinforcementQuery
         {
             internal double Now;
-            internal bool SupplyBase = true;
-            internal readonly Dictionary<string, int> ActiveReinforcements = new();
+            internal bool Besieged;
             internal readonly List<InvasionReinforcementRule> Rules =
-                new() { new InvasionReinforcementRule("infantry", 7, 2) };
-            internal readonly List<string> LandingSites = new() { "town" };
-            internal readonly HashSet<string> FullClans = new();
+                new() { new InvasionReinforcementRule("infantry", 7) };
             internal double MaxFactionStrength;
             internal double StrengthPerTownHeld;
             internal int TownsHeld = 1;
@@ -300,13 +347,7 @@ namespace CustomSpawns.Tests.Invasions
                 new(MaxFactionStrength, StrengthPerTownHeld, TownsHeld, CurrentStrength);
 
             public IReadOnlyList<InvasionReinforcementRule>? GetRules(Invasion invasion) => Rules;
-            public bool IsSupplyBase(Invasion invasion, string settlementId) => SupplyBase;
-            public IReadOnlyList<string> GetLandingSites(Invasion invasion) => LandingSites;
-
-            public int CountActiveReinforcements(Invasion invasion, string ruleId) =>
-                ActiveReinforcements.TryGetValue(ruleId, out int count) ? count : 0;
-
-            public bool HasPartySlot(string clanId) => !FullClans.Contains(clanId);
+            public bool IsUnderSiege(string settlementId) => Besieged;
         }
     }
 }

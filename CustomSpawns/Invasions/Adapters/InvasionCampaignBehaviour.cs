@@ -16,35 +16,34 @@ using TaleWorlds.Library;
 namespace CustomSpawns.Invasions.Adapters
 {
     public sealed class InvasionCampaignBehaviour : CampaignBehaviorBase, IPartySteeringQuery,
-        IInvasionLandingQuery
+        IInvasionLandingQuery, IInvasionFoodSupply
     {
         private readonly SpawnDao _spawnDao;
         private readonly DynamicSpawnData _dynamicSpawnData;
-        private readonly SpawnGroupService _spawnGroupService;
         private readonly InvasionSupplyBases _invasionSupplyBases = new();
         private readonly IInvasionCapitalRepository _invasionCapitals;
         private readonly IInvasionClanRepository _invasionClans;
-        private readonly Func<int, int> _randomIndex;
+        private readonly InvaderHeroCreator _invaderHeroes;
         private InvasionCaptureCorrelation _invasionCaptureCorrelation;
         private InvasionReinforcementArrivals _invasionReinforcementArrivals;
         private InvasionOccupations _invasionOccupations;
         private InvasionKingdomRetirement _invasionKingdomRetirement;
         private InvasionSieges _invasionSieges;
         private InvasionMembership _invasionMembership;
+        private InvasionLordWarbands _invasionLordWarbands;
         private bool _initialized;
         private Hero? _lordOfRemovedInvasionParty;
         public InvasionState State { get; private set; } = new();
 
-        internal InvasionCampaignBehaviour(SpawnDao spawns, DynamicSpawnData parties, SpawnGroupService spawnGroups,
+        internal InvasionCampaignBehaviour(SpawnDao spawns, DynamicSpawnData parties,
             SaveInitialiser initialiser, IInvasionCapitalRepository invasionCapitals,
-            IInvasionClanRepository invasionClans, Func<int, int>? randomIndex = null)
+            IInvasionClanRepository invasionClans)
         {
             _spawnDao = spawns;
             _dynamicSpawnData = parties;
-            _spawnGroupService = spawnGroups;
             _invasionCapitals = invasionCapitals;
             _invasionClans = invasionClans;
-            _randomIndex = randomIndex ?? MBRandom.RandomInt;
+            _invaderHeroes = new InvaderHeroCreator(invasionClans);
             _invasionCaptureCorrelation = new InvasionCaptureCorrelation(State);
             _invasionReinforcementArrivals = NewArrivals();
             _invasionOccupations = NewOccupations();
@@ -52,6 +51,7 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionSieges = new InvasionSieges(State, _invasionCaptureCorrelation, _spawnDao);
             _invasionMembership = new InvasionMembership(State, _spawnDao, _dynamicSpawnData,
                 _invasionCaptureCorrelation);
+            _invasionLordWarbands = new InvasionLordWarbands(State, _spawnDao);
 
             // DynamicSpawnData registers its discovery callback first; scheduling/AI are composed later.
             initialiser.RunCallbackOnFirstCampaignTick(Initialize);
@@ -102,6 +102,7 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionSieges = new InvasionSieges(State, _invasionCaptureCorrelation, _spawnDao);
             _invasionMembership = new InvasionMembership(State, _spawnDao, _dynamicSpawnData,
                 _invasionCaptureCorrelation);
+            _invasionLordWarbands = new InvasionLordWarbands(State, _spawnDao);
 
             foreach (var evidence in saved?.OwnedCaptureEvidence ?? new List<InvasionCaptureEvidenceSaveData>())
             {
@@ -114,8 +115,7 @@ namespace CustomSpawns.Invasions.Adapters
         }
 
         private InvasionReinforcementArrivals NewArrivals() =>
-            new(State, _spawnDao, _dynamicSpawnData, _spawnGroupService, _invasionSupplyBases,
-                _invasionClans, _randomIndex);
+            new(State, _spawnDao, _invasionSupplyBases, new InvasionTroopBanking(_spawnDao, _invaderHeroes));
 
         private InvasionOccupations NewOccupations() =>
             new(State, _spawnDao, _dynamicSpawnData, _invasionSupplyBases, _invasionCapitals, _invasionClans);
@@ -150,9 +150,19 @@ namespace CustomSpawns.Invasions.Adapters
                 leader?.Clan?.StringId, party.StringId, leader, () => _invasionMembership.Remove(party));
         }
 
-        // Deliberately does not Initialize(): party creation fires for the whole map while a new game
-        // is built, long before the first campaign tick, and adoption only reads state SyncData restores.
-        private void OnMobilePartyCreated(MobileParty party) => _invasionMembership.Adopt(party);
+        /**
+         * Deliberately does not Initialize(): party creation fires for the whole map while a new game
+         * is built, long before the first campaign tick, and adoption only reads state SyncData restores.
+         *
+         * This is also where vanilla has just handed a newly fielded lord his free warband, so it is where
+         * an invasion holding its capital takes that warband back and makes him draw from the capital
+         * instead. On a new game the state is still empty, so nothing is drawn from anything.
+         */
+        private void OnMobilePartyCreated(MobileParty party)
+        {
+            _invasionMembership.Adopt(party);
+            _invasionLordWarbands.DrawFromGarrison(party);
+        }
 
         // Capture and flight are the two ways an invasion lord outlives its party.
         private void OnHeroPrisonerTaken(PartyBase capturer, Hero prisoner) => RemoveDefeatedLord(prisoner);
@@ -262,11 +272,11 @@ namespace CustomSpawns.Invasions.Adapters
             Initialize();
 
             _invasionMembership.Reconcile();
-            _invasionReinforcementArrivals.LandDue();
+            _invasionReinforcementArrivals.SendDue();
         }
 
         // The food model asks per town, so it holds the behaviour and not the occupation pass,
         // which is replaced whenever a save rebinds the state.
-        public float GetOngoingFoodSupport(Town town) => _invasionOccupations.GetOngoingFoodSupport(town);
+        InvasionFoodTerms? IInvasionFoodSupply.FindTerms(Town town) => _invasionOccupations.FindTerms(town);
     }
 }

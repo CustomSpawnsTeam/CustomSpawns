@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
 using CustomSpawns.Data.Adapter;
@@ -20,11 +19,11 @@ using TaleWorlds.Library;
 namespace CustomSpawns.Tests.Invasions
 {
     /**
-     * Adoption as the campaign runs it: the budget the configuration fields, what that budget counts,
-     * and the party data adoption leaves behind. The campaign objects adoption reads are stood up by
-     * hand, since what is under test is the registration call itself and not a stub of it.
+     * Adoption as the campaign runs it, and the party data it leaves behind. The campaign objects
+     * adoption reads are stood up by hand, since what is under test is the registration call itself
+     * and not a stub of it.
      */
-    public class InvasionAdoptionBudgetTests
+    public class InvasionAdoptionTests
     {
         private InvasionState _state = null!;
         private DynamicSpawnData _dynamicSpawnData = null!;
@@ -49,79 +48,30 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
-        public void TheBudgetIsThePrimariesTheSpawnerKeepsPlusTheLandingsTheInvasionMayHold()
-        {
-            Assert.AreEqual(6, InvasionMembership.PartyBudget(Spawn(maximumOnMap: 2, maxConcurrentParties: 3)));
-        }
-
-        [Test]
-        public void TheBudgetCountsTheLandingsOfEveryReinforcementRule()
-        {
-            Assert.AreEqual(9, InvasionMembership.PartyBudget(Spawn(maximumOnMap: 2, new[] { 3, 2, 1 })));
-        }
-
-        // The spawner tests its count before incrementing it, so MaximumOnMap names one primary fewer than it keeps.
-        [Test]
-        public void TheBudgetAllowsThePrimaryTheSpawnerKeepsBeyondMaximumOnMap()
-        {
-            Assert.AreEqual(2, InvasionMembership.PartyBudget(Spawn(maximumOnMap: 1, maxConcurrentParties: 0)));
-        }
-
-        [Test]
-        public void ASpawnThatInvadesForNothingBudgetsNothing()
-        {
-            SpawnDto spawn = Spawn(maximumOnMap: 5, maxConcurrentParties: 5);
-            spawn.Invasion = null;
-
-            Assert.AreEqual(0, InvasionMembership.PartyBudget(spawn));
-            Assert.AreEqual(0, InvasionMembership.PartyBudget(null));
-        }
-
-        [Test]
-        public void ARebuiltLordPartyIsRegisteredAsAdoptedAndNotAsAnIndependentReinforcement()
+        public void ARebuiltLordPartyIsRegisteredAsAdopted()
         {
             Member("invasion_party_1", Primary());
             MobileParty lord = LordParty("rebuilt_lord", "clan");
 
-            Adoption(Spawn(maximumOnMap: 0, maxConcurrentParties: 1)).Adopt(lord);
+            Adoption(Spawn()).Adopt(lord);
 
             CsPartyData? adopted = _dynamicSpawnData.GetDynamicSpawnData(lord);
             Assert.NotNull(adopted);
             Assert.IsTrue(adopted!.IsAdopted);
-            Assert.IsFalse(adopted.IsIndependentReinforcement);
             Assert.AreEqual("invasion", adopted.OwningSpawnTemplateId);
         }
 
-        /**
-         * A dead primary frees its spawner slot but leaves its escorts on the map, so escorts accumulate
-         * past anything the configuration names. Counting them would put the invasion over budget for good.
-         */
+        // However many parties an invasion already fields, what it may field is the strength ceiling's question.
         [Test]
-        public void LingeringEscortsDoNotExhaustTheAdoptionBudget()
+        public void AnInvasionAlreadyFieldingSeveralPartiesStillTakesALordBack()
         {
             Member("invasion_party_1", Primary());
-            for (int i = 0; i < 6; i++)
-            {
-                Member("escort_" + i, Escort());
-            }
-
+            Member("invasion_party_2", Adopted());
             MobileParty lord = LordParty("rebuilt_lord", "clan");
 
-            Adoption(Spawn(maximumOnMap: 1, maxConcurrentParties: 0)).Adopt(lord);
+            Adoption(Spawn()).Adopt(lord);
 
             Assert.IsTrue(_dynamicSpawnData.GetDynamicSpawnData(lord)?.IsAdopted);
-        }
-
-        [Test]
-        public void AnInvasionFieldingAllTheAlliesItBudgetsForAdoptsNothing()
-        {
-            Member("invasion_party_1", Primary());
-            Member("invasion_party_2", Reinforcement());
-            MobileParty lord = LordParty("rebuilt_lord", "clan");
-
-            Adoption(Spawn(maximumOnMap: 0, maxConcurrentParties: 1)).Adopt(lord);
-
-            Assert.IsNull(_dynamicSpawnData.GetDynamicSpawnData(lord));
         }
 
         private InvasionMembership Adoption(SpawnDto spawn)
@@ -131,21 +81,17 @@ namespace CustomSpawns.Tests.Invasions
             return new InvasionMembership(_state, spawnDao, _dynamicSpawnData, null!);
         }
 
-        private static SpawnDto Spawn(int maximumOnMap, int maxConcurrentParties) =>
-            Spawn(maximumOnMap, new[] { maxConcurrentParties });
-
-        private static SpawnDto Spawn(int maximumOnMap, IReadOnlyList<int> maxConcurrentPartiesPerRule)
+        private static SpawnDto Spawn()
         {
             var template = (PartyTemplateObject)FormatterServices.GetUninitializedObject(typeof(PartyTemplateObject));
             template.StringId = "invasion";
             return new SpawnDto
             {
                 PartyTemplate = template,
-                MaximumOnMap = maximumOnMap,
+                MaximumOnMap = 1,
                 SpawnAlongWith = new ReadOnlyCollection<AccompanyingParty>(new List<AccompanyingParty>()),
-                Invasion = new InvasionData(false, 0f, 0f, maxConcurrentPartiesPerRule
-                    .Select((maxConcurrentParties, index) => new InvasionReinforcementRuleData("rule_" + index,
-                        "reinforcement", 1f, maxConcurrentParties)).ToList())
+                Invasion = new InvasionData(false, 0f, 0f,
+                    new[] { new InvasionReinforcementRuleData("rule", "reinforcement", 1f) })
             };
         }
 
@@ -156,8 +102,7 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         private static CsPartyData Primary() => new("invasion", "invasion", true, null, null, "Original");
-        private static CsPartyData Escort() => new("escort", "invasion", false, null, null, "Escort");
-        private static CsPartyData Reinforcement() => new("invasion", "invasion", false, null, null, "Reinforcement");
+        private static CsPartyData Adopted() => new("invasion", "invasion", false, null, null, "Adopted");
 
         private MobileParty LordParty(string partyId, string clanId)
         {

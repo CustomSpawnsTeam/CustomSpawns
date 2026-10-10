@@ -92,11 +92,24 @@ namespace CustomSpawns.Tests.Diplomacy
             var membership = new ForceNoKingdomMembershipProvider(ForceNoKingdomProvider("force_no_kingdom"));
 
             Assert.AreEqual(ForceNoKingdomMembershipAction.LeaveKingdom,
-                membership.GetAction("force_no_kingdom", hasKingdom: true, isMercenary: false));
+                membership.GetAction("force_no_kingdom", hasKingdom: true, isMercenary: false,
+                    rulesOwnKingdom: false));
             Assert.AreEqual(ForceNoKingdomMembershipAction.LeaveKingdomAsMercenary,
-                membership.GetAction("force_no_kingdom", hasKingdom: true, isMercenary: true));
+                membership.GetAction("force_no_kingdom", hasKingdom: true, isMercenary: true,
+                    rulesOwnKingdom: false));
             Assert.AreEqual(ForceNoKingdomMembershipAction.None,
-                membership.GetAction("force_no_kingdom", hasKingdom: false, isMercenary: false));
+                membership.GetAction("force_no_kingdom", hasKingdom: false, isMercenary: false,
+                    rulesOwnKingdom: false));
+        }
+
+        [Test]
+        public void ForceNoKingdomMembership_WhenRulingItsOwnKingdom_StaysInIt()
+        {
+            var membership = new ForceNoKingdomMembershipProvider(ForceNoKingdomProvider("force_no_kingdom"));
+
+            Assert.AreEqual(ForceNoKingdomMembershipAction.None,
+                membership.GetAction("force_no_kingdom", hasKingdom: true, isMercenary: false,
+                    rulesOwnKingdom: true));
         }
 
         [Test]

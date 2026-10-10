@@ -352,29 +352,7 @@ namespace CustomSpawns.Tests.Invasions
             Assert.AreSame(_invasion, Adopting("clan"));
         }
 
-        [Test]
-        public void AnInvasionTakesNoLordBackWhileItAlreadyFieldsItsBudgetedParties()
-        {
-            _state.RegisterMember("invasion", "clan", "second");
-
-            Assert.IsNull(_state.FindAdoptingInvasion("clan", LiveMembers, _ => 2));
-            Assert.AreSame(_invasion, _state.FindAdoptingInvasion("clan", LiveMembers, _ => 3));
-
-            _state.RemoveMember("second");
-            Assert.AreSame(_invasion, _state.FindAdoptingInvasion("clan", LiveMembers, _ => 2));
-        }
-
-        [Test]
-        public void MembershipTheEngineNoLongerBacksDoesNotSpendTheBudget()
-        {
-            _state.RegisterMember("invasion", "clan", "dropped-before-reconciliation");
-
-            Assert.AreSame(_invasion,
-                _state.FindAdoptingInvasion("clan", invasion => invasion.MemberPartyIds.Count(id => id == "capturer"), _ => 2));
-        }
-
-        private Invasion? Adopting(string? clanId) => _state.FindAdoptingInvasion(clanId, LiveMembers, _ => int.MaxValue);
-        private static int LiveMembers(Invasion invasion) => invasion.MemberPartyIds.Count;
+        private Invasion? Adopting(string? clanId) => _state.FindFightingInvasion(clanId);
         private InvasionCapture Start(long ticks = 100) => _state.StartCapture("town", ticks, "capturer");
         private Dictionary<string, string> Participants() => new() { ["capturer"] = _invasion.ClanId };
         private void Ownership(InvasionCapture c) => Correlation.ObserveOwnership(c.Id, _invasion.ClanId, "capturer", "enemy", "clan", true);

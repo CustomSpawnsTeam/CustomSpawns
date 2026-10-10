@@ -50,29 +50,9 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
-        public void AnInvasionFieldingItsBudgetedPartiesAdoptsOnlyWhatItLoses()
-        {
-            _state.RegisterMember("invasion", "clan", "invasion_party_2");
-
-            Assert.IsNull(AdoptingTemplate(LordParty("clan"), budget: 2));
-
-            _state.RemoveMember("invasion_party_2");
-            Assert.AreEqual("invasion", AdoptingTemplate(LordParty("clan"), budget: 2));
-        }
-
-        [Test]
-        public void AnAdoptedLordDoesNotSpendTheInvasionsLandingBudget()
-        {
-            Assert.False(InvasionReinforcementArrivals.CountsAgainstMaxConcurrentParties("clan", PartyOfTheInvasion("Adopted"), _invasion));
-            Assert.True(InvasionReinforcementArrivals.CountsAgainstMaxConcurrentParties("clan", PartyOfTheInvasion("Reinforcement"),
-                _invasion));
-        }
-
-        [Test]
         public void AnAdoptedLordComesBackFromASaveAsAnAdoptedLord()
         {
             Assert.AreEqual("Adopted", InvasionMembership.RoleFor(PartyOfTheInvasion("Adopted")));
-            Assert.AreEqual("Reinforcement", InvasionMembership.RoleFor(PartyOfTheInvasion("Reinforcement")));
         }
 
         [Test]
@@ -84,9 +64,8 @@ namespace CustomSpawns.Tests.Invasions
             Assert.IsNull(AdoptingTemplate(LordParty("clan"), adopted));
         }
 
-        private string? AdoptingTemplate(MobileParty party, CsPartyData? registered = null, int budget = int.MaxValue) =>
-            InvasionMembership.FindAdoptingTemplate(party, registered, _state,
-                invasion => invasion.MemberPartyIds.Count, _ => budget);
+        private string? AdoptingTemplate(MobileParty party, CsPartyData? registered = null) =>
+            InvasionMembership.FindAdoptingTemplate(party, registered, _state);
 
         private CsPartyData PartyOfTheInvasion(string partyRole)
         {

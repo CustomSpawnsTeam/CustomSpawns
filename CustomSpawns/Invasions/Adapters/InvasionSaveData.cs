@@ -81,7 +81,8 @@ namespace CustomSpawns.Invasions.Adapters
             // A save taken before the invasion could expand carries the founding clan alone.
             foreach (string clanId in ClanIds ?? new List<string>()) invasion.AddClan(clanId);
             foreach (var schedule in ReinforcementSchedules ?? new List<InvasionReinforcementScheduleSaveData>())
-                invasion.WindReinforcementSchedule(schedule.RuleId, schedule.IntervalDays, schedule.NextDeadlineDays);
+                invasion.WindReinforcementSchedule(schedule.RuleId, schedule.IntervalDays, schedule.NextDeadlineDays,
+                    schedule.WavesSent);
             return invasion;
         }
     }
@@ -91,12 +92,14 @@ namespace CustomSpawns.Invasions.Adapters
         [SaveableField(1)] public string RuleId = "";
         [SaveableField(2)] public double IntervalDays;
         [SaveableField(3)] public double NextDeadlineDays;
+        [SaveableField(4)] public int WavesSent;
 
         internal static InvasionReinforcementScheduleSaveData FromState(InvasionReinforcementSchedule value) => new()
         {
             RuleId = value.RuleId,
             IntervalDays = value.IntervalDays,
-            NextDeadlineDays = value.NextDeadlineDays
+            NextDeadlineDays = value.NextDeadlineDays,
+            WavesSent = value.WavesSent
         };
     }
 

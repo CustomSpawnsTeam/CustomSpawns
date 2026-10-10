@@ -33,8 +33,9 @@ private InvasionData? GetConfiguration(Invasion invasion) =>
     _spawns.FindByPartyTemplateId(invasion.SpawnTemplateId)?.Invasion;
 
 private static string SkipReason(InvasionReinforcementOutcome outcome) =>
-    outcome == InvasionReinforcementOutcome.MaxConcurrentPartiesReached ? "max_concurrent" :
-    outcome == InvasionReinforcementOutcome.NoLandingSite ? "no_held_port" : "configuration_or_clan";
+    outcome == InvasionReinforcementOutcome.CapitalUnavailable ? "no_held_capital_to_reinforce" :
+    outcome == InvasionReinforcementOutcome.FactionStrengthReached ? "faction_strength" :
+    "configuration_changed";
 ```
 
 ## A method is a few paragraphs, not one
