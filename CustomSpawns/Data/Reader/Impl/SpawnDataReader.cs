@@ -49,7 +49,7 @@ namespace CustomSpawns.Data.Reader.Impl
                 error => _messageBoxService.ShowCustomSpawnsErrorMessage(error, "the parsing of " + filePath));
         }
 
-        internal static Spawns DeserializeAndResolve(Stream stream, Action<System.Exception> onError)
+        public static Spawns DeserializeAndResolve(Stream stream, Action<System.Exception> onError)
         {
             XmlSerializer serialiser = new XmlSerializer(typeof(Spawns));
             try

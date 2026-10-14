@@ -19,14 +19,14 @@ namespace CustomSpawns.AI.Behaviours
         {
         }
 
-        internal FollowSupportedPartyBehaviour(Func<MobileParty, bool> isActive,
+        public FollowSupportedPartyBehaviour(Func<MobileParty, bool> isActive,
             Func<MobileParty, MobileParty.NavigationType> getNavigationCapability)
         {
             _isActive = isActive;
             _getNavigationCapability = getNavigationCapability;
         }
 
-        internal static bool IsWithinSupportRange(float distanceSquared, float seeingRange)
+        public static bool IsWithinSupportRange(float distanceSquared, float seeingRange)
         {
             return distanceSquared <= seeingRange * seeingRange;
         }

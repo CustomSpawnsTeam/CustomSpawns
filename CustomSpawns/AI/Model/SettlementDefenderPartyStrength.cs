@@ -1,6 +1,6 @@
 ﻿namespace CustomSpawns.AI.Model
 {
-    internal readonly struct SettlementDefenderPartyStrength
+    public readonly struct SettlementDefenderPartyStrength
     {
         public float Strength { get; }
         public bool IsActive { get; }

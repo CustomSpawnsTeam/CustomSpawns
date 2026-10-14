@@ -3,7 +3,7 @@ using TaleWorlds.CampaignSystem.Settlements;
 
 namespace CustomSpawns.AI.Model
 {
-    internal readonly struct SiegeTargetCandidate
+    public readonly struct SiegeTargetCandidate
     {
         public Settlement Target { get; }
         public bool IsActive { get; }

@@ -11,16 +11,16 @@ namespace CustomSpawns.AI.Offensives
     public sealed class RaidClosestVillageBehaviour
         : SettlementOffensivePartyBehaviour<RaidClosestVillageData>
     {
-        internal const string SaveKey = "_customSpawnsRaidClosestVillageStates";
+        public const string SaveKey = "_customSpawnsRaidClosestVillageStates";
         private readonly IRaidOperations _raid;
 
-        internal RaidClosestVillageBehaviour(IRaidOperations raid,
+        public RaidClosestVillageBehaviour(IRaidOperations raid,
             Func<float, float, float> roll)
             : this(raid, roll, new PartyStateStore<SettlementOffensiveBehaviourState>(SaveKey))
         {
         }
 
-        internal RaidClosestVillageBehaviour(IRaidOperations raid,
+        public RaidClosestVillageBehaviour(IRaidOperations raid,
             Func<float, float, float> roll,
             PartyStateStore<SettlementOffensiveBehaviourState> states) : base(roll, states)
         {

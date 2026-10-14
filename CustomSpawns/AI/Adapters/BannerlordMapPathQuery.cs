@@ -6,7 +6,7 @@ using TaleWorlds.Library;
 
 namespace CustomSpawns.AI.Adapters
 {
-    internal sealed class BannerlordMapPathQuery : IMapPathQuery
+    public sealed class BannerlordMapPathQuery : IMapPathQuery
     {
         private const float UnboundedLandPathDistance = float.MaxValue;
 

@@ -9,7 +9,7 @@ using TaleWorlds.Library;
 namespace CustomSpawns.Invasions.Adapters
 {
     // Bannerlord-specific navmesh access for the pure coastal-town policy.
-    internal sealed class InvasionCoastalTownResolver : IInvasionCoastalMapFaceQuery
+    public sealed class InvasionCoastalTownResolver : IInvasionCoastalMapFaceQuery
     {
         private const string CoastalDiagnosticTownId = "town_V7";
         private const int AdjacencyProbeCount = 360;

@@ -12,17 +12,17 @@ namespace CustomSpawns.Invasions.Adapters
      * itself once its protection stops applying. The missing trigger is supplied here; the rule that
      * decides and the actions that end it are vanilla's own.
      */
-    internal sealed class InvasionKingdomRetirement
+    public sealed class InvasionKingdomRetirement
     {
         private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         private readonly InvasionState _invasionState;
 
-        internal InvasionKingdomRetirement(InvasionState state)
+        public InvasionKingdomRetirement(InvasionState state)
         {
             _invasionState = state;
         }
 
-        internal void RetireSpent()
+        public void RetireSpent()
         {
             foreach (Invasion invasion in _invasionState.Invasions.ToList())
             {
@@ -43,7 +43,7 @@ namespace CustomSpawns.Invasions.Adapters
             }
         }
 
-        internal static Kingdom? FindRetirableKingdom(Invasion invasion)
+        public static Kingdom? FindRetirableKingdom(Invasion invasion)
         {
             Kingdom? kingdom = Clan.FindFirst(clan => clan.StringId == invasion.ClanId)?.Kingdom;
 

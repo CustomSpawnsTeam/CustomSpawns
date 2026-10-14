@@ -96,7 +96,7 @@ namespace CustomSpawns.Spawn
             }
         }
 
-        internal static CsPartyData CreateDiscoveredPartyData(string partyTemplateId,
+        public static CsPartyData CreateDiscoveredPartyData(string partyTemplateId,
             string? owningSpawnTemplateId, bool isPrimaryTemplate, bool isSupportingTemplate,
             Settlement? latestClosestSettlement)
         {
@@ -173,7 +173,7 @@ namespace CustomSpawns.Spawn
          * Groups the registered supporting parties under the main party each one supports.
          * Entries without a supported party contribute nothing, since they escort no one.
          */
-        internal static ILookup<MobileParty, MobileParty> BuildAccompanyingIndex(
+        public static ILookup<MobileParty, MobileParty> BuildAccompanyingIndex(
             IDictionary<MobileParty, CsPartyData> registry)
         {
             return registry.Where(entry => entry.Value.SupportedParty is not null)
@@ -188,7 +188,7 @@ namespace CustomSpawns.Spawn
             return data;
         }
 
-        internal static CsPartyData? TakeFromRegistry<TKey>(IDictionary<TKey, CsPartyData> registry, TKey? key)
+        public static CsPartyData? TakeFromRegistry<TKey>(IDictionary<TKey, CsPartyData> registry, TKey? key)
             where TKey : class
         {
             if (key is null || !registry.TryGetValue(key, out CsPartyData? partyData))

@@ -5,7 +5,7 @@ using CustomSpawns.Data.Dto;
 
 namespace CustomSpawns.Data.Adapter
 {
-    internal static class InvasionRuntimeConfigurationValidator
+    public static class InvasionRuntimeConfigurationValidator
     {
         // Each rule brings its own troop template, so existence is asked per rule rather than once.
         public static void ValidateReferences(InvasionData invasion, string spawnPartyTemplateId, bool spawnClanIsBandit,

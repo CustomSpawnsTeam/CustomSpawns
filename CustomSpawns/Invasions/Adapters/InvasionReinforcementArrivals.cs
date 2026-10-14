@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CustomSpawns.Data.Dao;
 using CustomSpawns.Data.Dto;
+using CustomSpawns.Spawn;
 using NLog;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
@@ -15,7 +16,7 @@ namespace CustomSpawns.Invasions.Adapters
      * would go to can take it. The campaign behaviour only forwards the events that move the clock; the
      * schedule itself belongs to InvasionReinforcements, and paying a wave in belongs to InvasionTroopBanking.
      */
-    internal sealed class InvasionReinforcementArrivals : IInvasionReinforcementQuery
+    public sealed class InvasionReinforcementArrivals : IInvasionReinforcementQuery
     {
         private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         private readonly InvasionState _invasionState;
@@ -23,18 +24,22 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly InvasionSupplyBases _invasionSupplyBases;
         private readonly InvasionReinforcements _invasionReinforcements;
         private readonly InvasionTroopBanking _invasionTroopBanking;
+        private readonly DynamicSpawnData _dynamicSpawnData;
+        private readonly IInvasionLords _invasionLords;
 
-        internal InvasionReinforcementArrivals(InvasionState state, SpawnDao spawns,
-            InvasionSupplyBases supplyBases, InvasionTroopBanking troopBanking)
+        public InvasionReinforcementArrivals(InvasionState state, SpawnDao spawns, DynamicSpawnData parties,
+            InvasionSupplyBases supplyBases, InvasionTroopBanking troopBanking, IInvasionLords invasionLords)
         {
             _invasionState = state;
             _spawnDao = spawns;
+            _dynamicSpawnData = parties;
             _invasionSupplyBases = supplyBases;
             _invasionTroopBanking = troopBanking;
+            _invasionLords = invasionLords;
             _invasionReinforcements = new InvasionReinforcements(state, this);
         }
 
-        internal void StartSchedule(long captureId)
+        public void StartSchedule(long captureId)
         {
             Invasion? invasion = _invasionReinforcements.StartSchedule(captureId);
 
@@ -49,7 +54,7 @@ namespace CustomSpawns.Invasions.Adapters
                             schedule.RuleId + "@" + schedule.NextDeadlineDays)));
         }
 
-        internal void SendDue()
+        public void SendDue()
         {
             foreach (InvasionReinforcementDraw draw in _invasionReinforcements.DrawDue())
             {
@@ -57,6 +62,14 @@ namespace CustomSpawns.Invasions.Adapters
                 {
                     Logger.Info("Invasion reinforcement slot skipped: invasion=" + draw.Invasion.ClanId +
                                 " rule=" + draw.RuleId + " reason=" + SkipReason(draw.Outcome));
+
+                    // A strong invasion, or one whose stream has run dry, is sent no men, but its army still has
+                    // to be paid till the next slot.
+                    if (draw.Outcome == InvasionReinforcementOutcome.FactionStrengthReached ||
+                        draw.Outcome == InvasionReinforcementOutcome.AllWavesSent)
+                    {
+                        _invasionTroopBanking.PayOnly(draw);
+                    }
                 }
                 else if (_invasionTroopBanking.Bank(draw))
                 {
@@ -68,6 +81,7 @@ namespace CustomSpawns.Invasions.Adapters
         private static string SkipReason(InvasionReinforcementOutcome outcome) =>
             outcome == InvasionReinforcementOutcome.CapitalUnavailable ? "no_held_capital_to_reinforce" :
             outcome == InvasionReinforcementOutcome.FactionStrengthReached ? "faction_strength" :
+            outcome == InvasionReinforcementOutcome.AllWavesSent ? "all_waves_sent" :
             "configuration_changed";
 
         double IInvasionReinforcementQuery.NowInDays => CampaignTime.Now.ToDays;
@@ -84,41 +98,36 @@ namespace CustomSpawns.Invasions.Adapters
                     .ToList();
         }
 
-        bool IInvasionReinforcementQuery.IsUnderSiege(string settlementId) =>
-            Settlement.Find(settlementId)?.SiegeEvent != null;
-
         /**
-         * Vanilla's own measure of what a faction fields -- the parties on the map plus the garrisons,
-         * which is where a banked wave goes -- narrowed to the clans of this invasion. The measure is
-         * vanilla's to define, so it is read off the clan rather than summed again here. It is a cached
-         * total, and refreshed first the way vanilla refreshes it before reading it, so that a wave banked
+         * Vanilla's own measure of what a faction fields -- each party's estimated strength, summed over
+         * the war parties and the garrisons, which is where a banked wave goes -- narrowed to the clans of
+         * this invasion and to what the waves themselves raised. The spawner keeps landing its own forces
+         * under the founding clan whatever the waves do, so those parties are left out: counted, they alone
+         * hold the invasion over its ceiling and no wave would ever come. Summed live, so that a wave banked
          * a moment ago already counts against the next rule of the same day.
          */
         InvasionStrengthBudget IInvasionReinforcementQuery.GetStrengthBudget(Invasion invasion)
         {
             InvasionData? configuration = GetConfiguration(invasion);
-            List<Clan> clans = Clan.All.Where(clan => invasion.HoldsClan(clan.StringId)).ToList();
             double currentStrength = 0;
 
-            foreach (Clan clan in clans)
+            foreach (Clan clan in Clan.All.Where(clan => invasion.HoldsClan(clan.StringId)))
             {
-                clan.UpdateCurrentStrength();
-                currentStrength += clan.CurrentTotalStrength;
+                // The spawner's own forces are left out; the lords the waves field are adopted, and count
+                // like any other.
+                currentStrength += clan.WarPartyComponents
+                    .Where(component => _dynamicSpawnData.GetDynamicSpawnData(component.MobileParty)?.IsAdopted != false)
+                    .Sum(component => component.MobileParty.Party.EstimatedStrength);
+                currentStrength += clan.Fiefs.Sum(fief => fief.GarrisonParty?.Party.EstimatedStrength ?? 0f);
             }
 
             // The per-town bonus is the kingdom's, not the invading clans': a town held by any member of the
-            // kingdom raises the ceiling, however that member came by it. The engine keeps the kingdom's fief
-            // list live, so a town lost stops counting the moment it changes hands.
-            Kingdom? kingdom = clans.Select(clan => clan.Kingdom).FirstOrDefault(candidate => candidate != null);
-            int townsHeld = kingdom == null
-                ? clans.Sum(clan => clan.Fiefs.Count(fief => fief.IsTown))
-                : kingdom.Fiefs.Count(fief => fief.IsTown);
-
+            // kingdom raises the ceiling, however that member came by it.
             return new InvasionStrengthBudget(configuration?.MaxFactionStrength ?? 0,
-                configuration?.StrengthPerTownHeld ?? 0, townsHeld, currentStrength);
+                configuration?.StrengthPerTownHeld ?? 0, _invasionLords.CountTownsHeld(invasion), currentStrength);
         }
 
-        internal Func<Settlement, bool>? FindInitialCoastalTargetFilter(MobileParty party)
+        public Func<Settlement, bool>? FindInitialCoastalTargetFilter(MobileParty party)
         {
             Invasion? invasion = _invasionState.FindInvasionOfParty(party.StringId);
 

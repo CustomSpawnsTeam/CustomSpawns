@@ -5,29 +5,31 @@ using System.Linq;
 namespace CustomSpawns.Invasions
 {
     // One configured reinforcement stream of an invasion: its own cadence, and how many waves it may send.
-    internal sealed class InvasionReinforcementRule
+    public sealed class InvasionReinforcementRule
     {
-        internal InvasionReinforcementRule(string id, double intervalInDays, int maxWaves = 0)
+        public InvasionReinforcementRule(string id, double intervalInDays, int maxWaves = 0)
         {
             Id = id;
             IntervalInDays = intervalInDays;
             MaxWaves = maxWaves;
         }
 
-        internal string Id { get; }
-        internal double IntervalInDays { get; }
+        public string Id { get; }
+        public double IntervalInDays { get; }
 
         // How many waves the stream ever delivers. Zero is what a configuration that does not mention it
         // means: the stream keeps sending for as long as the invasion lives.
-        internal int MaxWaves { get; }
+        public int MaxWaves { get; }
     }
 
-    internal enum InvasionReinforcementOutcome
+    public enum InvasionReinforcementOutcome
     {
         // Nothing left to send with: no configuration, a retired spawn template, or no clan.
         Unavailable,
-        // No capital to send to, or one that is besieged. Nothing arrives while that is true.
+        // No capital to send to: none taken yet, or the one taken has fallen. Nothing arrives while that is true.
         CapitalUnavailable,
+        // The stream has delivered every wave it was allowed. It sends no more men, but still pays.
+        AllWavesSent,
         FactionStrengthReached,
         // The wave is paid into the capital's garrison, which is the only place reinforcements go.
         Banking
@@ -37,9 +39,9 @@ namespace CustomSpawns.Invasions
      * What bounds how much an invasion may still field: its configured ceiling, what each town it holds
      * adds to that ceiling, the towns it holds now, and the strength it already has on the map.
      */
-    internal readonly struct InvasionStrengthBudget
+    public readonly struct InvasionStrengthBudget
     {
-        internal InvasionStrengthBudget(double maxFactionStrength, double strengthPerTownHeld, int townsHeld,
+        public InvasionStrengthBudget(double maxFactionStrength, double strengthPerTownHeld, int townsHeld,
             double currentStrength)
         {
             MaxFactionStrength = maxFactionStrength;
@@ -48,15 +50,23 @@ namespace CustomSpawns.Invasions
             CurrentStrength = currentStrength;
         }
 
-        internal double MaxFactionStrength { get; }
-        internal double StrengthPerTownHeld { get; }
-        internal int TownsHeld { get; }
-        internal double CurrentStrength { get; }
+        public double MaxFactionStrength { get; }
+        public double StrengthPerTownHeld { get; }
+        public int TownsHeld { get; }
+        public double CurrentStrength { get; }
+
+        /**
+         * What the invasion may still field under its shared ceiling. An unconfigured ceiling leaves it
+         * unbounded; every town its kingdom holds right now raises the ceiling, and losing one lowers it again.
+         */
+        public double Headroom => MaxFactionStrength <= 0
+            ? double.PositiveInfinity
+            : MaxFactionStrength + StrengthPerTownHeld * TownsHeld - CurrentStrength;
     }
 
-    internal readonly struct InvasionReinforcementDraw
+    public readonly struct InvasionReinforcementDraw
     {
-        internal InvasionReinforcementDraw(Invasion invasion, string ruleId,
+        public InvasionReinforcementDraw(Invasion invasion, string ruleId,
             InvasionReinforcementOutcome outcome)
         {
             Invasion = invasion;
@@ -64,20 +74,18 @@ namespace CustomSpawns.Invasions
             Outcome = outcome;
         }
 
-        internal Invasion Invasion { get; }
+        public Invasion Invasion { get; }
         // Which stream drew. The wave is rolled off this rule's own party template.
-        internal string RuleId { get; }
-        internal InvasionReinforcementOutcome Outcome { get; }
+        public string RuleId { get; }
+        public InvasionReinforcementOutcome Outcome { get; }
     }
 
     // Campaign facts the reinforcement rules read. Bannerlord access stays behind this boundary.
-    internal interface IInvasionReinforcementQuery
+    public interface IInvasionReinforcementQuery
     {
         double NowInDays { get; }
         // In configuration order. Null when the invasion has nothing left to send with.
         IReadOnlyList<InvasionReinforcementRule>? GetRules(Invasion invasion);
-        // A besieged capital is cut off: its garrison can be neither reinforced nor drawn on.
-        bool IsUnderSiege(string settlementId);
         // Read again for every draw, so that a wave banked a moment ago is already part of the strength.
         InvasionStrengthBudget GetStrengthBudget(Invasion invasion);
     }
@@ -87,19 +95,19 @@ namespace CustomSpawns.Invasions
      * every time one comes due the invasion is sent a wave of men for that capital. The clocks are kept on
      * the invasion so that they survive a save; every rule that winds or reads one lives here.
      */
-    internal sealed class InvasionReinforcements
+    public sealed class InvasionReinforcements
     {
         private readonly InvasionState _invasionState;
         private readonly IInvasionReinforcementQuery _invasionReinforcementQuery;
 
-        internal InvasionReinforcements(InvasionState state, IInvasionReinforcementQuery campaign)
+        public InvasionReinforcements(InvasionState state, IInvasionReinforcementQuery campaign)
         {
             _invasionState = state;
             _invasionReinforcementQuery = campaign;
         }
 
         // The clocks are wound once, by the capture that gave the invasion its capital.
-        internal Invasion? StartSchedule(long captureId)
+        public Invasion? StartSchedule(long captureId)
         {
             InvasionCapture? capture = _invasionState.FindCapture(captureId);
             Invasion? invasion = _invasionState.FindInvasion(capture?.CapturingInvasionClanId);
@@ -130,7 +138,7 @@ namespace CustomSpawns.Invasions
          * first rule of a day takes its room and the next ones have to make do with what is left. Walking
          * the draws is therefore what spends the slots: it is walked once, by the caller that pays them in.
          */
-        internal IEnumerable<InvasionReinforcementDraw> DrawDue()
+        public IEnumerable<InvasionReinforcementDraw> DrawDue()
         {
             double nowDays = _invasionReinforcementQuery.NowInDays;
 
@@ -144,9 +152,7 @@ namespace CustomSpawns.Invasions
                     InvasionReinforcementRule? rule = rules.FirstOrDefault(candidate =>
                         candidate.Id == schedule.RuleId);
 
-                    // A stream that has delivered all the waves it was allowed is done: its clock stops
-                    // being read at all rather than coming due forever to be refused.
-                    if (!HasWavesLeft(rule, schedule) || !TryClaimSlot(schedule, nowDays))
+                    if (!TryClaimSlot(schedule, nowDays))
                     {
                         continue;
                     }
@@ -154,17 +160,6 @@ namespace CustomSpawns.Invasions
                     yield return Draw(invasion, rule, schedule);
                 }
             }
-        }
-
-        /**
-         * What the invasion may still field under its shared ceiling. An unconfigured ceiling leaves it
-         * unbounded; every town its kingdom holds right now raises the ceiling, and losing one lowers it again.
-         */
-        internal static double Headroom(InvasionStrengthBudget budget)
-        {
-            return budget.MaxFactionStrength <= 0
-                ? double.PositiveInfinity
-                : budget.MaxFactionStrength + budget.StrengthPerTownHeld * budget.TownsHeld - budget.CurrentStrength;
         }
 
         /**
@@ -184,7 +179,7 @@ namespace CustomSpawns.Invasions
 
         /**
          * Only waves that actually arrive are counted, so an invasion whose one wave fell due while its
-         * capital was besieged, or while it was already at full strength, keeps that wave and is sent it
+         * capital was lost, or while it was already at full strength, keeps that wave and is sent it
          * an interval later instead of losing it to timing it had no hand in.
          */
         private static bool HasWavesLeft(InvasionReinforcementRule? rule,
@@ -210,19 +205,24 @@ namespace CustomSpawns.Invasions
                     InvasionReinforcementOutcome.Unavailable);
 
             /**
-             * A wave has one destination: the capital's own garrison. An invasion that has yet to take a
-             * capital, or that has lost the one it took, is sent nothing and has to fight on with what it
-             * landed with; and a capital under siege cannot be marched into either, so the waves wait for
-             * the siege to lift. The clock runs through all of it, so nothing accumulates to be paid later.
+             * A wave has one destination: the capital's own garrison, and losing the capital is the only
+             * thing that stops the waves. An invasion that has yet to take a capital, or that has lost the
+             * one it took, is sent nothing and has to fight on with what it landed with; a besieged capital
+             * is still held, and is reinforced like any other. The clock runs through all of it, so nothing
+             * accumulates to be paid later.
              */
-            if (invasion.CapitalSettlementId == null || !_invasionState.HoldsCapital(invasion) ||
-                _invasionReinforcementQuery.IsUnderSiege(invasion.CapitalSettlementId))
+            if (invasion.CapitalSettlementId == null || !_invasionState.HoldsCapital(invasion))
                 return new InvasionReinforcementDraw(invasion, rule.Id,
                     InvasionReinforcementOutcome.CapitalUnavailable);
 
+            // A stream that has delivered all the waves it was allowed sends no more men, but the army it
+            // brought still has to be paid for as long as the capital stands.
+            if (!HasWavesLeft(rule, schedule))
+                return new InvasionReinforcementDraw(invasion, rule.Id, InvasionReinforcementOutcome.AllWavesSent);
+
             // The bank itself is bottomless. This is the one valve: waves stop once the invasion is as
             // strong as it is allowed to be, and start again as soon as it is not.
-            if (Headroom(_invasionReinforcementQuery.GetStrengthBudget(invasion)) <= 0)
+            if (_invasionReinforcementQuery.GetStrengthBudget(invasion).Headroom <= 0)
                 return new InvasionReinforcementDraw(invasion, rule.Id,
                     InvasionReinforcementOutcome.FactionStrengthReached);
 
@@ -234,7 +234,7 @@ namespace CustomSpawns.Invasions
          * its garrison party gone with the men that were in it -- is kept, so a rule allowed a single wave
          * still owes it and sends it an interval later.
          */
-        internal void RecordDelivered(InvasionReinforcementDraw draw)
+        public void RecordDelivered(InvasionReinforcementDraw draw)
         {
             InvasionReinforcementSchedule? schedule = draw.Invasion.FindReinforcementSchedule(draw.RuleId);
 

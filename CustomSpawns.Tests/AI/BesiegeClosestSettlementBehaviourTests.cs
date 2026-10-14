@@ -787,6 +787,73 @@ namespace CustomSpawns.Tests.AI
             Assert.That(result.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.BesiegeSettlement));
         }
 
+        /**
+         * The lords near the town are the relief force the running siege is fighting, so a sibling that
+         * waits in reconnaissance for them to leave leaves the camp to face them without it.
+         */
+        [Test]
+        public void Gathering_JoinsASiegeAlreadyRunningOnItsTargetDespiteLordsNearIt()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            var operations = new OperationsStub
+            {
+                SiegeTarget = target,
+                PatrolTarget = DummySettlement(),
+                Gathers = true,
+                ArrivedAttackerStrength = 0f,
+                HostileLordStrengthNearTarget = 1000f,
+                TargetStrength = 200f,
+                SupportableSiegeActive = true
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+
+            PartyBehaviourResult result = Evaluate(provider, party);
+
+            Assert.That(result.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.BesiegeSettlement));
+        }
+
+        [Test]
+        public void Gathering_JoinsAFightItsForceIsAlreadyInAtTheGateDespiteLordsNearIt()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            var operations = new OperationsStub
+            {
+                SiegeTarget = target,
+                PatrolTarget = DummySettlement(),
+                Gathers = true,
+                ArrivedAttackerStrength = 0f,
+                HostileLordStrengthNearTarget = 1000f,
+                TargetStrength = 200f,
+                ForcePinnedInBattle = true
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+
+            PartyBehaviourResult result = Evaluate(provider, party);
+
+            Assert.That(result.AIBehavior?.AiBehavior, Is.EqualTo(AiBehavior.BesiegeSettlement));
+        }
+
+        [Test]
+        public void LoneParty_StillHoldsInReconWhenLordsAreNearASiegeItCouldSupport()
+        {
+            MobileParty party = DummyParty();
+            Settlement target = DummySettlement();
+            var operations = new OperationsStub
+            {
+                SiegeTarget = target,
+                PatrolTarget = DummySettlement(),
+                HostileLordStrengthNearTarget = 1000f,
+                SupportableSiegeActive = true
+            };
+            BesiegeClosestSettlementBehaviour provider = Provider(operations);
+
+            PartyBehaviourResult result = Evaluate(provider, party);
+
+            Assert.That(result.AIBehavior?.AiBehavior, Is.Not.EqualTo(AiBehavior.BesiegeSettlement));
+        }
+
         [Test]
         public void Gathering_KeepsItsObjectiveWhileStillMarchingPastLordsNearTheTarget()
         {
@@ -1456,7 +1523,7 @@ namespace CustomSpawns.Tests.AI
             private readonly IReadOnlyList<MobileParty> _landingParties;
             private readonly bool _servesLiveInvasion;
 
-            internal LandingStub(Func<MobileParty, Func<Settlement, bool>?> filter,
+            public LandingStub(Func<MobileParty, Func<Settlement, bool>?> filter,
                 IReadOnlyList<MobileParty> landingParties, bool servesLiveInvasion)
             {
                 _filter = filter;
@@ -1480,7 +1547,7 @@ namespace CustomSpawns.Tests.AI
         {
             private readonly Func<Settlement, bool> _hasReachableLandGate;
 
-            internal MapPathStub(Func<Settlement, bool> hasReachableLandGate)
+            public MapPathStub(Func<Settlement, bool> hasReachableLandGate)
             {
                 _hasReachableLandGate = hasReachableLandGate;
             }

@@ -5,12 +5,12 @@ using TaleWorlds.CampaignSystem.Settlements;
 
 namespace CustomSpawns.Invasions.Adapters
 {
-    internal sealed class InvasionCapitalOwnershipBehaviour : CampaignBehaviorBase
+    public sealed class InvasionCapitalOwnershipBehaviour : CampaignBehaviorBase
     {
         private readonly IInvasionCapitalRepository _capitals;
-        internal event Action<InvasionCapitalStatusChanged>? CapitalStatusChanged;
+        public event Action<InvasionCapitalStatusChanged>? CapitalStatusChanged;
 
-        internal InvasionCapitalOwnershipBehaviour(IInvasionCapitalRepository capitals)
+        public InvasionCapitalOwnershipBehaviour(IInvasionCapitalRepository capitals)
         {
             _capitals = capitals ?? throw new ArgumentNullException(nameof(capitals));
         }
@@ -30,7 +30,7 @@ namespace CustomSpawns.Invasions.Adapters
             ObserveOwnerChange(settlement.StringId, KingdomIdOf(oldOwner), KingdomIdOf(newOwner));
         }
 
-        internal void ObserveOwnerChange(string settlementId, string? oldOwnerKingdomId,
+        public void ObserveOwnerChange(string settlementId, string? oldOwnerKingdomId,
             string? newOwnerKingdomId)
         {
             InvasionCapital? capital = _capitals.FindByCapital(settlementId);

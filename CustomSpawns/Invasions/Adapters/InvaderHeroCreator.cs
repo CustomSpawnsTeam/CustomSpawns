@@ -19,17 +19,17 @@ namespace CustomSpawns.Invasions.Adapters
      * of them, and fields a party for each lord that has none, the way it does for any kingdom of its own.
      * A lord beaten in the field is no longer among them: it is removed rather than fielded again.
      */
-    internal sealed class InvaderHeroCreator
+    public sealed class InvaderHeroCreator
     {
         private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         private readonly IInvasionClanRepository _invasionClans;
 
-        internal InvaderHeroCreator(IInvasionClanRepository invasionClans)
+        public InvaderHeroCreator(IInvasionClanRepository invasionClans)
         {
             _invasionClans = invasionClans;
         }
 
-        internal static bool HasPartySlot(string clanId)
+        public static bool HasPartySlot(string clanId)
         {
             Clan? clan = Clan.FindFirst(candidate => candidate.StringId == clanId);
 
@@ -37,7 +37,7 @@ namespace CustomSpawns.Invasions.Adapters
         }
 
         // The first clan of the invasion that can still take a war party, or a new one founded to take it.
-        internal Clan? FindClanWithRoom(Invasion invasion, Settlement home)
+        public Clan? FindClanWithRoom(Invasion invasion, Settlement home)
         {
             string? clanId = invasion.ClanIds.FirstOrDefault(HasPartySlot);
 
@@ -50,13 +50,19 @@ namespace CustomSpawns.Invasions.Adapters
          * A lord of this clan, ready to be fielded. Founding a clan has already created a leader who has
          * no party yet; he is the lord, rather than a second hero standing beside him.
          */
-        internal static Hero? CreateLord(Clan? clan, Settlement home)
+        public Hero? CreateLord(Clan? clan, Settlement home)
         {
             if (clan?.Leader is { IsAlive: true, PartyBelongedTo: null } leader)
             {
                 return leader;
             }
 
+            return CreateNewLord(clan, home);
+        }
+
+        // A lord added to this clan, never one it already has.
+        public static Hero? CreateNewLord(Clan? clan, Settlement? home)
+        {
             CharacterObject? lordTemplate = clan?.Culture?.LordTemplates
                 .FirstOrDefault(character => character.Occupation == Occupation.Lord);
 
@@ -70,7 +76,7 @@ namespace CustomSpawns.Invasions.Adapters
             return lord;
         }
 
-        internal Clan? FoundClan(Invasion invasion, Settlement home)
+        public Clan? FoundClan(Invasion invasion, Settlement home)
         {
             Clan? founder = Clan.FindFirst(candidate => candidate.StringId == invasion.ClanId);
             Kingdom? kingdom = founder?.Kingdom;
@@ -82,8 +88,10 @@ namespace CustomSpawns.Invasions.Adapters
                 return null;
             }
 
-            Clan clan = Clan.CreateClan(founder.StringId + "_" + invasion.ClanIds.Count);
+            // Named before it is created: CreateClan registers the clan in Clan.All, and the generator reads
+            // every clan's name there, so a clan registered without one throws.
             TextObject name = NameGenerator.Current.GenerateClanName(founder.Culture, home);
+            Clan clan = Clan.CreateClan(founder.StringId + "_" + invasion.ClanIds.Count);
             clan.ChangeClanName(name, name);
             clan.Culture = founder.Culture;
             clan.Banner = Banner.CreateRandomClanBanner();

@@ -20,7 +20,7 @@ namespace CustomSpawns.UtilityBehaviours
         private readonly Func<MobileParty, IEnumerable<MobileParty>> _findAccompanyingParties;
         private readonly Dictionary<MobileParty, string> _previousStates = new();
 
-        internal AiDecisionLoggerBehaviour(DailyLogger dailyLogger,
+        public AiDecisionLoggerBehaviour(DailyLogger dailyLogger,
             PartyStateStore<SettlementOffensiveBehaviourState> siegeStates,
             Func<MobileParty, IReadOnlyList<MobileParty>> findAttackingForce,
             Func<MobileParty, IEnumerable<MobileParty>> findAccompanyingParties)

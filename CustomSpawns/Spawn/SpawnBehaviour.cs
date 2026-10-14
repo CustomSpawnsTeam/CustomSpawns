@@ -298,7 +298,7 @@ namespace CustomSpawns.Spawn
             }
         }
 
-        internal static bool ShouldSuppressDeathMessage(CsPartyData partyData,
+        public static bool ShouldSuppressDeathMessage(CsPartyData partyData,
             Func<CsPartyData, bool> hasPersistentInvasion)
         {
             return partyData.IsAdopted ||
@@ -355,7 +355,7 @@ namespace CustomSpawns.Spawn
             return spawnSettlement;
         }
 
-        internal static bool TryDecrementPrimarySpawnCount(IDictionary<string, int> numberOfSpawns, CsPartyData partyData)
+        public static bool TryDecrementPrimarySpawnCount(IDictionary<string, int> numberOfSpawns, CsPartyData partyData)
         {
             if (!partyData.IsPrimarySpawn || partyData.OwningSpawnTemplateId == null
                                           || !numberOfSpawns.ContainsKey(partyData.OwningSpawnTemplateId))
@@ -367,7 +367,7 @@ namespace CustomSpawns.Spawn
             return true;
         }
 
-        internal static bool TryIncrementPrimarySpawnCount(IDictionary<string, int> numberOfSpawns,
+        public static bool TryIncrementPrimarySpawnCount(IDictionary<string, int> numberOfSpawns,
             CsPartyData? partyData)
         {
             if (partyData == null || !partyData.IsPrimarySpawn || partyData.OwningSpawnTemplateId == null
@@ -380,7 +380,7 @@ namespace CustomSpawns.Spawn
             return true;
         }
 
-        internal static T ResolveSpawnClan<T>(bool inheritClanFromSettlement, T configuredSpawnClan, T? settlementOwnerClan)
+        public static T ResolveSpawnClan<T>(bool inheritClanFromSettlement, T configuredSpawnClan, T? settlementOwnerClan)
             where T : class
         {
             return inheritClanFromSettlement && settlementOwnerClan != null ? settlementOwnerClan : configuredSpawnClan;

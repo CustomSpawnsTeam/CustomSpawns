@@ -108,7 +108,7 @@ namespace CustomSpawns.Data.Dao
             return spawn;
         }
 
-        internal static T? FindUniqueParent<T>(IEnumerable<T> candidates, out bool isAmbiguous)
+        public static T? FindUniqueParent<T>(IEnumerable<T> candidates, out bool isAmbiguous)
             where T : class
         {
             using IEnumerator<T> enumerator = candidates.GetEnumerator();

@@ -6,7 +6,7 @@ namespace CustomSpawns.Data.Adapter
      * Fills in the values a behaviour configuration left out of the XML. An omitted value is not the same
      * as a zero, so the *Specified flags decide whether the documented default applies.
      */
-    internal static class PriorityPartyBehaviourConfigDefaults
+    public static class PriorityPartyBehaviourConfigDefaults
     {
         public static StrengthAssessmentConfig ApplyStrengthDefaults(StrengthAssessmentConfig config,
             float minimumAttackerToTargetRatio, float minimumAttackerToRoamingHostilesRatio)

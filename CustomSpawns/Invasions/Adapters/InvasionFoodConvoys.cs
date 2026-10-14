@@ -1,27 +1,27 @@
+using System;
 using System.Collections.Generic;
 using CustomSpawns.Data.Dao;
 using CustomSpawns.Data.Dto;
 using NLog;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
-using TaleWorlds.Core;
 
 namespace CustomSpawns.Invasions.Adapters
 {
-    // Unloads each invasion's due food convoy into its capital's market.
-    internal sealed class InvasionFoodConvoys
+    // Unloads each invasion's due food convoy into its capital's food stocks.
+    public sealed class InvasionFoodConvoys
     {
         private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         private readonly InvasionState _invasionState;
         private readonly SpawnDao _spawnDao;
 
-        internal InvasionFoodConvoys(InvasionState state, SpawnDao spawns)
+        public InvasionFoodConvoys(InvasionState state, SpawnDao spawns)
         {
             _invasionState = state;
             _spawnDao = spawns;
         }
 
-        internal void UnloadDue()
+        public void UnloadDue()
         {
             double nowDays = CampaignTime.Now.ToDays;
 
@@ -50,9 +50,12 @@ namespace CustomSpawns.Invasions.Adapters
                     continue;
                 }
 
-                capital!.ItemRoster.AddToCounts(DefaultItems.Grain, configuration.FoodPerConvoy);
+                // Straight into the town's food stocks: grain left in the market only feeds the town once it
+                // is sold, which a besieger-ringed invasion capital rarely manages.
+                Town town = capital!.Town;
+                town.FoodStocks = Math.Min(town.FoodStocks + configuration.FoodPerConvoy, town.FoodStocksUpperLimit());
                 Logger.Info("Invasion food convoy unloaded: invasion=" + invasion.ClanId + " capital=" +
-                            capital.StringId + " food=" + configuration.FoodPerConvoy);
+                            capital.StringId + " food=" + configuration.FoodPerConvoy + " stocks=" + town.FoodStocks);
             }
         }
 

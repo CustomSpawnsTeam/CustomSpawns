@@ -1,6 +1,6 @@
 namespace CustomSpawns.AI.Model
 {
-    internal enum SettlementOffensivePhase
+    public enum SettlementOffensivePhase
     {
         Idle = 0,
         Search = 1,

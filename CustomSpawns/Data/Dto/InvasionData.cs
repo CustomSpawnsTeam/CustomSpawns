@@ -7,8 +7,10 @@ namespace CustomSpawns.Data.Dto
         public InvasionData(bool requiresFirstCoastalConquest,
             IReadOnlyList<InvasionReinforcementRuleData> reinforcementRules, float maxFactionStrength = 0f,
             float strengthPerTownHeld = 0f, string? supplyLine = null, int minimumCapitalGarrison = 0,
-            int foodPerConvoy = 0, float foodConvoyIntervalInDays = 0f)
+            int foodPerConvoy = 0, float foodConvoyIntervalInDays = 0f, int maxLords = 0, int lordsPerTownHeld = 0)
         {
+            MaxLords = maxLords;
+            LordsPerTownHeld = lordsPerTownHeld;
             FoodPerConvoy = foodPerConvoy;
             FoodConvoyIntervalInDays = foodConvoyIntervalInDays;
             SupplyLine = supplyLine;
@@ -28,7 +30,7 @@ namespace CustomSpawns.Data.Dto
         // down to but not below.
         public int MinimumCapitalGarrison { get; }
 
-        // How much food each convoy unloads into the capital's market. Zero runs no convoys at all.
+        // How much food each convoy adds to the capital's food stocks. Zero runs no convoys at all.
         public int FoodPerConvoy { get; }
 
         // How often a convoy arrives, in days. Nothing to do with the reinforcement cadence.
@@ -43,6 +45,12 @@ namespace CustomSpawns.Data.Dto
         // What each town the invasion's kingdom holds right now adds to that ceiling, whichever of its clans
         // owns it. Losing the town lowers it again.
         public float StrengthPerTownHeld { get; }
+
+        // The most lords the invasion keeps, the lords it already has counted. Zero leaves it uncapped.
+        public int MaxLords { get; }
+
+        // What each town the invasion's kingdom holds adds to that cap.
+        public int LordsPerTownHeld { get; }
 
         // In configuration order, which is the order the rules draw in.
         public IReadOnlyList<InvasionReinforcementRuleData> ReinforcementRules { get; }

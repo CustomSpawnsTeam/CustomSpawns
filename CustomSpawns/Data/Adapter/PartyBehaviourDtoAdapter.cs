@@ -15,13 +15,13 @@ namespace CustomSpawns.Data.Adapter
          */
         private readonly IReadOnlyDictionary<Type, IPriorityPartyBehaviourConfigAdapter> _adapters;
 
-        internal PartyBehaviourDtoAdapter(IEnumerable<IPriorityPartyBehaviourConfigAdapter> adapters)
+        public PartyBehaviourDtoAdapter(IEnumerable<IPriorityPartyBehaviourConfigAdapter> adapters)
         {
             _adapters = (adapters ?? throw new ArgumentNullException(nameof(adapters)))
                 .ToDictionary(adapter => adapter.ConfigurationType);
         }
 
-        internal bool HasAdapter(Type configurationType)
+        public bool HasAdapter(Type configurationType)
         {
             return _adapters.ContainsKey(configurationType);
         }
@@ -35,7 +35,7 @@ namespace CustomSpawns.Data.Adapter
             };
         }
 
-        internal IReadOnlyList<PriorityPartyBehaviourData> AdaptPriorityPartyBehaviours(
+        public IReadOnlyList<PriorityPartyBehaviourData> AdaptPriorityPartyBehaviours(
             List<PriorityPartyBehaviourConfig>? configurations)
         {
             configurations ??= new List<PriorityPartyBehaviourConfig>();

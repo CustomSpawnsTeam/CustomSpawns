@@ -14,12 +14,12 @@ namespace CustomSpawns.Invasions.Adapters
      * The Bannerlord edge of the capital-retake use case. Only clans recorded by the invasion repository
      * are eligible, so a native Calradian clan in the same kingdom is deliberately left alone.
      */
-    internal sealed class InvasionCapitalRetakeOrders : IInvasionCapitalRetakeOrders
+    public sealed class InvasionCapitalRetakeOrders : IInvasionCapitalRetakeOrders
     {
         private readonly IInvasionClanRepository _clans;
         private readonly DynamicSpawnData _dynamicSpawnData;
 
-        internal InvasionCapitalRetakeOrders(IInvasionClanRepository clans, DynamicSpawnData dynamicSpawnData)
+        public InvasionCapitalRetakeOrders(IInvasionClanRepository clans, DynamicSpawnData dynamicSpawnData)
         {
             _clans = clans ?? throw new ArgumentNullException(nameof(clans));
             _dynamicSpawnData = dynamicSpawnData ?? throw new ArgumentNullException(nameof(dynamicSpawnData));

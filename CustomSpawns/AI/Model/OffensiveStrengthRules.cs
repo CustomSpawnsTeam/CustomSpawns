@@ -7,14 +7,14 @@ namespace CustomSpawns.AI.Model
      * How a settlement offensive judges strength: what an observer can see around itself, whether a force
      * is strong enough to commit, and which of the candidates it can take on is the nearest.
      */
-    internal static class OffensiveStrengthRules
+    public static class OffensiveStrengthRules
     {
-        internal static bool IsWithinSeeingRange(float distance, float observerSeeingRange)
+        public static bool IsWithinSeeingRange(float distance, float observerSeeingRange)
         {
             return distance <= observerSeeingRange;
         }
 
-        internal static float SumVisibleHostileStrength(IEnumerable<RoamingPartyStrength> parties,
+        public static float SumVisibleHostileStrength(IEnumerable<RoamingPartyStrength> parties,
             float observerSeeingRange)
         {
             return parties.Where(p => !p.IsSelf && p.IsActive && p.IsHostile &&
@@ -22,7 +22,7 @@ namespace CustomSpawns.AI.Model
                 .Sum(p => p.PartyStrength);
         }
 
-        internal static float SumVisibleHostileLordStrength(
+        public static float SumVisibleHostileLordStrength(
             IEnumerable<RoamingPartyStrength> parties, float observerSeeingRange)
         {
             // A lord stack in flight is not a threat near the target: it is running past it, and the
@@ -38,7 +38,7 @@ namespace CustomSpawns.AI.Model
          * that could lift the siege. A merchant train or a peasant cart is near the town constantly and
          * can lift nothing, so neither counts, any more than they count as defenders inside the walls.
          */
-        internal static float CalculateActiveSiegeDefenderStrength(float defenderStrength,
+        public static float CalculateActiveSiegeDefenderStrength(float defenderStrength,
             IEnumerable<RoamingPartyStrength> parties, float seeingRange)
         {
             return defenderStrength + parties
@@ -52,19 +52,19 @@ namespace CustomSpawns.AI.Model
          * sight of it, and nothing else. What a party is worth on paper deliberately does not enter: an
          * army total or an escort still a province away is exactly what this figure exists to leave out.
          */
-        internal static float CalculateArrivedAttackerStrength(IEnumerable<AttackingPartyStrength> force)
+        public static float CalculateArrivedAttackerStrength(IEnumerable<AttackingPartyStrength> force)
         {
             return force.Where(p => IsWithinSeeingRange(p.DistanceToTarget, p.SeeingRange))
                 .Sum(p => p.PartyStrength);
         }
 
-        internal static bool MeetsStrengthRatio(float attackerStrength, float defenderStrength,
+        public static bool MeetsStrengthRatio(float attackerStrength, float defenderStrength,
             float minimumRatio)
         {
             return defenderStrength <= 0f || attackerStrength / defenderStrength >= minimumRatio;
         }
 
-        internal static T? ChooseClosestTarget<T>(IEnumerable<RaidTargetCandidate<T>> candidates,
+        public static T? ChooseClosestTarget<T>(IEnumerable<RaidTargetCandidate<T>> candidates,
             float attackerStrength, float minimumRatio) where T : class
         {
             return candidates.Where(c => c.IsValid &&

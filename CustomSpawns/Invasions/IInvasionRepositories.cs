@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace CustomSpawns.Invasions
 {
-    internal readonly struct InvasionCapital
+    public readonly struct InvasionCapital
     {
         public string InvaderKingdomId { get; }
         public string? CapitalSettlementId { get; }
@@ -14,7 +14,7 @@ namespace CustomSpawns.Invasions
         }
     }
 
-    internal readonly struct InvasionCapitalStatusChanged
+    public readonly struct InvasionCapitalStatusChanged
     {
         public InvasionCapital Capital { get; }
         public bool IsHeldByInvader { get; }
@@ -26,21 +26,21 @@ namespace CustomSpawns.Invasions
         }
     }
 
-    internal interface IInvasionCapitalRepository
+    public interface IInvasionCapitalRepository
     {
         IReadOnlyList<InvasionCapital> FindAll();
         InvasionCapital? FindByCapital(string settlementId);
         void Register(string invaderKingdomId, string? capitalSettlementId);
     }
 
-    internal interface IInvasionClanRepository
+    public interface IInvasionClanRepository
     {
         string? FindSpawnTemplate(string clanId);
         IReadOnlyList<string> FindClanIds(string spawnTemplateId);
         void Register(string spawnTemplateId, string clanId);
     }
 
-    internal interface IInvasionCapitalRetakeOrders
+    public interface IInvasionCapitalRetakeOrders
     {
         void Retake(InvasionCapital capital);
     }

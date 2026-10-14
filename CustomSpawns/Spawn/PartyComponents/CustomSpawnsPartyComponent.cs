@@ -62,7 +62,7 @@ namespace CustomSpawns.Spawn.PartyComponents
          * Makes the given hero lead this party, enrolling it at the front of the member roster
          * so that Bannerlord tracks the hero as belonging to this party.
          */
-        internal void AssignLeader(Hero leader)
+        public void AssignLeader(Hero leader)
         {
             _leader = leader;
             if (MobileParty.MemberRoster.FindIndexOfTroop(leader.CharacterObject) < 0)
@@ -108,7 +108,7 @@ namespace CustomSpawns.Spawn.PartyComponents
             _homeSettlement = state.HomeSettlement!;
         }
 
-        internal static LegacyPartyState RepairLegacyState(Hero? savedOwner, Hero? currentOwner, Clan? actualClan,
+        public static LegacyPartyState RepairLegacyState(Hero? savedOwner, Hero? currentOwner, Clan? actualClan,
             TextObject? savedName, TextObject? currentName, Settlement? savedHomeSettlement, Settlement? currentHomeSettlement)
         {
             Hero? partyOwner = savedOwner ?? currentOwner;
@@ -121,12 +121,12 @@ namespace CustomSpawns.Spawn.PartyComponents
                 savedName ?? currentName, savedHomeSettlement ?? currentHomeSettlement);
         }
 
-        internal static bool ShouldRegisterWithClan(Clan? clan)
+        public static bool ShouldRegisterWithClan(Clan? clan)
         {
             return clan != null;
         }
 
-        internal static bool ShouldFinalizeWithClan(bool isRegisteredWithClan)
+        public static bool ShouldFinalizeWithClan(bool isRegisteredWithClan)
         {
             return isRegisteredWithClan;
         }
@@ -154,7 +154,7 @@ namespace CustomSpawns.Spawn.PartyComponents
             MobileParty.Party.SetVisualAsDirty();
         }
 
-        internal readonly struct LegacyPartyState
+        public readonly struct LegacyPartyState
         {
             public Hero? PartyOwner { get; }
             public TextObject? Name { get; }

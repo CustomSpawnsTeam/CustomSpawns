@@ -8,7 +8,7 @@ namespace CustomSpawns.AI
      * only while the party is both one of ours and still ours to steer. Once a party is released to
      * vanilla it answers with nothing, so every grip lets go at the same moment.
      */
-    internal sealed class SteeredPartyLookup
+    public sealed class SteeredPartyLookup
     {
         private readonly DynamicSpawnData _dynamicSpawnData;
         private readonly IPartySteeringQuery _partySteeringQuery;

@@ -13,5 +13,10 @@ namespace CustomSpawns.Diplomacy
         {
             return IsVassal(faction) ? faction.MapFaction : null;
         }
+
+        public IFaction? GetRulingClan(IFaction faction)
+        {
+            return (faction as Kingdom)?.RulingClan;
+        }
     }
 }

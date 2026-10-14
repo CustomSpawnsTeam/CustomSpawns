@@ -218,7 +218,7 @@ namespace CustomSpawns.Diplomacy
         }
     }
 
-    internal sealed class DiplomacyReconciliationScheduler
+    public sealed class DiplomacyReconciliationScheduler
     {
         private bool _isPending;
 

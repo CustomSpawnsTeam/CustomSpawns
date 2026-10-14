@@ -15,7 +15,7 @@ namespace CustomSpawns.AI.Behaviours
         PriorityPartyBehaviour<PatrolAroundClosestLestInterruptedAndSwitchData>
     {
         private const float PatrolDaysPerHour = 1f / 24f;
-        internal const string SaveKey = "_customSpawnsPatrolAroundClosestStates";
+        public const string SaveKey = "_customSpawnsPatrolAroundClosestStates";
 
         private readonly System.Func<MobileParty, MobileParty.NavigationType> _getNavigationCapability;
         private readonly PartyStateStore<PatrolState> _patrolStates;
@@ -25,7 +25,7 @@ namespace CustomSpawns.AI.Behaviours
         {
         }
 
-        internal PatrolAroundClosestLestInterruptedAndSwitchBehaviour(
+        public PatrolAroundClosestLestInterruptedAndSwitchBehaviour(
             System.Func<MobileParty, MobileParty.NavigationType> getNavigationCapability,
             PartyStateStore<PatrolState> patrolStates)
         {
@@ -98,7 +98,7 @@ namespace CustomSpawns.AI.Behaviours
             return MBRandom.RandomFloatRanged(patrolConfig.MinStableDays, patrolConfig.MaxStableDays);
         }
 
-        internal static bool IsPatrolInterrupted(AiBehavior defaultBehavior, AiBehavior shortTermBehavior)
+        public static bool IsPatrolInterrupted(AiBehavior defaultBehavior, AiBehavior shortTermBehavior)
         {
             return IsInterruptingBehavior(defaultBehavior) || IsInterruptingBehavior(shortTermBehavior);
         }
@@ -109,24 +109,24 @@ namespace CustomSpawns.AI.Behaviours
                    behavior == AiBehavior.JoinParty || behavior == AiBehavior.FleeToPoint;
         }
 
-        internal static float UpdateUninterruptedPatrolDays(float currentDays, bool isInterrupted)
+        public static float UpdateUninterruptedPatrolDays(float currentDays, bool isInterrupted)
         {
             return isInterrupted ? 0f : currentDays + PatrolDaysPerHour;
         }
 
-        internal static bool ShouldSwitchPatrolTarget(float uninterruptedPatrolDays, float stablePatrolDays,
+        public static bool ShouldSwitchPatrolTarget(float uninterruptedPatrolDays, float stablePatrolDays,
             bool isInterrupted)
         {
             return !isInterrupted && uninterruptedPatrolDays >= stablePatrolDays;
         }
 
-        internal static float RetainOrRollStablePatrolDays(bool hasExistingTarget, float stablePatrolDays,
+        public static float RetainOrRollStablePatrolDays(bool hasExistingTarget, float stablePatrolDays,
             System.Func<float> rollStablePatrolDays)
         {
             return hasExistingTarget ? stablePatrolDays : rollStablePatrolDays();
         }
 
-        internal sealed class PatrolState
+        public sealed class PatrolState
         {
             [SaveableField(1)]
             private Settlement? _target;

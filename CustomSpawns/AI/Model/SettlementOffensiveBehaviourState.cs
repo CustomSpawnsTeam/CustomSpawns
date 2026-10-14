@@ -4,7 +4,7 @@ using TaleWorlds.SaveSystem;
 
 namespace CustomSpawns.AI.Model
 {
-    internal sealed class SettlementOffensiveBehaviourState
+    public sealed class SettlementOffensiveBehaviourState
     {
         [SaveableField(1)]
         private Settlement? _target;

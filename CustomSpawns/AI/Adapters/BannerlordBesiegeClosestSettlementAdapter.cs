@@ -11,7 +11,7 @@ using TaleWorlds.CampaignSystem.Settlements;
 
 namespace CustomSpawns.AI.Adapters
 {
-    internal sealed class BannerlordBesiegeClosestSettlementAdapter
+    public sealed class BannerlordBesiegeClosestSettlementAdapter
         : BannerlordSettlementOffensiveAdapter, ISiegeOperations
     {
         private readonly Func<MobileParty, IEnumerable<SiegeTargetCandidate>> _getCandidates;
@@ -26,7 +26,7 @@ namespace CustomSpawns.AI.Adapters
         {
         }
 
-        internal BannerlordBesiegeClosestSettlementAdapter(DynamicSpawnData dynamicSpawnData,
+        public BannerlordBesiegeClosestSettlementAdapter(DynamicSpawnData dynamicSpawnData,
             ISiegeTargetPolicy siegeTargetPolicy) : this(
             observer => observer.SeeingRange, ObserveRoamingParties, ObserveCandidates,
             dynamicSpawnData.FindAccompanyingParties, siegeTargetPolicy,
@@ -34,7 +34,7 @@ namespace CustomSpawns.AI.Adapters
         {
         }
 
-        internal BannerlordBesiegeClosestSettlementAdapter(Func<MobileParty, float> getSeeingRange,
+        public BannerlordBesiegeClosestSettlementAdapter(Func<MobileParty, float> getSeeingRange,
             Func<MobileParty, IEnumerable<RoamingPartyStrength>> getRoamingParties,
             Func<MobileParty, IEnumerable<SiegeTargetCandidate>> getCandidates,
             Func<MobileParty, IEnumerable<MobileParty>> getAccompanyingParties)
@@ -43,7 +43,7 @@ namespace CustomSpawns.AI.Adapters
         {
         }
 
-        internal BannerlordBesiegeClosestSettlementAdapter(Func<MobileParty, float> getSeeingRange,
+        public BannerlordBesiegeClosestSettlementAdapter(Func<MobileParty, float> getSeeingRange,
             Func<MobileParty, IEnumerable<RoamingPartyStrength>> getRoamingParties,
             Func<MobileParty, IEnumerable<SiegeTargetCandidate>> getCandidates,
             Func<MobileParty, IEnumerable<MobileParty>> getAccompanyingParties,
@@ -53,7 +53,7 @@ namespace CustomSpawns.AI.Adapters
         {
         }
 
-        internal BannerlordBesiegeClosestSettlementAdapter(Func<MobileParty, float> getSeeingRange,
+        public BannerlordBesiegeClosestSettlementAdapter(Func<MobileParty, float> getSeeingRange,
             Func<MobileParty, IEnumerable<RoamingPartyStrength>> getRoamingParties,
             Func<MobileParty, IEnumerable<SiegeTargetCandidate>> getCandidates,
             Func<MobileParty, IEnumerable<MobileParty>> getAccompanyingParties,
@@ -301,7 +301,7 @@ namespace CustomSpawns.AI.Adapters
                     party.NavigationCapability, false, false, false);
         }
 
-        internal static bool IsIntendedTargetFaction(IFaction currentFaction,
+        public static bool IsIntendedTargetFaction(IFaction currentFaction,
             IFaction? intendedTargetFaction)
         {
             return currentFaction == intendedTargetFaction;
@@ -350,7 +350,7 @@ namespace CustomSpawns.AI.Adapters
             return CalculateDefenderStrength(settlement.Militia, garrisonStrength, occupants);
         }
 
-        internal static float CalculateDefenderStrength(float militiaStrength, float garrisonStrength,
+        public static float CalculateDefenderStrength(float militiaStrength, float garrisonStrength,
             IEnumerable<SettlementDefenderPartyStrength> occupants)
         {
             return militiaStrength + garrisonStrength + occupants

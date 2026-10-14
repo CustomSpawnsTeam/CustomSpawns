@@ -3,7 +3,7 @@ using CustomSpawns.Data.Model;
 
 namespace CustomSpawns.Data.Adapter
 {
-    internal sealed class RaidClosestVillageConfigAdapter
+    public sealed class RaidClosestVillageConfigAdapter
         : PriorityPartyBehaviourConfigAdapter<RaidClosestVillageConfig>
     {
         private const string BehaviourName = "RaidClosestVillage";

@@ -14,14 +14,14 @@ namespace CustomSpawns.Invasions.Adapters
      * that membership across a save, and leaves when it dies; reconciliation is the same question
      * asked of the whole map, since parties, clans and configurations all disappear behind our back.
      */
-    internal sealed class InvasionMembership
+    public sealed class InvasionMembership
     {
         private readonly InvasionState _invasionState;
         private readonly SpawnDao _spawnDao;
         private readonly DynamicSpawnData _dynamicSpawnData;
         private readonly InvasionCaptureCorrelation _invasionCaptureCorrelation;
 
-        internal InvasionMembership(InvasionState state, SpawnDao spawns, DynamicSpawnData parties,
+        public InvasionMembership(InvasionState state, SpawnDao spawns, DynamicSpawnData parties,
             InvasionCaptureCorrelation correlation)
         {
             _invasionState = state;
@@ -30,7 +30,7 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionCaptureCorrelation = correlation;
         }
 
-        internal void Register(MobileParty party, CsPartyData data)
+        public void Register(MobileParty party, CsPartyData data)
         {
             string? templateId = data.OwningSpawnTemplateId;
             Clan? clan = party.ActualClan;
@@ -78,7 +78,7 @@ namespace CustomSpawns.Invasions.Adapters
          * three are read from. A defeated lord is not a case here: it is removed rather
          * than left to come back.
          */
-        internal void Adopt(MobileParty party)
+        public void Adopt(MobileParty party)
         {
             string? templateId = FindAdoptingTemplate(party, _dynamicSpawnData.GetDynamicSpawnData(party),
                 _invasionState);
@@ -94,7 +94,7 @@ namespace CustomSpawns.Invasions.Adapters
          * be an invasion party the game rebuilt: the garrisons, caravans and militias of the same clan
          * are not ours to adopt.
          */
-        internal static string? FindAdoptingTemplate(MobileParty party, CsPartyData? registered,
+        public static string? FindAdoptingTemplate(MobileParty party, CsPartyData? registered,
             InvasionState invasionState)
         {
             if (registered != null || party.LordPartyComponent == null)
@@ -105,7 +105,7 @@ namespace CustomSpawns.Invasions.Adapters
             return invasionState.FindFightingInvasion(party.ActualClan?.StringId)?.SpawnTemplateId;
         }
 
-        internal void RegisterLive()
+        public void RegisterLive()
         {
             foreach (MobileParty party in MobileParty.All.Where(p => p.IsActive))
             {
@@ -118,13 +118,13 @@ namespace CustomSpawns.Invasions.Adapters
             }
         }
 
-        internal void Remove(MobileParty party)
+        public void Remove(MobileParty party)
         {
             _invasionState.RemoveMember(party.StringId);
             Reconcile();
         }
 
-        internal void Reconcile()
+        public void Reconcile()
         {
             _invasionState.Reconcile(MobileParty.All.Where(p => p.IsActive).Select(p => p.StringId),
                 id => Settlement.Find(id)?.OwnerClan?.StringId,
@@ -134,7 +134,7 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionCaptureCorrelation.Prune();
         }
 
-        internal IReadOnlyList<MobileParty> FindLiveMembers(MobileParty party)
+        public IReadOnlyList<MobileParty> FindLiveMembers(MobileParty party)
         {
             Invasion? invasion = _invasionState.FindInvasionOfParty(party.StringId);
 
@@ -147,7 +147,7 @@ namespace CustomSpawns.Invasions.Adapters
                 .ToList();
         }
 
-        internal static string RoleFor(CsPartyData data) =>
+        public static string RoleFor(CsPartyData data) =>
             data.IsAdopted ? "Adopted" :
             data.IsPrimarySpawn ? "Original" : "Escort";
 

@@ -6,7 +6,7 @@ using TaleWorlds.CampaignSystem.Settlements;
 
 namespace CustomSpawns.AI.Offensives
 {
-    internal interface ISiegeTargetPolicy
+    public interface ISiegeTargetPolicy
     {
         bool IsCandidateAllowed(MobileParty party, SiegeTargetCandidate candidate);
         bool IsExistingTargetAllowed(MobileParty party, Settlement target, bool matchingNativeAssault);
@@ -26,7 +26,7 @@ namespace CustomSpawns.AI.Offensives
         bool GathersBeforeAssault(MobileParty party);
     }
 
-    internal sealed class NoRestrictionSiegeTargetPolicy : ISiegeTargetPolicy
+    public sealed class NoRestrictionSiegeTargetPolicy : ISiegeTargetPolicy
     {
         public bool IsCandidateAllowed(MobileParty party, SiegeTargetCandidate candidate) => true;
 

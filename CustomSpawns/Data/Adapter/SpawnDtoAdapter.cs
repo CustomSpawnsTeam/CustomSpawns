@@ -153,7 +153,7 @@ namespace CustomSpawns.Data.Adapter
             return dat;
         }
 
-        internal static PatrolAroundClosestLestInterruptedAndSwitchData? AdaptLegacyPatrol(Model.Spawn spawn)
+        public static PatrolAroundClosestLestInterruptedAndSwitchData? AdaptLegacyPatrol(Model.Spawn spawn)
         {
             PatrolAroundConfig? patrolAroundConfig = spawn.PatrolAroundConfig;
             if (spawn.PriorityPartyBehaviourTemplateIdSpecified || patrolAroundConfig == null ||

@@ -16,7 +16,7 @@ namespace CustomSpawns.Invasions.Adapters
         [SaveableField(5)] public List<InvasionFootholdSaveData> Footholds = new();
         [SaveableField(6)] public List<InvasionCaptureEvidenceSaveData> OwnedCaptureEvidence = new();
 
-        internal static InvasionStateSaveData FromState(InvasionState state) => new()
+        public static InvasionStateSaveData FromState(InvasionState state) => new()
         {
             NextCaptureId = state.NextCaptureId,
             Invasions = state.Invasions.Select(InvasionSaveData.FromState).ToList(),
@@ -24,7 +24,7 @@ namespace CustomSpawns.Invasions.Adapters
             Footholds = state.Footholds.Select(InvasionFootholdSaveData.FromState).ToList()
         };
 
-        internal InvasionState ToState()
+        public InvasionState ToState()
         {
             var state = new InvasionState { NextCaptureId = Math.Max(1, NextCaptureId) };
             foreach (var invasion in Invasions ?? new List<InvasionSaveData>()) state.InvasionIndex.Add(invasion.ClanId, invasion.ToState());
@@ -60,7 +60,7 @@ namespace CustomSpawns.Invasions.Adapters
         // Negative for a convoy clock that has yet to be wound, which is every invasion without a capital.
         [SaveableField(11)] public double NextFoodConvoyDays = -1;
 
-        internal static InvasionSaveData FromState(Invasion value) => new()
+        public static InvasionSaveData FromState(Invasion value) => new()
         {
             SpawnTemplateId = value.SpawnTemplateId,
             ClanId = value.ClanId,
@@ -73,7 +73,7 @@ namespace CustomSpawns.Invasions.Adapters
             NextFoodConvoyDays = value.NextFoodConvoyDays ?? -1
         };
 
-        internal Invasion ToState()
+        public Invasion ToState()
         {
             var invasion = new Invasion(SpawnTemplateId, ClanId)
             {
@@ -98,7 +98,7 @@ namespace CustomSpawns.Invasions.Adapters
         [SaveableField(3)] public double NextDeadlineDays;
         [SaveableField(4)] public int WavesSent;
 
-        internal static InvasionReinforcementScheduleSaveData FromState(InvasionReinforcementSchedule value) => new()
+        public static InvasionReinforcementScheduleSaveData FromState(InvasionReinforcementSchedule value) => new()
         {
             RuleId = value.RuleId,
             IntervalDays = value.IntervalDays,
@@ -124,7 +124,7 @@ namespace CustomSpawns.Invasions.Adapters
         [SaveableField(16)] public bool Cancelled;
         [SaveableField(17)] public bool OccupationApplied;
 
-        internal static InvasionCaptureSaveData FromState(InvasionCapture value) => new()
+        public static InvasionCaptureSaveData FromState(InvasionCapture value) => new()
         {
             Id = value.Id,
             SettlementId = value.SettlementId,
@@ -142,7 +142,7 @@ namespace CustomSpawns.Invasions.Adapters
             OccupationApplied = value.OccupationApplied
         };
 
-        internal InvasionCapture ToState() => new(Id, SettlementId, BattleStartTimeBits, StartingAttackerId)
+        public InvasionCapture ToState() => new(Id, SettlementId, BattleStartTimeBits, StartingAttackerId)
         {
             CapturingInvasionClanId = CapturingInvasionClanId,
             CapturerId = CapturerId,
@@ -163,13 +163,13 @@ namespace CustomSpawns.Invasions.Adapters
         [SaveableField(2)] public string InvasionClanId = "";
         [SaveableField(3)] public long CaptureId;
 
-        internal static InvasionFootholdSaveData FromState(InvasionFoothold value) => new()
+        public static InvasionFootholdSaveData FromState(InvasionFoothold value) => new()
         {
             SettlementId = value.SettlementId,
             InvasionClanId = value.InvasionClanId,
             CaptureId = value.CaptureId
         };
 
-        internal InvasionFoothold ToState() => new(SettlementId, InvasionClanId, CaptureId);
+        public InvasionFoothold ToState() => new(SettlementId, InvasionClanId, CaptureId);
     }
 }

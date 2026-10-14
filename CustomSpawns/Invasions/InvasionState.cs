@@ -7,11 +7,11 @@ namespace CustomSpawns.Invasions
     // Authoritative campaign state. Engine objects and save-system attributes belong in the adapter.
     public sealed class InvasionState
     {
-        internal long NextCaptureId = 1;
+        public long NextCaptureId = 1;
         // Keyed by the clan each invasion was founded for: a clan is invaded for at most once.
-        internal readonly Dictionary<string, Invasion> InvasionIndex = new(StringComparer.Ordinal);
-        internal readonly Dictionary<long, InvasionCapture> CaptureIndex = new();
-        internal readonly Dictionary<string, InvasionFoothold> FootholdIndex = new(StringComparer.Ordinal);
+        public readonly Dictionary<string, Invasion> InvasionIndex = new(StringComparer.Ordinal);
+        public readonly Dictionary<long, InvasionCapture> CaptureIndex = new();
+        public readonly Dictionary<string, InvasionFoothold> FootholdIndex = new(StringComparer.Ordinal);
         public IReadOnlyCollection<Invasion> Invasions => InvasionIndex.Values;
         public IReadOnlyCollection<InvasionCapture> Captures => CaptureIndex.Values;
         public IReadOnlyCollection<InvasionFoothold> Footholds => FootholdIndex.Values;
@@ -146,7 +146,7 @@ namespace CustomSpawns.Invasions
 
     public sealed class Invasion
     {
-        internal Invasion(string templateId, string clanId)
+        public Invasion(string templateId, string clanId)
         { SpawnTemplateId = templateId; ClanId = clanId; Clans.Add(clanId); }
         public string SpawnTemplateId { get; }
         /**
@@ -155,32 +155,32 @@ namespace CustomSpawns.Invasions
          */
         public string ClanId { get; }
         // An invasion outgrows the war party limit of one clan, so it expands into further clans of its kingdom.
-        internal List<string> Clans = new();
+        public List<string> Clans = new();
         public IReadOnlyList<string> ClanIds => Clans;
         public bool HoldsClan(string? clanId) => clanId != null && Clans.Contains(clanId);
-        internal void AddClan(string clanId) { if (!Clans.Contains(clanId)) Clans.Add(clanId); }
-        public bool IsSuspended { get; internal set; }
+        public void AddClan(string clanId) { if (!Clans.Contains(clanId)) Clans.Add(clanId); }
+        public bool IsSuspended { get; set; }
         /**
          * The settlement the invasion founded its kingdom on. Kept once the invasion loses it, because losing
          * it is what puts the invasion back on the offensive: later conquests are the kingdom's own business,
          * but the capital it landed for has to be retaken.
          */
-        public string? CapitalSettlementId { get; internal set; }
+        public string? CapitalSettlementId { get; set; }
         /**
          * When the next food convoy is due at the capital, in campaign days, or null while none has been
          * scheduled. It is its own clock on purpose: supplying the capital has nothing to do with how often
          * the invasion is reinforced.
          */
-        public double? NextFoodConvoyDays { get; internal set; }
+        public double? NextFoodConvoyDays { get; set; }
 
         // One clock per configured reinforcement rule. An invasion that holds no supply base has none.
-        internal List<InvasionReinforcementSchedule> Schedules = new();
+        public List<InvasionReinforcementSchedule> Schedules = new();
         public IReadOnlyList<InvasionReinforcementSchedule> ReinforcementSchedules => Schedules;
 
-        internal InvasionReinforcementSchedule? FindReinforcementSchedule(string ruleId) =>
+        public InvasionReinforcementSchedule? FindReinforcementSchedule(string ruleId) =>
             Schedules.FirstOrDefault(schedule => schedule.RuleId == ruleId);
 
-        internal InvasionReinforcementSchedule WindReinforcementSchedule(string ruleId, double intervalDays,
+        public InvasionReinforcementSchedule WindReinforcementSchedule(string ruleId, double intervalDays,
             double nextDeadlineDays, int wavesSent = 0)
         {
             var schedule = new InvasionReinforcementSchedule(ruleId, intervalDays, nextDeadlineDays, wavesSent);
@@ -188,7 +188,7 @@ namespace CustomSpawns.Invasions
             return schedule;
         }
 
-        internal HashSet<string> Members = new(StringComparer.Ordinal);
+        public HashSet<string> Members = new(StringComparer.Ordinal);
         public IReadOnlyCollection<string> MemberPartyIds => Members;
     }
 
@@ -196,19 +196,19 @@ namespace CustomSpawns.Invasions
     // dropped still spends its due slot once rather than being retried daily.
     public sealed class InvasionReinforcementSchedule
     {
-        internal InvasionReinforcementSchedule(string ruleId, double intervalDays, double nextDeadlineDays,
+        public InvasionReinforcementSchedule(string ruleId, double intervalDays, double nextDeadlineDays,
             int wavesSent = 0)
         { RuleId = ruleId; IntervalDays = intervalDays; NextDeadlineDays = nextDeadlineDays; WavesSent = wavesSent; }
         public string RuleId { get; }
         public double IntervalDays { get; }
-        public double NextDeadlineDays { get; internal set; }
+        public double NextDeadlineDays { get; set; }
         // Waves this clock has actually delivered, counted against a rule that is allowed only so many.
-        public int WavesSent { get; internal set; }
+        public int WavesSent { get; set; }
     }
 
     public sealed class InvasionFoothold
     {
-        internal InvasionFoothold(string settlementId, string invasionClanId, long captureId)
+        public InvasionFoothold(string settlementId, string invasionClanId, long captureId)
         { SettlementId = settlementId; InvasionClanId = invasionClanId; CaptureId = captureId; }
         public string SettlementId { get; }
         public string InvasionClanId { get; }
@@ -217,23 +217,23 @@ namespace CustomSpawns.Invasions
 
     public sealed class InvasionCapture
     {
-        internal InvasionCapture(long id, string settlementId, long battleStartTimeBits, string startingAttackerId)
+        public InvasionCapture(long id, string settlementId, long battleStartTimeBits, string startingAttackerId)
         { Id = id; SettlementId = settlementId; BattleStartTimeBits = battleStartTimeBits; StartingAttackerId = startingAttackerId; }
         public long Id { get; }
         public string SettlementId { get; }
         // Exact bit representation of the engine's BattleStartTime.ToSeconds; no formatted-time rounding.
         public long BattleStartTimeBits { get; }
         public string StartingAttackerId { get; }
-        public string? CapturingInvasionClanId { get; internal set; }
-        public string? CapturerId { get; internal set; }
-        public string? PreviousOwnerClanId { get; internal set; }
-        public bool OwnershipObserved { get; internal set; }
-        public string? AftermathPreviousOwnerClanId { get; internal set; }
-        public bool HasParticipants { get; internal set; }
-        internal Dictionary<string, string> Participants = new(StringComparer.Ordinal);
+        public string? CapturingInvasionClanId { get; set; }
+        public string? CapturerId { get; set; }
+        public string? PreviousOwnerClanId { get; set; }
+        public bool OwnershipObserved { get; set; }
+        public string? AftermathPreviousOwnerClanId { get; set; }
+        public bool HasParticipants { get; set; }
+        public Dictionary<string, string> Participants = new(StringComparer.Ordinal);
         public IReadOnlyCollection<string> ParticipantPartyIds => Participants.Keys;
-        public bool IsConfirmed { get; internal set; }
-        public bool Cancelled { get; internal set; }
-        public bool OccupationApplied { get; internal set; }
+        public bool IsConfirmed { get; set; }
+        public bool Cancelled { get; set; }
+        public bool OccupationApplied { get; set; }
     }
 }

@@ -16,7 +16,7 @@ namespace CustomSpawns.Invasions.Adapters
      * What a captured town becomes: its escorts are absorbed into the garrison, and its capturer becomes a
      * lord of the realm the invasion founds.
      */
-    internal sealed class InvasionOccupations
+    public sealed class InvasionOccupations
     {
         private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         private readonly InvasionState _invasionState;
@@ -25,7 +25,7 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly IInvasionCapitalRepository _invasionCapitals;
         private readonly IInvasionClanRepository _invasionClans;
 
-        internal InvasionOccupations(InvasionState state, SpawnDao spawns, DynamicSpawnData parties,
+        public InvasionOccupations(InvasionState state, SpawnDao spawns, DynamicSpawnData parties,
             IInvasionCapitalRepository invasionCapitals, IInvasionClanRepository invasionClans)
         {
             _invasionState = state;
@@ -35,7 +35,7 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionClans = invasionClans;
         }
 
-        internal void ApplyReady()
+        public void ApplyReady()
         {
             foreach (InvasionCapture capture in GetReadyOccupations())
             {
@@ -70,6 +70,41 @@ namespace CustomSpawns.Invasions.Adapters
                     Logger.Info("Invasion occupation applied: invasion=" + invasion.ClanId + " town=" +
                                 town.Settlement.StringId);
                 }
+            }
+        }
+
+        /**
+         * The founding clan keeps its realm's crown. Bannerlord leaves a dead ruler's clan out of the election
+         * that follows, which hands the realm to a clan the invasion founded; the founding clan is then evicted
+         * by its no-kingdom policy, and the realm, ruled by a clan with no diplomacy of its own, makes peace
+         * with everybody.
+         */
+        public void KeepCrowns()
+        {
+            foreach (Kingdom kingdom in Kingdom.All.Where(k => !k.IsEliminated && k.RulingClan != null).ToList())
+            {
+                Invasion? invasion = _invasionState.FindInvasionHolding(kingdom.RulingClan.StringId);
+                Clan? founder = invasion == null
+                    ? null
+                    : Clan.FindFirst(candidate => candidate.StringId == invasion.ClanId);
+
+                if (founder == null || founder == kingdom.RulingClan || founder.IsEliminated ||
+                    founder.Leader == null || founder.Kingdom != null && founder.Kingdom != kingdom)
+                {
+                    continue;
+                }
+
+                // Crowned before it rejoins: the no-kingdom policy evicts it again the moment it joins a realm
+                // it does not rule.
+                ChangeRulingClanAction.Apply(kingdom, founder);
+
+                if (founder.Kingdom == null)
+                {
+                    ChangeKingdomAction.ApplyByJoinToKingdom(founder, kingdom, default, false);
+                }
+
+                Logger.Info("Invasion crown restored: invasion=" + invasion!.ClanId + " kingdom=" +
+                            kingdom.StringId);
             }
         }
 

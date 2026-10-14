@@ -1,16 +1,16 @@
 namespace CustomSpawns.Invasions
 {
     // What a due convoy carries and when the next one is expected.
-    internal readonly struct InvasionFoodConvoyDecision
+    public readonly struct InvasionFoodConvoyDecision
     {
-        internal InvasionFoodConvoyDecision(bool unloads, double? nextConvoyDays)
+        public InvasionFoodConvoyDecision(bool unloads, double? nextConvoyDays)
         {
             Unloads = unloads;
             NextConvoyDays = nextConvoyDays;
         }
 
-        internal bool Unloads { get; }
-        internal double? NextConvoyDays { get; }
+        public bool Unloads { get; }
+        public double? NextConvoyDays { get; }
     }
 
     /**
@@ -18,9 +18,9 @@ namespace CustomSpawns.Invasions
      * own market, so the town lives off it exactly as it lives off anything a trader brings in: nothing
      * here writes a food balance, and no other settlement the invasion holds is supplied at all.
      */
-    internal static class InvasionFoodConvoyRules
+    public static class InvasionFoodConvoyRules
     {
-        internal static bool IsConfigured(int foodPerConvoy, double intervalInDays) =>
+        public static bool IsConfigured(int foodPerConvoy, double intervalInDays) =>
             foodPerConvoy > 0 && intervalInDays > 0;
 
         /**
@@ -32,7 +32,7 @@ namespace CustomSpawns.Invasions
          * starving that town by vanilla's own rules. Whatever was due is unloaded once the way in is open
          * again, rather than being forfeited to a siege the invasion had no hand in.
          */
-        internal static InvasionFoodConvoyDecision Decide(double? nextConvoyDays, double nowDays,
+        public static InvasionFoodConvoyDecision Decide(double? nextConvoyDays, double nowDays,
             double intervalInDays, bool capitalReachable)
         {
             if (!capitalReachable)

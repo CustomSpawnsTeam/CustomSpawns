@@ -11,7 +11,7 @@ namespace CustomSpawns.Invasions.Adapters
      * player beat returned a day later at full strength. Removing it at the moment of defeat stops that
      * at its source instead of cleaning up after it.
      */
-    internal static class InvasionLordRemoval
+    public static class InvasionLordRemoval
     {
         /**
          * The lord of a party the ledger is about to forget, or nothing if that party was fighting no
@@ -21,7 +21,7 @@ namespace CustomSpawns.Invasions.Adapters
          * whichever caller happens to hold the ledger. It takes rather than finds: the forgetting is the
          * point of the call, and answering is what it does on the way.
          */
-        internal static Hero? TakeLordOfRemovedInvasionParty(InvasionState invasionState, string? clanId,
+        public static Hero? TakeLordOfRemovedInvasionParty(InvasionState invasionState, string? clanId,
             string partyId, Hero? leader, Action forgetParty)
         {
             bool wasFightingAnInvasion = leader != null &&
@@ -32,7 +32,7 @@ namespace CustomSpawns.Invasions.Adapters
             return wasFightingAnInvasion ? leader : null;
         }
 
-        internal static void RemoveDefeated(InvasionState invasionState, Hero hero, bool lostItsInvasionParty)
+        public static void RemoveDefeated(InvasionState invasionState, Hero hero, bool lostItsInvasionParty)
         {
             if (!IsRemovableInvasionLord(invasionState, hero.Clan?.StringId,
                     isMainHero: hero == Hero.MainHero,
@@ -43,6 +43,19 @@ namespace CustomSpawns.Invasions.Adapters
                     lostItsInvasionParty: lostItsInvasionParty))
             {
                 return;
+            }
+
+            /*
+             * Vanilla destroys a clan whose leader dies with no living adult lord left to succeed him, and
+             * every party of the clan goes with it -- the invasion's and every other spawn sharing the
+             * clan. A clan always keeps a leader, so one is made before the last is removed, and vanilla's
+             * own succession hands it the clan.
+             */
+            if (hero.Clan is { } clan && NeedsSuccessor(isClanLeader: clan.Leader == hero,
+                    hasAnotherLivingAdultLord: clan.Heroes.Any(other =>
+                        other != hero && !other.IsChild && other.IsAlive && other.IsLord)))
+            {
+                InvaderHeroCreator.CreateNewLord(clan, clan.HomeSettlement);
             }
 
             /*
@@ -69,9 +82,13 @@ namespace CustomSpawns.Invasions.Adapters
          * answer taken while the party was still a member stands in for the one the ledger can no
          * longer give, and it is the same answer: the invasion that party belonged to was fighting.
          */
-        internal static bool IsRemovableInvasionLord(InvasionState invasionState, string? clanId, bool isMainHero,
+        public static bool IsRemovableInvasionLord(InvasionState invasionState, string? clanId, bool isMainHero,
             bool belongsToPlayerClan, bool isChild, bool isAlive, bool isLord, bool lostItsInvasionParty) =>
             !isMainHero && !belongsToPlayerClan && !isChild && isAlive && isLord &&
             (lostItsInvasionParty || invasionState.FindFightingInvasion(clanId) != null);
+
+        // Vanilla's own succession test: only a leader with no living adult lord beside it has no heir.
+        public static bool NeedsSuccessor(bool isClanLeader, bool hasAnotherLivingAdultLord) =>
+            isClanLeader && !hasAnotherLivingAdultLord;
     }
 }

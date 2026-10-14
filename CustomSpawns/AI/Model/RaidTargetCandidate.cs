@@ -1,6 +1,6 @@
 namespace CustomSpawns.AI.Model
 {
-    internal readonly struct RaidTargetCandidate<T>
+    public readonly struct RaidTargetCandidate<T>
     {
         public T Target { get; }
         public bool IsValid { get; }

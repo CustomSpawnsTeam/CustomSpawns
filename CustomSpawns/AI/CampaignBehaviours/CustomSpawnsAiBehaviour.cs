@@ -9,18 +9,18 @@ using TaleWorlds.CampaignSystem.Party;
 namespace CustomSpawns.AI
 {
     // Whether a party should keep being steered by CustomSpawns instead of being released to vanilla AI.
-    internal interface IPartySteeringQuery
+    public interface IPartySteeringQuery
     {
         bool RequiresCustomSpawnsSteering(MobileParty party);
     }
 
     public class CustomSpawnsAiBehaviour : CampaignBehaviorBase
     {
-        internal const float DominantAiBehaviorScore = 1000000f;
+        public const float DominantAiBehaviorScore = 1000000f;
 
         private readonly PartyBehaviorDecisionCoordinator _decisionCoordinator;
 
-        internal CustomSpawnsAiBehaviour(SteeredPartyLookup steeredParties,
+        public CustomSpawnsAiBehaviour(SteeredPartyLookup steeredParties,
             PartyBehaviourResolver partyBehaviourResolver,
             IEnumerable<ISyncsCampaignData> syncTargets)
         {
@@ -54,7 +54,7 @@ namespace CustomSpawns.AI
             _decisionCoordinator.UpdateEscortCohesion(party);
         }
 
-        internal static void ApplyDominantBehaviorScore(IAiBehaviorScoreSink scoreSink,
+        public static void ApplyDominantBehaviorScore(IAiBehaviorScoreSink scoreSink,
             AIBehaviorData behavior)
         {
             if (scoreSink.TryGetBehaviorScore(behavior, out _))
@@ -66,7 +66,7 @@ namespace CustomSpawns.AI
             scoreSink.AddBehaviorScore(behavior, DominantAiBehaviorScore);
         }
 
-        internal static EscortDecisionLockAction GetEscortDecisionLockAction(bool keepFormation,
+        public static EscortDecisionLockAction GetEscortDecisionLockAction(bool keepFormation,
             bool decisionsLocked, bool ownsLock)
         {
             if (keepFormation)
@@ -135,9 +135,13 @@ namespace CustomSpawns.AI
             {
                 // A party released to vanilla must not stay silenced: the gate answering with nothing
                 // clears the formation condition, which releases the decision lock instead of leaking it.
+                // Only an escort already escorting is frozen: one left in Hold (e.g. when a siege camp drops
+                // it) must keep thinking, or it never takes the EscortParty score back and the siege keeps
+                // expelling it from the camp.
                 CsPartyData? partyData = _steeredParties.GetSteeredPartyData(party);
                 MobileParty? supportedParty = partyData?.SupportedParty;
                 bool keepFormation = partyData?.IsEscort == true && supportedParty is not null &&
+                                     party.DefaultBehavior == AiBehavior.EscortParty &&
                                      !ReferenceEquals(party, supportedParty) && supportedParty.IsActive &&
                                      FollowSupportedPartyBehaviour.IsWithinSupportRange(
                                          party.GetPosition2D.DistanceSquared(supportedParty.GetPosition2D),
@@ -179,7 +183,7 @@ namespace CustomSpawns.AI
             }
         }
 
-        internal enum EscortDecisionLockAction
+        public enum EscortDecisionLockAction
         {
             None,
             Acquire,
@@ -212,9 +216,9 @@ namespace CustomSpawns.AI
         }
     }
 
-    internal sealed class ReferenceEqualityComparer : IEqualityComparer<object>
+    public sealed class ReferenceEqualityComparer : IEqualityComparer<object>
     {
-        internal static ReferenceEqualityComparer Instance { get; } = new();
+        public static ReferenceEqualityComparer Instance { get; } = new();
 
         public new bool Equals(object? x, object? y)
         {
@@ -227,7 +231,7 @@ namespace CustomSpawns.AI
         }
     }
 
-    internal interface IAiBehaviorScoreSink
+    public interface IAiBehaviorScoreSink
     {
         bool TryGetBehaviorScore(AIBehaviorData behavior, out float score);
         void SetBehaviorScore(AIBehaviorData behavior, float score);

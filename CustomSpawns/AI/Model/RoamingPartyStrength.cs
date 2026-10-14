@@ -1,6 +1,6 @@
 namespace CustomSpawns.AI.Model
 {
-    internal readonly struct RoamingPartyStrength
+    public readonly struct RoamingPartyStrength
     {
         public bool IsSelf { get; }
         public bool IsActive { get; }

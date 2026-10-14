@@ -6,7 +6,7 @@ using CustomSpawns.Data.Model;
 
 namespace CustomSpawns.Data.Adapter
 {
-    internal sealed class BesiegeClosestSettlementConfigAdapter
+    public sealed class BesiegeClosestSettlementConfigAdapter
         : PriorityPartyBehaviourConfigAdapter<BesiegeClosestSettlementConfig>
     {
         private const string BehaviourName = "BesiegeClosestSettlement";

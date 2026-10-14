@@ -15,7 +15,7 @@ namespace CustomSpawns.AI.Adapters
      * target. Only target selection differs between the two, so only that is left to the
      * behaviour-specific ports.
      */
-    internal abstract class BannerlordSettlementOffensiveAdapter
+    public abstract class BannerlordSettlementOffensiveAdapter
     {
         private readonly Func<MobileParty, float> _getSeeingRange;
         private readonly Func<MobileParty, IEnumerable<RoamingPartyStrength>> _getRoamingParties;

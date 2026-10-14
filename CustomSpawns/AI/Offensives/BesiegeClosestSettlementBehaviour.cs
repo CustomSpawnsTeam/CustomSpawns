@@ -11,7 +11,7 @@ namespace CustomSpawns.AI.Offensives
     public sealed class BesiegeClosestSettlementBehaviour
         : SettlementOffensivePartyBehaviour<BesiegeClosestSettlementData>
     {
-        internal const string SaveKey = "_customSpawnsBesiegeClosestSettlementStates";
+        public const string SaveKey = "_customSpawnsBesiegeClosestSettlementStates";
 
         // How far below the launch requirement a force that has already set off must fall before it gives
         // the attempt up, as a share of that requirement.
@@ -19,13 +19,13 @@ namespace CustomSpawns.AI.Offensives
 
         private readonly ISiegeOperations _siege;
 
-        internal BesiegeClosestSettlementBehaviour(ISiegeOperations siege,
+        public BesiegeClosestSettlementBehaviour(ISiegeOperations siege,
             Func<float, float, float> roll)
             : this(siege, roll, new PartyStateStore<SettlementOffensiveBehaviourState>(SaveKey))
         {
         }
 
-        internal BesiegeClosestSettlementBehaviour(ISiegeOperations siege,
+        public BesiegeClosestSettlementBehaviour(ISiegeOperations siege,
             Func<float, float, float> roll,
             PartyStateStore<SettlementOffensiveBehaviourState> states) : base(roll, states)
         {
@@ -167,6 +167,15 @@ namespace CustomSpawns.AI.Offensives
                 _siege.GetHostileLordStrengthNearTarget(party, target),
                 configuration.MinimumAttackerToRoamingHostilesRatio);
         }
+
+        /**
+         * A party that masses on its objective marches on a siege its own side is already running there, or
+         * on a fight its force is already in at the gate: those are the force, and lords near the town are
+         * what the camp's own withdrawal test weighs them against. A party attacking alone joins nobody.
+         */
+        private protected override bool JoinsOperationUnderway(MobileParty party, Settlement target) =>
+            _siege.GathersBeforeAssault(party) &&
+            (_siege.IsSupportableSiegeActive(party, target) || _siege.IsForcePinnedInBattle(party, target));
 
         /**
          * A party that masses on its objective keeps it while the ground around it is dangerous: the

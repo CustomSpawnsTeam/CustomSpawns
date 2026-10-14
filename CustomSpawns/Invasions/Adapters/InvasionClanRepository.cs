@@ -8,13 +8,13 @@ using TaleWorlds.CampaignSystem;
 
 namespace CustomSpawns.Invasions.Adapters
 {
-    internal sealed class InvasionClanRepository : CampaignBehaviorBase, IInvasionClanRepository
+    public sealed class InvasionClanRepository : CampaignBehaviorBase, IInvasionClanRepository
     {
-        internal const string SaveKey = "_invasionClanSpawnTemplateIds";
+        public const string SaveKey = "_invasionClanSpawnTemplateIds";
         private readonly ISpawnDao _spawnDao;
         private Dictionary<string, string> _spawnTemplateIdsByClanId = new(StringComparer.Ordinal);
 
-        internal InvasionClanRepository(ISpawnDao spawnDao, SaveInitialiser initialiser)
+        public InvasionClanRepository(ISpawnDao spawnDao, SaveInitialiser initialiser)
         {
             _spawnDao = spawnDao ?? throw new ArgumentNullException(nameof(spawnDao));
             if (initialiser == null) throw new ArgumentNullException(nameof(initialiser));
@@ -33,7 +33,7 @@ namespace CustomSpawns.Invasions.Adapters
                 : new Dictionary<string, string>(_spawnTemplateIdsByClanId, StringComparer.Ordinal);
         }
 
-        internal void Initialize()
+        public void Initialize()
         {
             foreach (SpawnDto spawn in _spawnDao.FindAll().Where(candidate => candidate.Invasion != null))
             {

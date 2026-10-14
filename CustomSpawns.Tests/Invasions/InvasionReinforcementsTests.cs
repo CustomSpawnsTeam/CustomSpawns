@@ -72,13 +72,13 @@ namespace CustomSpawns.Tests.Invasions
         {
             Wind();
 
-            _campaign.Besieged = true;
+            _state.ObserveOwner("town", "enemy");
             _campaign.Now = 17;
             Assert.AreEqual(InvasionReinforcementOutcome.CapitalUnavailable,
                 _reinforcements.DrawDue().Single().Outcome);
             Assert.AreEqual(24, Schedule(_invasion, "infantry").NextDeadlineDays);
 
-            _campaign.Besieged = false;
+            Conquer();
             _campaign.MaxFactionStrength = 900;
             _campaign.CurrentStrength = 900;
             _campaign.Now = 24;
@@ -171,11 +171,10 @@ namespace CustomSpawns.Tests.Invasions
         public void TheCeilingRisesWithEveryTownHeldAndFallsAgainWhenOneIsLost()
         {
             // No configured ceiling at all leaves the invasion unbounded, whatever it already fields.
-            Assert.AreEqual(double.PositiveInfinity,
-                InvasionReinforcements.Headroom(new InvasionStrengthBudget(0, 300, 2, 5000)));
-            Assert.AreEqual(900, InvasionReinforcements.Headroom(new InvasionStrengthBudget(900, 300, 0, 0)));
-            Assert.AreEqual(900, InvasionReinforcements.Headroom(new InvasionStrengthBudget(900, 300, 2, 600)));
-            Assert.AreEqual(600, InvasionReinforcements.Headroom(new InvasionStrengthBudget(900, 300, 1, 600)));
+            Assert.AreEqual(double.PositiveInfinity, new InvasionStrengthBudget(0, 300, 2, 5000).Headroom);
+            Assert.AreEqual(900, new InvasionStrengthBudget(900, 300, 0, 0).Headroom);
+            Assert.AreEqual(900, new InvasionStrengthBudget(900, 300, 2, 600).Headroom);
+            Assert.AreEqual(600, new InvasionStrengthBudget(900, 300, 1, 600).Headroom);
         }
 
         [Test]
@@ -221,12 +220,23 @@ namespace CustomSpawns.Tests.Invasions
             Assert.AreEqual(24, Schedule(_invasion, "cavalry").NextDeadlineDays);
         }
 
+        // Losing the capital is the only thing that stops the waves; a siege does not.
+        [Test]
+        public void ABesiegedCapitalIsStillReinforced()
+        {
+            Wind();
+
+            _campaign.Now = 17;
+            Assert.AreEqual(InvasionReinforcementOutcome.Banking, _reinforcements.DrawDue().Single().Outcome);
+        }
+
         /**
          * A rule allowed one wave is the one-off reinforcement: the town falls, a day later the wave
-         * arrives, and nothing comes after it however long the invasion lives.
+         * arrives, and no man comes after it however long the invasion lives. Its slots still come due, so
+         * that the army it brought is paid for as long as the capital stands.
          */
         [Test]
-        public void ARuleAllowedOneWaveSendsItADayAfterTheCaptureAndNeverAgain()
+        public void ARuleAllowedOneWaveSendsItADayAfterTheCaptureAndThenOnlyPays()
         {
             _campaign.Rules.Clear();
             _campaign.Rules.Add(new InvasionReinforcementRule("landing", 1, 1));
@@ -236,9 +246,9 @@ namespace CustomSpawns.Tests.Invasions
             Assert.AreEqual(InvasionReinforcementOutcome.Banking, Deliver().Single().Outcome);
 
             _campaign.Now = 12;
-            Assert.That(_reinforcements.DrawDue(), Is.Empty);
+            Assert.AreEqual(InvasionReinforcementOutcome.AllWavesSent, Deliver().Single().Outcome);
             _campaign.Now = 400;
-            Assert.That(_reinforcements.DrawDue(), Is.Empty);
+            Assert.AreEqual(InvasionReinforcementOutcome.AllWavesSent, Deliver().Single().Outcome);
         }
 
         // Only waves that arrive are counted, so the one wave survives a day it could not be delivered on.
@@ -248,12 +258,12 @@ namespace CustomSpawns.Tests.Invasions
             _campaign.Rules.Clear();
             _campaign.Rules.Add(new InvasionReinforcementRule("landing", 1, 1));
             Wind();
-            _campaign.Besieged = true;
+            _state.ObserveOwner("town", "enemy");
 
             _campaign.Now = 11;
             Assert.AreEqual(InvasionReinforcementOutcome.CapitalUnavailable, Deliver().Single().Outcome);
 
-            _campaign.Besieged = false;
+            Conquer();
             _campaign.Now = 12;
             Assert.AreEqual(InvasionReinforcementOutcome.Banking, Deliver().Single().Outcome);
         }
@@ -332,14 +342,13 @@ namespace CustomSpawns.Tests.Invasions
 
         private sealed class CampaignStub : IInvasionReinforcementQuery
         {
-            internal double Now;
-            internal bool Besieged;
-            internal readonly List<InvasionReinforcementRule> Rules =
+            public double Now;
+            public readonly List<InvasionReinforcementRule> Rules =
                 new() { new InvasionReinforcementRule("infantry", 7) };
-            internal double MaxFactionStrength;
-            internal double StrengthPerTownHeld;
-            internal int TownsHeld = 1;
-            internal double CurrentStrength;
+            public double MaxFactionStrength;
+            public double StrengthPerTownHeld;
+            public int TownsHeld = 1;
+            public double CurrentStrength;
 
             public double NowInDays => Now;
 
@@ -347,7 +356,6 @@ namespace CustomSpawns.Tests.Invasions
                 new(MaxFactionStrength, StrengthPerTownHeld, TownsHeld, CurrentStrength);
 
             public IReadOnlyList<InvasionReinforcementRule>? GetRules(Invasion invasion) => Rules;
-            public bool IsUnderSiege(string settlementId) => Besieged;
         }
     }
 }

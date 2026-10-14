@@ -25,7 +25,7 @@ namespace CustomSpawns.Invasions
         public int FaceIndex { get; }
     }
 
-    internal interface IInvasionCoastalMapFaceQuery
+    public interface IInvasionCoastalMapFaceQuery
     {
         IReadOnlyCollection<InvasionCoastalMapFace> GetAdjacentFaces(InvasionCoastalMapFace face);
     }
@@ -40,7 +40,7 @@ namespace CustomSpawns.Invasions
                    terrain == InvasionCoastalFaceTerrain.OpenSea;
         }
 
-        internal static bool IsSettlementAdjacentToSea(
+        public static bool IsSettlementAdjacentToSea(
             InvasionCoastalMapFace settlementFace,
             IInvasionCoastalMapFaceQuery faceQuery)
         {

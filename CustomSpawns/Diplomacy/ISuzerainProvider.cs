@@ -7,5 +7,7 @@ namespace CustomSpawns.Diplomacy
         bool IsVassal(IFaction warTarget);
         
         IFaction? GetSuzerain(IFaction clan);
+
+        IFaction? GetRulingClan(IFaction kingdom);
     }
 }

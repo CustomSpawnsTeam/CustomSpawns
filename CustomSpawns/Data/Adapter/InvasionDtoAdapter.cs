@@ -5,7 +5,7 @@ using CustomSpawns.Data.Model;
 
 namespace CustomSpawns.Data.Adapter
 {
-    internal static class InvasionDtoAdapter
+    public static class InvasionDtoAdapter
     {
         public static InvasionData Adapt(InvasionConfig config)
         {
@@ -15,7 +15,8 @@ namespace CustomSpawns.Data.Adapter
                     rule.IntervalInDays, rule.LordsPerWave, rule.MaxWaves)).ToList();
             return new InvasionData(config.RequiresFirstCoastalConquest, rules, config.MaxFactionStrength,
                 config.StrengthPerTownHeld, config.SupplyLine, config.MinimumCapitalGarrison,
-                config.Supplies.FoodPerConvoy, config.Supplies.IntervalInDays);
+                config.Supplies.FoodPerConvoy, config.Supplies.IntervalInDays, config.MaxLords,
+                config.LordsPerTownHeld);
         }
     }
 }

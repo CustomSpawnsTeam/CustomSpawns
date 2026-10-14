@@ -4,8 +4,8 @@ namespace CustomSpawns.Diplomacy
 {
     public class ForceNoKingdomScoreProvider
     {
-        internal const float ForcedJoinScore = -1_000_000_000f;
-        internal const float ForcedLeaveScore = 1_000_000_000f;
+        public const float ForcedJoinScore = -1_000_000_000f;
+        public const float ForcedLeaveScore = 1_000_000_000f;
         private readonly NonMercenaryCustomSpawnsFactionsProvider _factionsProvider;
 
         public ForceNoKingdomScoreProvider(NonMercenaryCustomSpawnsFactionsProvider factionsProvider)

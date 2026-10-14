@@ -5,9 +5,9 @@ using TaleWorlds.CampaignSystem;
 
 namespace CustomSpawns.Invasions.Adapters
 {
-    internal sealed class InvasionCapitalRepository : CampaignBehaviorBase, IInvasionCapitalRepository
+    public sealed class InvasionCapitalRepository : CampaignBehaviorBase, IInvasionCapitalRepository
     {
-        internal const string SaveKey = "_invasionCapitalSettlementIds";
+        public const string SaveKey = "_invasionCapitalSettlementIds";
         private Dictionary<string, string> _capitalSettlementIdsByKingdomId = new(StringComparer.Ordinal);
 
         public override void RegisterEvents()

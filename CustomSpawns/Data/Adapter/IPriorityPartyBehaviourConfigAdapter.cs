@@ -9,13 +9,13 @@ namespace CustomSpawns.Data.Adapter
      * One implementation per behaviour keeps each behaviour's defaults and validation in its own file,
      * mirroring how IPriorityPartyBehaviour gives each behaviour its own provider.
      */
-    internal interface IPriorityPartyBehaviourConfigAdapter
+    public interface IPriorityPartyBehaviourConfigAdapter
     {
         Type ConfigurationType { get; }
         PriorityPartyBehaviourData Adapt(PriorityPartyBehaviourConfig configuration);
     }
 
-    internal abstract class PriorityPartyBehaviourConfigAdapter<TConfiguration>
+    public abstract class PriorityPartyBehaviourConfigAdapter<TConfiguration>
         : IPriorityPartyBehaviourConfigAdapter
         where TConfiguration : PriorityPartyBehaviourConfig
     {

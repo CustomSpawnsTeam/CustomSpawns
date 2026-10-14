@@ -4,7 +4,7 @@ using CustomSpawns.Data.Model;
 
 namespace CustomSpawns.Data.Adapter
 {
-    internal sealed class PatrolAroundClosestLestInterruptedAndSwitchConfigAdapter
+    public sealed class PatrolAroundClosestLestInterruptedAndSwitchConfigAdapter
         : PriorityPartyBehaviourConfigAdapter<PatrolAroundClosestLestInterruptedAndSwitchConfig>
     {
         protected override PriorityPartyBehaviourData Adapt(

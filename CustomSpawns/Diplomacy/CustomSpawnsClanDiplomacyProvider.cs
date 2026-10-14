@@ -188,6 +188,12 @@ namespace CustomSpawns.Diplomacy
             return false;
         }
 
+        public bool HasForcedWarPeaceBehaviour(IFaction faction)
+        {
+            return _customSpawnsClanData.ContainsKey(faction.StringId) &&
+                   _customSpawnsClanData[faction.StringId].ForcedWarPeaceDataInstance != null;
+        }
+
         private bool IsPlayerActionAgainstCustomSpawnFaction(IFaction attacker, IFaction warTarget)
         {
             return _customSpawnsClanData.ContainsKey(warTarget.StringId)

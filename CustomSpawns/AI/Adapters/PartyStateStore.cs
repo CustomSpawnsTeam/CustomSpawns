@@ -10,25 +10,25 @@ namespace CustomSpawns.AI.Adapters
      * left the campaign are dropped, since nothing can ever ask for their state again and the dictionary
      * is what gets serialized.
      */
-    internal sealed class PartyStateStore<TState> where TState : class, new()
+    public sealed class PartyStateStore<TState> where TState : class, new()
     {
         private readonly string _saveKey;
         private readonly Func<MobileParty, bool> _isPartyInCampaign;
         private Dictionary<MobileParty, TState> _states = new();
 
-        internal PartyStateStore(string saveKey) : this(saveKey, party => party.IsActive)
+        public PartyStateStore(string saveKey) : this(saveKey, party => party.IsActive)
         {
         }
 
-        internal PartyStateStore(string saveKey, Func<MobileParty, bool> isPartyInCampaign)
+        public PartyStateStore(string saveKey, Func<MobileParty, bool> isPartyInCampaign)
         {
             _saveKey = saveKey ?? throw new ArgumentNullException(nameof(saveKey));
             _isPartyInCampaign = isPartyInCampaign ?? throw new ArgumentNullException(nameof(isPartyInCampaign));
         }
 
-        internal int Count => _states.Count;
+        public int Count => _states.Count;
 
-        internal TState GetOrAdd(MobileParty party)
+        public TState GetOrAdd(MobileParty party)
         {
             if (!_states.TryGetValue(party, out TState? state))
             {
@@ -40,12 +40,12 @@ namespace CustomSpawns.AI.Adapters
 
         // The state a party already keeps, or null. Asking what another party is working on must not
         // enrol that party in the behaviour, which is what GetOrAdd would do.
-        internal TState? Find(MobileParty party)
+        public TState? Find(MobileParty party)
         {
             return _states.TryGetValue(party, out TState? state) ? state : null;
         }
 
-        internal void SyncData(IDataStore dataStore)
+        public void SyncData(IDataStore dataStore)
         {
             DropDepartedParties();
             dataStore.SyncData(_saveKey, ref _states);

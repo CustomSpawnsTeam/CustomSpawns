@@ -15,12 +15,12 @@ namespace CustomSpawns
      * One priority party behaviour: the adapter that reads its configuration and the behaviour that acts on
      * the data that adapter produces.
      */
-    internal sealed class PartyBehaviourRegistration
+    public sealed class PartyBehaviourRegistration
     {
         private readonly Func<DynamicSpawnData, ISiegeTargetPolicy,
             PartyStateStore<SettlementOffensiveBehaviourState>, IPriorityPartyBehaviour> _createBehaviour;
 
-        internal PartyBehaviourRegistration(IPriorityPartyBehaviourConfigAdapter configAdapter,
+        public PartyBehaviourRegistration(IPriorityPartyBehaviourConfigAdapter configAdapter,
             Func<DynamicSpawnData, ISiegeTargetPolicy,
                 PartyStateStore<SettlementOffensiveBehaviourState>, IPriorityPartyBehaviour> createBehaviour)
         {
@@ -28,9 +28,9 @@ namespace CustomSpawns
             _createBehaviour = createBehaviour ?? throw new ArgumentNullException(nameof(createBehaviour));
         }
 
-        internal IPriorityPartyBehaviourConfigAdapter ConfigAdapter { get; }
+        public IPriorityPartyBehaviourConfigAdapter ConfigAdapter { get; }
 
-        internal IPriorityPartyBehaviour CreateBehaviour(DynamicSpawnData dynamicSpawnData,
+        public IPriorityPartyBehaviour CreateBehaviour(DynamicSpawnData dynamicSpawnData,
             ISiegeTargetPolicy siegeTargetPolicy,
             PartyStateStore<SettlementOffensiveBehaviourState> siegeStates)
         {
@@ -44,9 +44,9 @@ namespace CustomSpawns
      * configuration cannot be read, or a configuration nothing acts on, cannot be registered here.
      * The behaviour is created lazily because it needs campaign state the composition root builds later.
      */
-    internal static class PartyBehaviourRegistrations
+    public static class PartyBehaviourRegistrations
     {
-        internal static readonly IReadOnlyList<PartyBehaviourRegistration> All = new[]
+        public static readonly IReadOnlyList<PartyBehaviourRegistration> All = new[]
         {
             new PartyBehaviourRegistration(
                 new PatrolAroundClosestLestInterruptedAndSwitchConfigAdapter(),
@@ -62,10 +62,10 @@ namespace CustomSpawns
                     MBRandom.RandomFloatRanged, siegeStates))
         };
 
-        internal static IEnumerable<IPriorityPartyBehaviourConfigAdapter> ConfigAdapters =>
+        public static IEnumerable<IPriorityPartyBehaviourConfigAdapter> ConfigAdapters =>
             All.Select(registration => registration.ConfigAdapter);
 
-        internal static IPriorityPartyBehaviour[] CreateBehaviours(DynamicSpawnData dynamicSpawnData,
+        public static IPriorityPartyBehaviour[] CreateBehaviours(DynamicSpawnData dynamicSpawnData,
             ISiegeTargetPolicy siegeTargetPolicy,
             PartyStateStore<SettlementOffensiveBehaviourState> siegeStates)
         {

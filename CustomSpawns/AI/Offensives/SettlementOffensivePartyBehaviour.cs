@@ -137,8 +137,12 @@ namespace CustomSpawns.AI.Offensives
 
             float currentTargetRatio = StrengthRatio(attackerStrength,
                 GetTargetStrength(party, state.Target));
-            bool reconSafetyPasses = PassesReconSafety(party, state.Target, attackerStrength,
-                configuration);
+            // An operation its own force already has underway at the target needs no reconnaissance: the
+            // ground has been judged by those standing on it, and holding back only leaves them to face
+            // the relief force short of the very strength they are judged on.
+            bool joinsOperationUnderway = JoinsOperationUnderway(party, state.Target);
+            bool reconSafetyPasses = joinsOperationUnderway || PassesReconSafety(party, state.Target,
+                attackerStrength, configuration);
             // Whether the party was already marching when this tick began. Read before reconnaissance can
             // promote it, so a party that has just finished looking is asked as one that has not set off.
             bool wasApproaching = state.Phase == SettlementOffensivePhase.Approach;
@@ -168,6 +172,7 @@ namespace CustomSpawns.AI.Offensives
                     return PatrolOrRemainApplicable(party);
                 }
                 UpdateRecon(state, reconSafetyPasses,
+                    joinsOperationUnderway ||
                     reconSafetyPasses && currentTargetRatio >= configuration.SkipWhenTargetStrengthRatio);
             }
 
@@ -261,6 +266,8 @@ namespace CustomSpawns.AI.Offensives
                 PartyStrength.GetVisibleHostileStrength(party),
                 configuration.MinimumAttackerToRoamingHostilesRatio);
         }
+
+        private protected virtual bool JoinsOperationUnderway(MobileParty party, Settlement target) => false;
 
         private protected virtual bool ReselectTargetWhenUnsafe(MobileParty party) => false;
 

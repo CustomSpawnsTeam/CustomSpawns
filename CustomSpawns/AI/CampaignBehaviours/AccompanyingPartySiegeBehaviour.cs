@@ -11,7 +11,7 @@ namespace CustomSpawns.AI.CampaignBehaviours
     {
         private readonly SteeredPartyLookup _steeredParties;
 
-        internal AccompanyingPartySiegeBehaviour(SteeredPartyLookup steeredParties)
+        public AccompanyingPartySiegeBehaviour(SteeredPartyLookup steeredParties)
         {
             _steeredParties = steeredParties;
         }
@@ -46,7 +46,7 @@ namespace CustomSpawns.AI.CampaignBehaviours
          * siege lines. A destroyed main party drags nobody anywhere.
          * A null camp is intentionally matched too: when the main party lifts its siege, its escorts leave with it.
          */
-        internal static bool ShouldMatchSupportedPartySiege(bool campsAlreadyMatch, bool supportedPartyIsActive,
+        public static bool ShouldMatchSupportedPartySiege(bool campsAlreadyMatch, bool supportedPartyIsActive,
             bool partyIsInMapEvent, bool partyIsInSettlement)
         {
             return !campsAlreadyMatch && supportedPartyIsActive && !partyIsInMapEvent && !partyIsInSettlement;

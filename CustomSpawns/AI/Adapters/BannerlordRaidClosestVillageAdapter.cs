@@ -10,7 +10,7 @@ using TaleWorlds.CampaignSystem.Settlements;
 
 namespace CustomSpawns.AI.Adapters
 {
-    internal sealed class BannerlordRaidClosestVillageAdapter
+    public sealed class BannerlordRaidClosestVillageAdapter
         : BannerlordSettlementOffensiveAdapter, IRaidOperations
     {
         public BannerlordRaidClosestVillageAdapter(DynamicSpawnData dynamicSpawnData) : this(
@@ -19,7 +19,7 @@ namespace CustomSpawns.AI.Adapters
         {
         }
 
-        internal BannerlordRaidClosestVillageAdapter(Func<MobileParty, float> getSeeingRange,
+        public BannerlordRaidClosestVillageAdapter(Func<MobileParty, float> getSeeingRange,
             Func<MobileParty, IEnumerable<RoamingPartyStrength>> getRoamingParties,
             Func<MobileParty, IEnumerable<MobileParty>> getAccompanyingParties)
             : base(getSeeingRange, getRoamingParties, getAccompanyingParties)

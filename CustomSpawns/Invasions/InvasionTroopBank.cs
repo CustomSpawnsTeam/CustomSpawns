@@ -11,10 +11,26 @@ namespace CustomSpawns.Invasions
      * The minimum capital garrison is a floor for everyone: the men standing above it are the only ones
      * that are ever spendable.
      */
-    internal static class InvasionTroopBank
+    public sealed class InvasionTroopBank
     {
         // What a lord may take out: whatever stands above the floor, and never more than he can lead.
-        internal static int Drawable(int wanted, int garrisonCount, int minimumCapitalGarrison) =>
+        public int Drawable(int wanted, int garrisonCount, int minimumCapitalGarrison) =>
             Math.Max(0, Math.Min(wanted, garrisonCount - minimumCapitalGarrison));
+
+        // The bank only replaces vanilla's free warband when it can give back at least as many men; a lord
+        // sent out with fewer than he came with is a lord sent out to be captured.
+        public bool ReplacesFreeWarband(int freeTroops, int garrisonCount, int minimumCapitalGarrison) =>
+            garrisonCount - minimumCapitalGarrison >= freeTroops;
+
+        /**
+         * How many of a wave's lords may be fielded: the invasion keeps at most maxLords, plus
+         * lordsPerTownHeld for every town its kingdom holds, counting the lords it already has. Zero
+         * maxLords leaves the wave uncapped.
+         */
+        public int LordsToField(int lordsPerWave, int maxLords, int lordsPerTownHeld, int townsHeld,
+            int livingLords) =>
+            maxLords <= 0
+                ? lordsPerWave
+                : Math.Max(0, Math.Min(lordsPerWave, maxLords + lordsPerTownHeld * townsHeld - livingLords));
     }
 }

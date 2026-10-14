@@ -154,6 +154,24 @@ namespace CustomSpawns.Tests.Invasions
             Assert.True(_state.IsInvasionSpent(_invasion));
         }
 
+        [Test]
+        public void ALeaderWithNoOtherLordIsSucceededBeforeRemoval()
+        {
+            Assert.True(InvasionLordRemoval.NeedsSuccessor(isClanLeader: true, hasAnotherLivingAdultLord: false));
+        }
+
+        [Test]
+        public void ALeaderWithAnotherLordLeavesSuccessionToVanilla()
+        {
+            Assert.False(InvasionLordRemoval.NeedsSuccessor(isClanLeader: true, hasAnotherLivingAdultLord: true));
+        }
+
+        [Test]
+        public void ALordThatDoesNotLeadItsClanNeedsNoSuccessor()
+        {
+            Assert.False(InvasionLordRemoval.NeedsSuccessor(isClanLeader: false, hasAnotherLivingAdultLord: false));
+        }
+
         /**
          * A living adult lord of a clan fighting a live invasion, so that every test states the one fact
          * that makes it the case it is named for and no test can pass on a second one.

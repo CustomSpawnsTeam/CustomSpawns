@@ -225,6 +225,9 @@ namespace CustomSpawns
                 starter.AddModel(_customSpawnsDiplomacyModel);
                 starter.AddModel(new CustomSpawnsPartySizeLimitModel(starter.GetModel<PartySizeLimitModel>(),
                     _partySizeCalculatedSubject));
+                starter.AddModel(new InvasionArmyManagementModel(
+                    starter.GetModel<ArmyManagementCalculationModel>(), _invasionCampaignBehaviour,
+                    new ClanInfluenceLift()));
             }
             else
             {

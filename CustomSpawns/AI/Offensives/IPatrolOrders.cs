@@ -7,7 +7,7 @@ namespace CustomSpawns.AI.Offensives
     /**
      * Where a settlement offensive waits while it holds no target, and the order that sends it there.
      */
-    internal interface IPatrolOrders
+    public interface IPatrolOrders
     {
         Settlement? FindClosestNonHostileSettlement(MobileParty party);
         AIBehaviorData CreatePatrolBehavior(MobileParty party, Settlement target);

@@ -18,21 +18,21 @@ namespace CustomSpawns.Invasions.Adapters
      * through the aftermath and through the owner change, so each observation is handed to the
      * correlation and only the one that completes a capture reports it back.
      */
-    internal sealed class InvasionSieges
+    public sealed class InvasionSieges
     {
         private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         private readonly InvasionState _invasionState;
         private readonly InvasionCaptureCorrelation _invasionCaptureCorrelation;
         private readonly SpawnDao _spawnDao;
 
-        internal InvasionSieges(InvasionState state, InvasionCaptureCorrelation correlation, SpawnDao spawns)
+        public InvasionSieges(InvasionState state, InvasionCaptureCorrelation correlation, SpawnDao spawns)
         {
             _invasionState = state;
             _invasionCaptureCorrelation = correlation;
             _spawnDao = spawns;
         }
 
-        internal void ObserveStart(MapEvent mapEvent)
+        public void ObserveStart(MapEvent mapEvent)
         {
             Settlement? town = mapEvent.MapEventSettlement;
             BattleSideEnum conqueringSide = GetConqueringSide(mapEvent.IsSiegeAssault, mapEvent.IsSallyOut,
@@ -60,7 +60,7 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionCaptureCorrelation.Bind(mapEvent, capture.Id, town.OwnerClan?.StringId ?? "");
         }
 
-        internal void ObserveEnd(MapEvent mapEvent)
+        public void ObserveEnd(MapEvent mapEvent)
         {
             if (!IsSuccessfulFinalization(mapEvent))
             {
@@ -73,7 +73,7 @@ namespace CustomSpawns.Invasions.Adapters
             RecordNativeResult(mapEvent);
         }
 
-        internal long? ObserveAftermath(MobileParty attacker, Settlement settlement, Clan previousOwner,
+        public long? ObserveAftermath(MobileParty attacker, Settlement settlement, Clan previousOwner,
             Dictionary<MobileParty, float> contributions)
         {
             MapEvent? mapEvent = settlement.Party.MapEvent ?? attacker.MapEvent;
@@ -106,7 +106,7 @@ namespace CustomSpawns.Invasions.Adapters
             return capture.Id;
         }
 
-        internal long? ObserveOwnerChange(Settlement settlement, Hero newOwner, Hero oldOwner, Hero capturer,
+        public long? ObserveOwnerChange(Settlement settlement, Hero newOwner, Hero oldOwner, Hero capturer,
             ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail detail)
         {
             InvasionFoothold? previousFoothold = _invasionState.FindFoothold(settlement.StringId);
@@ -161,7 +161,7 @@ namespace CustomSpawns.Invasions.Adapters
             return capture.Id;
         }
 
-        internal void RebindUnconfirmed()
+        public void RebindUnconfirmed()
         {
             // Only a unique live native anchor can restore an incomplete occurrence.
             var liveEvents = Settlement.All.Select(s => s.Party.MapEvent).Where(e => e != null).Distinct().ToList();
@@ -216,7 +216,7 @@ namespace CustomSpawns.Invasions.Adapters
             mapEvent.WinningSide == GetConqueringSide(mapEvent.IsSiegeAssault, mapEvent.IsSallyOut, mapEvent.IsBlockadeSallyOut) && mapEvent.IsFinalized;
 
         // Native sally-out attackers are the garrison; the besiegers are the defenders.
-        internal static BattleSideEnum GetConqueringSide(bool isSiegeAssault, bool isSallyOut, bool isBlockadeSallyOut) =>
+        public static BattleSideEnum GetConqueringSide(bool isSiegeAssault, bool isSallyOut, bool isBlockadeSallyOut) =>
             isSiegeAssault ? BattleSideEnum.Attacker : isSallyOut || isBlockadeSallyOut ? BattleSideEnum.Defender : BattleSideEnum.None;
     }
 }

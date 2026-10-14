@@ -24,6 +24,15 @@ namespace CustomSpawns.Data.Model
         [XmlElement("StrengthPerTownHeld")]
         public float StrengthPerTownHeld { get; set; }
 
+        // How many lords the invasion keeps at most; the waves field no more once it has them. Left out, the
+        // waves field every lord they bring.
+        [XmlElement("MaxLords")]
+        public int MaxLords { get; set; }
+
+        // Raises that cap for every town the invasion's kingdom currently holds.
+        [XmlElement("LordsPerTownHeld")]
+        public int LordsPerTownHeld { get; set; }
+
         // How many men stay standing in the invasion's capital: its lords draw that garrison down to this
         // but never below it.
         [XmlElement("MinimumCapitalGarrison")]
@@ -39,8 +48,8 @@ namespace CustomSpawns.Data.Model
 
     public sealed class InvasionSuppliesConfig
     {
-        // How much food each convoy unloads into the capital's market, for the town to live off as it does
-        // off any other food in it. Left out, the invasion runs no convoys and its capital feeds itself.
+        // How much food each convoy adds straight to the capital's food stocks, which the market only does
+        // once grain sells. Left out, the invasion runs no convoys and its capital feeds itself.
         [XmlElement("FoodPerConvoy")]
         public int FoodPerConvoy { get; set; }
 
@@ -79,7 +88,7 @@ namespace CustomSpawns.Data.Model
         public int LordsPerWave { get; set; }
     }
 
-    internal static class InvasionConfigValidator
+    public static class InvasionConfigValidator
     {
         public static void Validate(InvasionConfig config)
         {
@@ -100,6 +109,8 @@ namespace CustomSpawns.Data.Model
 
             ValidateNonNegativeFinite("Invasion MaxFactionStrength", config.MaxFactionStrength);
             ValidateNonNegativeFinite("Invasion StrengthPerTownHeld", config.StrengthPerTownHeld);
+            ValidateNonNegative("Invasion MaxLords", config.MaxLords);
+            ValidateNonNegative("Invasion LordsPerTownHeld", config.LordsPerTownHeld);
             ValidateNonNegative("Invasion MinimumCapitalGarrison", config.MinimumCapitalGarrison);
             ValidateNonNegative("Invasion Supplies FoodPerConvoy", config.Supplies.FoodPerConvoy);
             // Convoys are looked at once a day, so a shorter interval than that would only lie about itself.

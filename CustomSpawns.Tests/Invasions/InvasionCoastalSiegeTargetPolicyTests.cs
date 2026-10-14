@@ -319,7 +319,7 @@ namespace CustomSpawns.Tests.Invasions
             private readonly IReadOnlyList<MobileParty> _landingParties;
             private readonly bool _servesLiveInvasion;
 
-            internal LandingStub(Func<MobileParty, Func<Settlement, bool>?> filter,
+            public LandingStub(Func<MobileParty, Func<Settlement, bool>?> filter,
                 IReadOnlyList<MobileParty> landingParties, bool servesLiveInvasion)
             {
                 _filter = filter;

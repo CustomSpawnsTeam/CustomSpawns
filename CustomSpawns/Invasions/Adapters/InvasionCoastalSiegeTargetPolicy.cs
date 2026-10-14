@@ -13,7 +13,7 @@ namespace CustomSpawns.Invasions.Adapters
      * Where an invasion is allowed to land, and which parties land together. Siege targeting restricts and
      * ranks settlements through this without knowing what an invasion is.
      */
-    internal interface IInvasionLandingQuery
+    public interface IInvasionLandingQuery
     {
         // The towns a party may take while its invasion holds no coastal town; null once it may march inland.
         Func<Settlement, bool>? GetInitialCoastalTargetFilter(MobileParty party);
@@ -25,7 +25,7 @@ namespace CustomSpawns.Invasions.Adapters
         bool ServesLiveInvasion(MobileParty party);
     }
 
-    internal sealed class InvasionCoastalSiegeTargetPolicy : ISiegeTargetPolicy
+    public sealed class InvasionCoastalSiegeTargetPolicy : ISiegeTargetPolicy
     {
         // How far a party may be drawn onto an objective its siblings are already on. Grouping vanilla
         // Calradia's fortifications by owning kingdom, a kingdom spans 145 to 414 end to end, median 240,
@@ -42,12 +42,12 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly Func<MobileParty, Settlement?> _findObjective;
 
         // For the cases where no party has recorded an objective yet, which is also how an invasion starts.
-        internal InvasionCoastalSiegeTargetPolicy(IInvasionLandingQuery landing, IMapPathQuery mapPaths)
+        public InvasionCoastalSiegeTargetPolicy(IInvasionLandingQuery landing, IMapPathQuery mapPaths)
             : this(landing, mapPaths, _ => null)
         {
         }
 
-        internal InvasionCoastalSiegeTargetPolicy(IInvasionLandingQuery landing, IMapPathQuery mapPaths,
+        public InvasionCoastalSiegeTargetPolicy(IInvasionLandingQuery landing, IMapPathQuery mapPaths,
             Func<MobileParty, Settlement?> findObjective)
         {
             _invasionLandingQuery = landing;

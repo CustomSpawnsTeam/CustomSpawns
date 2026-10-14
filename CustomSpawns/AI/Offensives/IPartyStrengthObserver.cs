@@ -7,7 +7,7 @@ namespace CustomSpawns.AI.Offensives
      * offensive-specific ports, because a raid sizes up a village and a siege sizes up a garrison the
      * attacking party is compared against.
      */
-    internal interface IPartyStrengthObserver
+    public interface IPartyStrengthObserver
     {
         float GetAttackerStrength(MobileParty party);
         float GetVisibleHostileStrength(MobileParty party);

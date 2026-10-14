@@ -8,11 +8,11 @@ namespace CustomSpawns.Invasions.Adapters
      * whether a capture winds the reinforcement clocks. The invasion's configured doctrine answers it, the
      * kind of settlement that may be a base included, which callers must not test again for themselves.
      */
-    internal sealed class InvasionSupplyBases
+    public sealed class InvasionSupplyBases
     {
         private readonly InvasionCoastalTownResolver _invasionCoastalTownResolver = new();
 
-        internal bool IsSupplyBase(Settlement? settlement, InvasionData? configuration)
+        public bool IsSupplyBase(Settlement? settlement, InvasionData? configuration)
         {
             IInvasionSupplyLine? supplyLine = InvasionSupplyLines.Find(configuration?.SupplyLine);
 
@@ -22,9 +22,9 @@ namespace CustomSpawns.Invasions.Adapters
         }
 
         // Whether holding a supply base is something this invasion has to fight for at all.
-        internal bool DependsOnASupplyBase(InvasionData? configuration) =>
+        public bool DependsOnASupplyBase(InvasionData? configuration) =>
             InvasionSupplyLines.Find(configuration?.SupplyLine)?.DependsOnASupplyBase == true;
 
-        internal void ClearCache() => _invasionCoastalTownResolver.ClearCache();
+        public void ClearCache() => _invasionCoastalTownResolver.ClearCache();
     }
 }

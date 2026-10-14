@@ -5,20 +5,20 @@ using System.Linq;
 namespace CustomSpawns.Invasions.Adapters
 {
     // Native evidence and the two-callback corroboration it feeds. Object tokens are compared by identity.
-    internal sealed class InvasionCaptureCorrelation
+    public sealed class InvasionCaptureCorrelation
     {
         private readonly InvasionState _invasionState;
         private readonly Dictionary<object, NativeResult> _events = new();
 
-        internal InvasionCaptureCorrelation(InvasionState state) => _invasionState = state;
-        internal bool IsBound(object nativeEvent) => _events.ContainsKey(nativeEvent);
+        public InvasionCaptureCorrelation(InvasionState state) => _invasionState = state;
+        public bool IsBound(object nativeEvent) => _events.ContainsKey(nativeEvent);
 
-        internal void Bind(object nativeEvent, long captureId, string previousOwnerClanId)
+        public void Bind(object nativeEvent, long captureId, string previousOwnerClanId)
         {
             _events.Add(nativeEvent, new NativeResult(captureId, previousOwnerClanId));
         }
 
-        internal void RecordResult(object nativeEvent, string settlementId, long battleStartTimeBits,
+        public void RecordResult(object nativeEvent, string settlementId, long battleStartTimeBits,
             bool isSuccessfulFinalization, object? nativeCapturer, string expectedOwnerClanId,
             IEnumerable<object> participatingParties)
         {
@@ -31,7 +31,7 @@ namespace CustomSpawns.Invasions.Adapters
             result.Verified = true;
         }
 
-        internal InvasionCapture? ResolveOwnership(object? nativeEvent, bool isFinalizing,
+        public InvasionCapture? ResolveOwnership(object? nativeEvent, bool isFinalizing,
             string settlementId, object capturer, string previousOwnerClanId, string newOwnerClanId, string actualOwnerClanId)
         {
             if (nativeEvent == null || !isFinalizing || !_events.TryGetValue(nativeEvent, out var result) || !result.Verified ||
@@ -41,7 +41,7 @@ namespace CustomSpawns.Invasions.Adapters
             return capture?.SettlementId == settlementId ? capture : null;
         }
 
-        internal void DiscardUnsuccessfulEvent(object nativeEvent)
+        public void DiscardUnsuccessfulEvent(object nativeEvent)
         {
             if (!_events.TryGetValue(nativeEvent, out var result) || result.Verified) return;
             var capture = _invasionState.FindCapture(result.CaptureId);
@@ -49,7 +49,7 @@ namespace CustomSpawns.Invasions.Adapters
             _events.Remove(nativeEvent);
         }
 
-        internal InvasionCapture? ResolveAftermath(object? nativeEvent, bool isFinalizing,
+        public InvasionCapture? ResolveAftermath(object? nativeEvent, bool isFinalizing,
             string settlementId, string attackerId, string previousOwnerClanId, string actualOwnerClanId,
             IEnumerable<object> contributingParties)
         {
@@ -87,7 +87,7 @@ namespace CustomSpawns.Invasions.Adapters
 
         // Ownership and aftermath reach us as two unrelated native callbacks. Each records its half, and the
         // capture is confirmed only once both halves agree they describe the same siege.
-        internal bool ObserveOwnership(long captureId, string invasionClanId, string capturerId, string previousOwnerClanId,
+        public bool ObserveOwnership(long captureId, string invasionClanId, string capturerId, string previousOwnerClanId,
             string newOwnerClanId, bool bySiege)
         {
             var capture = _invasionState.FindCapture(captureId);
@@ -103,7 +103,7 @@ namespace CustomSpawns.Invasions.Adapters
             return true;
         }
 
-        internal bool ObserveAftermath(long captureId, string attackerId, string previousOwnerClanId,
+        public bool ObserveAftermath(long captureId, string attackerId, string previousOwnerClanId,
             IReadOnlyDictionary<string, string> participantInvasions)
         {
             var capture = _invasionState.FindCapture(captureId);
@@ -138,15 +138,15 @@ namespace CustomSpawns.Invasions.Adapters
             invasion.CapitalSettlementId ??= capture.SettlementId;
         }
 
-        internal void Prune()
+        public void Prune()
         {
             foreach (var entry in _events.Where(e => PendingCapture(e.Value) == null).ToList()) _events.Remove(entry.Key);
         }
 
-        internal IReadOnlyList<NativeResult> ExportOwnedResults() => _events.Values.Where(result => result.Verified &&
+        public IReadOnlyList<NativeResult> ExportOwnedResults() => _events.Values.Where(result => result.Verified &&
             PendingCapture(result)?.OwnershipObserved == true).ToList();
 
-        internal bool RestoreOwnedResult(long captureId, string previousOwnerClanId, string expectedOwnerClanId,
+        public bool RestoreOwnedResult(long captureId, string previousOwnerClanId, string expectedOwnerClanId,
             object? capturer, IEnumerable<object> participants)
         {
             var capture = _invasionState.FindCapture(captureId);
@@ -161,16 +161,16 @@ namespace CustomSpawns.Invasions.Adapters
             return true;
         }
 
-        internal sealed class NativeResult
+        public sealed class NativeResult
         {
-            internal NativeResult(long captureId, string previousOwnerClanId)
+            public NativeResult(long captureId, string previousOwnerClanId)
             { CaptureId = captureId; PreviousOwnerClanId = previousOwnerClanId; }
-            internal long CaptureId { get; }
-            internal string PreviousOwnerClanId { get; }
-            internal bool Verified;
-            internal object? Capturer;
-            internal string ExpectedOwnerClanId = "";
-            internal object[] Participants = new object[0];
+            public long CaptureId { get; }
+            public string PreviousOwnerClanId { get; }
+            public bool Verified;
+            public object? Capturer;
+            public string ExpectedOwnerClanId = "";
+            public object[] Participants = new object[0];
         }
     }
 }

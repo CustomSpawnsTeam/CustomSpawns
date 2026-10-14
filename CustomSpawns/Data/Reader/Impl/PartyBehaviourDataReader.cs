@@ -44,7 +44,7 @@ namespace CustomSpawns.Data.Reader.Impl
             return templates;
         }
 
-        internal static void DeserializeInto(Stream stream, IList<PriorityPartyBehaviourTemplate> templates,
+        public static void DeserializeInto(Stream stream, IList<PriorityPartyBehaviourTemplate> templates,
             Action<System.Exception> onError)
         {
             XmlSerializer serialiser = new XmlSerializer(typeof(PriorityPartyBehaviourTemplates));

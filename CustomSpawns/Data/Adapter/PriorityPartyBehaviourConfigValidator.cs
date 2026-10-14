@@ -7,7 +7,7 @@ namespace CustomSpawns.Data.Adapter
      * Rejects behaviour configurations the AI cannot act on. A ratio of zero, a negative cooldown or an
      * inverted range would otherwise surface much later as a party that never picks a target.
      */
-    internal static class PriorityPartyBehaviourConfigValidator
+    public static class PriorityPartyBehaviourConfigValidator
     {
         public static void ValidateOffensiveValues(string behaviourName, StrengthAssessmentConfig strengthAssessment,
             ReconnaissanceConfig reconnaissance, FloatRangeConfig operationWindow, float cooldownInDays)
