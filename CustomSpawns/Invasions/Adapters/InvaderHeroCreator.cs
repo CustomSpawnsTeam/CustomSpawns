@@ -99,6 +99,7 @@ namespace CustomSpawns.Invasions.Adapters
             clan.Color2 = founder.Color2;
             clan.IsNoble = true;
             clan.SetInitialHomeSettlement(home);
+            clan.CalculateMidSettlement();
 
             // Tier has no public setter; renown is the way in, and it carries the same war party limit.
             clan.AddRenown(Campaign.Current.Models.ClanTierModel.GetRequiredRenownForTier(founder.Tier), false);
