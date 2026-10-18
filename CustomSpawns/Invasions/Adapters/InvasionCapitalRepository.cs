@@ -26,19 +26,6 @@ namespace CustomSpawns.Invasions.Adapters
             .Select(entry => new InvasionCapital(entry.Key, EmptyToNull(entry.Value)))
             .ToList();
 
-        public InvasionCapital? FindByCapital(string settlementId)
-        {
-            foreach (KeyValuePair<string, string> entry in _capitalSettlementIdsByKingdomId)
-            {
-                if (string.Equals(entry.Value, settlementId, StringComparison.Ordinal))
-                {
-                    return new InvasionCapital(entry.Key, entry.Value);
-                }
-            }
-
-            return null;
-        }
-
         public void Register(string invaderKingdomId, string? capitalSettlementId)
         {
             if (string.IsNullOrWhiteSpace(invaderKingdomId))
@@ -58,6 +45,22 @@ namespace CustomSpawns.Invasions.Adapters
             {
                 _capitalSettlementIdsByKingdomId[invaderKingdomId] = capitalSettlementId;
             }
+        }
+
+        public void RelocateAfterObjectiveCapture(string invaderKingdomId, string capitalSettlementId)
+        {
+            if (string.IsNullOrWhiteSpace(invaderKingdomId))
+            {
+                throw new ArgumentException("An invader kingdom id is required.", nameof(invaderKingdomId));
+            }
+
+            if (string.IsNullOrWhiteSpace(capitalSettlementId))
+            {
+                throw new ArgumentException("A replacement capital settlement id is required.",
+                    nameof(capitalSettlementId));
+            }
+
+            _capitalSettlementIdsByKingdomId[invaderKingdomId] = capitalSettlementId;
         }
 
         private static string? EmptyToNull(string value) => string.IsNullOrEmpty(value) ? null : value;

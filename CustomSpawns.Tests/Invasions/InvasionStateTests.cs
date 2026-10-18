@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reflection;
 using CustomSpawns.Invasions;
 using CustomSpawns.Invasions.Adapters;
+using CustomSpawns.Invasions.CapitalObjectives;
 using CustomSpawns.Spawn;
 using NUnit.Framework;
 using TaleWorlds.SaveSystem;
@@ -278,52 +279,71 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
-        public void SteeringOfEveryPartyChangesHandsWhenTheInvasionTakesOrLosesItsCapital()
+        public void ConfiguredSteeringEndsOnceTheFirstCapitalIsEstablished()
         {
-            Assert.True(_state.RequiresCustomSpawnsSteering(_invasion.ClanId));
+            Assert.True(_state.RequiresConfiguredPartySteering(_invasion.ClanId));
             // A party of no invasion is never released, whatever any invasion holds.
-            Assert.True(_state.RequiresCustomSpawnsSteering("absent"));
-            Assert.True(_state.RequiresCustomSpawnsSteering(null));
+            Assert.True(_state.RequiresConfiguredPartySteering("absent"));
+            Assert.True(_state.RequiresConfiguredPartySteering(null));
 
             Conquer();
             Assert.That(_invasion.CapitalSettlementId, Is.EqualTo("town"));
-            Assert.False(_state.RequiresCustomSpawnsSteering(_invasion.ClanId));
-            Assert.True(_state.RequiresCustomSpawnsSteering("absent"));
+            Assert.False(_state.RequiresConfiguredPartySteering(_invasion.ClanId));
+            Assert.True(_state.RequiresConfiguredPartySteering("absent"));
 
             _state.ObserveOwner("town", "enemy");
-            Assert.True(_state.RequiresCustomSpawnsSteering(_invasion.ClanId));
+            Assert.False(_state.RequiresConfiguredPartySteering(_invasion.ClanId));
         }
 
         [Test]
-        public void OnlyTheLossOfTheCapitalTakesTheInvasionBackOffVanillaSteering()
+        public void CapitalObjectiveSurvivesSaveRoundTrip()
         {
-            Conquer();
-            var second = _state.StartCapture("second-town", 300, "capturer");
-            Correlation.ObserveOwnership(second.Id, _invasion.ClanId, "capturer", "enemy", "clan", true);
-            Aftermath(second);
-            Assert.That(_state.Footholds.Count, Is.EqualTo(2));
-            // A second conquest never displaces the capital the invasion landed for.
-            Assert.That(_invasion.CapitalSettlementId, Is.EqualTo("town"));
+            _invasion.CapitalSettlementId = "town";
+            _invasion.BeginCapitalAttack("town", 10);
+            _invasion.AssignCapitalObjectiveCommander("capturer");
 
-            _state.ObserveOwner("second-town", "enemy");
-            Assert.False(_state.RequiresCustomSpawnsSteering(_invasion.ClanId));
+            _state = RoundTrip();
 
-            _state.ObserveOwner("town", "enemy");
-            Assert.True(_state.RequiresCustomSpawnsSteering(_invasion.ClanId));
+            InvasionCapitalObjective objective = _state.Invasions.Single().CapitalObjective!;
+            Assert.That(objective.Kind, Is.EqualTo(InvasionCapitalObjectiveKind.Attack));
+            Assert.That(objective.Phase, Is.EqualTo(InvasionCapitalObjectivePhase.Gathering));
+            Assert.That(objective.TargetSettlementId, Is.EqualTo("town"));
+            Assert.That(objective.GatherDeadlineDays, Is.EqualTo(13));
+            Assert.That(objective.AttackDeadlineDays, Is.EqualTo(17));
+            Assert.That(objective.CommanderPartyId, Is.EqualTo("capturer"));
         }
 
         [Test]
-        public void LosingTheCapitalWhileHoldingASecondTownStillPutsTheInvasionBackOnTheOffensive()
+        public void DefenceSiegeEpisodeSurvivesSaveRoundTrip()
         {
-            Conquer();
-            var second = _state.StartCapture("second-town", 300, "capturer");
-            Correlation.ObserveOwnership(second.Id, _invasion.ClanId, "capturer", "enemy", "clan", true);
-            Aftermath(second);
+            _invasion.CapitalSettlementId = "town";
+            _invasion.BeginCapitalDefence("town", 10, "siege-episode");
 
-            _state.ObserveOwner("town", "enemy");
+            _state = RoundTrip();
 
-            Assert.That(_state.Footholds.Count, Is.EqualTo(1));
-            Assert.True(_state.RequiresCustomSpawnsSteering(_invasion.ClanId));
+            InvasionCapitalObjective objective = _state.Invasions.Single().CapitalObjective!;
+            Assert.That(objective.Kind, Is.EqualTo(InvasionCapitalObjectiveKind.Defence));
+            Assert.That(objective.DefenceSiegeEpisodeId, Is.EqualTo("siege-episode"));
+        }
+
+        [Test]
+        public void LegacyCapitalRetakeDeadlineRestoresAsAdvancingAttack()
+        {
+            var saved = new InvasionSaveData
+            {
+                SpawnTemplateId = "invasion",
+                ClanId = "clan",
+                CapitalSettlementId = "town",
+                CapitalRetakeDeadlineDays = 17
+            };
+
+            InvasionCapitalObjective objective = saved.ToState().CapitalObjective!;
+
+            Assert.That(objective.Kind, Is.EqualTo(InvasionCapitalObjectiveKind.Attack));
+            Assert.That(objective.Phase, Is.EqualTo(InvasionCapitalObjectivePhase.Advancing));
+            Assert.That(objective.TargetSettlementId, Is.EqualTo("town"));
+            Assert.That(objective.GatherDeadlineDays, Is.Null);
+            Assert.That(objective.AttackDeadlineDays, Is.EqualTo(17));
         }
 
         [Test]

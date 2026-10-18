@@ -18,6 +18,7 @@ namespace CustomSpawns.Tests.Invasions
         [TestCase(typeof(InvasionFootholdSaveData), 9)]
         [TestCase(typeof(InvasionCaptureEvidenceSaveData), 10)]
         [TestCase(typeof(InvasionReinforcementScheduleSaveData), 11)]
+        [TestCase(typeof(InvasionCapitalObjectiveSaveData), 12)]
         public void SaveTypesAppendAfterExistingIds(Type type, int localId)
         {
             var context = new DefinitionContext();
@@ -49,6 +50,7 @@ namespace CustomSpawns.Tests.Invasions
         [TestCase(typeof(InvasionFootholdSaveData))]
         [TestCase(typeof(InvasionCaptureEvidenceSaveData))]
         [TestCase(typeof(InvasionReinforcementScheduleSaveData))]
+        [TestCase(typeof(InvasionCapitalObjectiveSaveData))]
         public void BoundarySnapshotFieldsAllHaveDistinctSaveIds(Type type)
         {
             var fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public);

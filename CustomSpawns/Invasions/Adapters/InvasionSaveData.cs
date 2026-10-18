@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CustomSpawns.Invasions.CapitalObjectives;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.SaveSystem;
@@ -59,6 +60,9 @@ namespace CustomSpawns.Invasions.Adapters
         [SaveableField(10)] public List<InvasionReinforcementScheduleSaveData> ReinforcementSchedules = new();
         // Negative for a convoy clock that has yet to be wound, which is every invasion without a capital.
         [SaveableField(11)] public double NextFoodConvoyDays = -1;
+        // Negative until this invasion loses its capital for the first time.
+        [SaveableField(12)] public double CapitalRetakeDeadlineDays = -1;
+        [SaveableField(13)] public InvasionCapitalObjectiveSaveData? CapitalObjective;
 
         public static InvasionSaveData FromState(Invasion value) => new()
         {
@@ -70,7 +74,11 @@ namespace CustomSpawns.Invasions.Adapters
             ClanIds = value.ClanIds.ToList(),
             ReinforcementSchedules = value.ReinforcementSchedules
                 .Select(InvasionReinforcementScheduleSaveData.FromState).ToList(),
-            NextFoodConvoyDays = value.NextFoodConvoyDays ?? -1
+            NextFoodConvoyDays = value.NextFoodConvoyDays ?? -1,
+            CapitalRetakeDeadlineDays = -1,
+            CapitalObjective = value.CapitalObjective == null
+                ? null
+                : InvasionCapitalObjectiveSaveData.FromState(value.CapitalObjective)
         };
 
         public Invasion ToState()
@@ -82,6 +90,17 @@ namespace CustomSpawns.Invasions.Adapters
                 NextFoodConvoyDays = NextFoodConvoyDays < 0 ? null : NextFoodConvoyDays,
                 Members = new HashSet<string>(Members ?? new List<string>(), StringComparer.Ordinal)
             };
+
+            InvasionCapitalObjective? objective = CapitalObjective?.ToState();
+            if (objective == null && CapitalObjective == null && CapitalRetakeDeadlineDays >= 0 &&
+                !string.IsNullOrWhiteSpace(CapitalSettlementId))
+            {
+                objective = new InvasionCapitalObjective(InvasionCapitalObjectiveKind.Attack,
+                    InvasionCapitalObjectivePhase.Advancing, CapitalSettlementId, null,
+                    CapitalRetakeDeadlineDays, InvasionCapitalObjectiveDormantReason.None, null);
+            }
+
+            invasion.RestoreCapitalObjective(objective);
             // A save taken before the invasion could expand carries the founding clan alone.
             foreach (string clanId in ClanIds ?? new List<string>()) invasion.AddClan(clanId);
             foreach (var schedule in ReinforcementSchedules ?? new List<InvasionReinforcementScheduleSaveData>())
@@ -89,6 +108,52 @@ namespace CustomSpawns.Invasions.Adapters
                     schedule.WavesSent);
             return invasion;
         }
+    }
+
+    public sealed class InvasionCapitalObjectiveSaveData
+    {
+        [SaveableField(1)] public int Kind;
+        [SaveableField(2)] public int Phase;
+        [SaveableField(3)] public string TargetSettlementId = "";
+        [SaveableField(4)] public double GatherDeadlineDays = -1;
+        [SaveableField(5)] public double AttackDeadlineDays = -1;
+        [SaveableField(6)] public int DormantReason;
+        [SaveableField(7)] public string CommanderPartyId = "";
+        [SaveableField(8)] public string DefenceSiegeEpisodeId = "";
+
+        public static InvasionCapitalObjectiveSaveData FromState(
+            InvasionCapitalObjective value) => new()
+        {
+            Kind = (int)value.Kind,
+            Phase = (int)value.Phase,
+            TargetSettlementId = value.TargetSettlementId ?? "",
+            GatherDeadlineDays = value.GatherDeadlineDays ?? -1,
+            AttackDeadlineDays = value.AttackDeadlineDays ?? -1,
+            DormantReason = (int)value.DormantReason,
+            CommanderPartyId = value.CommanderPartyId ?? "",
+            DefenceSiegeEpisodeId = value.DefenceSiegeEpisodeId ?? ""
+        };
+
+        public InvasionCapitalObjective? ToState()
+        {
+            try
+            {
+                return new InvasionCapitalObjective((InvasionCapitalObjectiveKind)Kind,
+                    (InvasionCapitalObjectivePhase)Phase, EmptyAsNull(TargetSettlementId),
+                    NegativeAsNull(GatherDeadlineDays), NegativeAsNull(AttackDeadlineDays),
+                    (InvasionCapitalObjectiveDormantReason)DormantReason,
+                    EmptyAsNull(CommanderPartyId), EmptyAsNull(DefenceSiegeEpisodeId));
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
+        }
+
+        private static string? EmptyAsNull(string? value) =>
+            string.IsNullOrWhiteSpace(value) ? null : value;
+
+        private static double? NegativeAsNull(double value) => value < 0 ? null : value;
     }
 
     public sealed class InvasionReinforcementScheduleSaveData

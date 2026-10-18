@@ -14,23 +14,11 @@ namespace CustomSpawns.Invasions
         }
     }
 
-    public readonly struct InvasionCapitalStatusChanged
-    {
-        public InvasionCapital Capital { get; }
-        public bool IsHeldByInvader { get; }
-
-        public InvasionCapitalStatusChanged(InvasionCapital capital, bool isHeldByInvader)
-        {
-            Capital = capital;
-            IsHeldByInvader = isHeldByInvader;
-        }
-    }
-
     public interface IInvasionCapitalRepository
     {
         IReadOnlyList<InvasionCapital> FindAll();
-        InvasionCapital? FindByCapital(string settlementId);
         void Register(string invaderKingdomId, string? capitalSettlementId);
+        void RelocateAfterObjectiveCapture(string invaderKingdomId, string capitalSettlementId);
     }
 
     public interface IInvasionClanRepository
@@ -38,10 +26,5 @@ namespace CustomSpawns.Invasions
         string? FindSpawnTemplate(string clanId);
         IReadOnlyList<string> FindClanIds(string spawnTemplateId);
         void Register(string spawnTemplateId, string clanId);
-    }
-
-    public interface IInvasionCapitalRetakeOrders
-    {
-        void Retake(InvasionCapital capital);
     }
 }

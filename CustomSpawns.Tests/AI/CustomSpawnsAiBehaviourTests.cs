@@ -60,7 +60,8 @@ namespace CustomSpawns.Tests.AI
             SyncStub patrol = new();
             SyncStub raid = new();
             SyncStub fallback = new();
-            CustomSpawnsAiBehaviour behaviour = new(null!, null!, new ISyncsCampaignData[]
+            CustomSpawnsAiBehaviour behaviour = new(null!, null!,
+                new CompositePartyOrder(new IPartyOrder[0]), new ISyncsCampaignData[]
             {
                 patrol, raid, fallback
             });
@@ -76,7 +77,9 @@ namespace CustomSpawns.Tests.AI
         public void SyncData_SyncsATargetRegisteredTwiceOnlyOnce()
         {
             SyncStub shared = new();
-            CustomSpawnsAiBehaviour behaviour = new(null!, null!, new ISyncsCampaignData[] { shared, shared });
+            CustomSpawnsAiBehaviour behaviour = new(null!, null!,
+                new CompositePartyOrder(new IPartyOrder[0]),
+                new ISyncsCampaignData[] { shared, shared });
 
             behaviour.SyncData(new NonSavingDataStore());
 

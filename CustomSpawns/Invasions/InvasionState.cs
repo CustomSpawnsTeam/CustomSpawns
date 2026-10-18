@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CustomSpawns.Invasions.CapitalObjectives;
 
 namespace CustomSpawns.Invasions
 {
@@ -64,13 +65,13 @@ namespace CustomSpawns.Invasions
         public bool IsInvasionSpent(Invasion invasion) =>
             invasion.Members.Count == 0 && !Footholds.Any(foothold => foothold.InvasionClanId == invasion.ClanId);
 
-        // Steering changes hands at the capital: an invasion that holds it leaves every one of its parties to
-        // vanilla, and an invasion that has lost it takes them all back to retake it, whatever else it still
-        // holds. Parties of no invasion are always ours.
-        public bool RequiresCustomSpawnsSteering(string? clanId)
+        // Configured spawn AI gets the invasion to its first capital. Once that capital exists, explicit
+        // kingdom attack and defence orders own it and lord parties remain under vanilla steering.
+        // Parties of no invasion are always ours.
+        public bool RequiresConfiguredPartySteering(string? clanId)
         {
             Invasion? invasion = FindInvasionHolding(clanId);
-            return invasion == null || (!invasion.IsSuspended && !HoldsCapital(invasion));
+            return invasion == null || (!invasion.IsSuspended && invasion.CapitalSettlementId == null);
         }
 
         public bool HoldsCapital(Invasion invasion) => invasion.CapitalSettlementId != null &&
@@ -166,12 +167,103 @@ namespace CustomSpawns.Invasions
          * but the capital it landed for has to be retaken.
          */
         public string? CapitalSettlementId { get; set; }
+        public InvasionCapitalObjective? CapitalObjective { get; private set; }
         /**
          * When the next food convoy is due at the capital, in campaign days, or null while none has been
          * scheduled. It is its own clock on purpose: supplying the capital has nothing to do with how often
          * the invasion is reinforced.
          */
         public double? NextFoodConvoyDays { get; set; }
+
+        public void BeginCapitalDefence(string settlementId, double nowDays,
+            string? siegeEpisodeId = null)
+        {
+            if (CapitalObjective?.Kind == InvasionCapitalObjectiveKind.Defence &&
+                CapitalObjective.TargetSettlementId == settlementId &&
+                CapitalObjective.DefenceSiegeEpisodeId == siegeEpisodeId)
+            {
+                return;
+            }
+
+            CapitalObjective = new InvasionCapitalObjective(InvasionCapitalObjectiveKind.Defence,
+                settlementId, nowDays, siegeEpisodeId);
+        }
+
+        public void BeginCapitalAttack(string settlementId, double nowDays)
+        {
+            if (CapitalObjective?.Kind == InvasionCapitalObjectiveKind.Attack &&
+                CapitalObjective.DefenceSiegeEpisodeId == null)
+            {
+                return;
+            }
+
+            CapitalObjective = new InvasionCapitalObjective(InvasionCapitalObjectiveKind.Attack,
+                settlementId, nowDays);
+        }
+
+        public void AdvanceCapitalObjective()
+        {
+            RequiredCapitalObjective().MarkReady();
+        }
+
+        public void RetargetCapitalAttack(string settlementId, double nowDays)
+        {
+            RequiredCapitalObjective().RetargetForAttack(settlementId, nowDays);
+        }
+
+        public void MarkCapitalSiegeStarted()
+        {
+            RequiredCapitalObjective().MarkBesieging();
+        }
+
+        public void WaitForViableCapitalTarget()
+        {
+            RequiredCapitalObjective().WaitForViableTarget();
+        }
+
+        public void TimeOutCapitalAttack()
+        {
+            RequiredCapitalObjective().TimeOutAttack();
+        }
+
+        public void AssignCapitalObjectiveCommander(string partyId)
+        {
+            RequiredCapitalObjective().AssignCommander(partyId);
+        }
+
+        public void ClearCapitalObjectiveCommander()
+        {
+            CapitalObjective?.ClearCommander();
+        }
+
+        public void RestoreCapitalObjective(InvasionCapitalObjective? objective)
+        {
+            CapitalObjective = objective;
+        }
+
+        public void CompleteCapitalObjective()
+        {
+            CapitalObjective = null;
+        }
+
+        public void RelocateCapitalAfterObjectiveCapture(string settlementId)
+        {
+            InvasionCapitalObjective objective = RequiredCapitalObjective();
+
+            if (objective.Kind != InvasionCapitalObjectiveKind.Attack ||
+                objective.TargetSettlementId != settlementId)
+            {
+                throw new InvalidOperationException("Only the captured attack target can become the capital.");
+            }
+
+            CapitalSettlementId = settlementId;
+            CapitalObjective = null;
+        }
+
+        private InvasionCapitalObjective RequiredCapitalObjective()
+        {
+            return CapitalObjective ?? throw new InvalidOperationException("The invasion has no capital objective.");
+        }
 
         // One clock per configured reinforcement rule. An invasion that holds no supply base has none.
         public List<InvasionReinforcementSchedule> Schedules = new();

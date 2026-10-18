@@ -22,8 +22,19 @@ namespace CustomSpawns.Tests.Invasions
             repository.Register("invader", "second-town");
 
             Assert.That(repository.FindAll()[0].CapitalSettlementId, Is.EqualTo("first-town"));
-            Assert.That(repository.FindByCapital("first-town")?.InvaderKingdomId, Is.EqualTo("invader"));
-            Assert.IsNull(repository.FindByCapital("second-town"));
+            Assert.That(repository.FindAll()[0].InvaderKingdomId, Is.EqualTo("invader"));
+        }
+
+        [Test]
+        public void ObjectiveCaptureMayExplicitlyRelocateCapital()
+        {
+            var repository = new InvasionCapitalRepository();
+            repository.Register("invader", "lost-capital");
+
+            repository.RelocateAfterObjectiveCapture("invader", "replacement-capital");
+
+            Assert.That(repository.FindAll()[0].CapitalSettlementId,
+                Is.EqualTo("replacement-capital"));
         }
 
         [Test]
@@ -41,36 +52,5 @@ namespace CustomSpawns.Tests.Invasions
             Assert.That(repository.FindClanIds("other-invasion"), Is.Empty);
         }
 
-        [Test]
-        public void OwnershipBehaviourEmitsOnlyWhenCapitalHeldStatusChanges()
-        {
-            var repository = new InvasionCapitalRepository();
-            repository.Register("invader", "capital");
-            var behaviour = new InvasionCapitalOwnershipBehaviour(repository);
-            var changes = new List<InvasionCapitalStatusChanged>();
-            behaviour.CapitalStatusChanged += changes.Add;
-
-            behaviour.ObserveOwnerChange("other-town", "invader", "enemy");
-            behaviour.ObserveOwnerChange("capital", "enemy", "another-enemy");
-            behaviour.ObserveOwnerChange("capital", "invader", "enemy");
-            behaviour.ObserveOwnerChange("capital", "enemy", "invader");
-
-            Assert.That(changes, Has.Count.EqualTo(2));
-            Assert.False(changes[0].IsHeldByInvader);
-            Assert.True(changes[1].IsHeldByInvader);
-        }
-
-        [Test]
-        public void RetakeUseCaseActsOnLossButNotRecovery()
-        {
-            var orders = new Mock<IInvasionCapitalRetakeOrders>();
-            var useCase = new RetakeInvasionCapital(orders.Object);
-            var capital = new InvasionCapital("invader", "capital");
-
-            useCase.Handle(new InvasionCapitalStatusChanged(capital, false));
-            useCase.Handle(new InvasionCapitalStatusChanged(capital, true));
-
-            orders.Verify(adapter => adapter.Retake(capital), Times.Once);
-        }
     }
 }

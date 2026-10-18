@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using CustomSpawns.AI.Offensives;
 
 namespace CustomSpawns.AI.Model
 {
@@ -9,6 +10,8 @@ namespace CustomSpawns.AI.Model
      */
     public static class OffensiveStrengthRules
     {
+        private static readonly ForceRatioRules ForceRatioRules = new ForceRatioRules();
+
         public static bool IsWithinSeeingRange(float distance, float observerSeeingRange)
         {
             return distance <= observerSeeingRange;
@@ -61,7 +64,7 @@ namespace CustomSpawns.AI.Model
         public static bool MeetsStrengthRatio(float attackerStrength, float defenderStrength,
             float minimumRatio)
         {
-            return defenderStrength <= 0f || attackerStrength / defenderStrength >= minimumRatio;
+            return ForceRatioRules.Meets(attackerStrength, defenderStrength, minimumRatio);
         }
 
         public static T? ChooseClosestTarget<T>(IEnumerable<RaidTargetCandidate<T>> candidates,

@@ -22,10 +22,11 @@ namespace CustomSpawns.AI
 
         public CustomSpawnsAiBehaviour(SteeredPartyLookup steeredParties,
             PartyBehaviourResolver partyBehaviourResolver,
+            IPartyOrder priorityOrder,
             IEnumerable<ISyncsCampaignData> syncTargets)
         {
             _decisionCoordinator = new PartyBehaviorDecisionCoordinator(
-                steeredParties, partyBehaviourResolver, syncTargets);
+                steeredParties, partyBehaviourResolver, priorityOrder, syncTargets);
         }
 
         public override void RegisterEvents()
@@ -83,15 +84,18 @@ namespace CustomSpawns.AI
         {
             private readonly SteeredPartyLookup _steeredParties;
             private readonly PartyBehaviourResolver _partyBehaviourResolver;
+            private readonly IPartyOrder _priorityOrder;
             private readonly IReadOnlyList<ISyncsCampaignData> _syncTargets;
             private readonly HashSet<MobileParty> _escortDecisionLocks = new();
 
             public PartyBehaviorDecisionCoordinator(
                 SteeredPartyLookup steeredParties, PartyBehaviourResolver partyBehaviourResolver,
+                IPartyOrder priorityOrder,
                 IEnumerable<ISyncsCampaignData> syncTargets)
             {
                 _steeredParties = steeredParties;
                 _partyBehaviourResolver = partyBehaviourResolver;
+                _priorityOrder = priorityOrder ?? throw new ArgumentNullException(nameof(priorityOrder));
 
                 var distinctTargets = new HashSet<object>(ReferenceEqualityComparer.Instance);
                 var targets = new List<ISyncsCampaignData>();
@@ -115,6 +119,14 @@ namespace CustomSpawns.AI
 
             public void AddBehaviorScore(MobileParty party, PartyThinkParams thinkParams)
             {
+                AIBehaviorData? priorityBehavior = _priorityOrder.Find(party);
+                if (priorityBehavior.HasValue)
+                {
+                    ApplyDominantBehaviorScore(new PartyThinkParamsAiBehaviorScoreSink(thinkParams),
+                        priorityBehavior.Value);
+                    return;
+                }
+
                 CsPartyData? partyData = _steeredParties.GetSteeredPartyData(party);
                 if (partyData is null)
                 {

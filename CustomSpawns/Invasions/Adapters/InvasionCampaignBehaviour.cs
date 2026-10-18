@@ -2,9 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CustomSpawns.AI;
+using CustomSpawns.AI.Adapters;
+using CustomSpawns.AI.Offensives;
 using CustomSpawns.Data.Dao;
+using CustomSpawns.Invasions.CapitalObjectives;
 using CustomSpawns.Spawn;
 using CustomSpawns.UtilityBehaviours;
+using NLog;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.MapEvents;
@@ -16,8 +20,9 @@ using TaleWorlds.Library;
 namespace CustomSpawns.Invasions.Adapters
 {
     public sealed class InvasionCampaignBehaviour : CampaignBehaviorBase, IPartySteeringQuery,
-        IInvasionLandingQuery, IInvaderClanQuery
+        IInvasionLandingQuery, IInvaderClanQuery, IInvasionCapitalObjectiveQuery
     {
+        private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         private readonly SpawnDao _spawnDao;
         private readonly DynamicSpawnData _dynamicSpawnData;
         private readonly InvasionSupplyBases _invasionSupplyBases = new();
@@ -28,6 +33,8 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly BannerlordInvasionWarbands _bannerlordInvasionWarbands = new();
         private readonly BannerlordInvasionGarrisons _bannerlordInvasionGarrisons = new();
         private readonly InvasionTroopBank _invasionTroopBank = new();
+        private readonly InvasionCapitalObjectiveLogPolicy _invasionCapitalObjectiveLogPolicy = new();
+        private readonly BannerlordInvasionResupplyOrders _bannerlordInvasionResupplyOrders;
         private InvasionCaptureCorrelation _invasionCaptureCorrelation;
         private InvasionReinforcementArrivals _invasionReinforcementArrivals;
         private InvasionOccupations _invasionOccupations;
@@ -36,7 +43,12 @@ namespace CustomSpawns.Invasions.Adapters
         private InvasionMembership _invasionMembership;
         private InvasionLordWarbands _invasionLordWarbands;
         private InvasionFoodConvoys _invasionFoodConvoys;
+        private IInvasionAssaultConfigurationProvider? _invasionAssaultConfigurationProvider;
+        private BannerlordInvasionCapitalObjectiveWorld? _invasionCapitalObjectiveWorld;
+        private InvasionCapitalObjectiveCoordinator? _invasionCapitalObjectiveCoordinator;
+        private InvasionResupply _invasionResupply;
         private bool _initialized;
+        private bool _reconcileCapitalObjectivesOnFirstCampaignTick;
         private Hero? _lordOfRemovedInvasionParty;
         public InvasionState State { get; private set; } = new();
 
@@ -50,6 +62,9 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionClans = invasionClans;
             _invaderHeroes = new InvaderHeroCreator(invasionClans);
             _bannerlordInvasionConfigurations = new BannerlordInvasionConfigurations(spawns);
+            _bannerlordInvasionResupplyOrders = new BannerlordInvasionResupplyOrders(
+                _bannerlordInvasionWarbands);
+            _invasionResupply = NewResupply();
             _invasionCaptureCorrelation = new InvasionCaptureCorrelation(State);
             _invasionReinforcementArrivals = NewArrivals();
             _invasionOccupations = NewOccupations();
@@ -61,7 +76,7 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionFoodConvoys = new InvasionFoodConvoys(State, _spawnDao);
 
             // DynamicSpawnData registers its discovery callback first; scheduling/AI are composed later.
-            initialiser.RunCallbackOnFirstCampaignTick(Initialize);
+            initialiser.RunCallbackOnFirstCampaignTick(InitializeOnFirstCampaignTick);
             parties.PartyRegistered += RegisterParty;
             parties.PartyRemoved += RemoveParty;
         }
@@ -78,8 +93,19 @@ namespace CustomSpawns.Invasions.Adapters
             CampaignEvents.CharacterBecameFugitiveEvent.AddNonSerializedListener(this, OnCharacterBecameFugitive);
             CampaignEvents.SettlementEntered.AddNonSerializedListener(this, OnSettlementEntered);
             CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, OnHourlyTick);
+            CampaignEvents.AiHourlyTickEvent.AddNonSerializedListener(this, AddResupplyScore);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, ScheduleReinforcements);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, UnloadFoodConvoys);
+            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, UpdateCapitalObjectivesDaily);
+        }
+
+        public void ConfigureCapitalObjectives(
+            IInvasionAssaultConfigurationProvider invasionAssaultConfigurationProvider)
+        {
+            _invasionAssaultConfigurationProvider = invasionAssaultConfigurationProvider ??
+                                                     throw new ArgumentNullException(
+                                                         nameof(invasionAssaultConfigurationProvider));
+            RebuildCapitalObjectiveCoordinator();
         }
 
         public override void SyncData(IDataStore dataStore)
@@ -97,6 +123,10 @@ namespace CustomSpawns.Invasions.Adapters
             }
 
             dataStore.SyncData("_invasionState", ref saved);
+            List<string>? returningParties = dataStore.IsSaving
+                ? _invasionResupply.FindReturningParties().ToList()
+                : null;
+            dataStore.SyncData("_invasionResupplyParties", ref returningParties);
 
             if (!dataStore.IsLoading)
             {
@@ -104,6 +134,8 @@ namespace CustomSpawns.Invasions.Adapters
             }
 
             State = saved?.ToState() ?? new InvasionState();
+            _invasionResupply = NewResupply();
+            _invasionResupply.Restore(returningParties ?? new List<string>());
             _invasionCaptureCorrelation = new InvasionCaptureCorrelation(State);
             _invasionReinforcementArrivals = NewArrivals();
             _invasionOccupations = NewOccupations();
@@ -113,6 +145,7 @@ namespace CustomSpawns.Invasions.Adapters
                 _invasionCaptureCorrelation);
             _invasionLordWarbands = NewLordWarbands();
             _invasionFoodConvoys = new InvasionFoodConvoys(State, _spawnDao);
+            RebuildCapitalObjectiveCoordinator();
 
             foreach (var evidence in saved?.OwnedCaptureEvidence ?? new List<InvasionCaptureEvidenceSaveData>())
             {
@@ -121,6 +154,7 @@ namespace CustomSpawns.Invasions.Adapters
             }
 
             _initialized = false;
+            _reconcileCapitalObjectivesOnFirstCampaignTick = true;
             _invasionSupplyBases.ClearCache();
         }
 
@@ -141,6 +175,10 @@ namespace CustomSpawns.Invasions.Adapters
             new(new InvasionWarbandBank(State, _bannerlordInvasionConfigurations, _bannerlordInvasionWarbands,
                 _bannerlordInvasionGarrisons, _invasionTroopBank), _bannerlordInvasionWarbands);
 
+        private InvasionResupply NewResupply() =>
+            new(State, _bannerlordInvasionConfigurations, _bannerlordInvasionGarrisons,
+                _bannerlordInvasionResupplyOrders);
+
         private InvasionOccupations NewOccupations() =>
             new(State, _spawnDao, _dynamicSpawnData, _invasionCapitals, _invasionClans);
 
@@ -157,6 +195,19 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionSieges.RebindUnconfirmed();
         }
 
+        private void InitializeOnFirstCampaignTick()
+        {
+            Initialize();
+
+            if (!_reconcileCapitalObjectivesOnFirstCampaignTick)
+            {
+                return;
+            }
+
+            _reconcileCapitalObjectivesOnFirstCampaignTick = false;
+            ReconcileCapitalObjectives("load");
+        }
+
         private void RegisterParty(MobileParty party, CsPartyData data) => _invasionMembership.Register(party, data);
 
         /**
@@ -169,6 +220,7 @@ namespace CustomSpawns.Invasions.Adapters
          */
         private void RemoveParty(MobileParty party)
         {
+            _invasionResupply.Remove(party.StringId);
             Hero? leader = party.LeaderHero;
             _lordOfRemovedInvasionParty = InvasionLordRemoval.TakeLordOfRemovedInvasionParty(State,
                 leader?.Clan?.StringId, party.StringId, leader, () => _invasionMembership.Remove(party));
@@ -217,6 +269,13 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionKingdomRetirement.RetireSpent();
             _invasionOccupations.ApplyReady();
             _invasionOccupations.KeepCrowns();
+            UpdateCapitalObjectivesHourly();
+        }
+
+        private void AddResupplyScore(MobileParty party, PartyThinkParams thinkParams)
+        {
+            Initialize();
+            _bannerlordInvasionResupplyOrders.AddBehaviorScore(party, thinkParams, _invasionResupply);
         }
 
         // The party itself no longer says which invasion it serves, so the spawn it came from is asked instead.
@@ -274,6 +333,8 @@ namespace CustomSpawns.Invasions.Adapters
             {
                 _invasionReinforcementArrivals.StartSchedule(capture.Value);
             }
+
+            ReconcileCapitalObjectives("owner_change");
         }
 
         bool IPartySteeringQuery.RequiresCustomSpawnsSteering(MobileParty party)
@@ -282,7 +343,7 @@ namespace CustomSpawns.Invasions.Adapters
 
             // Vanilla's military AI only steers a party with a hero at its head, so a leaderless invasion
             // party handed to it would hold where it stands for the rest of the campaign.
-            return party.LeaderHero == null || State.RequiresCustomSpawnsSteering(party.ActualClan?.StringId);
+            return party.LeaderHero == null || State.RequiresConfiguredPartySteering(party.ActualClan?.StringId);
         }
 
         private void CanKingdomBeDiscontinued(Kingdom kingdom, ref bool result)
@@ -316,6 +377,184 @@ namespace CustomSpawns.Invasions.Adapters
         }
 
         bool IInvaderClanQuery.IsInvaderClan(string? clanId) => State.FindFightingInvasion(clanId) != null;
+
+        InvasionCapitalObjectiveDirective? IInvasionCapitalObjectiveQuery.FindForKingdom(
+            string kingdomId)
+        {
+            Initialize();
+
+            foreach (Invasion invasion in State.Invasions)
+            {
+                InvasionCapitalObjective? objective = invasion.CapitalObjective;
+                Kingdom? kingdom = Clan.FindFirst(clan => clan.StringId == invasion.ClanId)?.Kingdom;
+                if (kingdom?.StringId != kingdomId || objective?.CommanderPartyId == null ||
+                    objective.TargetSettlementId == null)
+                {
+                    continue;
+                }
+
+                return new InvasionCapitalObjectiveDirective(kingdomId,
+                    objective.CommanderPartyId, objective.TargetSettlementId,
+                    objective.Kind, objective.Phase);
+            }
+
+            return null;
+        }
+
+        private void RebuildCapitalObjectiveCoordinator()
+        {
+            if (_invasionAssaultConfigurationProvider == null)
+            {
+                _invasionCapitalObjectiveWorld = null;
+                _invasionCapitalObjectiveCoordinator = null;
+                return;
+            }
+
+            _invasionCapitalObjectiveWorld = new BannerlordInvasionCapitalObjectiveWorld(State,
+                _invasionCapitals, new BannerlordMapPathQuery(), new InvasionCoastalTownResolver(),
+                new BannerlordCapitalObjectiveArmy());
+            var forceRatioRules = new ForceRatioRules();
+            _invasionCapitalObjectiveCoordinator = new InvasionCapitalObjectiveCoordinator(
+                _invasionAssaultConfigurationProvider, _invasionCapitalObjectiveWorld,
+                new CapitalObjectiveStrengthRules(forceRatioRules),
+                new CapitalObjectiveCommanderSelector(), new SiegeTargetSelector(forceRatioRules));
+        }
+
+        private void UpdateCapitalObjectivesHourly()
+        {
+            ReconcileCapitalObjectives("hourly");
+        }
+
+        private void ReconcileCapitalObjectives(string cadence)
+        {
+            if (_invasionCapitalObjectiveCoordinator == null)
+            {
+                return;
+            }
+
+            foreach (Invasion invasion in State.Invasions.ToList())
+            {
+                InvasionCapitalObjective? previousObjective = invasion.CapitalObjective;
+                string previous = Describe(previousObjective);
+                string? previousCommanderPartyId = previousObjective?.CommanderPartyId;
+                string previousDiagnostics = _invasionCapitalObjectiveWorld?.Describe(invasion) ??
+                                             "unavailable";
+                CapitalObjectiveUpdate update = _invasionCapitalObjectiveCoordinator.UpdateHourly(invasion);
+                LogCapitalObjectiveUpdate(invasion, previous, previousDiagnostics,
+                    previousCommanderPartyId, update, cadence);
+            }
+        }
+
+        private void UpdateCapitalObjectivesDaily()
+        {
+            Initialize();
+            if (_invasionCapitalObjectiveCoordinator == null)
+            {
+                return;
+            }
+
+            foreach (Invasion invasion in State.Invasions.ToList())
+            {
+                InvasionCapitalObjective? previousObjective = invasion.CapitalObjective;
+                string previous = Describe(previousObjective);
+                string? previousCommanderPartyId = previousObjective?.CommanderPartyId;
+                InvasionCapitalObjectivePhase? previousPhase = previousObjective?.Phase;
+                InvasionCapitalObjectiveDormantReason? previousDormantReason =
+                    previousObjective?.DormantReason;
+                string previousDiagnostics = _invasionCapitalObjectiveWorld?.Describe(invasion) ??
+                                             "unavailable";
+                CapitalObjectiveUpdate update = _invasionCapitalObjectiveCoordinator.UpdateDaily(invasion);
+                bool includeNoChange = _invasionCapitalObjectiveLogPolicy.IncludesDailyNoChange(
+                    previousPhase, previousDormantReason);
+                if (includeNoChange || update.Decision != CapitalObjectiveDecision.None)
+                {
+                    LogCapitalObjectiveUpdate(invasion, previous, previousDiagnostics,
+                        previousCommanderPartyId, update, "daily", includeNoChange);
+                }
+            }
+        }
+
+        private void LogCapitalObjectiveUpdate(Invasion invasion,
+            string previous, string previousDiagnostics, string? previousCommanderPartyId,
+            CapitalObjectiveUpdate update, string cadence, bool includeNoChange = false)
+        {
+            if (!includeNoChange && update.Decision == CapitalObjectiveDecision.None)
+            {
+                return;
+            }
+
+            InvasionCapitalObjective? current = invasion.CapitalObjective;
+            Kingdom? kingdom = Clan.FindFirst(clan => clan.StringId == invasion.ClanId)?.Kingdom;
+            InvasionAssaultRequirements? requirements =
+                _invasionAssaultConfigurationProvider?.Find(invasion.SpawnTemplateId);
+            InvasionCapitalObjectiveDiagnosticsSource diagnosticsSource =
+                _invasionCapitalObjectiveLogPolicy.SelectDiagnostics(update.Evaluation != null,
+                    current != null, previousCommanderPartyId, current?.CommanderPartyId);
+            string diagnostics = FindDiagnostics(invasion, previousDiagnostics, update,
+                diagnosticsSource);
+            Logger.Info("Invasion capital objective: cadence=" + cadence +
+                        " decision=" + update.Decision +
+                        " spawn=" + invasion.SpawnTemplateId +
+                        " kingdom=" + kingdom?.StringId +
+                        " previous=" + previous +
+                        " current=" + Describe(current) +
+                        " target=" + update.TargetSettlementId +
+                        " target_ratio=" + requirements?.MinimumTargetRatio +
+                        " roaming_ratio=" + requirements?.MinimumRoamingRatio +
+                        " evaluation=" + Describe(update.Evaluation) +
+                        " diagnostics_snapshot=" + diagnosticsSource.ToString().ToLowerInvariant() +
+                        " diagnostics=" + diagnostics);
+        }
+
+        private string FindDiagnostics(Invasion invasion, string previousDiagnostics,
+            CapitalObjectiveUpdate update,
+            InvasionCapitalObjectiveDiagnosticsSource diagnosticsSource)
+        {
+            if (diagnosticsSource == InvasionCapitalObjectiveDiagnosticsSource.Previous)
+            {
+                return previousDiagnostics;
+            }
+
+            if (diagnosticsSource == InvasionCapitalObjectiveDiagnosticsSource.Evaluation)
+            {
+                CapitalObjectiveEvaluation evaluation = update.Evaluation!;
+                string? targetSettlementId = evaluation.TargetFacts
+                    .OrderBy(facts => facts.Distance)
+                    .Select(facts => facts.SettlementId)
+                    .FirstOrDefault();
+                return _invasionCapitalObjectiveWorld?.Describe(invasion,
+                           evaluation.CommanderPartyId, targetSettlementId) ?? "unavailable";
+            }
+
+            return _invasionCapitalObjectiveWorld?.Describe(invasion) ?? "unavailable";
+        }
+
+        private static string Describe(CapitalObjectiveEvaluation? evaluation)
+        {
+            if (evaluation == null)
+            {
+                return "none";
+            }
+
+            return "commander=" + evaluation.CommanderPartyId +
+                   "/assembled_strength=" + evaluation.AttackForces.AssembledFieldStrength +
+                   "/targets=[" + string.Join(";", evaluation.TargetFacts.Select(facts =>
+                       facts.SettlementId + ":active=" + facts.IsActive +
+                       ",hostile=" + facts.IsHostile +
+                       ",compatible=" + facts.HasCompatibleOrJoinableSiege +
+                       ",strategic=" + facts.MatchesStrategicRequirement +
+                       ",reachable=" + facts.IsReachable +
+                       ",distance=" + facts.Distance +
+                       ",defenders=" + facts.DefenderStrength +
+                       ",nearby=" + facts.NearbyHostileStrength)) + "]";
+        }
+
+        private static string Describe(InvasionCapitalObjective? objective) => objective == null
+            ? "none"
+            : objective.Kind + "/" + objective.Phase + "/" + objective.DormantReason +
+              "/commander=" + objective.CommanderPartyId +
+              "/gather_deadline=" + objective.GatherDeadlineDays +
+              "/attack_deadline=" + objective.AttackDeadlineDays;
 
         // Its own clock, so a change to how often the invasion is reinforced leaves its supplies alone.
         private void UnloadFoodConvoys()

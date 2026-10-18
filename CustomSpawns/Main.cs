@@ -59,7 +59,6 @@ namespace CustomSpawns
         private InvasionCampaignBehaviour _invasionCampaignBehaviour;
         private InvasionCapitalRepository _invasionCapitalRepository;
         private InvasionClanRepository _invasionClanRepository;
-        private InvasionCapitalOwnershipBehaviour _invasionCapitalOwnershipBehaviour;
         private SpawnDtoAdapter _spawnDtoAdapter;
         private SpawnDao _spawnDao;
         private CampaignDataConfigLoader _campaignDataConfigLoader;
@@ -133,11 +132,6 @@ namespace CustomSpawns
             _invasionClanRepository = new InvasionClanRepository(_spawnDao, _saveInitialiser);
             _invasionCampaignBehaviour = new InvasionCampaignBehaviour(_spawnDao, _dynamicSpawnData,
                 _saveInitialiser, _invasionCapitalRepository, _invasionClanRepository);
-            _invasionCapitalOwnershipBehaviour =
-                new InvasionCapitalOwnershipBehaviour(_invasionCapitalRepository);
-            var retakeInvasionCapital = new RetakeInvasionCapital(
-                new InvasionCapitalRetakeOrders(_invasionClanRepository, _dynamicSpawnData));
-            _invasionCapitalOwnershipBehaviour.CapitalStatusChanged += retakeInvasionCapital.Handle;
             _devestationMetricData = new DevestationMetricData(_mobilePartyTrackingBehaviour, _campaignDataConfigLoader, _saveInitialiser, _messageBoxService, _modDebug);
             _dailyLogger = new DailyLogger(_devestationMetricData, _messageBoxService);
             // The siege behaviour's own state, held here so that the targeting policy can read which
@@ -152,6 +146,8 @@ namespace CustomSpawns
                     invasionCoastalSiegeTargetPolicy, siegeStates);
             var partyBehaviourLookup = new SpawnPartyBehaviourLookup(_spawnDao, _partyBehaviourDao,
                 _messageBoxService);
+            _invasionCampaignBehaviour.ConfigureCapitalObjectives(
+                new BannerlordInvasionAssaultConfigurationProvider(_spawnDao, partyBehaviourLookup));
             var priorityPartyBehaviourRegistry = new PriorityPartyBehaviourRegistry(priorityPartyBehaviours);
             PartyBehaviourResolver.ValidateConfiguredBehaviorTypes(partyBehaviourLookup, priorityPartyBehaviourRegistry);
             var homeSettlementPatrolBehaviour = new HomeSettlementPatrolBehaviour();
@@ -159,7 +155,13 @@ namespace CustomSpawns
                 partyBehaviourLookup, priorityPartyBehaviourRegistry, homeSettlementPatrolBehaviour,
                 new FollowSupportedPartyBehaviour());
             var steeredParties = new SteeredPartyLookup(_dynamicSpawnData, _invasionCampaignBehaviour);
+            IPartyOrder capitalOrders = new CompositePartyOrder(new IPartyOrder[]
+            {
+                new InvasionCapitalDefenceOrder(_invasionCampaignBehaviour),
+                new InvasionCapitalAttackOrder(_invasionCampaignBehaviour)
+            });
             _customSpawnsAiBehaviour = new CustomSpawnsAiBehaviour(steeredParties, partyBehaviourResolver,
+                capitalOrders,
                 new List<ISyncsCampaignData>(priorityPartyBehaviours) { homeSettlementPatrolBehaviour });
             _accompanyingPartySiegeBehaviour = new AccompanyingPartySiegeBehaviour(steeredParties);
             _aiDecisionLoggerBehaviour = new AiDecisionLoggerBehaviour(_dailyLogger, siegeStates,
@@ -216,7 +218,6 @@ namespace CustomSpawns
                 starter.AddBehavior(_invasionClanRepository);
                 starter.AddBehavior(_dynamicSpawnData);
                 starter.AddBehavior(_invasionCampaignBehaviour);
-                starter.AddBehavior(_invasionCapitalOwnershipBehaviour);
                 starter.AddBehavior(_customSpawnsDiplomacyBehaviour);
                 starter.AddBehavior(_customSpawnsAiBehaviour);
                 starter.AddBehavior(_accompanyingPartySiegeBehaviour);

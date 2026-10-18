@@ -18,6 +18,7 @@ namespace CustomSpawns.AI.Adapters
         private readonly Func<MobileParty, Settlement, IEnumerable<RoamingPartyStrength>>
             _getTargetRoamingParties;
         private readonly ISiegeTargetPolicy _siegeTargetPolicy;
+        private readonly SiegeTargetSelector _siegeTargetSelector;
 
         public BannerlordBesiegeClosestSettlementAdapter(DynamicSpawnData dynamicSpawnData) : this(
             observer => observer.SeeingRange, ObserveRoamingParties, ObserveCandidates,
@@ -64,6 +65,7 @@ namespace CustomSpawns.AI.Adapters
             _getCandidates = getCandidates;
             _siegeTargetPolicy = siegeTargetPolicy;
             _getTargetRoamingParties = getTargetRoamingParties;
+            _siegeTargetSelector = new SiegeTargetSelector(new ForceRatioRules());
         }
 
         public Settlement? FindClosestSiegeTarget(MobileParty party, float attackerStrength,
@@ -104,25 +106,110 @@ namespace CustomSpawns.AI.Adapters
             // A party that masses on its objective commits before it is strong enough to take it, so the
             // garrison is not weighed here; it is weighed again at the gate, over the force that arrived.
             bool gathers = _siegeTargetPolicy.GathersBeforeAssault(party);
-            return _getCandidates(party)
-                .Where(candidate => candidate.IsActive && candidate.IsHostile &&
-                                    (candidate.HasCompatibleSiege ||
-                                     _siegeTargetPolicy.IsJoinableSiege(party, candidate.Target)) &&
-                                    targetTypes.Contains(candidate.Type) &&
-                                    candidate.Target != excludedTarget &&
-                                    (gathers || OffensiveStrengthRules.MeetsStrengthRatio(attackerStrength,
-                                        candidate.DefenderStrength, minimumTargetRatio)))
-                .Where(candidate => _siegeTargetPolicy.IsCandidateAllowed(party, candidate))
-                // Nor are the lords around a candidate weighed for a party that masses: the first party to
-                // commit is its whole force, so a ratio asked here would reject the objective its siblings
-                // were going to join and the force could never form. Danger is still asked every tick
-                // afterwards, where it holds the gathering back rather than taking its objective away.
-                .Where(candidate => gathers || OffensiveStrengthRules.MeetsStrengthRatio(attackerStrength,
-                    GetHostileLordStrengthNearTarget(party, candidate.Target),
-                    minimumRoamingHostilesRatio))
-                .OrderBy(targetDistance)
-                .Select(candidate => candidate.Target)
+            SiegeTargetSelectionMode mode = gathers
+                ? SiegeTargetSelectionMode.GatherBeforeAssault
+                : SiegeTargetSelectionMode.RequireViableNow;
+            IReadOnlyList<SiegeTargetKind> allowedKinds = MapTargetKinds(targetTypes);
+            List<SiegeTargetCandidate> candidates = _getCandidates(party).ToList();
+            var selectionIds = new Dictionary<Settlement, string>();
+            for (int index = 0; index < candidates.Count; index++)
+            {
+                if (!selectionIds.ContainsKey(candidates[index].Target))
+                {
+                    selectionIds.Add(candidates[index].Target, index.ToString());
+                }
+            }
+
+            List<ObservedSiegeTarget> observations = candidates
+                .Select(candidate => ObserveTarget(party, candidate, selectionIds[candidate.Target],
+                    targetDistance, allowedKinds, mode))
+                .Where(observation => observation.HasValue)
+                .Select(observation => observation!.Value)
+                .ToList();
+            string? excludedId = observations
+                .Where(observation => observation.Candidate.Target == excludedTarget)
+                .Select(observation => observation.SelectionId)
                 .FirstOrDefault();
+            var criteria = new SiegeTargetCriteria(allowedKinds, excludedId,
+                attackerStrength, minimumTargetRatio, minimumRoamingHostilesRatio, mode);
+
+            SiegeTargetSelection? selection = _siegeTargetSelector.FindClosest(
+                observations.Select(observation => observation.Facts).ToList(), criteria);
+            return selection.HasValue
+                ? observations.First(observation =>
+                    observation.SelectionId == selection.Value.SettlementId).Candidate.Target
+                : null;
+        }
+
+        private ObservedSiegeTarget? ObserveTarget(MobileParty party, SiegeTargetCandidate candidate,
+            string selectionId, Func<SiegeTargetCandidate, float> targetDistance,
+            IReadOnlyList<SiegeTargetKind> allowedKinds, SiegeTargetSelectionMode mode)
+        {
+            SiegeTargetKind? kind = MapTargetKind(candidate.Type);
+            if (!kind.HasValue)
+            {
+                return null;
+            }
+
+            bool isStructurallyPossible = candidate.IsActive && candidate.IsHostile &&
+                                          allowedKinds.Contains(kind.Value);
+            bool compatibleOrJoinableSiege = isStructurallyPossible &&
+                                             (candidate.HasCompatibleSiege ||
+                                              _siegeTargetPolicy.IsJoinableSiege(party, candidate.Target));
+            bool matchesStrategicRequirement = compatibleOrJoinableSiege &&
+                                               _siegeTargetPolicy.IsCandidateAllowed(party, candidate);
+            // A gathering force deliberately does not price roaming defenders during selection. It commits
+            // to an objective first and asks the readiness ratios of the force that actually arrives.
+            float nearbyHostileStrength = matchesStrategicRequirement &&
+                                          mode == SiegeTargetSelectionMode.RequireViableNow
+                ? GetHostileLordStrengthNearTarget(party, candidate.Target)
+                : 0f;
+            var facts = new SiegeTargetFacts(selectionId, kind.Value, candidate.IsActive,
+                candidate.IsHostile, compatibleOrJoinableSiege, matchesStrategicRequirement,
+                true, targetDistance(candidate), candidate.DefenderStrength, nearbyHostileStrength);
+
+            return new ObservedSiegeTarget(selectionId, candidate, facts);
+        }
+
+        private static IReadOnlyList<SiegeTargetKind> MapTargetKinds(
+            IReadOnlyList<SpawnSettlementType> targetTypes)
+        {
+            return targetTypes
+                .Select(MapTargetKind)
+                .Where(kind => kind.HasValue)
+                .Select(kind => kind!.Value)
+                .Distinct()
+                .ToList();
+        }
+
+        private static SiegeTargetKind? MapTargetKind(SpawnSettlementType type)
+        {
+            if (type == SpawnSettlementType.Town)
+            {
+                return SiegeTargetKind.Town;
+            }
+
+            if (type == SpawnSettlementType.Castle)
+            {
+                return SiegeTargetKind.Castle;
+            }
+
+            return null;
+        }
+
+        private readonly struct ObservedSiegeTarget
+        {
+            public ObservedSiegeTarget(string selectionId, SiegeTargetCandidate candidate,
+                SiegeTargetFacts facts)
+            {
+                SelectionId = selectionId;
+                Candidate = candidate;
+                Facts = facts;
+            }
+
+            public string SelectionId { get; }
+            public SiegeTargetCandidate Candidate { get; }
+            public SiegeTargetFacts Facts { get; }
         }
 
         /**

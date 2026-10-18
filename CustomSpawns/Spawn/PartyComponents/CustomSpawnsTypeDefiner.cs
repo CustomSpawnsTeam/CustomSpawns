@@ -29,6 +29,7 @@ namespace CustomSpawns.Spawn.PartyComponents
             AddClassDefinition(typeof(InvasionFootholdSaveData), 9);
             AddClassDefinition(typeof(InvasionCaptureEvidenceSaveData), 10);
             AddClassDefinition(typeof(InvasionReinforcementScheduleSaveData), 11);
+            AddClassDefinition(typeof(InvasionCapitalObjectiveSaveData), 12);
         }
 
         protected override void DefineEnumTypes()
