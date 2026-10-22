@@ -77,6 +77,37 @@ namespace CustomSpawns.Invasions
         public bool HoldsCapital(Invasion invasion) => invasion.CapitalSettlementId != null &&
             FindFoothold(invasion.CapitalSettlementId)?.InvasionClanId == invasion.ClanId;
 
+        public Func<string, InvasionSettlementFacts, bool>? FindInitialTargetFilter(string partyId,
+            string? partyClanId,
+            Func<string, (bool RequiresFirstCoastalConquest, IInvasionSupplyLine? SupplyLine)> findConfiguration,
+            Func<IInvasionSupplyLine, bool> factionHasSupplyBase)
+        {
+            Invasion? invasion = FindInvasionOfParty(partyId);
+
+            if (invasion == null || invasion.IsSuspended || !invasion.HoldsClan(partyClanId))
+            {
+                return null;
+            }
+
+            // Recovering the founding capital takes priority over the optional first-supply-base rule.
+            if (invasion.CapitalSettlementId != null && !HoldsCapital(invasion))
+            {
+                string capitalId = invasion.CapitalSettlementId;
+                return (settlementId, _) => settlementId == capitalId;
+            }
+
+            var configuration = findConfiguration(invasion.SpawnTemplateId);
+            IInvasionSupplyLine? supplyLine = configuration.SupplyLine;
+
+            if (!configuration.RequiresFirstCoastalConquest || supplyLine?.DependsOnASupplyBase != true ||
+                factionHasSupplyBase(supplyLine))
+            {
+                return null;
+            }
+
+            return (_, settlement) => supplyLine.IsSupplyBase(settlement);
+        }
+
         public InvasionCapture StartCapture(string settlementId, long battleStartTimeBits, string attackerLeaderId)
         {
             // A later siege can never consume an earlier siege's unconfirmed snapshot.

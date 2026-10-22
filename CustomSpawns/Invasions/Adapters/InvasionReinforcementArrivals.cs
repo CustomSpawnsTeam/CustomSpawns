@@ -123,39 +123,19 @@ namespace CustomSpawns.Invasions.Adapters
 
         public Func<Settlement, bool>? FindInitialCoastalTargetFilter(MobileParty party)
         {
-            Invasion? invasion = _invasionState.FindInvasionOfParty(party.StringId);
+            var targetFilter = _invasionState.FindInitialTargetFilter(party.StringId, party.ActualClan?.StringId,
+                spawnTemplateId =>
+                {
+                    InvasionData? configuration = _spawnDao.FindByPartyTemplateId(spawnTemplateId)?.Invasion;
+                    return (configuration?.RequiresFirstCoastalConquest == true,
+                        InvasionSupplyLines.Find(configuration?.SupplyLine));
+                },
+                supplyLine => Settlement.All.Any(settlement => settlement.MapFaction == party.MapFaction &&
+                    supplyLine.IsSupplyBase(_invasionSupplyBases.GetFacts(settlement))));
 
-            if (invasion == null || invasion.IsSuspended || !invasion.HoldsClan(party.ActualClan?.StringId))
-            {
-                return null;
-            }
-
-            // Losing the founding capital is stronger than the optional first-coastal-conquest rule:
-            // every party in the invasion is forced back onto that one objective, and the existing
-            // offensive policy pools those parties into the same attacking force.
-            if (invasion.CapitalSettlementId != null && !_invasionState.HoldsCapital(invasion))
-            {
-                string capitalId = invasion.CapitalSettlementId;
-                return settlement => settlement.StringId == capitalId;
-            }
-
-            InvasionData? configuration = GetConfiguration(invasion);
-
-            // An invasion that depends on no supply base has no base to go back for, so it is left to pick
-            // its own targets even where the configuration asks for the restriction.
-            if (configuration?.RequiresFirstCoastalConquest != true ||
-                !_invasionSupplyBases.DependsOnASupplyBase(configuration))
-            {
-                return null;
-            }
-
-            bool factionHasSupplyBase = Settlement.All.Any(settlement =>
-                settlement.MapFaction == party.MapFaction &&
-                _invasionSupplyBases.IsSupplyBase(settlement, configuration));
-
-            return factionHasSupplyBase
+            return targetFilter == null
                 ? null
-                : settlement => _invasionSupplyBases.IsSupplyBase(settlement, configuration);
+                : settlement => targetFilter(settlement.StringId, _invasionSupplyBases.GetFacts(settlement));
         }
 
         private InvasionData? GetConfiguration(Invasion invasion) =>

@@ -16,14 +16,11 @@ namespace CustomSpawns.Invasions.Adapters
         {
             IInvasionSupplyLine? supplyLine = InvasionSupplyLines.Find(configuration?.SupplyLine);
 
-            return settlement != null && supplyLine != null && supplyLine.IsSupplyBase(
-                new InvasionSettlementFacts(settlement.IsTown,
-                    () => _invasionCoastalTownResolver.IsCoastalTown(settlement)));
+            return settlement != null && supplyLine != null && supplyLine.IsSupplyBase(GetFacts(settlement));
         }
 
-        // Whether holding a supply base is something this invasion has to fight for at all.
-        public bool DependsOnASupplyBase(InvasionData? configuration) =>
-            InvasionSupplyLines.Find(configuration?.SupplyLine)?.DependsOnASupplyBase == true;
+        public InvasionSettlementFacts GetFacts(Settlement settlement) =>
+            new(settlement.IsTown, () => _invasionCoastalTownResolver.IsCoastalTown(settlement));
 
         public void ClearCache() => _invasionCoastalTownResolver.ClearCache();
     }
