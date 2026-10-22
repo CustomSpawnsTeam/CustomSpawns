@@ -17,6 +17,36 @@ namespace CustomSpawns.Invasions
         public IReadOnlyCollection<InvasionCapture> Captures => CaptureIndex.Values;
         public IReadOnlyCollection<InvasionFoothold> Footholds => FootholdIndex.Values;
 
+        public string? RegisterParty(string partyId, string? templateId,
+            (string? Id, bool IsEliminated, bool IsBandit) clan,
+            (string? SavedRole, bool IsAdopted, bool IsPrimarySpawn) partyRole,
+            Func<string, bool> hasConfiguration)
+        {
+            Invasion? saved = FindInvasionHolding(clan.Id);
+            string role = partyRole.IsAdopted ? "Adopted" : partyRole.IsPrimarySpawn ? "Original" : "Escort";
+
+            // Saved membership outlives configuration and clan eligibility so cleanup remains possible.
+            if (saved != null)
+            {
+                if (saved.SpawnTemplateId != templateId)
+                {
+                    return null;
+                }
+
+                saved.Members.Add(partyId);
+                return partyRole.SavedRole ?? role;
+            }
+
+            if (templateId == null || clan.Id == null || clan.IsEliminated || clan.IsBandit ||
+                !hasConfiguration(templateId))
+            {
+                return null;
+            }
+
+            RegisterMember(templateId, clan.Id, partyId);
+            return role;
+        }
+
         public Invasion RegisterMember(string templateId, string clanId, string partyId)
         {
             Invasion? invasion = FindInvasionHolding(clanId);
@@ -56,6 +86,10 @@ namespace CustomSpawns.Invasions
             Invasion? invasion = FindInvasionHolding(clanId);
             return invasion != null && !invasion.IsSuspended && !IsInvasionSpent(invasion) ? invasion : null;
         }
+
+        // Only an unregistered lord party can be one the game rebuilt for an invasion.
+        public string? FindAdoptingTemplate(string? clanId, bool alreadyRegistered, bool isLordParty) =>
+            alreadyRegistered || !isLordParty ? null : FindFightingInvasion(clanId)?.SpawnTemplateId;
 
         // A kingdom carrying a live invasion must outlive the loss of its last settlement so the invasion can retake one.
         public bool ProtectsKingdomOf(IEnumerable<string> clanIds) =>

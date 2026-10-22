@@ -32,36 +32,11 @@ namespace CustomSpawns.Invasions.Adapters
 
         public void Register(MobileParty party, CsPartyData data)
         {
-            string? templateId = data.OwningSpawnTemplateId;
             Clan? clan = party.ActualClan;
-            // The party's clan names its invasion, and it survives the rebuilds that lose everything we
-            // write on the party. Membership therefore outlives a removed configuration, so cleanup
-            // remains possible.
-            Invasion? saved = _invasionState.FindInvasionHolding(clan?.StringId);
-
-            if (saved != null)
-            {
-                // Another spawn of the same faction is not the invasion's: it only shares its clan.
-                if (saved.SpawnTemplateId != templateId)
-                {
-                    data.SetInvasionRole(null);
-                    return;
-                }
-
-                saved.Members.Add(party.StringId);
-                data.SetInvasionRole(data.InvasionRole ?? RoleFor(data));
-                return;
-            }
-
-            if (templateId == null || clan == null || clan.IsEliminated || clan.IsBanditFaction ||
-                _spawnDao.FindByPartyTemplateId(templateId)?.Invasion == null)
-            {
-                data.SetInvasionRole(null);
-                return;
-            }
-
-            _invasionState.RegisterMember(templateId, clan.StringId, party.StringId);
-            data.SetInvasionRole(RoleFor(data));
+            data.SetInvasionRole(_invasionState.RegisterParty(party.StringId, data.OwningSpawnTemplateId,
+                (clan?.StringId, clan?.IsEliminated == true, clan?.IsBanditFaction == true),
+                (data.InvasionRole, data.IsAdopted, data.IsPrimarySpawn),
+                templateId => _spawnDao.FindByPartyTemplateId(templateId)?.Invasion != null));
         }
 
         /**
@@ -80,29 +55,13 @@ namespace CustomSpawns.Invasions.Adapters
          */
         public void Adopt(MobileParty party)
         {
-            string? templateId = FindAdoptingTemplate(party, _dynamicSpawnData.GetDynamicSpawnData(party),
-                _invasionState);
+            string? templateId = _invasionState.FindAdoptingTemplate(party.ActualClan?.StringId,
+                _dynamicSpawnData.GetDynamicSpawnData(party) != null, party.LordPartyComponent != null);
 
             if (templateId != null)
             {
                 _dynamicSpawnData.RegisterAdoptedParty(party, templateId);
             }
-        }
-
-        /**
-         * A party we already know keeps the identity it was registered with, and only a lord party can
-         * be an invasion party the game rebuilt: the garrisons, caravans and militias of the same clan
-         * are not ours to adopt.
-         */
-        public static string? FindAdoptingTemplate(MobileParty party, CsPartyData? registered,
-            InvasionState invasionState)
-        {
-            if (registered != null || party.LordPartyComponent == null)
-            {
-                return null;
-            }
-
-            return invasionState.FindFightingInvasion(party.ActualClan?.StringId)?.SpawnTemplateId;
         }
 
         public void RegisterLive()
@@ -146,10 +105,6 @@ namespace CustomSpawns.Invasions.Adapters
             return MobileParty.All.Where(member => member.IsActive && invasion.Members.Contains(member.StringId))
                 .ToList();
         }
-
-        public static string RoleFor(CsPartyData data) =>
-            data.IsAdopted ? "Adopted" :
-            data.IsPrimarySpawn ? "Original" : "Escort";
 
         private InvasionData? GetConfiguration(Invasion invasion) => _spawnDao.FindByPartyTemplateId(invasion.SpawnTemplateId)?.Invasion;
     }

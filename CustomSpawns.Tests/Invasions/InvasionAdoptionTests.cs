@@ -59,6 +59,8 @@ namespace CustomSpawns.Tests.Invasions
             Assert.NotNull(adopted);
             Assert.IsTrue(adopted!.IsAdopted);
             Assert.AreEqual("invasion", adopted.OwningSpawnTemplateId);
+            Assert.AreEqual("Adopted", adopted.InvasionRole);
+            Assert.That(_state.FindInvasion("clan")!.MemberPartyIds, Contains.Item("rebuilt_lord"));
         }
 
         // However many parties an invasion already fields, what it may field is the strength ceiling's question.
@@ -78,7 +80,9 @@ namespace CustomSpawns.Tests.Invasions
         {
             var spawnDao = (SpawnDao)FormatterServices.GetUninitializedObject(typeof(SpawnDao));
             SetField(spawnDao, "_spawns", new List<SpawnDto> { spawn });
-            return new InvasionMembership(_state, spawnDao, _dynamicSpawnData, null!);
+            var membership = new InvasionMembership(_state, spawnDao, _dynamicSpawnData, null!);
+            _dynamicSpawnData.PartyRegistered += membership.Register;
+            return membership;
         }
 
         private static SpawnDto Spawn()

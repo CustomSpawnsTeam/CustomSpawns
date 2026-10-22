@@ -1,11 +1,5 @@
-using System.Runtime.Serialization;
 using CustomSpawns.Invasions;
-using CustomSpawns.Invasions.Adapters;
-using CustomSpawns.Spawn;
 using NUnit.Framework;
-using TaleWorlds.CampaignSystem;
-using TaleWorlds.CampaignSystem.Party;
-using TaleWorlds.CampaignSystem.Party.PartyComponents;
 
 namespace CustomSpawns.Tests.Invasions
 {
@@ -24,71 +18,59 @@ namespace CustomSpawns.Tests.Invasions
         [Test]
         public void ARebuiltLordPartyOfAnInvadingClanIsAdoptedUnderItsInvasionTemplate()
         {
-            Assert.AreEqual("invasion", AdoptingTemplate(LordParty("clan")));
+            Assert.AreEqual("invasion", _state.FindAdoptingTemplate("clan", false, true));
         }
 
         [Test]
         public void ALordOfAnUninvolvedClanIsNotAdopted()
         {
-            Assert.IsNull(AdoptingTemplate(LordParty("other-clan")));
+            Assert.IsNull(_state.FindAdoptingTemplate("other-clan", false, true));
+            Assert.IsNull(_state.FindAdoptingTemplate(null, false, true));
         }
 
         [Test]
         public void APartyThisModAlreadyKnowsKeepsTheIdentityItWasRegisteredWith()
         {
-            var registered = new CsPartyData("invasion", "invasion", true, null, null);
-
-            Assert.IsNull(AdoptingTemplate(LordParty("clan"), registered));
+            Assert.IsNull(_state.FindAdoptingTemplate("clan", true, true));
         }
 
         [Test]
         public void AGarrisonOrCaravanOfAnInvadingClanIsNotALordToAdopt()
         {
-            MobileParty party = DummyParty("clan");
-
-            Assert.IsNull(AdoptingTemplate(party));
+            Assert.IsNull(_state.FindAdoptingTemplate("clan", false, false));
         }
 
         [Test]
-        public void AnAdoptedLordComesBackFromASaveAsAnAdoptedLord()
+        public void AnExpandedClanTakesBackItsRebuiltLord()
         {
-            Assert.AreEqual("Adopted", InvasionMembership.RoleFor(PartyOfTheInvasion("Adopted")));
+            _invasion.AddClan("expanded-clan");
+
+            Assert.AreEqual("invasion", _state.FindAdoptingTemplate("expanded-clan", false, true));
         }
 
         [Test]
-        public void AnAdoptedLordIsNotAdoptedASecondTime()
+        public void ASuspendedInvasionDoesNotAdopt()
         {
-            var adopted = new CsPartyData("invasion", "invasion", false, null, null, "Adopted");
+            _invasion.IsSuspended = true;
 
-            Assert.True(adopted.IsAdopted);
-            Assert.IsNull(AdoptingTemplate(LordParty("clan"), adopted));
+            Assert.IsNull(_state.FindAdoptingTemplate("clan", false, true));
         }
 
-        private string? AdoptingTemplate(MobileParty party, CsPartyData? registered = null) =>
-            InvasionMembership.FindAdoptingTemplate(party, registered, _state);
-
-        private CsPartyData PartyOfTheInvasion(string partyRole)
+        [Test]
+        public void ASpentInvasionDoesNotAdopt()
         {
-            var data = new CsPartyData("invasion", "invasion", false, null, null, partyRole);
-            return data;
+            _state.RemoveMember("invasion_party_1");
+
+            Assert.IsNull(_state.FindAdoptingTemplate("clan", false, true));
         }
 
-        private static MobileParty LordParty(string clanId)
+        [Test]
+        public void AnInvasionHoldingAFootholdCanAdoptAfterLosingItsLastParty()
         {
-            MobileParty party = DummyParty(clanId);
-            typeof(MobileParty).GetField("_partyComponent",
-                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
-                .SetValue(party, FormatterServices.GetUninitializedObject(typeof(LordPartyComponent)));
-            return party;
-        }
+            _state.RemoveMember("invasion_party_1");
+            _state.FootholdIndex.Add("town", new InvasionFoothold("town", "clan", 1));
 
-        private static MobileParty DummyParty(string clanId)
-        {
-            var party = (MobileParty)FormatterServices.GetUninitializedObject(typeof(MobileParty));
-            var clan = (Clan)FormatterServices.GetUninitializedObject(typeof(Clan));
-            clan.StringId = clanId;
-            party.ActualClan = clan;
-            return party;
+            Assert.AreEqual("invasion", _state.FindAdoptingTemplate("clan", false, true));
         }
     }
 }
