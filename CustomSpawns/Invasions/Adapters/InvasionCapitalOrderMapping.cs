@@ -7,19 +7,17 @@ namespace CustomSpawns.Invasions.Adapters
 {
     public readonly struct InvasionCapitalOrderIntent
     {
-        public InvasionCapitalOrderIntent(AiBehavior behavior, bool willGatherArmy)
+        public InvasionCapitalOrderIntent(AiBehavior behavior)
         {
             Behavior = behavior;
-            WillGatherArmy = willGatherArmy;
         }
 
         public AiBehavior Behavior { get; }
-        public bool WillGatherArmy { get; }
     }
 
     /**
-     * Maps domain phases to the two Bannerlord knobs the native party thinker consumes.
-     * Dormant and besieging objectives deliberately map to no order so vanilla regains control.
+     * Maps the advancing domain phase to the Bannerlord target order the native party thinker consumes.
+     * Every other phase deliberately maps to no order so native army gathering and siege AI retain control.
      */
     public sealed class InvasionCapitalOrderMapping
     {
@@ -32,14 +30,9 @@ namespace CustomSpawns.Invasions.Adapters
                 return null;
             }
 
-            if (phase == InvasionCapitalObjectivePhase.Gathering)
-            {
-                return new InvasionCapitalOrderIntent(behavior, true);
-            }
-
             if (phase == InvasionCapitalObjectivePhase.Advancing)
             {
-                return new InvasionCapitalOrderIntent(behavior, false);
+                return new InvasionCapitalOrderIntent(behavior);
             }
 
             return null;

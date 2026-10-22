@@ -60,7 +60,7 @@ namespace CustomSpawns.Invasions.Adapters
             }
 
             return new AIBehaviorData(target, intent.Value.Behavior, navigation,
-                intent.Value.WillGatherArmy, isFromPort, isTargetingPort);
+                false, isFromPort, isTargetingPort);
         }
 
         protected virtual bool IsTargetingPort(MobileParty party, Settlement target) => false;

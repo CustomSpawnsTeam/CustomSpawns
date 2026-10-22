@@ -10,18 +10,15 @@ namespace CustomSpawns.Tests.Invasions
     {
         private readonly InvasionCapitalOrderMapping _mapping = new();
 
-        [TestCase(InvasionCapitalObjectivePhase.Gathering, true)]
-        [TestCase(InvasionCapitalObjectivePhase.Advancing, false)]
-        public void AttackActivePhaseMapsToNativeSiege(
-            InvasionCapitalObjectivePhase phase, bool willGatherArmy)
+        [Test]
+        public void AttackAdvancingMapsToNativeSiege()
         {
             InvasionCapitalOrderIntent? intent = _mapping.Find(
-                InvasionCapitalObjectiveKind.Attack, phase,
+                InvasionCapitalObjectiveKind.Attack, InvasionCapitalObjectivePhase.Advancing,
                 InvasionCapitalObjectiveKind.Attack, AiBehavior.BesiegeSettlement);
 
             Assert.That(intent.HasValue, Is.True);
             Assert.That(intent!.Value.Behavior, Is.EqualTo(AiBehavior.BesiegeSettlement));
-            Assert.That(intent.Value.WillGatherArmy, Is.EqualTo(willGatherArmy));
         }
 
         [Test]
@@ -32,6 +29,8 @@ namespace CustomSpawns.Tests.Invasions
                 AiBehavior.BesiegeSettlement), Is.Null);
         }
 
+        [TestCase(InvasionCapitalObjectivePhase.Mobilizing)]
+        [TestCase(InvasionCapitalObjectivePhase.Gathering)]
         [TestCase(InvasionCapitalObjectivePhase.Besieging)]
         [TestCase(InvasionCapitalObjectivePhase.Dormant)]
         public void AttackNonDominantPhaseLeavesVanillaInControl(

@@ -6,7 +6,8 @@ namespace CustomSpawns.Invasions.CapitalObjectives
             bool designatedCapitalIsBesieged, bool commanderIsEligible,
             bool targetHasMatchingKingdomSiege, bool targetIsOwnedByInvasion,
             CapitalDefenceForces defenceForces, CapitalAttackForces attackForces,
-            string? designatedCapitalSiegeEpisodeId = null)
+            string? designatedCapitalSiegeEpisodeId = null,
+            bool objectiveArmyIsUnified = true)
         {
             NowDays = nowDays;
             OwnsDesignatedCapital = ownsDesignatedCapital;
@@ -17,6 +18,7 @@ namespace CustomSpawns.Invasions.CapitalObjectives
             DefenceForces = defenceForces;
             AttackForces = attackForces;
             DesignatedCapitalSiegeEpisodeId = designatedCapitalSiegeEpisodeId;
+            ObjectiveArmyIsUnified = objectiveArmyIsUnified;
         }
 
         public double NowDays { get; }
@@ -28,5 +30,6 @@ namespace CustomSpawns.Invasions.CapitalObjectives
         public CapitalDefenceForces DefenceForces { get; }
         public CapitalAttackForces AttackForces { get; }
         public string? DesignatedCapitalSiegeEpisodeId { get; }
+        public bool ObjectiveArmyIsUnified { get; }
     }
 }

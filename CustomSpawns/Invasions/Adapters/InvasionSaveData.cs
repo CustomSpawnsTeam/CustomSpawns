@@ -120,6 +120,8 @@ namespace CustomSpawns.Invasions.Adapters
         [SaveableField(6)] public int DormantReason;
         [SaveableField(7)] public string CommanderPartyId = "";
         [SaveableField(8)] public string DefenceSiegeEpisodeId = "";
+        [SaveableField(9)] public string StagingSettlementId = "";
+        [SaveableField(10)] public List<string> MobilizedPartyIds = new();
 
         public static InvasionCapitalObjectiveSaveData FromState(
             InvasionCapitalObjective value) => new()
@@ -131,7 +133,9 @@ namespace CustomSpawns.Invasions.Adapters
             AttackDeadlineDays = value.AttackDeadlineDays ?? -1,
             DormantReason = (int)value.DormantReason,
             CommanderPartyId = value.CommanderPartyId ?? "",
-            DefenceSiegeEpisodeId = value.DefenceSiegeEpisodeId ?? ""
+            DefenceSiegeEpisodeId = value.DefenceSiegeEpisodeId ?? "",
+            StagingSettlementId = value.StagingSettlementId ?? "",
+            MobilizedPartyIds = value.MobilizedPartyIds.ToList()
         };
 
         public InvasionCapitalObjective? ToState()
@@ -142,7 +146,9 @@ namespace CustomSpawns.Invasions.Adapters
                     (InvasionCapitalObjectivePhase)Phase, EmptyAsNull(TargetSettlementId),
                     NegativeAsNull(GatherDeadlineDays), NegativeAsNull(AttackDeadlineDays),
                     (InvasionCapitalObjectiveDormantReason)DormantReason,
-                    EmptyAsNull(CommanderPartyId), EmptyAsNull(DefenceSiegeEpisodeId));
+                    EmptyAsNull(CommanderPartyId), EmptyAsNull(DefenceSiegeEpisodeId),
+                    EmptyAsNull(StagingSettlementId),
+                    MobilizedPartyIds ?? new List<string>());
             }
             catch (ArgumentException)
             {

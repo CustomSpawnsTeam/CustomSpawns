@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace CustomSpawns.Invasions.CapitalObjectives
 {
@@ -13,14 +15,16 @@ namespace CustomSpawns.Invasions.CapitalObjectives
         Gathering = 0,
         Advancing = 1,
         Besieging = 2,
-        Dormant = 3
+        Dormant = 3,
+        Mobilizing = 4
     }
 
     public enum InvasionCapitalObjectiveDormantReason
     {
         None = 0,
         NoViableTarget = 1,
-        AttackTimedOut = 2
+        AttackTimedOut = 2,
+        SiegeAborted = 3
     }
 
     public sealed class InvasionCapitalObjective
@@ -32,14 +36,15 @@ namespace CustomSpawns.Invasions.CapitalObjectives
             double nowDays, string? defenceSiegeEpisodeId = null)
         {
             Kind = kind;
-            Phase = InvasionCapitalObjectivePhase.Gathering;
+            Phase = InvasionCapitalObjectivePhase.Mobilizing;
             TargetSettlementId = RequiredId(targetSettlementId, nameof(targetSettlementId));
-            GatherDeadlineDays = nowDays + GatherDurationDays;
+            GatherDeadlineDays = null;
             AttackDeadlineDays = kind == InvasionCapitalObjectiveKind.Attack
                 ? nowDays + AttackDurationDays
                 : null;
             DormantReason = InvasionCapitalObjectiveDormantReason.None;
             DefenceSiegeEpisodeId = EmptyAsNull(defenceSiegeEpisodeId);
+            MobilizedPartyIds = Array.Empty<string>();
 
             Validate();
         }
@@ -48,7 +53,8 @@ namespace CustomSpawns.Invasions.CapitalObjectives
         public InvasionCapitalObjective(InvasionCapitalObjectiveKind kind,
             InvasionCapitalObjectivePhase phase, string? targetSettlementId, double? gatherDeadlineDays,
             double? attackDeadlineDays, InvasionCapitalObjectiveDormantReason dormantReason,
-            string? commanderPartyId, string? defenceSiegeEpisodeId = null)
+            string? commanderPartyId, string? defenceSiegeEpisodeId = null,
+            string? stagingSettlementId = null, IReadOnlyList<string>? mobilizedPartyIds = null)
         {
             Kind = kind;
             Phase = phase;
@@ -58,6 +64,10 @@ namespace CustomSpawns.Invasions.CapitalObjectives
             DormantReason = dormantReason;
             CommanderPartyId = EmptyAsNull(commanderPartyId);
             DefenceSiegeEpisodeId = EmptyAsNull(defenceSiegeEpisodeId);
+            StagingSettlementId = EmptyAsNull(stagingSettlementId);
+            MobilizedPartyIds = NormalizePartyIds(mobilizedPartyIds);
+
+            NormalizeLegacyActiveState();
 
             Validate();
         }
@@ -70,14 +80,53 @@ namespace CustomSpawns.Invasions.CapitalObjectives
         public InvasionCapitalObjectiveDormantReason DormantReason { get; private set; }
         public string? CommanderPartyId { get; private set; }
         public string? DefenceSiegeEpisodeId { get; private set; }
+        public string? StagingSettlementId { get; private set; }
+        public IReadOnlyList<string> MobilizedPartyIds { get; private set; }
 
         public bool IsGatherDeadlineReached(double nowDays) =>
             Phase == InvasionCapitalObjectivePhase.Gathering && GatherDeadlineDays <= nowDays;
 
         public bool IsAttackDeadlineReached(double nowDays) =>
             Kind == InvasionCapitalObjectiveKind.Attack &&
-            Phase == InvasionCapitalObjectivePhase.Advancing &&
+            (Phase == InvasionCapitalObjectivePhase.Mobilizing ||
+             Phase == InvasionCapitalObjectivePhase.Gathering ||
+             Phase == InvasionCapitalObjectivePhase.Advancing) &&
             AttackDeadlineDays <= nowDays;
+
+        public void MarkMobilized(CapitalArmyMobilizationResult result, double nowDays)
+        {
+            RequirePhase(InvasionCapitalObjectivePhase.Mobilizing);
+
+            if (!result.Succeeded)
+            {
+                throw new ArgumentException("A failed mobilization cannot begin gathering.",
+                    nameof(result));
+            }
+
+            CommanderPartyId = result.CommanderPartyId;
+            StagingSettlementId = result.StagingSettlementId;
+            MobilizedPartyIds = result.PartyIds.ToArray();
+            Phase = InvasionCapitalObjectivePhase.Gathering;
+            GatherDeadlineDays = nowDays + GatherDurationDays;
+            Validate();
+        }
+
+        public void RequireRemobilization()
+        {
+            if (Phase != InvasionCapitalObjectivePhase.Gathering &&
+                Phase != InvasionCapitalObjectivePhase.Advancing)
+            {
+                throw new InvalidOperationException(
+                    "Only a gathering or advancing objective can remobilize.");
+            }
+
+            Phase = InvasionCapitalObjectivePhase.Mobilizing;
+            GatherDeadlineDays = null;
+            CommanderPartyId = null;
+            StagingSettlementId = null;
+            MobilizedPartyIds = Array.Empty<string>();
+            Validate();
+        }
 
         public void AssignCommander(string partyId)
         {
@@ -87,12 +136,20 @@ namespace CustomSpawns.Invasions.CapitalObjectives
                 throw new InvalidOperationException("Only an active capital objective can have a commander.");
             }
 
-            CommanderPartyId = RequiredId(partyId, nameof(partyId));
+            string requiredPartyId = RequiredId(partyId, nameof(partyId));
+            if (!MobilizedPartyIds.Contains(requiredPartyId, StringComparer.Ordinal))
+            {
+                throw new ArgumentException("The commander must belong to the mobilized army.",
+                    nameof(partyId));
+            }
+
+            CommanderPartyId = requiredPartyId;
+            Validate();
         }
 
         public void ClearCommander()
         {
-            CommanderPartyId = null;
+            RequireRemobilization();
         }
 
         public void MarkReady()
@@ -115,6 +172,23 @@ namespace CustomSpawns.Invasions.CapitalObjectives
             Validate();
         }
 
+        public void RestartAttackForMobilization(string settlementId, double nowDays)
+        {
+            RequirePhase(InvasionCapitalObjectivePhase.Dormant);
+
+            Kind = InvasionCapitalObjectiveKind.Attack;
+            Phase = InvasionCapitalObjectivePhase.Mobilizing;
+            TargetSettlementId = RequiredId(settlementId, nameof(settlementId));
+            GatherDeadlineDays = null;
+            AttackDeadlineDays = nowDays + AttackDurationDays;
+            DormantReason = InvasionCapitalObjectiveDormantReason.None;
+            CommanderPartyId = null;
+            DefenceSiegeEpisodeId = null;
+            StagingSettlementId = null;
+            MobilizedPartyIds = Array.Empty<string>();
+            Validate();
+        }
+
         public void MarkBesieging()
         {
             if (Kind != InvasionCapitalObjectiveKind.Attack)
@@ -122,11 +196,30 @@ namespace CustomSpawns.Invasions.CapitalObjectives
                 throw new InvalidOperationException("Only an attack objective can begin a siege.");
             }
 
-            RequirePhase(InvasionCapitalObjectivePhase.Advancing);
+            if (Phase != InvasionCapitalObjectivePhase.Mobilizing &&
+                Phase != InvasionCapitalObjectivePhase.Gathering &&
+                Phase != InvasionCapitalObjectivePhase.Advancing)
+            {
+                throw new InvalidOperationException("Only a pre-siege attack can begin a siege.");
+            }
 
             Phase = InvasionCapitalObjectivePhase.Besieging;
+            GatherDeadlineDays = null;
+            Validate();
+        }
+
+        public void AbortSiege()
+        {
+            RequirePhase(InvasionCapitalObjectivePhase.Besieging);
+
+            Phase = InvasionCapitalObjectivePhase.Dormant;
+            TargetSettlementId = null;
+            GatherDeadlineDays = null;
             AttackDeadlineDays = null;
+            DormantReason = InvasionCapitalObjectiveDormantReason.SiegeAborted;
             CommanderPartyId = null;
+            StagingSettlementId = null;
+            MobilizedPartyIds = Array.Empty<string>();
             Validate();
         }
 
@@ -138,6 +231,8 @@ namespace CustomSpawns.Invasions.CapitalObjectives
             AttackDeadlineDays = null;
             DormantReason = InvasionCapitalObjectiveDormantReason.NoViableTarget;
             CommanderPartyId = null;
+            StagingSettlementId = null;
+            MobilizedPartyIds = Array.Empty<string>();
             Validate();
         }
 
@@ -148,7 +243,12 @@ namespace CustomSpawns.Invasions.CapitalObjectives
                 throw new InvalidOperationException("Only an attack objective can time out.");
             }
 
-            RequirePhase(InvasionCapitalObjectivePhase.Advancing);
+            if (Phase != InvasionCapitalObjectivePhase.Mobilizing &&
+                Phase != InvasionCapitalObjectivePhase.Gathering &&
+                Phase != InvasionCapitalObjectivePhase.Advancing)
+            {
+                throw new InvalidOperationException("Only a pre-siege attack can time out.");
+            }
 
             Phase = InvasionCapitalObjectivePhase.Dormant;
             TargetSettlementId = null;
@@ -156,6 +256,8 @@ namespace CustomSpawns.Invasions.CapitalObjectives
             AttackDeadlineDays = null;
             DormantReason = InvasionCapitalObjectiveDormantReason.AttackTimedOut;
             CommanderPartyId = null;
+            StagingSettlementId = null;
+            MobilizedPartyIds = Array.Empty<string>();
             Validate();
         }
 
@@ -197,6 +299,7 @@ namespace CustomSpawns.Invasions.CapitalObjectives
 
             if ((!validDefenceRelease && !validAttackRelease) || TargetSettlementId != null ||
                 GatherDeadlineDays != null || AttackDeadlineDays != null || CommanderPartyId != null ||
+                StagingSettlementId != null || MobilizedPartyIds.Count != 0 ||
                 DormantReason == InvasionCapitalObjectiveDormantReason.None)
             {
                 throw new ArgumentException("A dormant capital objective must be untargeted and have a reason.");
@@ -205,13 +308,30 @@ namespace CustomSpawns.Invasions.CapitalObjectives
 
         private void ValidateActiveDeadlines()
         {
+            if (Phase == InvasionCapitalObjectivePhase.Mobilizing)
+            {
+                bool hasExpectedAttackDeadline = Kind == InvasionCapitalObjectiveKind.Attack
+                    ? AttackDeadlineDays != null
+                    : AttackDeadlineDays == null;
+
+                if (GatherDeadlineDays != null || !hasExpectedAttackDeadline ||
+                    CommanderPartyId != null || StagingSettlementId != null ||
+                    MobilizedPartyIds.Count != 0)
+                {
+                    throw new ArgumentException("A mobilizing capital objective has invalid state.");
+                }
+
+                return;
+            }
+
             if (Phase == InvasionCapitalObjectivePhase.Gathering)
             {
                 bool hasExpectedAttackDeadline = Kind == InvasionCapitalObjectiveKind.Attack
                     ? AttackDeadlineDays != null
                     : AttackDeadlineDays == null;
 
-                if (GatherDeadlineDays == null || !hasExpectedAttackDeadline)
+                if (GatherDeadlineDays == null || !hasExpectedAttackDeadline ||
+                    !HasValidMobilizedArmy())
                 {
                     throw new ArgumentException("A gathering capital objective has invalid deadlines.");
                 }
@@ -225,7 +345,8 @@ namespace CustomSpawns.Invasions.CapitalObjectives
                     ? AttackDeadlineDays != null
                     : AttackDeadlineDays == null;
 
-                if (GatherDeadlineDays != null || !hasExpectedAttackDeadline)
+                if (GatherDeadlineDays != null || !hasExpectedAttackDeadline ||
+                    !HasValidMobilizedArmy())
                 {
                     throw new ArgumentException("An advancing capital objective has invalid deadlines.");
                 }
@@ -233,9 +354,16 @@ namespace CustomSpawns.Invasions.CapitalObjectives
                 return;
             }
 
+            bool hasNoMobilizedArmy = CommanderPartyId == null && StagingSettlementId == null &&
+                                      MobilizedPartyIds.Count == 0;
+            bool validCurrentSiege = AttackDeadlineDays != null &&
+                                     (HasValidMobilizedArmy() || hasNoMobilizedArmy);
+            bool validLegacySiege = AttackDeadlineDays == null && CommanderPartyId == null &&
+                                    StagingSettlementId == null && MobilizedPartyIds.Count == 0;
+
             if (Phase != InvasionCapitalObjectivePhase.Besieging ||
                 Kind != InvasionCapitalObjectiveKind.Attack || GatherDeadlineDays != null ||
-                AttackDeadlineDays != null || CommanderPartyId != null)
+                !validCurrentSiege && !validLegacySiege)
             {
                 throw new ArgumentException("A besieging capital objective has invalid state.");
             }
@@ -261,6 +389,32 @@ namespace CustomSpawns.Invasions.CapitalObjectives
 
         private static string? EmptyAsNull(string? value) =>
             string.IsNullOrWhiteSpace(value) ? null : value;
+
+        private bool HasValidMobilizedArmy() => CommanderPartyId != null &&
+            StagingSettlementId != null && MobilizedPartyIds.Count != 0 &&
+            MobilizedPartyIds.Contains(CommanderPartyId, StringComparer.Ordinal);
+
+        private void NormalizeLegacyActiveState()
+        {
+            if ((Phase != InvasionCapitalObjectivePhase.Gathering &&
+                 Phase != InvasionCapitalObjectivePhase.Advancing) || HasValidMobilizedArmy())
+            {
+                return;
+            }
+
+            Phase = InvasionCapitalObjectivePhase.Mobilizing;
+            GatherDeadlineDays = null;
+            CommanderPartyId = null;
+            StagingSettlementId = null;
+            MobilizedPartyIds = Array.Empty<string>();
+        }
+
+        private static IReadOnlyList<string> NormalizePartyIds(
+            IReadOnlyList<string>? partyIds) => partyIds == null
+            ? Array.Empty<string>()
+            : partyIds.Where(id => !string.IsNullOrWhiteSpace(id))
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
 
         private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
     }

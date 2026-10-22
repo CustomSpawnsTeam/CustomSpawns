@@ -300,7 +300,8 @@ namespace CustomSpawns.Tests.Invasions
         {
             _invasion.CapitalSettlementId = "town";
             _invasion.BeginCapitalAttack("town", 10);
-            _invasion.AssignCapitalObjectiveCommander("capturer");
+            _invasion.CapitalObjective!.MarkMobilized(new CapitalArmyMobilizationResult(true,
+                "capturer", new[] { "capturer", "reinforcement" }, "staging"), 10);
 
             _state = RoundTrip();
 
@@ -311,6 +312,9 @@ namespace CustomSpawns.Tests.Invasions
             Assert.That(objective.GatherDeadlineDays, Is.EqualTo(13));
             Assert.That(objective.AttackDeadlineDays, Is.EqualTo(17));
             Assert.That(objective.CommanderPartyId, Is.EqualTo("capturer"));
+            Assert.That(objective.StagingSettlementId, Is.EqualTo("staging"));
+            Assert.That(objective.MobilizedPartyIds,
+                Is.EqualTo(new[] { "capturer", "reinforcement" }));
         }
 
         [Test]
@@ -327,7 +331,7 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
-        public void LegacyCapitalRetakeDeadlineRestoresAsAdvancingAttack()
+        public void LegacyCapitalRetakeDeadlineRestoresForMobilization()
         {
             var saved = new InvasionSaveData
             {
@@ -340,10 +344,13 @@ namespace CustomSpawns.Tests.Invasions
             InvasionCapitalObjective objective = saved.ToState().CapitalObjective!;
 
             Assert.That(objective.Kind, Is.EqualTo(InvasionCapitalObjectiveKind.Attack));
-            Assert.That(objective.Phase, Is.EqualTo(InvasionCapitalObjectivePhase.Advancing));
+            Assert.That(objective.Phase, Is.EqualTo(InvasionCapitalObjectivePhase.Mobilizing));
             Assert.That(objective.TargetSettlementId, Is.EqualTo("town"));
             Assert.That(objective.GatherDeadlineDays, Is.Null);
             Assert.That(objective.AttackDeadlineDays, Is.EqualTo(17));
+            Assert.That(objective.CommanderPartyId, Is.Null);
+            Assert.That(objective.StagingSettlementId, Is.Null);
+            Assert.That(objective.MobilizedPartyIds, Is.Empty);
         }
 
         [Test]

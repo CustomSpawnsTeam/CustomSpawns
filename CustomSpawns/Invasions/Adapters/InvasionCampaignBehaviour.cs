@@ -34,6 +34,8 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly BannerlordInvasionGarrisons _bannerlordInvasionGarrisons = new();
         private readonly InvasionTroopBank _invasionTroopBank = new();
         private readonly InvasionCapitalObjectiveLogPolicy _invasionCapitalObjectiveLogPolicy = new();
+        private readonly InvasionCapitalObjectiveSteeringPolicy _invasionCapitalObjectiveSteeringPolicy =
+            new();
         private readonly BannerlordInvasionResupplyOrders _bannerlordInvasionResupplyOrders;
         private InvasionCaptureCorrelation _invasionCaptureCorrelation;
         private InvasionReinforcementArrivals _invasionReinforcementArrivals;
@@ -341,6 +343,14 @@ namespace CustomSpawns.Invasions.Adapters
         {
             Initialize();
 
+            Invasion? invasion = State.FindFightingInvasion(party.ActualClan?.StringId);
+            string? nativeArmyCommanderPartyId = party.Army?.LeaderParty?.StringId;
+            if (_invasionCapitalObjectiveSteeringPolicy.IsReleasedToNative(
+                    invasion?.CapitalObjective, party.StringId, nativeArmyCommanderPartyId))
+            {
+                return false;
+            }
+
             // Vanilla's military AI only steers a party with a hero at its head, so a leaderless invasion
             // party handed to it would hold where it stands for the rest of the campaign.
             return party.LeaderHero == null || State.RequiresConfiguredPartySteering(party.ActualClan?.StringId);
@@ -395,7 +405,7 @@ namespace CustomSpawns.Invasions.Adapters
 
                 return new InvasionCapitalObjectiveDirective(kingdomId,
                     objective.CommanderPartyId, objective.TargetSettlementId,
-                    objective.Kind, objective.Phase);
+                    objective.Kind, objective.Phase, objective.MobilizedPartyIds);
             }
 
             return null;
@@ -412,12 +422,12 @@ namespace CustomSpawns.Invasions.Adapters
 
             _invasionCapitalObjectiveWorld = new BannerlordInvasionCapitalObjectiveWorld(State,
                 _invasionCapitals, new BannerlordMapPathQuery(), new InvasionCoastalTownResolver(),
-                new BannerlordCapitalObjectiveArmy());
+                new BannerlordCapitalObjectiveArmy(new CapitalArmyStagingRules()));
             var forceRatioRules = new ForceRatioRules();
             _invasionCapitalObjectiveCoordinator = new InvasionCapitalObjectiveCoordinator(
                 _invasionAssaultConfigurationProvider, _invasionCapitalObjectiveWorld,
                 new CapitalObjectiveStrengthRules(forceRatioRules),
-                new CapitalObjectiveCommanderSelector(), new SiegeTargetSelector(forceRatioRules));
+                new CapitalArmyMobilizationPlanner(), new SiegeTargetSelector(forceRatioRules));
         }
 
         private void UpdateCapitalObjectivesHourly()
@@ -502,6 +512,7 @@ namespace CustomSpawns.Invasions.Adapters
                         " target_ratio=" + requirements?.MinimumTargetRatio +
                         " roaming_ratio=" + requirements?.MinimumRoamingRatio +
                         " evaluation=" + Describe(update.Evaluation) +
+                        " mobilization=" + Describe(update.MobilizationResult) +
                         " diagnostics_snapshot=" + diagnosticsSource.ToString().ToLowerInvariant() +
                         " diagnostics=" + diagnostics);
         }
@@ -547,6 +558,19 @@ namespace CustomSpawns.Invasions.Adapters
                        ",distance=" + facts.Distance +
                        ",defenders=" + facts.DefenderStrength +
                        ",nearby=" + facts.NearbyHostileStrength)) + "]";
+        }
+
+        private static string Describe(CapitalArmyMobilizationResult? result)
+        {
+            if (result == null)
+            {
+                return "none";
+            }
+
+            return "success=" + result.Succeeded +
+                   "/failure=" + result.FailureReason +
+                   "/deferred=[" + string.Join(";", result.DeferredParties.Select(item =>
+                       item.PartyId + ":" + item.Reason)) + "]";
         }
 
         private static string Describe(InvasionCapitalObjective? objective) => objective == null

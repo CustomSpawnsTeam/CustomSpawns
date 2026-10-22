@@ -91,38 +91,28 @@ namespace CustomSpawns.Invasions.Adapters
                 ? BitConverter.DoubleToInt64Bits(capital.SiegeEvent.SiegeStartTime.ToSeconds)
                     .ToString("X16")
                 : null;
+            bool objectiveArmyIsUnified = _capitalObjectiveArmy.IsUnified(
+                invasion?.CapitalObjective, commander);
 
             return new CapitalObjectiveObservation(CampaignTime.Now.ToDays, ownsCapital,
                 capitalIsBesieged, commanderIsEligible, matchingSiege, targetOwned,
                 new CapitalDefenceForces(assembled, friendlyCapitalStrength,
                     besiegerStrength + nearbyCapitalHostiles),
                 new CapitalAttackForces(assembled, targetDefenders, targetNearbyHostiles),
-                capitalSiegeEpisodeId);
+                capitalSiegeEpisodeId, objectiveArmyIsUnified);
         }
 
-        public IReadOnlyList<CapitalObjectiveCommanderCandidate> FindCommanderCandidates(
+        public IReadOnlyList<CapitalArmyPartyCandidate> FindMobilizationCandidates(
             string invasionId)
         {
             Invasion? invasion = _state.FindInvasion(invasionId);
             Kingdom? kingdom = FindKingdom(invasion);
             if (invasion == null || kingdom == null)
             {
-                return Array.Empty<CapitalObjectiveCommanderCandidate>();
+                return Array.Empty<CapitalArmyPartyCandidate>();
             }
 
-            var candidates = new List<CapitalObjectiveCommanderCandidate>();
-            foreach (MobileParty party in MobileParty.All.Where(candidate =>
-                         candidate.MapFaction == kingdom && invasion.HoldsClan(candidate.ActualClan?.StringId)))
-            {
-                bool eligible = IsEligibleCommander(party, kingdom);
-                bool leadsArmy = party.Army?.LeaderParty == party;
-                bool canLeadArmy = eligible && (leadsArmy || CanCreateArmy(party));
-                float strength = GetAssembledStrength(party);
-                candidates.Add(new CapitalObjectiveCommanderCandidate(party.StringId, strength,
-                    eligible, leadsArmy, canLeadArmy));
-            }
-
-            return candidates;
+            return _capitalObjectiveArmy.FindCandidates(invasion, kingdom);
         }
 
         public IReadOnlyList<SiegeTargetFacts> FindTargetFacts(string invasionId,
@@ -161,11 +151,19 @@ namespace CustomSpawns.Invasions.Adapters
             return facts;
         }
 
-        public void BeginGathering(string commanderPartyId, string targetSettlementId)
+        public CapitalArmyMobilizationResult MobilizeArmy(CapitalArmyMobilizationPlan plan)
         {
-            // The commander's dominant order carries WillGatherArmy=true. Native army AI chooses the
-            // friendly, unbesieged gathering settlement and issues invitations on its next decision.
-            FindParty(commanderPartyId)?.Ai.SetDoNotMakeNewDecisions(false);
+            Invasion? invasion = _state.FindInvasion(plan.InvasionId);
+            Kingdom? kingdom = FindKingdom(invasion);
+            Settlement? target = Settlement.Find(plan.TargetSettlementId);
+
+            if (invasion == null || kingdom == null || target == null || !target.IsActive)
+            {
+                return new CapitalArmyMobilizationResult(false, null, Array.Empty<string>(), null,
+                    plan.DeferredParties, "mobilization_context_unavailable");
+            }
+
+            return _capitalObjectiveArmy.Mobilize(plan, invasion, kingdom, target);
         }
 
         public void BeginAdvance(string commanderPartyId)
@@ -289,13 +287,6 @@ namespace CustomSpawns.Invasions.Adapters
                    !party.IsDisbanding && party.MapEvent == null &&
                    party.CurrentSettlement?.SiegeEvent == null && party.MapFaction == kingdom &&
                    (party.Army == null || party.Army.LeaderParty == party);
-        }
-
-        private static bool CanCreateArmy(MobileParty party)
-        {
-            return party.Army == null && party.LeaderHero != null &&
-                   Campaign.Current.Models.ArmyManagementCalculationModel
-                       .CanLordCreateArmy(party, out _);
         }
 
         private static float GetAssembledStrength(MobileParty commander)

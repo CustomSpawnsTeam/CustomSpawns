@@ -15,22 +15,27 @@ namespace CustomSpawns.Invasions.CapitalObjectives
         AbandonTimeout = 5,
         SiegeStarted = 6,
         Complete = 7,
-        ConfigurationMissing = 8
+        ConfigurationMissing = 8,
+        AbandonSiegeAborted = 9,
+        MobilizationFailed = 10
     }
 
     public readonly struct CapitalObjectiveUpdate
     {
         public CapitalObjectiveUpdate(CapitalObjectiveDecision decision, string? targetSettlementId,
-            CapitalObjectiveEvaluation? evaluation = null)
+            CapitalObjectiveEvaluation? evaluation = null,
+            CapitalArmyMobilizationResult? mobilizationResult = null)
         {
             Decision = decision;
             TargetSettlementId = targetSettlementId;
             Evaluation = evaluation;
+            MobilizationResult = mobilizationResult;
         }
 
         public CapitalObjectiveDecision Decision { get; }
         public string? TargetSettlementId { get; }
         public CapitalObjectiveEvaluation? Evaluation { get; }
+        public CapitalArmyMobilizationResult? MobilizationResult { get; }
     }
 
     public sealed class CapitalObjectiveEvaluation

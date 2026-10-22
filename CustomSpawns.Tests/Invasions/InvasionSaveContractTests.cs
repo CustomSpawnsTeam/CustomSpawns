@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reflection;
 using CustomSpawns.Invasions;
 using CustomSpawns.Invasions.Adapters;
+using CustomSpawns.Invasions.CapitalObjectives;
 using CustomSpawns.Spawn.PartyComponents;
 using NUnit.Framework;
 using TaleWorlds.SaveSystem;
@@ -57,6 +58,65 @@ namespace CustomSpawns.Tests.Invasions
             var attributes = fields.Select(f => f.GetCustomAttribute<SaveableFieldAttribute>()).ToList();
             Assert.That(attributes, Has.None.Null);
             Assert.AreEqual(fields.Length, attributes.Select(a => a!.LocalSaveId).Distinct().Count());
+        }
+
+        [Test]
+        public void CapitalObjectiveArmyMetadataSurvivesSaveRoundTrip()
+        {
+            var objective = new InvasionCapitalObjective(InvasionCapitalObjectiveKind.Attack,
+                "capital", 10d);
+            objective.MarkMobilized(new CapitalArmyMobilizationResult(true, "leader",
+                new[] { "leader", "member" }, "staging"), 11d);
+            objective.MarkReady();
+
+            InvasionCapitalObjective restored =
+                InvasionCapitalObjectiveSaveData.FromState(objective).ToState()!;
+
+            Assert.That(restored.Phase, Is.EqualTo(InvasionCapitalObjectivePhase.Advancing));
+            Assert.That(restored.CommanderPartyId, Is.EqualTo("leader"));
+            Assert.That(restored.StagingSettlementId, Is.EqualTo("staging"));
+            Assert.That(restored.MobilizedPartyIds, Is.EqualTo(new[] { "leader", "member" }));
+            Assert.That(restored.AttackDeadlineDays, Is.EqualTo(17d));
+        }
+
+        [Test]
+        public void ObservedCapitalSiegeWithoutObjectiveArmySurvivesSaveRoundTrip()
+        {
+            var objective = new InvasionCapitalObjective(InvasionCapitalObjectiveKind.Attack,
+                "capital", 10d);
+            objective.MarkBesieging();
+
+            InvasionCapitalObjective restored =
+                InvasionCapitalObjectiveSaveData.FromState(objective).ToState()!;
+
+            Assert.That(restored.Phase, Is.EqualTo(InvasionCapitalObjectivePhase.Besieging));
+            Assert.That(restored.TargetSettlementId, Is.EqualTo("capital"));
+            Assert.That(restored.AttackDeadlineDays, Is.EqualTo(17d));
+            Assert.That(restored.CommanderPartyId, Is.Null);
+            Assert.That(restored.MobilizedPartyIds, Is.Empty);
+        }
+
+        [Test]
+        public void LegacyActiveObjectiveWithoutArmyMetadataRestoresForRemobilization()
+        {
+            var saved = new InvasionCapitalObjectiveSaveData
+            {
+                Kind = (int)InvasionCapitalObjectiveKind.Attack,
+                Phase = (int)InvasionCapitalObjectivePhase.Gathering,
+                TargetSettlementId = "capital",
+                GatherDeadlineDays = 13d,
+                AttackDeadlineDays = 17d,
+                CommanderPartyId = "legacy-leader"
+            };
+
+            InvasionCapitalObjective restored = saved.ToState()!;
+
+            Assert.That(restored.Phase, Is.EqualTo(InvasionCapitalObjectivePhase.Mobilizing));
+            Assert.That(restored.CommanderPartyId, Is.Null);
+            Assert.That(restored.StagingSettlementId, Is.Null);
+            Assert.That(restored.MobilizedPartyIds, Is.Empty);
+            Assert.That(restored.GatherDeadlineDays, Is.Null);
+            Assert.That(restored.AttackDeadlineDays, Is.EqualTo(17d));
         }
     }
 }

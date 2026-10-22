@@ -42,38 +42,6 @@ namespace CustomSpawns.Tests.Invasions.CapitalObjectives
                 1.5f, 1.2f), Is.False);
         }
 
-        [Test]
-        public void ExistingArmyLeaderIsPreferredOverAStrongerStandaloneLord()
-        {
-            var candidates = new[]
-            {
-                new CapitalObjectiveCommanderCandidate("standalone", 200f, true, false, true),
-                new CapitalObjectiveCommanderCandidate("leader", 100f, true, true, true),
-                new CapitalObjectiveCommanderCandidate("ineligible", 500f, false, true, true)
-            };
-
-            CapitalObjectiveCommanderCandidate? selected =
-                new CapitalObjectiveCommanderSelector().Find(candidates);
-
-            Assert.That(selected!.Value.PartyId, Is.EqualTo("leader"));
-        }
-
-        [Test]
-        public void StrongestEligibleLordIsUsedWhenNoArmyLeaderExists()
-        {
-            var candidates = new[]
-            {
-                new CapitalObjectiveCommanderCandidate("weak", 100f, true, false, true),
-                new CapitalObjectiveCommanderCandidate("strong", 200f, true, false, true),
-                new CapitalObjectiveCommanderCandidate("blocked", 300f, true, false, false)
-            };
-
-            CapitalObjectiveCommanderCandidate? selected =
-                new CapitalObjectiveCommanderSelector().Find(candidates);
-
-            Assert.That(selected!.Value.PartyId, Is.EqualTo("strong"));
-        }
-
         [TestCase(InvasionSupplyLineKind.Coastal, true, true, true)]
         [TestCase(InvasionSupplyLineKind.Coastal, true, false, false)]
         [TestCase(InvasionSupplyLineKind.Coastal, false, false, false)]

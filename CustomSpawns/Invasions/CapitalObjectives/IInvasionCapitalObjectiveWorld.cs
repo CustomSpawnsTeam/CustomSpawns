@@ -8,12 +8,12 @@ namespace CustomSpawns.Invasions.CapitalObjectives
         CapitalObjectiveObservation Observe(string invasionId, string designatedCapitalSettlementId,
             string? targetSettlementId, string? commanderPartyId);
 
-        IReadOnlyList<CapitalObjectiveCommanderCandidate> FindCommanderCandidates(string invasionId);
+        IReadOnlyList<CapitalArmyPartyCandidate> FindMobilizationCandidates(string invasionId);
 
         IReadOnlyList<SiegeTargetFacts> FindTargetFacts(string invasionId, string commanderPartyId,
             InvasionAssaultRequirements requirements, string? excludedSettlementId);
 
-        void BeginGathering(string commanderPartyId, string targetSettlementId);
+        CapitalArmyMobilizationResult MobilizeArmy(CapitalArmyMobilizationPlan plan);
         void BeginAdvance(string commanderPartyId);
         void RelocateCapitalAfterObjectiveCapture(string invasionId, string settlementId);
     }
