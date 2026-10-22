@@ -81,15 +81,16 @@ namespace CustomSpawns.Invasions.Adapters
          */
         public void KeepCrowns()
         {
-            foreach (Kingdom kingdom in Kingdom.All.Where(k => !k.IsEliminated && k.RulingClan != null).ToList())
+            foreach (Kingdom kingdom in Kingdom.All.ToList())
             {
-                Invasion? invasion = _invasionState.FindInvasionHolding(kingdom.RulingClan.StringId);
+                Invasion? invasion = _invasionState.FindInvasionHolding(kingdom.RulingClan?.StringId);
                 Clan? founder = invasion == null
                     ? null
                     : Clan.FindFirst(candidate => candidate.StringId == invasion.ClanId);
 
-                if (founder == null || founder == kingdom.RulingClan || founder.IsEliminated ||
-                    founder.Leader == null || founder.Kingdom != null && founder.Kingdom != kingdom)
+                if (invasion == null || founder == null ||
+                    !invasion.ShouldRestoreCrown(kingdom.StringId, kingdom.RulingClan?.StringId, kingdom.IsEliminated,
+                        (founder.IsEliminated, founder.Leader != null, founder.Kingdom?.StringId)))
                 {
                     continue;
                 }
@@ -103,7 +104,7 @@ namespace CustomSpawns.Invasions.Adapters
                     ChangeKingdomAction.ApplyByJoinToKingdom(founder, kingdom, default, false);
                 }
 
-                Logger.Info("Invasion crown restored: invasion=" + invasion!.ClanId + " kingdom=" +
+                Logger.Info("Invasion crown restored: invasion=" + invasion.ClanId + " kingdom=" +
                             kingdom.StringId);
             }
         }

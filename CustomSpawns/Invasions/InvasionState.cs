@@ -327,6 +327,13 @@ namespace CustomSpawns.Invasions
          */
         public double? NextFoodConvoyDays { get; set; }
 
+        // The founder keeps the crown when another clan of its invasion is elected to rule.
+        public bool ShouldRestoreCrown(string kingdomId, string? rulingClanId, bool kingdomIsEliminated,
+            (bool IsEliminated, bool HasLeader, string? KingdomId) founder) =>
+            !kingdomIsEliminated && HoldsClan(rulingClanId) && rulingClanId != ClanId &&
+            !founder.IsEliminated && founder.HasLeader &&
+            (founder.KingdomId == null || founder.KingdomId == kingdomId);
+
         public void BeginCapitalDefence(string settlementId, double nowDays,
             string? siegeEpisodeId = null)
         {
