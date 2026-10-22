@@ -328,10 +328,9 @@ namespace CustomSpawns.Tests.Invasions
 
         private InvasionCapture Conquer(string settlementId = "town", int settlementIndex = 100)
         {
-            var correlation = new InvasionCaptureCorrelation(_state);
             InvasionCapture capture = _state.StartCapture(settlementId, settlementIndex, "capturer");
-            correlation.ObserveOwnership(capture.Id, _invasion.ClanId, "capturer", "enemy", "clan", true);
-            correlation.ObserveAftermath(capture.Id, "capturer", "enemy", new Dictionary<string, string>
+            _state.ObserveCaptureOwnership(capture.Id, _invasion.ClanId, "capturer", "enemy", "clan", true);
+            _state.ObserveCaptureAftermath(capture.Id, "capturer", "enemy", new Dictionary<string, string>
             {
                 ["capturer"] = _invasion.ClanId
             });

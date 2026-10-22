@@ -63,13 +63,7 @@ namespace CustomSpawns.Invasions.Adapters
                     Logger.Info("Invasion reinforcement slot skipped: invasion=" + draw.Invasion.ClanId +
                                 " rule=" + draw.RuleId + " reason=" + SkipReason(draw.Outcome));
 
-                    // A strong invasion, or one whose stream has run dry, is sent no men, but its army still has
-                    // to be paid till the next slot.
-                    if (draw.Outcome == InvasionReinforcementOutcome.FactionStrengthReached ||
-                        draw.Outcome == InvasionReinforcementOutcome.AllWavesSent)
-                    {
-                        _invasionTroopBanking.PayOnly(draw);
-                    }
+                    _invasionTroopBanking.PayOnly(draw);
                 }
                 else if (_invasionTroopBanking.Bank(draw))
                 {

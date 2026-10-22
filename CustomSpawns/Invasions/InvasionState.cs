@@ -86,6 +86,93 @@ namespace CustomSpawns.Invasions
             return capture;
         }
 
+        // Ownership and aftermath reach us as two unrelated native callbacks. Each records its half, and the
+        // capture is confirmed only once both halves agree they describe the same siege.
+        public bool ObserveCaptureOwnership(long captureId, string invasionClanId, string capturerId,
+            string previousOwnerClanId, string newOwnerClanId, bool bySiege)
+        {
+            var capture = FindCapture(captureId);
+            var invasion = FindInvasion(invasionClanId);
+
+            if (capture == null || capture.Cancelled || capture.IsConfirmed || invasion == null || invasion.IsSuspended ||
+                !bySiege || invasion.ClanId != newOwnerClanId || !invasion.Members.Contains(capturerId))
+            {
+                return false;
+            }
+
+            if (capture.OwnershipObserved)
+            {
+                return false;
+            }
+
+            capture.CapturingInvasionClanId = invasionClanId;
+            capture.CapturerId = capturerId;
+            capture.PreviousOwnerClanId = previousOwnerClanId;
+            capture.OwnershipObserved = true;
+            TryConfirmCapture(capture);
+            return true;
+        }
+
+        public bool ObserveCaptureAftermath(long captureId, string attackerId, string previousOwnerClanId,
+            IReadOnlyDictionary<string, string> participantInvasions)
+        {
+            var capture = FindCapture(captureId);
+
+            if (capture == null || capture.Cancelled || capture.IsConfirmed || capture.StartingAttackerId != attackerId)
+            {
+                return false;
+            }
+
+            if (capture.HasParticipants)
+            {
+                return false;
+            }
+
+            capture.AftermathPreviousOwnerClanId = previousOwnerClanId;
+            capture.Participants = participantInvasions.Where(p => FindInvasion(p.Value)?.Members.Contains(p.Key) == true)
+                .ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
+            capture.HasParticipants = true;
+            TryConfirmCapture(capture);
+            return true;
+        }
+
+        private void TryConfirmCapture(InvasionCapture capture)
+        {
+            if (!capture.OwnershipObserved || !capture.HasParticipants ||
+                capture.PreviousOwnerClanId != capture.AftermathPreviousOwnerClanId ||
+                !capture.Participants.TryGetValue(capture.CapturerId!, out string capturerInvasionClanId) ||
+                capturerInvasionClanId != capture.CapturingInvasionClanId)
+            {
+                return;
+            }
+
+            Invasion? invasion = FindInvasion(capture.CapturingInvasionClanId);
+
+            if (invasion == null || invasion.IsSuspended)
+            {
+                return;
+            }
+
+            capture.Participants = capture.Participants.Where(p => p.Value == invasion.ClanId)
+                .ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
+            capture.IsConfirmed = true;
+
+            if (FootholdIndex.TryGetValue(capture.SettlementId, out var previous))
+            {
+                var previousCapture = FindCapture(previous.CaptureId);
+
+                if (previousCapture != null)
+                {
+                    previousCapture.Cancelled = true;
+                }
+            }
+
+            FootholdIndex[capture.SettlementId] = new InvasionFoothold(capture.SettlementId, invasion.ClanId, capture.Id);
+
+            // The first settlement the invasion ever holds is the one it founds its kingdom on.
+            invasion.CapitalSettlementId ??= capture.SettlementId;
+        }
+
         public void ObserveOwner(string settlementId, string? ownerClanId)
         {
             var foothold = FindFoothold(settlementId);

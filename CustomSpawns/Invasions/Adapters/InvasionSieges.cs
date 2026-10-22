@@ -14,9 +14,8 @@ using TaleWorlds.Core;
 namespace CustomSpawns.Invasions.Adapters
 {
     /**
-     * Reads a siege off the native map event that fights it. Bannerlord tells the same story twice,
-     * through the aftermath and through the owner change, so each observation is handed to the
-     * correlation and only the one that completes a capture reports it back.
+     * Reads a siege off the native map event that fights it. Native evidence is correlated here
+     * before the state corroborates the aftermath and owner-change observations.
      */
     public sealed class InvasionSieges
     {
@@ -101,7 +100,7 @@ namespace CustomSpawns.Invasions.Adapters
                 }
             }
 
-            _invasionCaptureCorrelation.ObserveAftermath(capture.Id, attacker.StringId,
+            _invasionState.ObserveCaptureAftermath(capture.Id, attacker.StringId,
                 previousOwner?.StringId ?? "", participants);
             return capture.Id;
         }
@@ -156,7 +155,7 @@ namespace CustomSpawns.Invasions.Adapters
                 return null;
             }
 
-            _invasionCaptureCorrelation.ObserveOwnership(capture.Id, invasion.ClanId, party.StringId,
+            _invasionState.ObserveCaptureOwnership(capture.Id, invasion.ClanId, party.StringId,
                 oldOwner?.Clan?.StringId ?? "", newOwner?.Clan?.StringId ?? "", true);
             return capture.Id;
         }

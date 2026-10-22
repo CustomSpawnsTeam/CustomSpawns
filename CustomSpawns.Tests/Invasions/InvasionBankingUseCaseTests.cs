@@ -281,18 +281,35 @@ namespace CustomSpawns.Tests.Invasions
             _invasionGarrisons.Setup(g => g.HasGarrison(Capital)).Returns(true);
             _invasionConfigurations.Setup(c => c.FindWave("invasion", "infantry")).Returns((InvasionWave?)null);
             Assert.IsNull(WaveBanking().Bank(Draw()));
-            Assert.IsNull(WaveBanking().PayOnly(Draw()));
+            Assert.IsNull(WaveBanking().PayOnly(Draw(InvasionReinforcementOutcome.FactionStrengthReached)));
 
             _invasionGarrisonDeposits.Verify(g => g.Deposit(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         }
 
-        [Test]
-        public void AStrongInvasionIsPaidButSentNoMenOrLords()
+        [TestCase(InvasionReinforcementOutcome.FactionStrengthReached)]
+        [TestCase(InvasionReinforcementOutcome.AllWavesSent)]
+        public void AStrongOrExhaustedInvasionIsPaidButSentNoMenOrLords(InvasionReinforcementOutcome outcome)
         {
             _invasionTreasury.Setup(t => t.FindGarrisonWagePerMan(Capital)).Returns(2f);
             _invasionTreasury.Setup(t => t.FindPurse("clan")).Returns(Purse("clan", 0, false, 0, Upkeep("a", 100)));
 
-            Assert.AreEqual(1400, WaveBanking().PayOnly(Draw()));
+            Assert.AreEqual(1400, WaveBanking().PayOnly(Draw(outcome)));
+            _invasionTreasury.Verify(t => t.Give("clan", 1400), Times.Once);
+            _invasionGarrisonDeposits.Verify(g => g.Deposit(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+            _invasionLords.Verify(l => l.Field(It.IsAny<Invasion>(), It.IsAny<string>()), Times.Never);
+        }
+
+        [TestCase(InvasionReinforcementOutcome.Unavailable)]
+        [TestCase(InvasionReinforcementOutcome.CapitalUnavailable)]
+        [TestCase(InvasionReinforcementOutcome.Banking)]
+        public void OtherReinforcementOutcomesDoNotReceivePayOnlyFunding(InvasionReinforcementOutcome outcome)
+        {
+            _invasionTreasury.Setup(t => t.FindGarrisonWagePerMan(Capital)).Returns(2f);
+            _invasionTreasury.Setup(t => t.FindPurse("clan")).Returns(Purse("clan", 0, false, 0, Upkeep("a", 100)));
+
+            Assert.IsNull(WaveBanking().PayOnly(Draw(outcome)));
+            _invasionTreasury.Verify(t => t.Give(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+            _invasionCommissariat.Verify(c => c.AddFood(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
             _invasionGarrisonDeposits.Verify(g => g.Deposit(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
             _invasionLords.Verify(l => l.Field(It.IsAny<Invasion>(), It.IsAny<string>()), Times.Never);
         }
@@ -308,8 +325,8 @@ namespace CustomSpawns.Tests.Invasions
         private InvasionWaveBanking WaveBanking() => new(_invasionConfigurations.Object, _invasionGarrisons.Object,
             _invasionGarrisonDeposits.Object, Levy(), Funding());
 
-        private InvasionReinforcementDraw Draw() =>
-            new(_invasion, "infantry", InvasionReinforcementOutcome.Banking);
+        private InvasionReinforcementDraw Draw(InvasionReinforcementOutcome outcome = InvasionReinforcementOutcome.Banking) =>
+            new(_invasion, "infantry", outcome);
 
         private static InvasionWarband Warband(string partyId = "party", string? settlementId = null,
             int freeTroops = 0, int room = 0, bool isLordParty = true, string clanId = "clan") =>

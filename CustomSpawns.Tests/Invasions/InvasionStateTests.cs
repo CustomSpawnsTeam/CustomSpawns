@@ -73,7 +73,7 @@ namespace CustomSpawns.Tests.Invasions
         {
             var capture = Start();
             Aftermath(capture);
-            Assert.False(Correlation.ObserveOwnership(capture.Id, _invasion.ClanId, capturer, "enemy", owner, siege));
+            Assert.False(_state.ObserveCaptureOwnership(capture.Id, _invasion.ClanId, capturer, "enemy", owner, siege));
             Assert.That(_state.Footholds, Is.Empty);
         }
 
@@ -83,7 +83,7 @@ namespace CustomSpawns.Tests.Invasions
             var other = _state.RegisterMember("invasion", "clan", "other-party");
             var capture = Start();
             Ownership(capture);
-            Correlation.ObserveAftermath(capture.Id, "capturer", "enemy", new Dictionary<string, string> { ["other-party"] = other.ClanId });
+            _state.ObserveCaptureAftermath(capture.Id, "capturer", "enemy", new Dictionary<string, string> { ["other-party"] = other.ClanId });
             Assert.False(capture.IsConfirmed);
             Assert.That(_state.Footholds, Is.Empty);
         }
@@ -95,7 +95,7 @@ namespace CustomSpawns.Tests.Invasions
             Ownership(capture);
             Assert.False(capture.HasParticipants);
             Assert.False(_state.CanApplyOccupation(capture.Id, "clan"));
-            Correlation.ObserveAftermath(capture.Id, "capturer", "enemy", new Dictionary<string, string>());
+            _state.ObserveCaptureAftermath(capture.Id, "capturer", "enemy", new Dictionary<string, string>());
             Assert.True(capture.HasParticipants);
             Assert.False(capture.IsConfirmed);
             Assert.False(_state.CompleteOccupation(capture.Id, "clan"));
@@ -125,6 +125,38 @@ namespace CustomSpawns.Tests.Invasions
             Assert.AreEqual(capture.Id, _state.Footholds.Single().CaptureId);
             _state.Reconcile(new[] { "capturer" }, _ => "clan", _ => true, _ => false);
             Assert.AreEqual(capture.Id, _state.Footholds.Single().CaptureId);
+        }
+
+        [Test]
+        public void ConfirmingAnotherCaptureReplacesTheFootholdAndCancelsThePreviousCapture()
+        {
+            var first = Conquer();
+            var second = Start(200);
+            Ownership(second);
+            Assert.False(first.Cancelled);
+
+            Aftermath(second);
+
+            Assert.True(second.IsConfirmed);
+            Assert.True(first.Cancelled);
+            Assert.AreEqual(second.Id, _state.Footholds.Single().CaptureId);
+            Assert.False(_state.CanApplyOccupation(first.Id, "clan"));
+            Assert.True(_state.CanApplyOccupation(second.Id, "clan"));
+        }
+
+        [Test]
+        public void TheFirstCapitalPersistsWhenAnotherTownIsCapturedEvenAfterTheCapitalIsLost()
+        {
+            Conquer();
+            _state.ObserveOwner("town", "enemy");
+            var second = _state.StartCapture("other-town", 200, "capturer");
+
+            Ownership(second);
+            Aftermath(second);
+
+            Assert.True(second.IsConfirmed);
+            Assert.AreEqual("town", _invasion.CapitalSettlementId);
+            Assert.AreEqual("other-town", _state.Footholds.Single().SettlementId);
         }
 
         [Test]
@@ -211,8 +243,8 @@ namespace CustomSpawns.Tests.Invasions
         {
             var capture = Start();
             Ownership(capture);
-            Assert.False(Correlation.ObserveAftermath(capture.Id, "other-leader", "enemy", Participants()));
-            Assert.True(Correlation.ObserveAftermath(capture.Id, "capturer", "wrong-previous-owner", Participants()));
+            Assert.False(_state.ObserveCaptureAftermath(capture.Id, "other-leader", "enemy", Participants()));
+            Assert.True(_state.ObserveCaptureAftermath(capture.Id, "capturer", "wrong-previous-owner", Participants()));
             Assert.False(capture.IsConfirmed);
         }
 
@@ -382,10 +414,9 @@ namespace CustomSpawns.Tests.Invasions
         private Invasion? Adopting(string? clanId) => _state.FindFightingInvasion(clanId);
         private InvasionCapture Start(long ticks = 100) => _state.StartCapture("town", ticks, "capturer");
         private Dictionary<string, string> Participants() => new() { ["capturer"] = _invasion.ClanId };
-        private void Ownership(InvasionCapture c) => Correlation.ObserveOwnership(c.Id, _invasion.ClanId, "capturer", "enemy", "clan", true);
-        private void Aftermath(InvasionCapture c) => Correlation.ObserveAftermath(c.Id, "capturer", "enemy", Participants());
+        private void Ownership(InvasionCapture c) => _state.ObserveCaptureOwnership(c.Id, _invasion.ClanId, "capturer", "enemy", "clan", true);
+        private void Aftermath(InvasionCapture c) => _state.ObserveCaptureAftermath(c.Id, "capturer", "enemy", Participants());
         private InvasionCapture Conquer(long ticks = 100) { var c = Start(ticks); Ownership(c); Aftermath(c); return c; }
-        private InvasionCaptureCorrelation Correlation => new(_state);
         private InvasionState RoundTrip() => InvasionStateSaveData.FromState(_state).ToState();
         private static short FieldId(System.Type type, string field) => type.GetField(field, BindingFlags.Instance | BindingFlags.NonPublic)!
             .GetCustomAttribute<SaveableFieldAttribute>()!.LocalSaveId;

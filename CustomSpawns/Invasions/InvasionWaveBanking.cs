@@ -99,9 +99,15 @@ namespace CustomSpawns.Invasions
             return new InvasionWaveReceipt(capitalId, men, lords, pay, _invasionGarrisons.CountMen(capitalId));
         }
 
-        // A strong invasion is sent no men, but its army still has to be paid till the next wave.
+        // A strong invasion, or one with no waves left, still pays its army until the next slot.
         public int? PayOnly(InvasionReinforcementDraw draw)
         {
+            if (draw.Outcome != InvasionReinforcementOutcome.FactionStrengthReached &&
+                draw.Outcome != InvasionReinforcementOutcome.AllWavesSent)
+            {
+                return null;
+            }
+
             InvasionWave? wave = _invasionConfigurations.FindWave(draw.Invasion.SpawnTemplateId, draw.RuleId);
             return wave == null ? null : _invasionWaveFunding.Fund(draw.Invasion, wave.Value.IntervalInDays);
         }

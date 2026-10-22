@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace CustomSpawns.Invasions.Adapters
 {
-    // Native evidence and the two-callback corroboration it feeds. Object tokens are compared by identity.
+    // Native evidence for capture observations. Object tokens are compared by identity.
     public sealed class InvasionCaptureCorrelation
     {
         private readonly InvasionState _invasionState;
@@ -83,59 +83,6 @@ namespace CustomSpawns.Invasions.Adapters
         {
             var capture = _invasionState.FindCapture(result.CaptureId);
             return capture != null && !capture.Cancelled && !capture.IsConfirmed ? capture : null;
-        }
-
-        // Ownership and aftermath reach us as two unrelated native callbacks. Each records its half, and the
-        // capture is confirmed only once both halves agree they describe the same siege.
-        public bool ObserveOwnership(long captureId, string invasionClanId, string capturerId, string previousOwnerClanId,
-            string newOwnerClanId, bool bySiege)
-        {
-            var capture = _invasionState.FindCapture(captureId);
-            var invasion = _invasionState.FindInvasion(invasionClanId);
-            if (capture == null || capture.Cancelled || capture.IsConfirmed || invasion == null || invasion.IsSuspended ||
-                !bySiege || invasion.ClanId != newOwnerClanId || !invasion.Members.Contains(capturerId)) return false;
-            if (capture.OwnershipObserved) return false;
-            capture.CapturingInvasionClanId = invasionClanId;
-            capture.CapturerId = capturerId;
-            capture.PreviousOwnerClanId = previousOwnerClanId;
-            capture.OwnershipObserved = true;
-            TryConfirm(capture);
-            return true;
-        }
-
-        public bool ObserveAftermath(long captureId, string attackerId, string previousOwnerClanId,
-            IReadOnlyDictionary<string, string> participantInvasions)
-        {
-            var capture = _invasionState.FindCapture(captureId);
-            if (capture == null || capture.Cancelled || capture.IsConfirmed || capture.StartingAttackerId != attackerId) return false;
-            if (capture.HasParticipants) return false;
-            capture.AftermathPreviousOwnerClanId = previousOwnerClanId;
-            capture.Participants = participantInvasions.Where(p => _invasionState.FindInvasion(p.Value)?.Members.Contains(p.Key) == true)
-                .ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
-            capture.HasParticipants = true;
-            TryConfirm(capture);
-            return true;
-        }
-
-        private void TryConfirm(InvasionCapture capture)
-        {
-            if (!capture.OwnershipObserved || !capture.HasParticipants ||
-                capture.PreviousOwnerClanId != capture.AftermathPreviousOwnerClanId ||
-                !capture.Participants.TryGetValue(capture.CapturerId!, out string capturerInvasionClanId) ||
-                capturerInvasionClanId != capture.CapturingInvasionClanId) return;
-            Invasion? invasion = _invasionState.FindInvasion(capture.CapturingInvasionClanId);
-            if (invasion == null || invasion.IsSuspended) return;
-            capture.Participants = capture.Participants.Where(p => p.Value == invasion.ClanId)
-                .ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
-            capture.IsConfirmed = true;
-            if (_invasionState.FootholdIndex.TryGetValue(capture.SettlementId, out var previous))
-            {
-                var previousCapture = _invasionState.FindCapture(previous.CaptureId);
-                if (previousCapture != null) previousCapture.Cancelled = true;
-            }
-            _invasionState.FootholdIndex[capture.SettlementId] = new InvasionFoothold(capture.SettlementId, invasion.ClanId, capture.Id);
-            // The first settlement the invasion ever holds is the one it founds its kingdom on.
-            invasion.CapitalSettlementId ??= capture.SettlementId;
         }
 
         public void Prune()
