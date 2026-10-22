@@ -92,28 +92,16 @@ namespace CustomSpawns.Invasions.Adapters
                     .ToList();
         }
 
-        /**
-         * Vanilla's own measure of what a faction fields -- each party's estimated strength, summed over
-         * the war parties and the garrisons, which is where a banked wave goes -- narrowed to the clans of
-         * this invasion and to what the waves themselves raised. The spawner keeps landing its own forces
-         * under the founding clan whatever the waves do, so those parties are left out: counted, they alone
-         * hold the invasion over its ceiling and no wave would ever come. Summed live, so that a wave banked
-         * a moment ago already counts against the next rule of the same day.
-         */
+        // Read live for every draw, so a wave just banked counts against the next rule of the same day.
         InvasionStrengthBudget IInvasionReinforcementQuery.GetStrengthBudget(Invasion invasion)
         {
             InvasionData? configuration = GetConfiguration(invasion);
-            double currentStrength = 0;
-
-            foreach (Clan clan in Clan.All.Where(clan => invasion.HoldsClan(clan.StringId)))
-            {
-                // The spawner's own forces are left out; the lords the waves field are adopted, and count
-                // like any other.
-                currentStrength += clan.WarPartyComponents
-                    .Where(component => _dynamicSpawnData.GetDynamicSpawnData(component.MobileParty)?.IsAdopted != false)
-                    .Sum(component => component.MobileParty.Party.EstimatedStrength);
-                currentStrength += clan.Fiefs.Sum(fief => fief.GarrisonParty?.Party.EstimatedStrength ?? 0f);
-            }
+            double currentStrength = invasion.MeasureReinforcementStrength(Clan.All.Select(clan =>
+                (clan.StringId,
+                    clan.WarPartyComponents.Select(component =>
+                        (_dynamicSpawnData.GetDynamicSpawnData(component.MobileParty)?.IsAdopted,
+                            (Func<float>)(() => component.MobileParty.Party.EstimatedStrength))),
+                    clan.Fiefs.Select(fief => fief.GarrisonParty?.Party.EstimatedStrength ?? 0f))));
 
             // The per-town bonus is the kingdom's, not the invading clans': a town held by any member of the
             // kingdom raises the ceiling, however that member came by it.
