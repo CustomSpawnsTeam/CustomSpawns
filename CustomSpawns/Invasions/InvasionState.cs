@@ -279,6 +279,23 @@ namespace CustomSpawns.Invasions
                 FindFoothold(capture.SettlementId)?.CaptureId == captureId && FindInvasion(capture.CapturingInvasionClanId)?.IsSuspended == false;
         }
 
+        // Once the settlement is safe, this reconciles ownership and may cancel captures.
+        public bool IsOccupationReady(long captureId, string currentOwnerClanId,
+            (bool HasActiveGarrison, bool InBattle, bool UnderSiege) settlement,
+            IEnumerable<(string PartyId, bool IsActive, bool IsInBattle)> parties)
+        {
+            // Unsafe native state must not reconcile ownership or consume a pending occupation.
+            if (!settlement.HasActiveGarrison || settlement.InBattle || settlement.UnderSiege ||
+                !CanApplyOccupation(captureId, currentOwnerClanId))
+            {
+                return false;
+            }
+
+            InvasionCapture capture = FindCapture(captureId)!;
+            return !parties.Any(party => party.IsActive && capture.Participants.ContainsKey(party.PartyId) &&
+                party.IsInBattle);
+        }
+
         // Called only after the engine adapter successfully applies the initial occupation package.
         public bool CompleteOccupation(long captureId, string currentOwnerClanId)
         {
@@ -526,5 +543,9 @@ namespace CustomSpawns.Invasions
         public bool IsConfirmed { get; set; }
         public bool Cancelled { get; set; }
         public bool OccupationApplied { get; set; }
+
+        // Donor filtering only; the caller must first confirm the occupation is ready.
+        public bool CanAbsorbEscort(string partyId, bool isActive, Func<bool> isEscort) =>
+            isActive && Participants.ContainsKey(partyId) && isEscort();
     }
 }

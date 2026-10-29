@@ -48,9 +48,8 @@ namespace CustomSpawns.Invasions.Adapters
                     continue;
                 }
 
-                foreach (MobileParty party in MobileParty.All.Where(p => p.IsActive &&
-                             capture.ParticipantPartyIds.Contains(p.StringId) &&
-                             _dynamicSpawnData.GetDynamicSpawnData(p)?.IsEscort == true).ToList())
+                foreach (MobileParty party in MobileParty.All.Where(p => capture.CanAbsorbEscort(p.StringId,
+                             p.IsActive, () => _dynamicSpawnData.GetDynamicSpawnData(p)?.IsEscort == true)).ToList())
                 {
                     town.GarrisonParty.MemberRoster.Add(party.MemberRoster);
                     DestroyPartyAction.Apply(null, party);
@@ -159,16 +158,10 @@ namespace CustomSpawns.Invasions.Adapters
             {
                 Settlement? settlement = Settlement.Find(capture.SettlementId);
 
-                if (settlement?.Town?.GarrisonParty?.IsActive != true || settlement.Party.MapEvent != null ||
-                    settlement.SiegeEvent != null ||
-                    !_invasionState.CanApplyOccupation(capture.Id, settlement.OwnerClan?.StringId ?? ""))
-                {
-                    continue;
-                }
-
-                bool donorInBattle = MobileParty.All.Any(p => p.IsActive && capture.ParticipantPartyIds.Contains(p.StringId) && p.MapEvent != null);
-
-                if (!donorInBattle)
+                if (_invasionState.IsOccupationReady(capture.Id, settlement?.OwnerClan?.StringId ?? "",
+                        (settlement?.Town?.GarrisonParty?.IsActive == true, settlement?.Party.MapEvent != null,
+                            settlement?.SiegeEvent != null),
+                        MobileParty.All.Select(party => (party.StringId, party.IsActive, party.MapEvent != null))))
                 {
                     ready.Add(capture);
                 }
