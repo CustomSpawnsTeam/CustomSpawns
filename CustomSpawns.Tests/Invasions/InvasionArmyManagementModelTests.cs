@@ -2,6 +2,7 @@ using System;
 using System.Reflection;
 using System.Runtime.Serialization;
 using CustomSpawns.Invasions.Adapters;
+using CustomSpawns.Invasions.CapitalObjectives;
 using Moq;
 using NUnit.Framework;
 using TaleWorlds.CampaignSystem;
@@ -139,11 +140,86 @@ namespace CustomSpawns.Tests.Invasions
             Assert.AreEqual(30, Model(decorated).GetCohesionBoostInfluenceCost(army, 100));
         }
 
-        private static InvasionArmyManagementModel Model(Mock<ArmyManagementCalculationModel> decorated)
+        [TestCase(InvasionCapitalObjectiveKind.Defence, InvasionCapitalObjectivePhase.Gathering, true, true)]
+        [TestCase(InvasionCapitalObjectiveKind.Defence, InvasionCapitalObjectivePhase.Gathering, false, false)]
+        [TestCase(InvasionCapitalObjectiveKind.Defence, InvasionCapitalObjectivePhase.Mobilizing, true, false)]
+        [TestCase(InvasionCapitalObjectiveKind.Defence, InvasionCapitalObjectivePhase.Advancing, true, false)]
+        [TestCase(InvasionCapitalObjectiveKind.Defence, InvasionCapitalObjectivePhase.Besieging, true, false)]
+        [TestCase(InvasionCapitalObjectiveKind.Defence, InvasionCapitalObjectivePhase.Dormant, true, false)]
+        [TestCase(InvasionCapitalObjectiveKind.Attack, InvasionCapitalObjectivePhase.Gathering, true, false)]
+        public void OnlyTheGatheringReliefArmyIsExemptFromCohesion(
+            InvasionCapitalObjectiveKind kind, InvasionCapitalObjectivePhase phase,
+            bool matchesCommander, bool exempt)
+        {
+            MobileParty commander = LedBy(InvaderClanId, 0f);
+            commander.StringId = "commander";
+            Army army = ArmyLedBy(commander);
+            army.Cohesion = 15f;
+            var decorated = new Mock<ArmyManagementCalculationModel>();
+            decorated.Setup(model => model.CalculateDailyCohesionChange(army, true))
+                .Returns(new ExplainedNumber(-5f));
+            decorated.Setup(model => model.CalculateNewCohesion(army, null!, 15, -1)).Returns(12);
+            var directive = new InvasionCapitalObjectiveDirective(InvaderClanId,
+                matchesCommander ? "commander" : "other-commander", "capital", kind, phase);
+            InvasionArmyManagementModel model = Model(decorated, directive);
+
+            Assert.That(model.CalculateDailyCohesionChange(army, true).ResultNumber,
+                Is.EqualTo(exempt ? 0f : -5f));
+            Assert.That(model.CalculateNewCohesion(army, null!, 15, -1),
+                Is.EqualTo(exempt ? 100 : 12));
+            decorated.Verify(value => value.CalculateDailyCohesionChange(army, true),
+                exempt ? Times.Never() : Times.Once());
+            decorated.Verify(value => value.CalculateNewCohesion(army, null!, 15, -1),
+                exempt ? Times.Never() : Times.Once());
+        }
+
+        [Test]
+        public void CohesionResumesWhenTheReliefObjectiveEnds()
+        {
+            MobileParty commander = LedBy(InvaderClanId, 0f);
+            commander.StringId = "commander";
+            Army army = ArmyLedBy(commander);
+            var decorated = new Mock<ArmyManagementCalculationModel>();
+            decorated.Setup(model => model.CalculateDailyCohesionChange(army, false))
+                .Returns(new ExplainedNumber(-5f));
+            InvasionCapitalObjectiveDirective? directive = new InvasionCapitalObjectiveDirective(
+                InvaderClanId, "commander", "capital", InvasionCapitalObjectiveKind.Defence,
+                InvasionCapitalObjectivePhase.Gathering);
+            var query = new Mock<IInvasionCapitalObjectiveQuery>();
+            query.Setup(value => value.FindForKingdom(InvaderClanId)).Returns(() => directive);
+            var model = new InvasionArmyManagementModel(decorated.Object,
+                new Mock<IInvaderClanQuery>().Object, query.Object, new ClanInfluenceLift());
+
+            Assert.That(model.CalculateDailyCohesionChange(army).ResultNumber, Is.Zero);
+
+            directive = null;
+
+            Assert.That(model.CalculateDailyCohesionChange(army).ResultNumber, Is.EqualTo(-5f));
+        }
+
+        [Test]
+        public void ArmiesWithoutACapitalObjectiveKeepNativeCohesion()
+        {
+            Army army = ArmyLedBy(LedBy(CalradianClanId, 0f));
+            var decorated = new Mock<ArmyManagementCalculationModel>();
+            decorated.Setup(model => model.CalculateDailyCohesionChange(army, false))
+                .Returns(new ExplainedNumber(-5f));
+            decorated.Setup(model => model.CalculateNewCohesion(army, null!, 15, -1)).Returns(12);
+            InvasionArmyManagementModel model = Model(decorated);
+
+            Assert.That(model.CalculateDailyCohesionChange(army).ResultNumber, Is.EqualTo(-5f));
+            Assert.That(model.CalculateNewCohesion(army, null!, 15, -1), Is.EqualTo(12));
+        }
+
+        private static InvasionArmyManagementModel Model(Mock<ArmyManagementCalculationModel> decorated,
+            InvasionCapitalObjectiveDirective? directive = null)
         {
             var invaderClanQuery = new Mock<IInvaderClanQuery>();
             invaderClanQuery.Setup(query => query.IsInvaderClan(InvaderClanId)).Returns(true);
-            return new InvasionArmyManagementModel(decorated.Object, invaderClanQuery.Object, new ClanInfluenceLift());
+            var capitalObjectiveQuery = new Mock<IInvasionCapitalObjectiveQuery>();
+            capitalObjectiveQuery.Setup(query => query.FindForKingdom(InvaderClanId)).Returns(directive);
+            return new InvasionArmyManagementModel(decorated.Object, invaderClanQuery.Object,
+                capitalObjectiveQuery.Object, new ClanInfluenceLift());
         }
 
         // Vanilla's own refusal: no army for a clan holding 100 influence or less.
@@ -175,6 +251,7 @@ namespace CustomSpawns.Tests.Invasions
             component.Setup(partyComponent => partyComponent.Leader).Returns(leader);
 
             MobileParty party = Party();
+            party.ActualClan = clan;
             typeof(MobileParty).GetField("_partyComponent", BindingFlags.Instance | BindingFlags.NonPublic)!
                 .SetValue(party, component.Object);
             return party;

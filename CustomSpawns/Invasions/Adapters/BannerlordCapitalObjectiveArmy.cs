@@ -234,6 +234,7 @@ namespace CustomSpawns.Invasions.Adapters
             if (invasion.CapitalObjective?.StagingSettlementId is string stagingId &&
                 Settlement.Find(stagingId) is Settlement staging)
             {
+                army.Cohesion = 100f;
                 commander.BesiegerCamp = null;
                 if (commander.DefaultBehavior != AiBehavior.GoToPoint || army.AiBehaviorObject != staging)
                 {

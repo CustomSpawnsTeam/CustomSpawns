@@ -1,3 +1,4 @@
+using CustomSpawns.Invasions.CapitalObjectives;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.ComponentInterfaces;
 using TaleWorlds.CampaignSystem.Party;
@@ -17,8 +18,7 @@ namespace CustomSpawns.Invasions.Adapters
      * court, so vanilla's price for calling lords to arms would keep it from ever gathering one, however
      * many men it lands.
      *
-     * Every other rule of the decorated model still holds: an invasion lord needs the men, the food and the
-     * siege strength any other lord does.
+     * Capital relief gathering also keeps its cohesion until the objective allows it to advance.
      */
     public sealed class InvasionArmyManagementModel : ArmyManagementCalculationModel
     {
@@ -28,13 +28,16 @@ namespace CustomSpawns.Invasions.Adapters
 
         private readonly ArmyManagementCalculationModel _armyManagementCalculationModel;
         private readonly IInvaderClanQuery _invaderClanQuery;
+        private readonly IInvasionCapitalObjectiveQuery _invasionCapitalObjectiveQuery;
         private readonly ClanInfluenceLift _clanInfluenceLift;
 
         public InvasionArmyManagementModel(ArmyManagementCalculationModel decorated,
-            IInvaderClanQuery invaderClanQuery, ClanInfluenceLift clanInfluenceLift)
+            IInvaderClanQuery invaderClanQuery, IInvasionCapitalObjectiveQuery invasionCapitalObjectiveQuery,
+            ClanInfluenceLift clanInfluenceLift)
         {
             _armyManagementCalculationModel = decorated;
             _invaderClanQuery = invaderClanQuery;
+            _invasionCapitalObjectiveQuery = invasionCapitalObjectiveQuery;
             _clanInfluenceLift = clanInfluenceLift;
         }
 
@@ -96,10 +99,14 @@ namespace CustomSpawns.Invasions.Adapters
         public override int GetPartyRelation(Hero hero) => _armyManagementCalculationModel.GetPartyRelation(hero);
 
         public override ExplainedNumber CalculateDailyCohesionChange(Army army, bool includeDescriptions = false) =>
-            _armyManagementCalculationModel.CalculateDailyCohesionChange(army, includeDescriptions);
+            KeepsArmyTogether(army)
+                ? new ExplainedNumber(0f, includeDescriptions)
+                : _armyManagementCalculationModel.CalculateDailyCohesionChange(army, includeDescriptions);
 
         public override int CalculateNewCohesion(Army army, PartyBase newParty, int calculatedCohesion, int sign) =>
-            _armyManagementCalculationModel.CalculateNewCohesion(army, newParty, calculatedCohesion, sign);
+            KeepsArmyTogether(army)
+                ? 100
+                : _armyManagementCalculationModel.CalculateNewCohesion(army, newParty, calculatedCohesion, sign);
 
         // Keeping an army together costs an invasion nothing either, or its armies would scatter as soon as
         // they gathered.
@@ -108,5 +115,14 @@ namespace CustomSpawns.Invasions.Adapters
 
         private bool IsInvaderArmy(Army army) =>
             _invaderClanQuery.IsInvaderClan(army.LeaderParty?.LeaderHero?.Clan?.StringId);
+
+        private bool KeepsArmyTogether(Army army)
+        {
+            MobileParty? commander = army?.LeaderParty;
+            string? kingdomId = commander?.MapFaction?.StringId;
+            return kingdomId != null &&
+                   _invasionCapitalObjectiveQuery.FindForKingdom(kingdomId)
+                       ?.KeepsArmyTogether(commander!.StringId) == true;
+        }
     }
 }

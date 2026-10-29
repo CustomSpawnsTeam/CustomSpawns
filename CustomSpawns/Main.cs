@@ -228,7 +228,7 @@ namespace CustomSpawns
                     _partySizeCalculatedSubject));
                 starter.AddModel(new InvasionArmyManagementModel(
                     starter.GetModel<ArmyManagementCalculationModel>(), _invasionCampaignBehaviour,
-                    new ClanInfluenceLift()));
+                    _invasionCampaignBehaviour, new ClanInfluenceLift()));
             }
             else
             {

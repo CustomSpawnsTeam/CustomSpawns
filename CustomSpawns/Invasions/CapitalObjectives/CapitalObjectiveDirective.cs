@@ -34,6 +34,11 @@ namespace CustomSpawns.Invasions.CapitalObjectives
         public InvasionCapitalObjectivePhase Phase { get; }
         public IReadOnlyList<string> PartyIds { get; }
         public string? StagingSettlementId { get; }
+
+        public bool KeepsArmyTogether(string commanderPartyId) =>
+            Kind == InvasionCapitalObjectiveKind.Defence &&
+            Phase == InvasionCapitalObjectivePhase.Gathering &&
+            string.Equals(CommanderPartyId, commanderPartyId, StringComparison.Ordinal);
     }
 
     public interface IInvasionCapitalObjectiveQuery
