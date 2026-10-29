@@ -15,7 +15,8 @@ namespace CustomSpawns.Invasions.CapitalObjectives
 
         public InvasionCapitalObjectiveDirective(string kingdomId, string commanderPartyId,
             string targetSettlementId, InvasionCapitalObjectiveKind kind,
-            InvasionCapitalObjectivePhase phase, IReadOnlyList<string> partyIds)
+            InvasionCapitalObjectivePhase phase, IReadOnlyList<string> partyIds,
+            string? stagingSettlementId = null)
         {
             KingdomId = kingdomId;
             CommanderPartyId = commanderPartyId;
@@ -23,6 +24,7 @@ namespace CustomSpawns.Invasions.CapitalObjectives
             Kind = kind;
             Phase = phase;
             PartyIds = partyIds ?? throw new ArgumentNullException(nameof(partyIds));
+            StagingSettlementId = stagingSettlementId;
         }
 
         public string KingdomId { get; }
@@ -31,6 +33,7 @@ namespace CustomSpawns.Invasions.CapitalObjectives
         public InvasionCapitalObjectiveKind Kind { get; }
         public InvasionCapitalObjectivePhase Phase { get; }
         public IReadOnlyList<string> PartyIds { get; }
+        public string? StagingSettlementId { get; }
     }
 
     public interface IInvasionCapitalObjectiveQuery

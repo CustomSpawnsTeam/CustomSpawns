@@ -47,6 +47,7 @@ namespace CustomSpawns.Tests.Invasions.CapitalObjectives
             Assert.That(_world.LastPlan!.PartyIds,
                 Is.EqualTo(new[] { "commander", "follower" }));
             Assert.That(_world.AdvancedCommander, Is.EqualTo("commander"));
+            Assert.That(update.MobilizationResult, Is.SameAs(_world.MobilizationResult));
         }
 
         [Test]
@@ -120,12 +121,99 @@ namespace CustomSpawns.Tests.Invasions.CapitalObjectives
                 commanderEligible: true, defence: new CapitalDefenceForces(10f, 0f, 100f),
                 siegeEpisodeId: "siege-a");
 
-            _coordinator.UpdateHourly(_invasion);
+            CapitalObjectiveUpdate update = _coordinator.UpdateHourly(_invasion);
 
             Assert.That(_invasion.CapitalObjective!.Phase,
                 Is.EqualTo(InvasionCapitalObjectivePhase.Gathering));
             Assert.That(_invasion.CapitalObjective.GatherDeadlineDays, Is.EqualTo(13d));
             Assert.That(_invasion.CapitalObjective.StagingSettlementId, Is.EqualTo("staging"));
+            Assert.That(update.MobilizationResult, Is.SameAs(_world.MobilizationResult));
+        }
+
+        [Test]
+        public void WaitingDefenceInvitesEveryNewEligiblePartyWithoutCountingUnarrivedStrength()
+        {
+            BeginAndMobilize(InvasionCapitalObjectiveKind.Defence, 0d, "siege-a");
+            _world.Candidates.Add(new CapitalArmyPartyCandidate("reinforcement-a", 1000f,
+                true, false, false));
+            _world.Candidates.Add(new CapitalArmyPartyCandidate("reinforcement-b", 1000f,
+                true, false, false));
+            _world.Candidates.Add(new CapitalArmyPartyCandidate("trapped", 1000f,
+                false, false, false, "inside_besieged_settlement"));
+            _world.Observation = Observation(4d, ownsCapital: true, capitalBesieged: true,
+                commanderEligible: true, defence: new CapitalDefenceForces(10f, 0f, 100f),
+                siegeEpisodeId: "siege-a");
+
+            CapitalObjectiveUpdate update = _coordinator.UpdateHourly(_invasion);
+
+            Assert.That(_world.LastInvitations,
+                Is.EqualTo(new[] { "reinforcement-a", "reinforcement-b" }));
+            Assert.That(_invasion.CapitalObjective!.MobilizedPartyIds,
+                Is.EqualTo(new[] { "commander", "follower", "reinforcement-a", "reinforcement-b" }));
+            Assert.That(_invasion.CapitalObjective.Phase,
+                Is.EqualTo(InvasionCapitalObjectivePhase.Gathering));
+            Assert.That(_invasion.CapitalObjective.GatherDeadlineDays, Is.EqualTo(3d));
+            Assert.That(_world.MobilizationCalls, Is.Zero);
+            Assert.That(_world.AdvancedCommander, Is.Null);
+            Assert.That(update.MobilizationResult!.DeferredParties[0].Reason,
+                Is.EqualTo("inside_besieged_settlement"));
+
+            _coordinator.UpdateHourly(_invasion);
+
+            Assert.That(_world.LastInvitations, Is.Empty);
+        }
+
+        [Test]
+        public void DeferredDefencePartyIsInvitedWhenAvailableThenArmyAdvancesWhenAssembled()
+        {
+            BeginAndMobilize(InvasionCapitalObjectiveKind.Defence, 0d, "siege-a");
+            _world.Candidates.Add(new CapitalArmyPartyCandidate("reinforcement", 200f,
+                false, false, false, "in_battle"));
+            _world.Observation = Observation(1d, ownsCapital: true, capitalBesieged: true,
+                commanderEligible: true, defence: new CapitalDefenceForces(10f, 0f, 100f),
+                siegeEpisodeId: "siege-a");
+            _coordinator.UpdateHourly(_invasion);
+            Assert.That(_world.LastInvitations, Is.Empty);
+
+            _world.Candidates.RemoveAt(_world.Candidates.Count - 1);
+            _world.Candidates.Add(new CapitalArmyPartyCandidate("reinforcement", 200f,
+                true, false, false));
+            _coordinator.UpdateHourly(_invasion);
+            Assert.That(_world.LastInvitations, Is.EqualTo(new[] { "reinforcement" }));
+            Assert.That(_world.AdvancedCommander, Is.Null);
+
+            _world.Observation = Observation(2d, ownsCapital: true, capitalBesieged: true,
+                commanderEligible: true, defence: new CapitalDefenceForces(120f, 0f, 100f),
+                siegeEpisodeId: "siege-a");
+            CapitalObjectiveUpdate update = _coordinator.UpdateHourly(_invasion);
+
+            Assert.That(update.Decision, Is.EqualTo(CapitalObjectiveDecision.Advance));
+            Assert.That(update.TargetSettlementId, Is.EqualTo("capital"));
+            Assert.That(_world.AdvancedCommander, Is.EqualTo("commander"));
+            Assert.That(_world.MobilizationCalls, Is.Zero);
+        }
+
+        [Test]
+        public void FailedInvitationIsNotPersistedAndIsRetried()
+        {
+            BeginAndMobilize(InvasionCapitalObjectiveKind.Defence, 0d, "siege-a");
+            _world.Candidates.Add(new CapitalArmyPartyCandidate("reinforcement", 200f,
+                true, false, false));
+            _world.InvitationResult = new string[0];
+            _world.Observation = Observation(1d, ownsCapital: true, capitalBesieged: true,
+                commanderEligible: true, defence: new CapitalDefenceForces(10f, 0f, 100f),
+                siegeEpisodeId: "siege-a");
+
+            _coordinator.UpdateHourly(_invasion);
+            Assert.That(_invasion.CapitalObjective!.MobilizedPartyIds,
+                Does.Not.Contain("reinforcement"));
+
+            _world.InvitationResult = null;
+            _coordinator.UpdateHourly(_invasion);
+
+            Assert.That(_world.LastInvitations, Is.EqualTo(new[] { "reinforcement" }));
+            Assert.That(_invasion.CapitalObjective.MobilizedPartyIds,
+                Does.Contain("reinforcement"));
         }
 
         [Test]
@@ -146,6 +234,7 @@ namespace CustomSpawns.Tests.Invasions.CapitalObjectives
             Assert.That(_invasion.CapitalObjective!.Phase,
                 Is.EqualTo(InvasionCapitalObjectivePhase.Gathering));
             Assert.That(_world.AdvancedCommander, Is.Null);
+            Assert.That(_world.LastInvitations, Is.Null);
         }
 
         [Test]
@@ -431,6 +520,8 @@ namespace CustomSpawns.Tests.Invasions.CapitalObjectives
             public string? RelocatedSettlementId;
             public int TargetFactQueries;
             public int MobilizationCalls;
+            public IReadOnlyList<string>? LastInvitations;
+            public IReadOnlyList<string>? InvitationResult;
 
             public CapitalObjectiveObservation Observe(string invasionId,
                 string designatedCapitalSettlementId, string? targetSettlementId,
@@ -453,6 +544,15 @@ namespace CustomSpawns.Tests.Invasions.CapitalObjectives
                 MobilizationCalls++;
                 LastPlan = plan;
                 return MobilizationResult;
+            }
+
+            public IReadOnlyList<string> InviteToArmy(string invasionId, string commanderPartyId,
+                IReadOnlyList<string> partyIds)
+            {
+                Assert.That(invasionId, Is.EqualTo("clan"));
+                Assert.That(commanderPartyId, Is.EqualTo("commander"));
+                LastInvitations = partyIds;
+                return InvitationResult ?? partyIds;
             }
 
             public void BeginAdvance(string commanderPartyId)

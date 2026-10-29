@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CustomSpawns.Invasions.CapitalObjectives;
+using Helpers;
+using NLog;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Party;
@@ -73,10 +75,23 @@ namespace CustomSpawns.Invasions.Adapters
                 return Failure("commander_cannot_create_army", deferred);
             }
 
+            Settlement? defenceStaging = null;
             try
             {
-                if (!kingdom.Settlements.Any(settlement => _capitalArmyStagingRules.IsEligible(
-                        StagingCandidate(settlement, commander, kingdom, target))))
+                if (plan.ObjectiveKind == InvasionCapitalObjectiveKind.Defence)
+                {
+                    CapitalArmyStagingCandidate? selected = _capitalArmyStagingRules.FindDefenceStaging(
+                        Settlement.All.Where(settlement => settlement.IsFortification ||
+                                settlement.Village?.Bound?.IsCastle == true)
+                            .Select(settlement => StagingCandidate(settlement, commander, kingdom, target)));
+                    defenceStaging = selected.HasValue ? Settlement.Find(selected.Value.SettlementId) : null;
+                }
+
+                bool hasStaging = plan.ObjectiveKind == InvasionCapitalObjectiveKind.Defence
+                    ? defenceStaging != null
+                    : kingdom.Settlements.Any(settlement => _capitalArmyStagingRules.IsEligible(
+                        StagingCandidate(settlement, commander, kingdom, target)));
+                if (!hasStaging)
                 {
                     return Failure("native_gathering_settlement_unavailable", deferred);
                 }
@@ -143,7 +158,23 @@ namespace CustomSpawns.Invasions.Adapters
 
             try
             {
+                if (plan.ObjectiveKind == InvasionCapitalObjectiveKind.Defence)
+                {
+                    foreach (MobileParty party in revalidated)
+                    {
+                        party.BesiegerCamp = null;
+                        party.Ai.SetDoNotMakeNewDecisions(false);
+                    }
+                }
+
                 kingdom.CreateArmy(commander.LeaderHero, target, armyType, members);
+
+                Army? defenceArmy = commander.Army;
+                if (defenceStaging != null && defenceArmy?.LeaderParty == commander)
+                {
+                    // Native gathering prefers owned fortresses; defence uses the selected rally anchor.
+                    MoveToStaging(defenceArmy, defenceStaging);
+                }
             }
             catch (System.Exception)
             {
@@ -157,8 +188,11 @@ namespace CustomSpawns.Invasions.Adapters
                 ? "native_army_leader_mismatch"
                 : staging == null
                     ? "native_gathering_settlement_missing"
-                    : !_capitalArmyStagingRules.IsEligible(
-                        StagingCandidate(staging, commander, kingdom, target))
+                    : !(plan.ObjectiveKind == InvasionCapitalObjectiveKind.Defence
+                        ? _capitalArmyStagingRules.IsEligibleForDefence(
+                            StagingCandidate(staging, commander, kingdom, target))
+                        : _capitalArmyStagingRules.IsEligible(
+                            StagingCandidate(staging, commander, kingdom, target)))
                         ? "native_gathering_settlement_invalid"
                         : null;
             if (invalidArmyReason != null)
@@ -184,12 +218,100 @@ namespace CustomSpawns.Invasions.Adapters
                 staging!.StringId, UniqueDeferrals(deferred));
         }
 
+        public IReadOnlyList<string> Invite(Invasion invasion, Kingdom kingdom,
+            string commanderPartyId, IReadOnlyList<string> partyIds)
+        {
+            MobileParty? commander = MobileParty.All.FirstOrDefault(party =>
+                string.Equals(party.StringId, commanderPartyId, StringComparison.Ordinal));
+            Army? army = commander?.Army;
+            if (commander == null || army?.LeaderParty != commander ||
+                FindDeferralReason(commander, invasion, kingdom) != null)
+            {
+                return Array.Empty<string>();
+            }
+
+            // Restore gathering immediately on load, before native army inactivity is checked.
+            if (invasion.CapitalObjective?.StagingSettlementId is string stagingId &&
+                Settlement.Find(stagingId) is Settlement staging)
+            {
+                commander.BesiegerCamp = null;
+                if (commander.DefaultBehavior != AiBehavior.GoToPoint || army.AiBehaviorObject != staging)
+                {
+                    MoveToStaging(army, staging);
+                }
+            }
+
+            MobileParty[] reinforcements = MobileParty.All.Where(party =>
+                    partyIds.Contains(party.StringId) &&
+                    FindDeferralReason(party, invasion, kingdom) == null)
+                .ToArray();
+            Army[] previousArmies = reinforcements.Select(party => party.Army)
+                .Where(previous => previous != null && previous != army)
+                .Cast<Army>()
+                .Distinct()
+                .ToArray();
+            var invited = new List<string>();
+            try
+            {
+                foreach (Army previous in previousArmies)
+                {
+                    DisbandArmyAction.ApplyByObjectiveFinished(previous);
+                }
+
+                foreach (MobileParty party in reinforcements)
+                {
+                    if (commander.Army != army ||
+                        party.Army != null && party.Army != army ||
+                        FindDeferralReason(party, invasion, kingdom) != null)
+                    {
+                        continue;
+                    }
+
+                    party.BesiegerCamp = null;
+                    party.Ai.SetDoNotMakeNewDecisions(false);
+                    party.Army = army;
+                    if (party.Army == army)
+                    {
+                        invited.Add(party.StringId);
+                    }
+                }
+            }
+            catch (System.Exception exception)
+            {
+                LogManager.GetCurrentClassLogger().Warn(exception,
+                    "Invasion capital reinforcements interrupted: commander=" + commanderPartyId);
+            }
+
+            return invited;
+        }
+
+        private static void MoveToStaging(Army army, Settlement staging)
+        {
+            MobileParty commander = army.LeaderParty;
+            army.AiBehaviorObject = staging;
+            commander.SetMoveGoToPoint(NavigationHelper.FindReachablePointAroundPosition(
+                staging.GatePosition, commander.NavigationCapability,
+                army.GatheringPositionMaxDistanceToTheSettlement,
+                army.GatheringPositionMinDistanceToTheSettlement), commander.NavigationCapability);
+        }
+
         public bool IsUnified(InvasionCapitalObjective? objective, MobileParty? commander)
         {
             Army? army = commander?.Army;
             if (objective == null || army?.LeaderParty != commander)
             {
                 return false;
+            }
+
+            if (objective.Kind == InvasionCapitalObjectiveKind.Defence &&
+                objective.Phase == InvasionCapitalObjectivePhase.Gathering)
+            {
+                Settlement? staging = Settlement.Find(objective.StagingSettlementId);
+                if (staging == null || !staging.IsActive || staging.IsUnderSiege ||
+                    staging.IsUnderRaid || staging.Party.MapEvent != null)
+                {
+                    return false;
+                }
             }
 
             foreach (string partyId in objective.MobilizedPartyIds)
@@ -372,10 +494,11 @@ namespace CustomSpawns.Invasions.Adapters
 
             return new CapitalArmyStagingCandidate(settlement.StringId, settlement.IsActive,
                 settlement.IsFortification, settlement.MapFaction == kingdom,
-                settlement.IsUnderSiege, settlement.Party.MapEvent != null,
+                settlement.IsUnderSiege || settlement.IsUnderRaid, settlement.Party.MapEvent != null,
                 settlement == target, distanceFromCommander < Campaign.MapDiagonalSquared,
                 distanceFromTarget < Campaign.MapDiagonalSquared,
-                distanceFromTarget > minimumDistanceFromTarget);
+                distanceFromTarget > minimumDistanceFromTarget,
+                settlement.Village?.Bound?.IsCastle == true, distanceFromTarget);
         }
 
         private static CapitalArmyMobilizationResult FailureAfterMutation(string reason,

@@ -401,7 +401,7 @@ namespace CustomSpawns.Invasions.Adapters
             {
                 InvasionCapitalObjective? objective = invasion.CapitalObjective;
                 Kingdom? kingdom = Clan.FindFirst(clan => clan.StringId == invasion.ClanId)?.Kingdom;
-                if (kingdom?.StringId != kingdomId || objective?.CommanderPartyId == null ||
+                if (invasion.IsSuspended || kingdom?.StringId != kingdomId || objective?.CommanderPartyId == null ||
                     objective.TargetSettlementId == null)
                 {
                     continue;
@@ -409,7 +409,8 @@ namespace CustomSpawns.Invasions.Adapters
 
                 return new InvasionCapitalObjectiveDirective(kingdomId,
                     objective.CommanderPartyId, objective.TargetSettlementId,
-                    objective.Kind, objective.Phase, objective.MobilizedPartyIds);
+                    objective.Kind, objective.Phase, objective.MobilizedPartyIds,
+                    objective.StagingSettlementId);
             }
 
             return null;
@@ -573,6 +574,8 @@ namespace CustomSpawns.Invasions.Adapters
 
             return "success=" + result.Succeeded +
                    "/failure=" + result.FailureReason +
+                   "/staging=" + result.StagingSettlementId +
+                   "/parties=[" + string.Join(";", result.PartyIds) + "]" +
                    "/deferred=[" + string.Join(";", result.DeferredParties.Select(item =>
                        item.PartyId + ":" + item.Reason)) + "]";
         }

@@ -175,7 +175,8 @@ namespace CustomSpawns.Invasions.CapitalObjectives
         public CapitalArmyStagingCandidate(string settlementId, bool isActive,
             bool isFortification, bool isOwnedByKingdom, bool isBesieged,
             bool hasMapEvent, bool isTarget, bool isReachableFromCommander,
-            bool isReachableFromTarget, bool isFarEnoughFromTarget)
+            bool isReachableFromTarget, bool isFarEnoughFromTarget,
+            bool isCastleVillage, float distanceFromTarget)
         {
             SettlementId = string.IsNullOrWhiteSpace(settlementId)
                 ? throw new ArgumentException("A settlement id is required.", nameof(settlementId))
@@ -189,6 +190,8 @@ namespace CustomSpawns.Invasions.CapitalObjectives
             IsReachableFromCommander = isReachableFromCommander;
             IsReachableFromTarget = isReachableFromTarget;
             IsFarEnoughFromTarget = isFarEnoughFromTarget;
+            IsCastleVillage = isCastleVillage;
+            DistanceFromTarget = distanceFromTarget;
         }
 
         public string SettlementId { get; }
@@ -201,6 +204,8 @@ namespace CustomSpawns.Invasions.CapitalObjectives
         public bool IsReachableFromCommander { get; }
         public bool IsReachableFromTarget { get; }
         public bool IsFarEnoughFromTarget { get; }
+        public bool IsCastleVillage { get; }
+        public float DistanceFromTarget { get; }
     }
 
     public sealed class CapitalArmyStagingRules
@@ -210,6 +215,20 @@ namespace CustomSpawns.Invasions.CapitalObjectives
             !candidate.IsBesieged && !candidate.HasMapEvent && !candidate.IsTarget &&
             candidate.IsReachableFromCommander && candidate.IsReachableFromTarget &&
             candidate.IsFarEnoughFromTarget;
+
+        public bool IsEligibleForDefence(CapitalArmyStagingCandidate candidate) =>
+            candidate.IsActive && (candidate.IsCastleVillage || candidate.IsFortification) &&
+            !candidate.IsBesieged && !candidate.HasMapEvent && !candidate.IsTarget &&
+            candidate.IsReachableFromCommander && candidate.IsReachableFromTarget;
+
+        public CapitalArmyStagingCandidate? FindDefenceStaging(
+            IEnumerable<CapitalArmyStagingCandidate> candidates) => candidates
+            .Where(IsEligibleForDefence)
+            .OrderByDescending(candidate => candidate.IsCastleVillage)
+            .ThenBy(candidate => candidate.DistanceFromTarget)
+            .ThenBy(candidate => candidate.SettlementId, StringComparer.Ordinal)
+            .Cast<CapitalArmyStagingCandidate?>()
+            .FirstOrDefault();
     }
 
     public sealed class CapitalArmyMobilizationPlanner

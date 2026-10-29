@@ -14,6 +14,8 @@ namespace CustomSpawns.Invasions.CapitalObjectives
             InvasionAssaultRequirements requirements, string? excludedSettlementId);
 
         CapitalArmyMobilizationResult MobilizeArmy(CapitalArmyMobilizationPlan plan);
+        IReadOnlyList<string> InviteToArmy(string invasionId, string commanderPartyId,
+            IReadOnlyList<string> partyIds);
         void BeginAdvance(string commanderPartyId);
         void RelocateCapitalAfterObjectiveCapture(string invasionId, string settlementId);
     }

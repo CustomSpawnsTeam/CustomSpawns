@@ -45,8 +45,19 @@ namespace CustomSpawns.Invasions.Adapters
                 return null;
             }
 
-            Settlement? target = Settlement.Find(directive.Value.TargetSettlementId);
-            if (target == null || !target.IsActive || !target.IsFortification)
+            bool gathering = directive.Value.Phase == InvasionCapitalObjectivePhase.Gathering;
+            string? settlementId = gathering
+                ? directive.Value.StagingSettlementId
+                : directive.Value.TargetSettlementId;
+            Settlement? target = settlementId == null ? null : Settlement.Find(settlementId);
+            if (target == null || !target.IsActive ||
+                (gathering ? target.IsUnderSiege || target.IsUnderRaid || target.Party.MapEvent != null
+                    : !target.IsFortification))
+            {
+                return null;
+            }
+
+            if (gathering && party.Army?.LeaderParty != party)
             {
                 return null;
             }
@@ -59,8 +70,26 @@ namespace CustomSpawns.Invasions.Adapters
                 return null;
             }
 
+            intent.Value.PrepareMovement(party.ThinkParamsCache,
+                () => MoveToStaging(party, target, navigation));
+
             return new AIBehaviorData(target, intent.Value.Behavior, navigation,
                 false, isFromPort, isTargetingPort);
+        }
+
+        private static void MoveToStaging(MobileParty party, Settlement staging,
+            MobileParty.NavigationType navigation)
+        {
+            Army army = party.Army;
+            if (party.DefaultBehavior == AiBehavior.GoToPoint && army.AiBehaviorObject == staging)
+            {
+                return;
+            }
+
+            army.AiBehaviorObject = staging;
+            party.SetMoveGoToPoint(NavigationHelper.FindReachablePointAroundPosition(
+                staging.GatePosition, navigation, army.GatheringPositionMaxDistanceToTheSettlement,
+                army.GatheringPositionMinDistanceToTheSettlement), navigation);
         }
 
         protected virtual bool IsTargetingPort(MobileParty party, Settlement target) => false;

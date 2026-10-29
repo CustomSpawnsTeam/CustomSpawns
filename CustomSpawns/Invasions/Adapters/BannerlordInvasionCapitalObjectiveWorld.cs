@@ -166,6 +166,19 @@ namespace CustomSpawns.Invasions.Adapters
             return _capitalObjectiveArmy.Mobilize(plan, invasion, kingdom, target);
         }
 
+        public IReadOnlyList<string> InviteToArmy(string invasionId, string commanderPartyId,
+            IReadOnlyList<string> partyIds)
+        {
+            Invasion? invasion = _state.FindInvasion(invasionId);
+            Kingdom? kingdom = FindKingdom(invasion);
+            if (invasion == null || kingdom == null)
+            {
+                return Array.Empty<string>();
+            }
+
+            return _capitalObjectiveArmy.Invite(invasion, kingdom, commanderPartyId, partyIds);
+        }
+
         public void BeginAdvance(string commanderPartyId)
         {
             _capitalObjectiveArmy.ReleaseUnattachedInvitations(commanderPartyId);

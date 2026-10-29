@@ -36,6 +36,39 @@ namespace CustomSpawns.Tests.Invasions.CapitalObjectives
         }
 
         [Test]
+        public void ReinforcementsSurviveSaveReconstructionWithoutRestartingGathering()
+        {
+            var objective = new InvasionCapitalObjective(InvasionCapitalObjectiveKind.Defence,
+                "capital", 10d);
+            objective.MarkMobilized(Success("leader", "staging", "leader"), 10d);
+            objective.IncludeMobilizedParties(new[] { "reinforcement", "reinforcement" });
+
+            var restored = new InvasionCapitalObjective(objective.Kind, objective.Phase,
+                objective.TargetSettlementId, objective.GatherDeadlineDays,
+                objective.AttackDeadlineDays, objective.DormantReason, objective.CommanderPartyId,
+                objective.DefenceSiegeEpisodeId, objective.StagingSettlementId,
+                objective.MobilizedPartyIds);
+
+            Assert.That(restored.MobilizedPartyIds,
+                Is.EqualTo(new[] { "leader", "reinforcement" }));
+            Assert.That(restored.GatherDeadlineDays, Is.EqualTo(13d));
+            Assert.That(restored.StagingSettlementId, Is.EqualTo("staging"));
+        }
+
+        [Test]
+        public void AdvancingObjectiveCannotResumeInvitingReinforcements()
+        {
+            var objective = new InvasionCapitalObjective(InvasionCapitalObjectiveKind.Defence,
+                "capital", 10d);
+            objective.MarkMobilized(Success("leader", "staging", "leader"), 10d);
+            objective.MarkReady();
+
+            Assert.Throws<InvalidOperationException>(() =>
+                objective.IncludeMobilizedParties(new[] { "reinforcement" }));
+            Assert.That(objective.MobilizedPartyIds, Is.EqualTo(new[] { "leader" }));
+        }
+
+        [Test]
         public void AttackDeadlineStartsWithTheObjectiveAndSurvivesMobilization()
         {
             var objective = new InvasionCapitalObjective(InvasionCapitalObjectiveKind.Attack,

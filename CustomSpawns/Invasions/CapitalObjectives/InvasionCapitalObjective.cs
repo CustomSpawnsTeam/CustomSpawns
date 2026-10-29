@@ -111,6 +111,13 @@ namespace CustomSpawns.Invasions.CapitalObjectives
             Validate();
         }
 
+        public void IncludeMobilizedParties(IReadOnlyList<string> partyIds)
+        {
+            RequirePhase(InvasionCapitalObjectivePhase.Gathering);
+            MobilizedPartyIds = NormalizePartyIds(MobilizedPartyIds.Concat(partyIds).ToArray());
+            Validate();
+        }
+
         public void RequireRemobilization()
         {
             if (Phase != InvasionCapitalObjectivePhase.Gathering &&

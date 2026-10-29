@@ -92,14 +92,16 @@ namespace CustomSpawns.Invasions.CapitalObjectives
                 return TimeOutAttack(invasion);
             }
 
+            CapitalArmyMobilizationResult? mobilizationResult = null;
             if (objective.Phase == InvasionCapitalObjectivePhase.Mobilizing)
             {
-                CapitalObjectiveUpdate? mobilization = TryMobilize(invasion, objective,
+                mobilizationResult = TryMobilize(invasion, objective,
                     observation.NowDays);
 
-                if (mobilization != null)
+                if (!mobilizationResult.Succeeded)
                 {
-                    return mobilization.Value;
+                    return new CapitalObjectiveUpdate(CapitalObjectiveDecision.MobilizationFailed,
+                        objective.TargetSettlementId, mobilizationResult: mobilizationResult);
                 }
 
                 observation = _invasionCapitalObjectiveWorld.Observe(invasion.ClanId,
@@ -111,7 +113,9 @@ namespace CustomSpawns.Invasions.CapitalObjectives
 
             if (gathering != null)
             {
-                return gathering.Value;
+                return new CapitalObjectiveUpdate(gathering.Value.Decision,
+                    gathering.Value.TargetSettlementId, gathering.Value.Evaluation,
+                    gathering.Value.MobilizationResult ?? mobilizationResult);
             }
 
             objective = invasion.CapitalObjective;
@@ -134,7 +138,8 @@ namespace CustomSpawns.Invasions.CapitalObjectives
                 return TimeOutAttack(invasion);
             }
 
-            return new CapitalObjectiveUpdate(ownershipDecision, objective?.TargetSettlementId);
+            return new CapitalObjectiveUpdate(ownershipDecision, objective?.TargetSettlementId,
+                mobilizationResult: mobilizationResult);
         }
 
         public CapitalObjectiveUpdate UpdateDaily(Invasion invasion)
@@ -238,7 +243,7 @@ namespace CustomSpawns.Invasions.CapitalObjectives
             return CapitalObjectiveDecision.None;
         }
 
-        private CapitalObjectiveUpdate? TryMobilize(Invasion invasion,
+        private CapitalArmyMobilizationResult TryMobilize(Invasion invasion,
             InvasionCapitalObjective objective, double nowDays)
         {
             IReadOnlyList<CapitalArmyPartyCandidate> candidates =
@@ -248,13 +253,11 @@ namespace CustomSpawns.Invasions.CapitalObjectives
 
             if (plan == null)
             {
-                var failedResult = new CapitalArmyMobilizationResult(false, null, null, null,
+                return new CapitalArmyMobilizationResult(false, null, null, null,
                     candidates.Where(candidate => !candidate.IsMobilizable)
                         .Select(candidate => new CapitalArmyPartyDeferral(candidate.PartyId,
                             candidate.DeferredReason!))
                         .ToArray(), "no_mobilizable_commander");
-                return new CapitalObjectiveUpdate(CapitalObjectiveDecision.MobilizationFailed,
-                    objective.TargetSettlementId, mobilizationResult: failedResult);
             }
 
             CapitalArmyMobilizationResult result =
@@ -262,12 +265,11 @@ namespace CustomSpawns.Invasions.CapitalObjectives
 
             if (!result.Succeeded)
             {
-                return new CapitalObjectiveUpdate(CapitalObjectiveDecision.MobilizationFailed,
-                    objective.TargetSettlementId, mobilizationResult: result);
+                return result;
             }
 
             objective.MarkMobilized(result, nowDays);
-            return null;
+            return result;
         }
 
         private CapitalObjectiveUpdate? EvaluateGathering(Invasion invasion,
@@ -295,12 +297,34 @@ namespace CustomSpawns.Invasions.CapitalObjectives
                     objective.TargetSettlementId);
             }
 
-            if (!objective.IsGatherDeadlineReached(observation.NowDays))
+            if (objective.Kind == InvasionCapitalObjectiveKind.Defence)
             {
+                IReadOnlyList<CapitalArmyPartyCandidate> candidates =
+                    _invasionCapitalObjectiveWorld.FindMobilizationCandidates(invasion.ClanId);
+                string[] reinforcements = candidates
+                    .Where(candidate => candidate.IsMobilizable &&
+                                        !objective.MobilizedPartyIds.Contains(candidate.PartyId))
+                    .Select(candidate => candidate.PartyId)
+                    .Distinct()
+                    .ToArray();
+                IReadOnlyList<string> invited = _invasionCapitalObjectiveWorld.InviteToArmy(
+                    invasion.ClanId, objective.CommanderPartyId!, reinforcements);
+                if (invited.Count > 0)
+                {
+                    objective.IncludeMobilizedParties(invited);
+                    return new CapitalObjectiveUpdate(CapitalObjectiveDecision.Gather,
+                        objective.TargetSettlementId, mobilizationResult:
+                        new CapitalArmyMobilizationResult(true, objective.CommanderPartyId,
+                            objective.MobilizedPartyIds, objective.StagingSettlementId,
+                            candidates.Where(candidate => !candidate.IsMobilizable)
+                                .Select(candidate => new CapitalArmyPartyDeferral(candidate.PartyId,
+                                    candidate.DeferredReason!)).ToArray()));
+                }
+
                 return null;
             }
 
-            if (objective.Kind == InvasionCapitalObjectiveKind.Defence)
+            if (!objective.IsGatherDeadlineReached(observation.NowDays))
             {
                 return null;
             }
