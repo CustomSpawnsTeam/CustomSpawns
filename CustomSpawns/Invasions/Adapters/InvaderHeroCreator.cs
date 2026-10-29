@@ -29,17 +29,20 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionClans = invasionClans;
         }
 
-        public static bool HasPartySlot(string clanId)
-        {
-            Clan? clan = Clan.FindFirst(candidate => candidate.StringId == clanId);
-
-            return clan?.IsEliminated == false && clan.WarPartyComponents.Count < clan.WarPartyLimit;
-        }
-
         // The first clan of the invasion that can still take a war party, or a new one founded to take it.
         public Clan? FindClanWithRoom(Invasion invasion, Settlement home)
         {
-            string? clanId = invasion.ClanIds.FirstOrDefault(HasPartySlot);
+            string? clanId = invasion.FindClanWithRoom(id =>
+            {
+                Clan? clan = Clan.FindFirst(candidate => candidate.StringId == id);
+
+                if (clan == null)
+                {
+                    return null;
+                }
+
+                return (clan.IsEliminated, () => (clan.WarPartyComponents.Count, clan.WarPartyLimit));
+            });
 
             return clanId == null
                 ? FoundClan(invasion, home)
@@ -50,9 +53,11 @@ namespace CustomSpawns.Invasions.Adapters
          * A lord of this clan, ready to be fielded. Founding a clan has already created a leader who has
          * no party yet; he is the lord, rather than a second hero standing beside him.
          */
-        public Hero? CreateLord(Clan? clan, Settlement home)
+        public Hero? CreateLord(Invasion invasion, Clan? clan, Settlement home)
         {
-            if (clan?.Leader is { IsAlive: true, PartyBelongedTo: null } leader)
+            Hero? leader = clan?.Leader;
+
+            if (invasion.CanReuseLeader(leader?.IsAlive == true, leader?.PartyBelongedTo != null))
             {
                 return leader;
             }

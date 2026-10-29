@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+using System;
 using System.Linq;
 using Helpers;
 using TaleWorlds.CampaignSystem;
@@ -15,19 +15,13 @@ namespace CustomSpawns.Invasions.Adapters
             _invaderHeroCreator = invaderHeroCreator;
         }
 
-        // The kingdom's towns when the invasion has one, its own clans' towns until then.
-        public int CountTownsHeld(Invasion invasion)
-        {
-            List<Clan> clans = Clans(invasion);
-            Kingdom? kingdom = clans.Select(clan => clan.Kingdom).FirstOrDefault(candidate => candidate != null);
+        public int CountTownsHeld(Invasion invasion) => invasion.CountTownsHeld(Clan.All.Select(clan =>
+            (clan.StringId,
+                (Func<int?>)(() => clan.Kingdom?.Fiefs.Count(fief => fief.IsTown)),
+                (Func<int>)(() => clan.Fiefs.Count(fief => fief.IsTown)))));
 
-            return kingdom == null
-                ? clans.Sum(clan => clan.Fiefs.Count(fief => fief.IsTown))
-                : kingdom.Fiefs.Count(fief => fief.IsTown);
-        }
-
-        public int CountLivingLords(Invasion invasion) => Clans(invasion)
-            .Sum(clan => clan.Heroes.Count(hero => hero.IsAlive && !hero.IsChild && hero.IsLord));
+        public int CountLivingLords(Invasion invasion) => invasion.CountLivingLords(Clan.All.Select(clan =>
+            (clan.StringId, clan.Heroes.Select(hero => (hero.IsAlive, hero.IsChild, hero.IsLord)))));
 
         // His men come from the garrison draw that vanilla's own party creation triggers.
         public bool Field(Invasion invasion, string capitalId)
@@ -35,7 +29,8 @@ namespace CustomSpawns.Invasions.Adapters
             Settlement? capital = Settlement.Find(capitalId);
             Hero? lord = capital == null
                 ? null
-                : _invaderHeroCreator.CreateLord(_invaderHeroCreator.FindClanWithRoom(invasion, capital), capital);
+                : _invaderHeroCreator.CreateLord(invasion,
+                    _invaderHeroCreator.FindClanWithRoom(invasion, capital), capital);
 
             if (lord == null)
             {
@@ -45,8 +40,5 @@ namespace CustomSpawns.Invasions.Adapters
             MobilePartyHelper.SpawnLordParty(lord, capital);
             return true;
         }
-
-        private static List<Clan> Clans(Invasion invasion) =>
-            Clan.All.Where(clan => invasion.HoldsClan(clan.StringId)).ToList();
     }
 }

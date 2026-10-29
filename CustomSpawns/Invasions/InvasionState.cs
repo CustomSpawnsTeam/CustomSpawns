@@ -374,6 +374,48 @@ namespace CustomSpawns.Invasions
             !founder.IsEliminated && founder.HasLeader &&
             (founder.KingdomId == null || founder.KingdomId == kingdomId);
 
+        public string? FindClanWithRoom(
+            Func<string, (bool IsEliminated, Func<(int WarParties, int WarPartyLimit)> PartyCapacity)?> findClan)
+        {
+            foreach (string clanId in ClanIds)
+            {
+                var clan = findClan(clanId);
+
+                if (!clan.HasValue || clan.Value.IsEliminated)
+                {
+                    continue;
+                }
+
+                var capacity = clan.Value.PartyCapacity();
+
+                if (capacity.WarParties < capacity.WarPartyLimit)
+                {
+                    return clanId;
+                }
+            }
+
+            return null;
+        }
+
+        // A newly founded clan already has a leader; do not create a second lord beside him.
+        public bool CanReuseLeader(bool isAlive, bool hasParty) => isAlive && !hasParty;
+
+        public int CountTownsHeld(
+            IEnumerable<(string ClanId, Func<int?> KingdomTowns, Func<int> ClanTowns)> clans)
+        {
+            var invasionClans = clans.Where(clan => HoldsClan(clan.ClanId)).ToList();
+            int? kingdomTowns = invasionClans.Select(clan => clan.KingdomTowns())
+                .FirstOrDefault(towns => towns.HasValue);
+
+            // The kingdom's towns raise the ceiling even when held by clans outside this invasion.
+            return kingdomTowns ?? invasionClans.Sum(clan => clan.ClanTowns());
+        }
+
+        public int CountLivingLords(
+            IEnumerable<(string ClanId, IEnumerable<(bool IsAlive, bool IsChild, bool IsLord)> Heroes)> clans) =>
+            clans.Where(clan => HoldsClan(clan.ClanId))
+                .Sum(clan => clan.Heroes.Count(hero => hero.IsAlive && !hero.IsChild && hero.IsLord));
+
         // The spawner's non-adopted forces must not block waves; native and adopted parties count.
         public double MeasureReinforcementStrength(
             IEnumerable<(string ClanId, IEnumerable<(bool? IsAdopted, Func<float> Strength)> WarParties,
