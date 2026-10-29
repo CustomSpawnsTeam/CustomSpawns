@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
@@ -11,30 +10,20 @@ namespace CustomSpawns.Invasions.Adapters
      * player beat returned a day later at full strength. Removing it at the moment of defeat stops that
      * at its source instead of cleaning up after it.
      */
-    public static class InvasionLordRemoval
+    public sealed class InvasionLordRemoval
     {
-        /**
-         * The lord of a party the ledger is about to forget, or nothing if that party was fighting no
-         * live invasion. The two statements are in this order and not the other one: forgetting the
-         * party can spend its invasion or reconcile it away, and the question would then have no answer
-         * left to give. Forgetting is passed in so the order is stated once, here, rather than left to
-         * whichever caller happens to hold the ledger. It takes rather than finds: the forgetting is the
-         * point of the call, and answering is what it does on the way.
-         */
-        public static Hero? TakeLordOfRemovedInvasionParty(InvasionState invasionState, string? clanId,
-            string partyId, Hero? leader, Action forgetParty)
+        private readonly InvasionState _invasionState;
+        private readonly InvaderHeroCreator _invaderHeroCreator;
+
+        public InvasionLordRemoval(InvasionState invasionState, InvaderHeroCreator invaderHeroCreator)
         {
-            bool wasFightingAnInvasion = leader != null &&
-                invasionState.FindFightingInvasion(clanId)?.MemberPartyIds.Contains(partyId) == true;
-
-            forgetParty();
-
-            return wasFightingAnInvasion ? leader : null;
+            _invasionState = invasionState;
+            _invaderHeroCreator = invaderHeroCreator;
         }
 
-        public static void RemoveDefeated(InvasionState invasionState, Hero hero, bool lostItsInvasionParty)
+        public void RemoveDefeated(Hero hero, bool lostItsInvasionParty)
         {
-            if (!IsRemovableInvasionLord(invasionState, hero.Clan?.StringId,
+            if (!_invasionState.IsRemovableInvasionLord(hero.Clan?.StringId,
                     isMainHero: hero == Hero.MainHero,
                     belongsToPlayerClan: hero.Clan == Clan.PlayerClan,
                     isChild: hero.IsChild,
@@ -51,11 +40,10 @@ namespace CustomSpawns.Invasions.Adapters
              * clan. A clan always keeps a leader, so one is made before the last is removed, and vanilla's
              * own succession hands it the clan.
              */
-            if (hero.Clan is { } clan && NeedsSuccessor(isClanLeader: clan.Leader == hero,
-                    hasAnotherLivingAdultLord: clan.Heroes.Any(other =>
-                        other != hero && !other.IsChild && other.IsAlive && other.IsLord)))
+            if (hero.Clan is { } clan && _invasionState.NeedsSuccessor(clan.Leader == hero,
+                    clan.Heroes.Select(other => (other == hero, other.IsChild, other.IsAlive, other.IsLord))))
             {
-                InvaderHeroCreator.CreateNewLord(clan, clan.HomeSettlement);
+                _invaderHeroCreator.CreateNewLord(clan, clan.HomeSettlement);
             }
 
             /*
@@ -67,28 +55,5 @@ namespace CustomSpawns.Invasions.Adapters
              */
             KillCharacterAction.ApplyByRemove(hero, showNotification: false, isForced: true);
         }
-
-        /**
-         * Only a hero of a clan that is still fighting a live invasion is ours to remove, and the player
-         * and its clan are never ours at all. An invasion may be configured to use an existing clan, and a
-         * retaken town takes prisoner every clan hero residing in it, so the clan's spouses, children and
-         * quest heroes reach us as readily as its lords do. The living adult lord test is vanilla's own,
-         * the one it uses to decide which clan hero can succeed a dead leader: an occupation alone does not
-         * settle it, because a lord's child carries the lord occupation from birth.
-         *
-         * A lord that has just lost its invasion party is asked about no further: flight destroys the
-         * party before it says the lord fled, and destroying the last party of a invasion spends it or
-         * deletes it outright, so by the time the answer is wanted the ledger no longer holds it. The
-         * answer taken while the party was still a member stands in for the one the ledger can no
-         * longer give, and it is the same answer: the invasion that party belonged to was fighting.
-         */
-        public static bool IsRemovableInvasionLord(InvasionState invasionState, string? clanId, bool isMainHero,
-            bool belongsToPlayerClan, bool isChild, bool isAlive, bool isLord, bool lostItsInvasionParty) =>
-            !isMainHero && !belongsToPlayerClan && !isChild && isAlive && isLord &&
-            (lostItsInvasionParty || invasionState.FindFightingInvasion(clanId) != null);
-
-        // Vanilla's own succession test: only a leader with no living adult lord beside it has no heir.
-        public static bool NeedsSuccessor(bool isClanLeader, bool hasAnotherLivingAdultLord) =>
-            isClanLeader && !hasAnotherLivingAdultLord;
     }
 }

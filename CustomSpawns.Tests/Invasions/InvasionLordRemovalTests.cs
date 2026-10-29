@@ -1,8 +1,6 @@
-using System.Runtime.Serialization;
+using System;
 using CustomSpawns.Invasions;
-using CustomSpawns.Invasions.Adapters;
 using NUnit.Framework;
-using TaleWorlds.CampaignSystem;
 
 namespace CustomSpawns.Tests.Invasions
 {
@@ -131,12 +129,10 @@ namespace CustomSpawns.Tests.Invasions
         [Test]
         public void TheLordIsAnsweredForBeforeTheLedgerForgetsItsParty()
         {
-            var lord = (Hero)FormatterServices.GetUninitializedObject(typeof(Hero));
+            string? answer = _state.TakeLordOfRemovedInvasionParty("clan", "lord-party",
+                "lord", () => _state.RemoveMember("lord-party"));
 
-            Hero? answer = InvasionLordRemoval.TakeLordOfRemovedInvasionParty(_state, "clan", "lord-party",
-                lord, () => _state.RemoveMember("lord-party"));
-
-            Assert.AreSame(lord, answer);
+            Assert.AreEqual("lord", answer);
             Assert.True(_state.IsInvasionSpent(_invasion));
         }
 
@@ -147,29 +143,88 @@ namespace CustomSpawns.Tests.Invasions
         [Test]
         public void TheLordOfAPartyOfNoLiveInvasionIsNotAnsweredForButItsPartyIsStillForgotten()
         {
-            var lord = (Hero)FormatterServices.GetUninitializedObject(typeof(Hero));
-
-            Assert.IsNull(InvasionLordRemoval.TakeLordOfRemovedInvasionParty(_state, "other-clan",
-                "lord-party", lord, () => _state.RemoveMember("lord-party")));
+            Assert.IsNull(_state.TakeLordOfRemovedInvasionParty("other-clan",
+                "lord-party", "lord", () => _state.RemoveMember("lord-party")));
             Assert.True(_state.IsInvasionSpent(_invasion));
+        }
+
+        [TestCase(null, "lord-party", "lord")]
+        [TestCase("clan", "unregistered-party", "lord")]
+        [TestCase("clan", "lord-party", null)]
+        public void RejectedPartiesStillInvokeForgettingExactlyOnce(string? clanId, string partyId, string? leaderId)
+        {
+            int forgotten = 0;
+
+            Assert.IsNull(_state.TakeLordOfRemovedInvasionParty(clanId, partyId, leaderId, () =>
+            {
+                forgotten++;
+                _state.RemoveMember(partyId);
+            }));
+
+            Assert.AreEqual(1, forgotten);
+            Assert.That(_invasion.MemberPartyIds, Does.Not.Contain(partyId));
+        }
+
+        [Test]
+        public void TheLordOfASuspendedInvasionIsNotKeptWhenItsPartyIsForgotten()
+        {
+            _invasion.IsSuspended = true;
+
+            Assert.IsNull(_state.TakeLordOfRemovedInvasionParty("clan", "lord-party", "lord",
+                () => _state.RemoveMember("lord-party")));
+            Assert.True(_state.IsInvasionSpent(_invasion));
+        }
+
+        [Test]
+        public void TheLordIsKeptEvenWhenForgettingReconcilesAwayItsInvasion()
+        {
+            string? answer = _state.TakeLordOfRemovedInvasionParty("clan", "lord-party", "lord", () =>
+            {
+                _state.RemoveMember("lord-party");
+                _state.Reconcile(Array.Empty<string>(), _ => null, _ => true, _ => false);
+            });
+
+            Assert.AreEqual("lord", answer);
+            Assert.IsNull(_state.FindInvasion("clan"));
+            Assert.True(IsRemovable(lostItsInvasionParty: true));
+            Assert.False(IsRemovable());
         }
 
         [Test]
         public void ALeaderWithNoOtherLordIsSucceededBeforeRemoval()
         {
-            Assert.True(InvasionLordRemoval.NeedsSuccessor(isClanLeader: true, hasAnotherLivingAdultLord: false));
+            Assert.True(_state.NeedsSuccessor(true, new[] { (true, false, true, true) }));
         }
 
         [Test]
         public void ALeaderWithAnotherLordLeavesSuccessionToVanilla()
         {
-            Assert.False(InvasionLordRemoval.NeedsSuccessor(isClanLeader: true, hasAnotherLivingAdultLord: true));
+            Assert.False(_state.NeedsSuccessor(true,
+                new[] { (true, false, true, true), (false, false, true, true) }));
         }
 
         [Test]
         public void ALordThatDoesNotLeadItsClanNeedsNoSuccessor()
         {
-            Assert.False(InvasionLordRemoval.NeedsSuccessor(isClanLeader: false, hasAnotherLivingAdultLord: false));
+            Assert.False(_state.NeedsSuccessor(false, Array.Empty<(bool, bool, bool, bool)>()));
+        }
+
+        [TestCase(true, false, true, true, true)]
+        [TestCase(false, true, true, true, true)]
+        [TestCase(false, false, false, true, true)]
+        [TestCase(false, false, true, false, true)]
+        [TestCase(false, false, true, true, false)]
+        public void OnlyAnotherLivingAdultLordPreventsASuccessor(bool isDeparting, bool isChild,
+            bool isAlive, bool isLord, bool needsSuccessor)
+        {
+            Assert.AreEqual(needsSuccessor,
+                _state.NeedsSuccessor(true, new[] { (isDeparting, isChild, isAlive, isLord) }));
+        }
+
+        [Test]
+        public void AClanLeaderWithNoHeroEntriesNeedsASuccessor()
+        {
+            Assert.True(_state.NeedsSuccessor(true, Array.Empty<(bool, bool, bool, bool)>()));
         }
 
         /**
@@ -178,7 +233,7 @@ namespace CustomSpawns.Tests.Invasions
          */
         private bool IsRemovable(string? clanId = "clan", bool isMainHero = false, bool belongsToPlayerClan = false,
             bool isChild = false, bool isAlive = true, bool isLord = true, bool lostItsInvasionParty = false) =>
-            InvasionLordRemoval.IsRemovableInvasionLord(_state, clanId,
+            _state.IsRemovableInvasionLord(clanId,
                 isMainHero: isMainHero,
                 belongsToPlayerClan: belongsToPlayerClan,
                 isChild: isChild,

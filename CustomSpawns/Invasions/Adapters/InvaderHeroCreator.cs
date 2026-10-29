@@ -61,7 +61,7 @@ namespace CustomSpawns.Invasions.Adapters
         }
 
         // A lord added to this clan, never one it already has.
-        public static Hero? CreateNewLord(Clan? clan, Settlement? home)
+        public Hero? CreateNewLord(Clan? clan, Settlement? home)
         {
             CharacterObject? lordTemplate = clan?.Culture?.LordTemplates
                 .FirstOrDefault(character => character.Occupation == Occupation.Lord);

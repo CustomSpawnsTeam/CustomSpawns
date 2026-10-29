@@ -44,6 +44,7 @@ namespace CustomSpawns.Invasions.Adapters
         private InvasionSieges _invasionSieges;
         private InvasionMembership _invasionMembership;
         private InvasionLordWarbands _invasionLordWarbands;
+        private InvasionLordRemoval _invasionLordRemoval;
         private InvasionFoodConvoys _invasionFoodConvoys;
         private IInvasionAssaultConfigurationProvider? _invasionAssaultConfigurationProvider;
         private BannerlordInvasionCapitalObjectiveWorld? _invasionCapitalObjectiveWorld;
@@ -75,6 +76,7 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionMembership = new InvasionMembership(State, _spawnDao, _dynamicSpawnData,
                 _invasionCaptureCorrelation);
             _invasionLordWarbands = NewLordWarbands();
+            _invasionLordRemoval = new InvasionLordRemoval(State, _invaderHeroes);
             _invasionFoodConvoys = new InvasionFoodConvoys(State, _spawnDao);
 
             // DynamicSpawnData registers its discovery callback first; scheduling/AI are composed later.
@@ -146,6 +148,7 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionMembership = new InvasionMembership(State, _spawnDao, _dynamicSpawnData,
                 _invasionCaptureCorrelation);
             _invasionLordWarbands = NewLordWarbands();
+            _invasionLordRemoval = new InvasionLordRemoval(State, _invaderHeroes);
             _invasionFoodConvoys = new InvasionFoodConvoys(State, _spawnDao);
             RebuildCapitalObjectiveCoordinator();
 
@@ -224,8 +227,9 @@ namespace CustomSpawns.Invasions.Adapters
         {
             _invasionResupply.Remove(party.StringId);
             Hero? leader = party.LeaderHero;
-            _lordOfRemovedInvasionParty = InvasionLordRemoval.TakeLordOfRemovedInvasionParty(State,
-                leader?.Clan?.StringId, party.StringId, leader, () => _invasionMembership.Remove(party));
+            string? removedLordId = State.TakeLordOfRemovedInvasionParty(leader?.Clan?.StringId,
+                party.StringId, leader?.StringId, () => _invasionMembership.Remove(party));
+            _lordOfRemovedInvasionParty = removedLordId == null ? null : leader;
         }
 
         /**
@@ -255,7 +259,7 @@ namespace CustomSpawns.Invasions.Adapters
             Initialize();
             bool lostItsInvasionParty = hero == _lordOfRemovedInvasionParty;
             _lordOfRemovedInvasionParty = null;
-            InvasionLordRemoval.RemoveDefeated(State, hero, lostItsInvasionParty);
+            _invasionLordRemoval.RemoveDefeated(hero, lostItsInvasionParty);
         }
 
         private void OnHourlyTick()

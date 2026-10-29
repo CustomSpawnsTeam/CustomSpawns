@@ -87,6 +87,29 @@ namespace CustomSpawns.Invasions
             return invasion != null && !invasion.IsSuspended && !IsInvasionSpent(invasion) ? invasion : null;
         }
 
+        // Decide before forgetting: removing the last party can spend or reconcile away its invasion.
+        public string? TakeLordOfRemovedInvasionParty(string? clanId, string partyId, string? leaderId,
+            Action forgetParty)
+        {
+            bool wasFightingAnInvasion = leaderId != null &&
+                FindFightingInvasion(clanId)?.MemberPartyIds.Contains(partyId) == true;
+
+            forgetParty();
+
+            return wasFightingAnInvasion ? leaderId : null;
+        }
+
+        // Party-loss evidence survives ledger cleanup but never bypasses the hero protection gates.
+        public bool IsRemovableInvasionLord(string? clanId, bool isMainHero, bool belongsToPlayerClan,
+            bool isChild, bool isAlive, bool isLord, bool lostItsInvasionParty) =>
+            !isMainHero && !belongsToPlayerClan && !isChild && isAlive && isLord &&
+            (lostItsInvasionParty || FindFightingInvasion(clanId) != null);
+
+        // Removing a clan's last living adult lord destroys its parties unless a successor is created first.
+        public bool NeedsSuccessor(bool isClanLeader,
+            IEnumerable<(bool IsDeparting, bool IsChild, bool IsAlive, bool IsLord)> heroes) =>
+            isClanLeader && !heroes.Any(hero => !hero.IsDeparting && !hero.IsChild && hero.IsAlive && hero.IsLord);
+
         // Only an unregistered lord party can be one the game rebuilt for an invasion.
         public string? FindAdoptingTemplate(string? clanId, bool alreadyRegistered, bool isLordParty) =>
             alreadyRegistered || !isLordParty ? null : FindFightingInvasion(clanId)?.SpawnTemplateId;
