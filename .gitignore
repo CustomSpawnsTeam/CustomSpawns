@@ -96,3 +96,11 @@ apm_modules/
 /.claude/
 /.codex/
 /.mcp.json
+
+# Generated module deployment (source lives in CustomSpawns/_Module)
+/ModuleData/
+/SubModule.xml
+
+# Runtime logs and generated Fody schema
+/Logs/
+/CustomSpawns/FodyWeavers.xsd
