@@ -1,0 +1,11 @@
+name: custom-spawns
+version: 0.1.0
+description: CustomSpawns agent setup, with the same Bannerlord harness release as DADG.
+type: hybrid
+targets:
+  - claude
+  - codex
+includes: auto
+dependencies:
+  apm:
+    - JoeFwd/bannerlord-agent#v0.2.1

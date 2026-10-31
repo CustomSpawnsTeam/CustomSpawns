@@ -12,6 +12,15 @@ Read these before writing code; they apply to all new and edited code.
   tests.
 - [docs/code-style.md](docs/code-style.md): layout. Braces, paragraphs, comments, field names.
 
+## Bannerlord agent
+
+See [docs/agent-setup.md](docs/agent-setup.md) for the pinned APM installation.
+Before Rider, GABS, playtest or log work, load the `bannerlord-agent-settings`
+skill for this project. Its source is
+[.apm/skills/bannerlord-agent-settings/SKILL.md](.apm/skills/bannerlord-agent-settings/SKILL.md).
+Before investigating native behavior, search the generic brain starting at
+`submodules/bannerlord-agent/brain/INDEX.md`.
+
 ## Build and test
 
 ```sh

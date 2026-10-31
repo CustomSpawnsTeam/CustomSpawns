@@ -1,0 +1,12 @@
+DotNetDebuggerSettings.processExceptionsOutsideMyCode=true
+
+CLRExceptionBreakpoints=System.StackOverflowException,\
+                         System.TypeInitializationException,\
+                         System.AccessViolationException,\
+                         System.OutOfMemoryException,\
+                         System.DivideByZeroException,\
+                         System.ObjectDisposedException,\
+                         System.ArgumentOutOfRangeException,\
+                         System.IndexOutOfRangeException,\
+                         System.NullReferenceException,\
+                         System.ArgumentNullException

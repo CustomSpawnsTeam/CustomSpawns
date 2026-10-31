@@ -89,3 +89,10 @@ ipch/
 
 # Rider
 .idea/
+
+# APM dependencies and generated agent client output
+apm_modules/
+/.agents/
+/.claude/
+/.codex/
+/.mcp.json
