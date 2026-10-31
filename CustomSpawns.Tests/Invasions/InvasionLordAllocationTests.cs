@@ -108,11 +108,11 @@ namespace CustomSpawns.Tests.Invasions
         [TestCase(true, true, false)]
         [TestCase(false, false, false)]
         [TestCase(false, true, false)]
-        public void OnlyALivingLeaderWithoutAPartyCanBeReused(bool isAlive, bool hasParty, bool expected)
+        public void OnlyAnActiveLeaderWithoutAPartyCanBeReused(bool isActive, bool hasParty, bool expected)
         {
             var invasion = new Invasion("invasion", "clan");
 
-            Assert.AreEqual(expected, invasion.CanReuseLeader(isAlive, hasParty));
+            Assert.AreEqual(expected, invasion.CanReuseLeader(isActive, hasParty));
         }
     }
 }

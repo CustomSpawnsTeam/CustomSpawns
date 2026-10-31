@@ -57,7 +57,8 @@ namespace CustomSpawns.Invasions.Adapters
         {
             Hero? leader = clan?.Leader;
 
-            if (invasion.CanReuseLeader(leader?.IsAlive == true, leader?.PartyBelongedTo != null))
+            // Native relocation must finish before this lord can lead a party.
+            if (invasion.CanReuseLeader(leader?.IsActive == true, leader?.PartyBelongedTo != null))
             {
                 return leader;
             }

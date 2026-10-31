@@ -398,7 +398,7 @@ namespace CustomSpawns.Invasions
         }
 
         // A newly founded clan already has a leader; do not create a second lord beside him.
-        public bool CanReuseLeader(bool isAlive, bool hasParty) => isAlive && !hasParty;
+        public bool CanReuseLeader(bool isActive, bool hasParty) => isActive && !hasParty;
 
         public int CountTownsHeld(
             IEnumerable<(string ClanId, Func<int?> KingdomTowns, Func<int> ClanTowns)> clans)
