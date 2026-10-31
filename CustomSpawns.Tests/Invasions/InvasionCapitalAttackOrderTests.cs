@@ -19,6 +19,33 @@ namespace CustomSpawns.Tests.Invasions
 
             Assert.That(intent.HasValue, Is.True);
             Assert.That(intent!.Value.Behavior, Is.EqualTo(AiBehavior.BesiegeSettlement));
+
+            var thinkParams = new PartyThinkParams(null!);
+            intent.Value.PrepareMovement(thinkParams, () => Assert.Fail("Advancing must use native movement."));
+
+            Assert.That(thinkParams.DoNotChangeBehavior, Is.False);
+        }
+
+        [Test]
+        public void GatheringRecapturePreservesRallyMovementUntilDomainAllowsAdvance()
+        {
+            InvasionCapitalOrderIntent? intent = _mapping.Find(
+                InvasionCapitalObjectiveKind.Attack, InvasionCapitalObjectivePhase.Gathering,
+                InvasionCapitalObjectiveKind.Attack, AiBehavior.BesiegeSettlement);
+
+            Assert.That(intent.HasValue, Is.True);
+            Assert.That(intent!.Value.Behavior, Is.EqualTo(AiBehavior.DefendSettlement));
+
+            var thinkParams = new PartyThinkParams(null!);
+            int moves = 0;
+            intent.Value.PrepareMovement(thinkParams, () => moves++);
+
+            Assert.That(moves, Is.EqualTo(1));
+            Assert.That(thinkParams.DoNotChangeBehavior, Is.True);
+
+            thinkParams.Reset(null!);
+
+            Assert.That(thinkParams.DoNotChangeBehavior, Is.False);
         }
 
         [Test]
@@ -30,7 +57,6 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [TestCase(InvasionCapitalObjectivePhase.Mobilizing)]
-        [TestCase(InvasionCapitalObjectivePhase.Gathering)]
         [TestCase(InvasionCapitalObjectivePhase.Besieging)]
         [TestCase(InvasionCapitalObjectivePhase.Dormant)]
         public void AttackNonDominantPhaseLeavesVanillaInControl(

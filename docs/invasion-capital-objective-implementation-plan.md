@@ -1,8 +1,12 @@
 # Invasion capital objective implementation plan
 
-Status: proposed. This document describes the implementation that should replace the partial
-capital retake deadline currently in the working tree. No part of this plan is considered complete
-until its domain tests, adapter tests, build, and campaign playtest have passed.
+Status: historical implementation plan. The current behavior is documented in
+[Losing the foothold](invasion-logistics.md#losing-the-foothold). Later changes introduced an explicit
+mobilizing phase, nearby castle-village gathering regardless of ownership, and an indefinite relief
+wait while the capital remains besieged. Those rules supersede the original defence timeout and
+friendly-fortification assumptions below. Daily recovery also remobilizes before checking the
+assembled force; a saved siege deadline is inert once the objective is besieging. The loss scenarios
+below remain verification cases; a successful live playtest must be recorded separately.
 
 ## Problem
 

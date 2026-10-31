@@ -173,9 +173,9 @@ namespace CustomSpawns.Invasions.CapitalObjectives
     public readonly struct CapitalArmyStagingCandidate
     {
         public CapitalArmyStagingCandidate(string settlementId, bool isActive,
-            bool isFortification, bool isOwnedByKingdom, bool isBesieged,
+            bool isFortification, bool isBesieged,
             bool hasMapEvent, bool isTarget, bool isReachableFromCommander,
-            bool isReachableFromTarget, bool isFarEnoughFromTarget,
+            bool isReachableFromTarget,
             bool isCastleVillage, float distanceFromTarget)
         {
             SettlementId = string.IsNullOrWhiteSpace(settlementId)
@@ -183,13 +183,11 @@ namespace CustomSpawns.Invasions.CapitalObjectives
                 : settlementId;
             IsActive = isActive;
             IsFortification = isFortification;
-            IsOwnedByKingdom = isOwnedByKingdom;
             IsBesieged = isBesieged;
             HasMapEvent = hasMapEvent;
             IsTarget = isTarget;
             IsReachableFromCommander = isReachableFromCommander;
             IsReachableFromTarget = isReachableFromTarget;
-            IsFarEnoughFromTarget = isFarEnoughFromTarget;
             IsCastleVillage = isCastleVillage;
             DistanceFromTarget = distanceFromTarget;
         }
@@ -197,13 +195,11 @@ namespace CustomSpawns.Invasions.CapitalObjectives
         public string SettlementId { get; }
         public bool IsActive { get; }
         public bool IsFortification { get; }
-        public bool IsOwnedByKingdom { get; }
         public bool IsBesieged { get; }
         public bool HasMapEvent { get; }
         public bool IsTarget { get; }
         public bool IsReachableFromCommander { get; }
         public bool IsReachableFromTarget { get; }
-        public bool IsFarEnoughFromTarget { get; }
         public bool IsCastleVillage { get; }
         public float DistanceFromTarget { get; }
     }
@@ -211,19 +207,13 @@ namespace CustomSpawns.Invasions.CapitalObjectives
     public sealed class CapitalArmyStagingRules
     {
         public bool IsEligible(CapitalArmyStagingCandidate candidate) =>
-            candidate.IsActive && candidate.IsFortification && candidate.IsOwnedByKingdom &&
-            !candidate.IsBesieged && !candidate.HasMapEvent && !candidate.IsTarget &&
-            candidate.IsReachableFromCommander && candidate.IsReachableFromTarget &&
-            candidate.IsFarEnoughFromTarget;
-
-        public bool IsEligibleForDefence(CapitalArmyStagingCandidate candidate) =>
             candidate.IsActive && (candidate.IsCastleVillage || candidate.IsFortification) &&
             !candidate.IsBesieged && !candidate.HasMapEvent && !candidate.IsTarget &&
             candidate.IsReachableFromCommander && candidate.IsReachableFromTarget;
 
-        public CapitalArmyStagingCandidate? FindDefenceStaging(
+        public CapitalArmyStagingCandidate? FindStaging(
             IEnumerable<CapitalArmyStagingCandidate> candidates) => candidates
-            .Where(IsEligibleForDefence)
+            .Where(IsEligible)
             .OrderByDescending(candidate => candidate.IsCastleVillage)
             .ThenBy(candidate => candidate.DistanceFromTarget)
             .ThenBy(candidate => candidate.SettlementId, StringComparer.Ordinal)

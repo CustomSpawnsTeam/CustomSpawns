@@ -8,91 +8,76 @@ namespace CustomSpawns.Tests.Invasions.CapitalObjectives
         private readonly CapitalArmyStagingRules _rules = new();
 
         [Test]
-        public void StagingMustBeFriendlySafeDistinctAndReachable()
+        public void StagingMustBeSafeDistinctAndReachable()
         {
             Assert.That(_rules.IsEligible(Candidate()), Is.True);
             Assert.That(_rules.IsEligible(Candidate(isActive: false)), Is.False);
             Assert.That(_rules.IsEligible(Candidate(isFortification: false)), Is.False);
-            Assert.That(_rules.IsEligible(Candidate(isOwnedByKingdom: false)), Is.False);
             Assert.That(_rules.IsEligible(Candidate(isBesieged: true)), Is.False);
             Assert.That(_rules.IsEligible(Candidate(hasMapEvent: true)), Is.False);
             Assert.That(_rules.IsEligible(Candidate(isTarget: true)), Is.False);
             Assert.That(_rules.IsEligible(Candidate(isReachableFromCommander: false)), Is.False);
             Assert.That(_rules.IsEligible(Candidate(isReachableFromTarget: false)), Is.False);
-            Assert.That(_rules.IsEligible(Candidate(isFarEnoughFromTarget: false)), Is.False);
         }
 
         [Test]
-        public void DefenceAcceptsUnownedCastleVillageCloseToCapital()
+        public void StagingAcceptsCastleVillageCloseToCapital()
         {
             CapitalArmyStagingCandidate village = Candidate(isFortification: false,
-                isOwnedByKingdom: false, isFarEnoughFromTarget: false, isCastleVillage: true);
+                isCastleVillage: true, distanceFromTarget: 1f);
 
-            Assert.That(_rules.IsEligibleForDefence(village), Is.True);
-            Assert.That(_rules.IsEligible(village), Is.False);
+            Assert.That(_rules.IsEligible(village), Is.True);
         }
 
         [Test]
-        public void DefenceStillRequiresSafeDistinctReachableStaging()
+        public void StagingPrefersNearestCastleVillage()
         {
-            Assert.That(_rules.IsEligibleForDefence(Candidate(isActive: false)), Is.False);
-            Assert.That(_rules.IsEligibleForDefence(Candidate(isFortification: false)), Is.False);
-            Assert.That(_rules.IsEligibleForDefence(Candidate(isBesieged: true)), Is.False);
-            Assert.That(_rules.IsEligibleForDefence(Candidate(hasMapEvent: true)), Is.False);
-            Assert.That(_rules.IsEligibleForDefence(Candidate(isTarget: true)), Is.False);
-            Assert.That(_rules.IsEligibleForDefence(Candidate(isReachableFromCommander: false)), Is.False);
-            Assert.That(_rules.IsEligibleForDefence(Candidate(isReachableFromTarget: false)), Is.False);
-        }
-
-        [Test]
-        public void DefencePrefersNearestCastleVillageRegardlessOfOwnership()
-        {
-            CapitalArmyStagingCandidate? selected = _rules.FindDefenceStaging(new[]
+            CapitalArmyStagingCandidate? selected = _rules.FindStaging(new[]
             {
                 Candidate(settlementId: "town", distanceFromTarget: 5f),
-                Candidate(settlementId: "owned-village", isFortification: false,
+                Candidate(settlementId: "far-village", isFortification: false,
                     isCastleVillage: true, distanceFromTarget: 20f),
-                Candidate(settlementId: "enemy-village", isFortification: false,
-                    isOwnedByKingdom: false, isCastleVillage: true, distanceFromTarget: 10f)
+                Candidate(settlementId: "near-village", isFortification: false,
+                    isCastleVillage: true, distanceFromTarget: 10f)
             });
 
-            Assert.That(selected?.SettlementId, Is.EqualTo("enemy-village"));
+            Assert.That(selected?.SettlementId, Is.EqualTo("near-village"));
         }
 
         [Test]
-        public void DefenceFallsBackToNearestTownOrCastleWhenVillagesAreUnavailable()
+        public void StagingFallsBackToNearestTownOrCastleWhenVillagesAreUnavailable()
         {
-            CapitalArmyStagingCandidate? selected = _rules.FindDefenceStaging(new[]
+            CapitalArmyStagingCandidate? selected = _rules.FindStaging(new[]
             {
                 Candidate(settlementId: "raided-village", isFortification: false,
                     isCastleVillage: true, isBesieged: true, distanceFromTarget: 1f),
                 Candidate(settlementId: "unreachable-village", isFortification: false,
                     isCastleVillage: true, isReachableFromCommander: false, distanceFromTarget: 2f),
-                Candidate(settlementId: "owned-town", distanceFromTarget: 20f),
-                Candidate(settlementId: "enemy-castle", isOwnedByKingdom: false, distanceFromTarget: 10f)
+                Candidate(settlementId: "town", distanceFromTarget: 20f),
+                Candidate(settlementId: "castle", distanceFromTarget: 10f)
             });
 
-            Assert.That(selected?.SettlementId, Is.EqualTo("enemy-castle"));
+            Assert.That(selected?.SettlementId, Is.EqualTo("castle"));
         }
 
         [Test]
-        public void DefenceHasNoStagingWhenEveryCandidateIsUnavailable()
+        public void NoStagingWhenEveryCandidateIsUnavailable()
         {
-            Assert.That(_rules.FindDefenceStaging(new[]
+            Assert.That(_rules.FindStaging(new[]
             {
                 Candidate(isTarget: true), Candidate(isReachableFromTarget: false)
             }), Is.Null);
-            Assert.That(_rules.FindDefenceStaging(System.Array.Empty<CapitalArmyStagingCandidate>()), Is.Null);
+            Assert.That(_rules.FindStaging(System.Array.Empty<CapitalArmyStagingCandidate>()), Is.Null);
         }
 
         private static CapitalArmyStagingCandidate Candidate(bool isActive = true,
-            bool isFortification = true, bool isOwnedByKingdom = true,
+            bool isFortification = true,
             bool isBesieged = false, bool hasMapEvent = false, bool isTarget = false,
             bool isReachableFromCommander = true, bool isReachableFromTarget = true,
-            bool isFarEnoughFromTarget = true, bool isCastleVillage = false,
+            bool isCastleVillage = false,
             float distanceFromTarget = 10f, string settlementId = "staging") =>
-            new(settlementId, isActive, isFortification, isOwnedByKingdom, isBesieged,
+            new(settlementId, isActive, isFortification, isBesieged,
                 hasMapEvent, isTarget, isReachableFromCommander, isReachableFromTarget,
-                isFarEnoughFromTarget, isCastleVillage, distanceFromTarget);
+                isCastleVillage, distanceFromTarget);
     }
 }

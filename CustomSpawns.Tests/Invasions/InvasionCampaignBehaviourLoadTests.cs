@@ -60,9 +60,12 @@ namespace CustomSpawns.Tests.Invasions
             Assert.That(configurations.Invocations.Count, Is.EqualTo(configurationReadsAfterFirstTick));
         }
 
-        [TestCase(false)]
-        [TestCase(true)]
-        public void LoadedCapitalObjective_GathersForBesiegedCapitalBeforeAdvancing(bool alreadyGathering)
+        [TestCase(InvasionCapitalObjectiveKind.Defence, false)]
+        [TestCase(InvasionCapitalObjectiveKind.Defence, true)]
+        [TestCase(InvasionCapitalObjectiveKind.Attack, false)]
+        [TestCase(InvasionCapitalObjectiveKind.Attack, true)]
+        public void LoadedCapitalObjective_RestoresVillageGatheringBeforeAdvancing(
+            InvasionCapitalObjectiveKind kind, bool alreadyGathering)
         {
             InvasionCampaignBehaviour behaviour = Behaviour(out Action firstCampaignTick);
             var configurations = new Mock<IInvasionAssaultConfigurationProvider>();
@@ -73,17 +76,17 @@ namespace CustomSpawns.Tests.Invasions
             InvasionStateSaveData saved = SavedStateWithCapitalObjective();
             if (alreadyGathering)
             {
-                var objective = new InvasionCapitalObjective(InvasionCapitalObjectiveKind.Defence,
-                    "capital", 0d, "capital-siege");
+                var objective = new InvasionCapitalObjective(kind, "capital", 0d,
+                    kind == InvasionCapitalObjectiveKind.Defence ? "capital-siege" : null);
                 objective.MarkMobilized(new CapitalArmyMobilizationResult(true, "commander",
-                    new[] { "commander", "follower" }, "native-staging"), 0d);
+                    new[] { "commander", "follower" }, "castle-village"), 0d);
                 saved.Invasions[0].CapitalObjective = InvasionCapitalObjectiveSaveData.FromState(objective);
             }
 
             behaviour.SyncData(new LoadingDataStore(saved));
 
             var world = new Mock<IInvasionCapitalObjectiveWorld>();
-            CapitalObjectiveObservation observation = DefenceObservation(10f);
+            CapitalObjectiveObservation observation = GatheringObservation(kind, 10f);
             world.Setup(value => value.Observe("clan", "capital", It.IsAny<string?>(),
                     It.IsAny<string?>())).Returns(() => observation);
             world.Setup(value => value.FindMobilizationCandidates("clan")).Returns(new[]
@@ -93,7 +96,7 @@ namespace CustomSpawns.Tests.Invasions
             });
             world.Setup(value => value.MobilizeArmy(It.IsAny<CapitalArmyMobilizationPlan>()))
                 .Returns(new CapitalArmyMobilizationResult(true, "commander",
-                    new[] { "commander", "follower" }, "native-staging"));
+                    new[] { "commander", "follower" }, "castle-village"));
             world.Setup(value => value.InviteToArmy("clan", "commander",
                     It.IsAny<IReadOnlyList<string>>()))
                 .Returns((string _, string _, IReadOnlyList<string> partyIds) => partyIds);
@@ -110,13 +113,12 @@ namespace CustomSpawns.Tests.Invasions
             firstCampaignTick();
 
             Invasion invasion = behaviour.State.FindInvasion("clan")!;
-            Assert.That(invasion.CapitalObjective!.Kind,
-                Is.EqualTo(InvasionCapitalObjectiveKind.Defence));
+            Assert.That(invasion.CapitalObjective!.Kind, Is.EqualTo(kind));
             Assert.That(invasion.CapitalObjective.Phase,
                 Is.EqualTo(InvasionCapitalObjectivePhase.Gathering));
-            Assert.That(invasion.CapitalObjective.StagingSettlementId, Is.EqualTo("native-staging"));
+            Assert.That(invasion.CapitalObjective.StagingSettlementId, Is.EqualTo("castle-village"));
             world.Verify(value => value.MobilizeArmy(It.Is<CapitalArmyMobilizationPlan>(plan =>
-                plan.ObjectiveKind == InvasionCapitalObjectiveKind.Defence &&
+                plan.ObjectiveKind == kind &&
                 plan.TargetSettlementId == "capital")), alreadyGathering ? Times.Never() : Times.Once());
             world.Verify(value => value.InviteToArmy("clan", "commander",
                 It.Is<IReadOnlyList<string>>(ids => ids.Count == 0)), Times.Once);
@@ -128,7 +130,7 @@ namespace CustomSpawns.Tests.Invasions
             world.Verify(value => value.InviteToArmy("clan", "commander",
                 It.IsAny<IReadOnlyList<string>>()), Times.Once);
 
-            observation = DefenceObservation(120f);
+            observation = GatheringObservation(kind, 150f);
             coordinator.UpdateHourly(invasion);
 
             Assert.That(invasion.CapitalObjective.Phase,
@@ -136,9 +138,15 @@ namespace CustomSpawns.Tests.Invasions
             world.Verify(value => value.BeginAdvance("commander"), Times.Once);
         }
 
-        private static CapitalObjectiveObservation DefenceObservation(float assembled) =>
-            new(1d, true, true, true, false, true,
-                new CapitalDefenceForces(assembled, 0f, 100f), default, "capital-siege");
+        private static CapitalObjectiveObservation GatheringObservation(
+            InvasionCapitalObjectiveKind kind, float assembled)
+        {
+            bool defence = kind == InvasionCapitalObjectiveKind.Defence;
+            return new CapitalObjectiveObservation(1d, defence, defence, true, false, defence,
+                new CapitalDefenceForces(assembled, 0f, 100f),
+                new CapitalAttackForces(assembled, 100f, 50f),
+                defence ? "capital-siege" : null);
+        }
 
         private static InvasionCampaignBehaviour Behaviour(out Action firstCampaignTick)
         {

@@ -75,23 +75,15 @@ namespace CustomSpawns.Invasions.Adapters
                 return Failure("commander_cannot_create_army", deferred);
             }
 
-            Settlement? defenceStaging = null;
+            Settlement? selectedStaging;
             try
             {
-                if (plan.ObjectiveKind == InvasionCapitalObjectiveKind.Defence)
-                {
-                    CapitalArmyStagingCandidate? selected = _capitalArmyStagingRules.FindDefenceStaging(
-                        Settlement.All.Where(settlement => settlement.IsFortification ||
-                                settlement.Village?.Bound?.IsCastle == true)
-                            .Select(settlement => StagingCandidate(settlement, commander, kingdom, target)));
-                    defenceStaging = selected.HasValue ? Settlement.Find(selected.Value.SettlementId) : null;
-                }
-
-                bool hasStaging = plan.ObjectiveKind == InvasionCapitalObjectiveKind.Defence
-                    ? defenceStaging != null
-                    : kingdom.Settlements.Any(settlement => _capitalArmyStagingRules.IsEligible(
-                        StagingCandidate(settlement, commander, kingdom, target)));
-                if (!hasStaging)
+                CapitalArmyStagingCandidate? selected = _capitalArmyStagingRules.FindStaging(
+                    Settlement.All.Where(settlement => settlement.IsFortification ||
+                            settlement.Village?.Bound?.IsCastle == true)
+                        .Select(settlement => StagingCandidate(settlement, commander, target)));
+                selectedStaging = selected.HasValue ? Settlement.Find(selected.Value.SettlementId) : null;
+                if (selectedStaging == null)
                 {
                     return Failure("native_gathering_settlement_unavailable", deferred);
                 }
@@ -158,22 +150,19 @@ namespace CustomSpawns.Invasions.Adapters
 
             try
             {
-                if (plan.ObjectiveKind == InvasionCapitalObjectiveKind.Defence)
+                foreach (MobileParty party in revalidated)
                 {
-                    foreach (MobileParty party in revalidated)
-                    {
-                        party.BesiegerCamp = null;
-                        party.Ai.SetDoNotMakeNewDecisions(false);
-                    }
+                    party.BesiegerCamp = null;
+                    party.Ai.SetDoNotMakeNewDecisions(false);
                 }
 
                 kingdom.CreateArmy(commander.LeaderHero, target, armyType, members);
 
-                Army? defenceArmy = commander.Army;
-                if (defenceStaging != null && defenceArmy?.LeaderParty == commander)
+                Army? gatheringArmy = commander.Army;
+                if (gatheringArmy?.LeaderParty == commander)
                 {
-                    // Native gathering prefers owned fortresses; defence uses the selected rally anchor.
-                    MoveToStaging(defenceArmy, defenceStaging);
+                    // Recapture must also gather when the invasion has no owned fortress left.
+                    MoveToStaging(gatheringArmy, selectedStaging);
                 }
             }
             catch (System.Exception)
@@ -188,11 +177,8 @@ namespace CustomSpawns.Invasions.Adapters
                 ? "native_army_leader_mismatch"
                 : staging == null
                     ? "native_gathering_settlement_missing"
-                    : !(plan.ObjectiveKind == InvasionCapitalObjectiveKind.Defence
-                        ? _capitalArmyStagingRules.IsEligibleForDefence(
-                            StagingCandidate(staging, commander, kingdom, target))
-                        : _capitalArmyStagingRules.IsEligible(
-                            StagingCandidate(staging, commander, kingdom, target)))
+                    : !_capitalArmyStagingRules.IsEligible(
+                        StagingCandidate(staging, commander, target))
                         ? "native_gathering_settlement_invalid"
                         : null;
             if (invalidArmyReason != null)
@@ -234,7 +220,10 @@ namespace CustomSpawns.Invasions.Adapters
             if (invasion.CapitalObjective?.StagingSettlementId is string stagingId &&
                 Settlement.Find(stagingId) is Settlement staging)
             {
-                army.Cohesion = 100f;
+                if (invasion.CapitalObjective.Kind == InvasionCapitalObjectiveKind.Defence)
+                {
+                    army.Cohesion = 100f;
+                }
                 commander.BesiegerCamp = null;
                 if (commander.DefaultBehavior != AiBehavior.GoToPoint || army.AiBehaviorObject != staging)
                 {
@@ -304,8 +293,7 @@ namespace CustomSpawns.Invasions.Adapters
                 return false;
             }
 
-            if (objective.Kind == InvasionCapitalObjectiveKind.Defence &&
-                objective.Phase == InvasionCapitalObjectivePhase.Gathering)
+            if (objective.Phase == InvasionCapitalObjectivePhase.Gathering)
             {
                 Settlement? staging = Settlement.Find(objective.StagingSettlementId);
                 if (staging == null || !staging.IsActive || staging.IsUnderSiege ||
@@ -478,7 +466,7 @@ namespace CustomSpawns.Invasions.Adapters
             .ToArray();
 
         private static CapitalArmyStagingCandidate StagingCandidate(Settlement settlement,
-            MobileParty commander, Kingdom kingdom, Settlement target)
+            MobileParty commander, Settlement target)
         {
             var mapDistanceModel = Campaign.Current.Models.MapDistanceModel;
             MobileParty.NavigationType navigationCapability = commander.NavigationCapability;
@@ -489,16 +477,11 @@ namespace CustomSpawns.Invasions.Adapters
                     navigationCapability, out _);
             float distanceFromTarget = mapDistanceModel.GetDistance(target, settlement,
                 false, false, navigationCapability);
-            float minimumDistanceFromTarget = Campaign.Current
-                .GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(navigationCapability) *
-                                              0.66f;
-
             return new CapitalArmyStagingCandidate(settlement.StringId, settlement.IsActive,
-                settlement.IsFortification, settlement.MapFaction == kingdom,
+                settlement.IsFortification,
                 settlement.IsUnderSiege || settlement.IsUnderRaid, settlement.Party.MapEvent != null,
                 settlement == target, distanceFromCommander < Campaign.MapDiagonalSquared,
                 distanceFromTarget < Campaign.MapDiagonalSquared,
-                distanceFromTarget > minimumDistanceFromTarget,
                 settlement.Village?.Bound?.IsCastle == true, distanceFromTarget);
         }
 

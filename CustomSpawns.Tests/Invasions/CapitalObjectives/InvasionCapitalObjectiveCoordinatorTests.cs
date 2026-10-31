@@ -130,18 +130,22 @@ namespace CustomSpawns.Tests.Invasions.CapitalObjectives
             Assert.That(update.MobilizationResult, Is.SameAs(_world.MobilizationResult));
         }
 
-        [Test]
-        public void WaitingDefenceInvitesEveryNewEligiblePartyWithoutCountingUnarrivedStrength()
+        [TestCase(InvasionCapitalObjectiveKind.Defence, 4d)]
+        [TestCase(InvasionCapitalObjectiveKind.Attack, 1d)]
+        public void GatheringInvitesEveryNewEligiblePartyWithoutCountingUnarrivedStrength(
+            InvasionCapitalObjectiveKind kind, double nowDays)
         {
-            BeginAndMobilize(InvasionCapitalObjectiveKind.Defence, 0d, "siege-a");
+            BeginAndMobilize(kind, 0d, "siege-a");
             _world.Candidates.Add(new CapitalArmyPartyCandidate("reinforcement-a", 1000f,
                 true, false, false));
             _world.Candidates.Add(new CapitalArmyPartyCandidate("reinforcement-b", 1000f,
                 true, false, false));
             _world.Candidates.Add(new CapitalArmyPartyCandidate("trapped", 1000f,
                 false, false, false, "inside_besieged_settlement"));
-            _world.Observation = Observation(4d, ownsCapital: true, capitalBesieged: true,
+            bool defence = kind == InvasionCapitalObjectiveKind.Defence;
+            _world.Observation = Observation(nowDays, ownsCapital: defence, capitalBesieged: defence,
                 commanderEligible: true, defence: new CapitalDefenceForces(10f, 0f, 100f),
+                attack: new CapitalAttackForces(10f, 100f, 100f),
                 siegeEpisodeId: "siege-a");
 
             CapitalObjectiveUpdate update = _coordinator.UpdateHourly(_invasion);
@@ -234,7 +238,7 @@ namespace CustomSpawns.Tests.Invasions.CapitalObjectives
             Assert.That(_invasion.CapitalObjective!.Phase,
                 Is.EqualTo(InvasionCapitalObjectivePhase.Gathering));
             Assert.That(_world.AdvancedCommander, Is.Null);
-            Assert.That(_world.LastInvitations, Is.Null);
+            Assert.That(_world.LastInvitations, Is.Empty);
         }
 
         [Test]
@@ -410,7 +414,7 @@ namespace CustomSpawns.Tests.Invasions.CapitalObjectives
         }
 
         [Test]
-        public void AttackTimesOutAtExactlySevenDaysAndDoesNotDailyRestart()
+        public void AttackTimesOutAtExactlySevenDaysAndDoesNotRestartHourlyOrDaily()
         {
             BeginAndMobilize(InvasionCapitalObjectiveKind.Attack, 0d);
             _invasion.AdvanceCapitalObjective();
@@ -418,12 +422,78 @@ namespace CustomSpawns.Tests.Invasions.CapitalObjectives
                 commanderEligible: true);
 
             CapitalObjectiveUpdate hourly = _coordinator.UpdateHourly(_invasion);
+            CapitalObjectiveUpdate followingHour = _coordinator.UpdateHourly(_invasion);
             CapitalObjectiveUpdate daily = _coordinator.UpdateDaily(_invasion);
 
             Assert.That(hourly.Decision, Is.EqualTo(CapitalObjectiveDecision.AbandonTimeout));
+            Assert.That(followingHour.Decision, Is.EqualTo(CapitalObjectiveDecision.None));
             Assert.That(daily.Decision, Is.EqualTo(CapitalObjectiveDecision.None));
             Assert.That(_invasion.CapitalObjective!.DormantReason,
                 Is.EqualTo(InvasionCapitalObjectiveDormantReason.AttackTimedOut));
+            Assert.That(_world.MobilizationCalls, Is.Zero);
+        }
+
+        [Test]
+        public void CapturedAlternativeBecomesCapitalWhenTheDesignatedCapitalIsLost()
+        {
+            BeginAndMobilize(InvasionCapitalObjectiveKind.Attack, 0d);
+            _invasion.RetargetCapitalAttack("alternative", 1d);
+            _world.Observation = Observation(2d, ownsCapital: false, capitalBesieged: false,
+                commanderEligible: true, targetOwned: true);
+
+            CapitalObjectiveUpdate update = _coordinator.UpdateHourly(_invasion);
+
+            Assert.That(update.Decision, Is.EqualTo(CapitalObjectiveDecision.Complete));
+            Assert.That(update.TargetSettlementId, Is.EqualTo("alternative"));
+            Assert.That(_world.RelocatedSettlementId, Is.EqualTo("alternative"));
+            Assert.That(_invasion.CapitalSettlementId, Is.EqualTo("alternative"));
+            Assert.That(_invasion.CapitalObjective, Is.Null);
+        }
+
+        [Test]
+        public void RegainedDesignatedCapitalCompletesAlternativeAttackWithoutRelocation()
+        {
+            BeginAndMobilize(InvasionCapitalObjectiveKind.Attack, 0d);
+            _invasion.RetargetCapitalAttack("alternative", 1d);
+            _world.Observation = Observation(2d, ownsCapital: true, capitalBesieged: false,
+                commanderEligible: true, targetOwned: true);
+
+            CapitalObjectiveUpdate update = _coordinator.UpdateHourly(_invasion);
+
+            Assert.That(update.Decision, Is.EqualTo(CapitalObjectiveDecision.Complete));
+            Assert.That(_world.RelocatedSettlementId, Is.Null);
+            Assert.That(_invasion.CapitalSettlementId, Is.EqualTo("capital"));
+            Assert.That(_invasion.CapitalObjective, Is.Null);
+        }
+
+        [Test]
+        public void DailyRecoveryKeepsWaitingUntilChangedForcesMakeATargetViable()
+        {
+            _invasion.BeginCapitalAttack("capital", 0d);
+            _invasion.WaitForViableCapitalTarget();
+            _world.Targets.Add(Viable("alternative", 10f));
+            _world.Observation = Observation(8d, ownsCapital: false, capitalBesieged: false,
+                commanderEligible: true, attack: new CapitalAttackForces(100f, 0f, 0f));
+
+            CapitalObjectiveUpdate insufficient = _coordinator.UpdateDaily(_invasion);
+
+            Assert.That(insufficient.Decision, Is.EqualTo(CapitalObjectiveDecision.None));
+            Assert.That(_invasion.CapitalObjective!.DormantReason,
+                Is.EqualTo(InvasionCapitalObjectiveDormantReason.NoViableTarget));
+            Assert.That(_invasion.CapitalObjective.TargetSettlementId, Is.Null);
+            Assert.That(_world.MobilizationCalls, Is.Zero);
+
+            _world.Observation = Observation(9d, ownsCapital: false, capitalBesieged: false,
+                commanderEligible: true, attack: new CapitalAttackForces(150f, 0f, 0f));
+
+            CapitalObjectiveUpdate sufficient = _coordinator.UpdateDaily(_invasion);
+
+            Assert.That(sufficient.Decision, Is.EqualTo(CapitalObjectiveDecision.Retarget));
+            Assert.That(_invasion.CapitalObjective.Phase,
+                Is.EqualTo(InvasionCapitalObjectivePhase.Mobilizing));
+            Assert.That(_invasion.CapitalObjective.TargetSettlementId, Is.EqualTo("alternative"));
+            Assert.That(_invasion.CapitalObjective.AttackDeadlineDays, Is.EqualTo(16d));
+            Assert.That(_world.TargetFactQueries, Is.EqualTo(2));
         }
 
         [Test]

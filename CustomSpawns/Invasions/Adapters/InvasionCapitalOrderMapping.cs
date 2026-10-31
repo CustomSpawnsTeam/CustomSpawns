@@ -45,8 +45,7 @@ namespace CustomSpawns.Invasions.Adapters
                 return new InvasionCapitalOrderIntent(behavior);
             }
 
-            if (directiveKind == InvasionCapitalObjectiveKind.Defence &&
-                phase == InvasionCapitalObjectivePhase.Gathering)
+            if (phase == InvasionCapitalObjectivePhase.Gathering)
             {
                 // Native army thinking requires a military candidate even when movement is preserved.
                 return new InvasionCapitalOrderIntent(AiBehavior.DefendSettlement, true);

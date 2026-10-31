@@ -297,7 +297,8 @@ namespace CustomSpawns.Invasions.CapitalObjectives
                     objective.TargetSettlementId);
             }
 
-            if (objective.Kind == InvasionCapitalObjectiveKind.Defence)
+            if (objective.Kind == InvasionCapitalObjectiveKind.Defence ||
+                !objective.IsGatherDeadlineReached(observation.NowDays))
             {
                 IReadOnlyList<CapitalArmyPartyCandidate> candidates =
                     _invasionCapitalObjectiveWorld.FindMobilizationCandidates(invasion.ClanId);
@@ -321,11 +322,6 @@ namespace CustomSpawns.Invasions.CapitalObjectives
                                     candidate.DeferredReason!)).ToArray()));
                 }
 
-                return null;
-            }
-
-            if (!objective.IsGatherDeadlineReached(observation.NowDays))
-            {
                 return null;
             }
 
