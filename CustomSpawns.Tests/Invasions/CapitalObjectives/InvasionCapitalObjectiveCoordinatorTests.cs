@@ -414,7 +414,7 @@ namespace CustomSpawns.Tests.Invasions.CapitalObjectives
         }
 
         [Test]
-        public void AttackTimesOutAtExactlySevenDaysAndDoesNotRestartHourlyOrDaily()
+        public void AttackTimesOutAtExactlySevenDaysAndWaitsUntilDailyRecoveryFindsAViableTarget()
         {
             BeginAndMobilize(InvasionCapitalObjectiveKind.Attack, 0d);
             _invasion.AdvanceCapitalObjective();
@@ -496,11 +496,15 @@ namespace CustomSpawns.Tests.Invasions.CapitalObjectives
             Assert.That(_world.TargetFactQueries, Is.EqualTo(2));
         }
 
-        [Test]
-        public void DailyRecoverySelectsTargetThenRequiresMobilization()
+        [TestCase(InvasionCapitalObjectiveDormantReason.NoViableTarget)]
+        [TestCase(InvasionCapitalObjectiveDormantReason.AttackTimedOut)]
+        [TestCase(InvasionCapitalObjectiveDormantReason.SiegeAborted)]
+        public void DailyRecoverySelectsTargetThenRequiresMobilization(
+            InvasionCapitalObjectiveDormantReason reason)
         {
-            _invasion.BeginCapitalAttack("capital", 0d);
-            _invasion.WaitForViableCapitalTarget();
+            _invasion.RestoreCapitalObjective(new InvasionCapitalObjective(
+                InvasionCapitalObjectiveKind.Attack, InvasionCapitalObjectivePhase.Dormant,
+                null, null, null, reason, null));
             _world.Observation = Observation(8d, ownsCapital: false, capitalBesieged: false,
                 commanderEligible: true, attack: new CapitalAttackForces(150f, 0f, 0f));
             _world.Targets.Add(Viable("alternative", 10f));

@@ -147,8 +147,7 @@ namespace CustomSpawns.Invasions.CapitalObjectives
             InvasionCapitalObjective? objective = invasion.CapitalObjective;
 
             if (invasion.IsSuspended || invasion.CapitalSettlementId == null ||
-                objective?.Phase != InvasionCapitalObjectivePhase.Dormant ||
-                objective.DormantReason != InvasionCapitalObjectiveDormantReason.NoViableTarget)
+                objective?.Phase != InvasionCapitalObjectivePhase.Dormant)
             {
                 return NoChange(invasion);
             }
