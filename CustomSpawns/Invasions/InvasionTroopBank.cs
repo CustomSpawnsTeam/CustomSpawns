@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace CustomSpawns.Invasions
 {
@@ -16,6 +18,36 @@ namespace CustomSpawns.Invasions
         // What a lord may take out: whatever stands above the floor, and never more than he can lead.
         public int Drawable(int wanted, int garrisonCount, int minimumCapitalGarrison) =>
             Math.Max(0, Math.Min(wanted, garrisonCount - minimumCapitalGarrison));
+
+        // Each party takes the garrison's mix, with spare men going to the largest fractional shares.
+        public int[] Distribute(IReadOnlyList<int> troopCounts, int wanted)
+        {
+            int[] allocated = new int[troopCounts.Count];
+            int total = troopCounts.Sum();
+
+            if (total == 0 || wanted <= 0)
+            {
+                return allocated;
+            }
+
+            int drawn = Math.Min(wanted, total);
+
+            for (int index = 0; index < troopCounts.Count; index++)
+            {
+                allocated[index] = (int)((long)troopCounts[index] * drawn / total);
+            }
+
+            int remaining = drawn - allocated.Sum();
+
+            foreach (int index in Enumerable.Range(0, troopCounts.Count)
+                         .OrderByDescending(index => (long)troopCounts[index] * drawn % total)
+                         .Take(remaining))
+            {
+                allocated[index]++;
+            }
+
+            return allocated;
+        }
 
         // The bank only replaces vanilla's free warband when it can give back at least as many men; a lord
         // sent out with fewer than he came with is a lord sent out to be captured.

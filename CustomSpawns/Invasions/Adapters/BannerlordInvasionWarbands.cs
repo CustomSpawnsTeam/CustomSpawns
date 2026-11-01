@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
@@ -11,6 +10,13 @@ namespace CustomSpawns.Invasions.Adapters
 {
     public sealed class BannerlordInvasionWarbands : IInvasionWarbands
     {
+        private readonly InvasionTroopBank _invasionTroopBank;
+
+        public BannerlordInvasionWarbands(InvasionTroopBank invasionTroopBank)
+        {
+            _invasionTroopBank = invasionTroopBank;
+        }
+
         // Only a lord's party banks, so only a lord's party is worth asking vanilla for its size limit.
         public InvasionWarband Snapshot(MobileParty party)
         {
@@ -54,7 +60,6 @@ namespace CustomSpawns.Invasions.Adapters
             return returned;
         }
 
-        // The newest men first, which are the ones the last wave paid in.
         public int DrawFromGarrison(string partyId, string settlementId, int men)
         {
             TroopRoster? garrison = Settlement.Find(settlementId)?.Town?.GarrisonParty?.MemberRoster;
@@ -65,22 +70,22 @@ namespace CustomSpawns.Invasions.Adapters
                 return 0;
             }
 
-            int drawn = 0;
+            TroopRosterElement[] troops = garrison.GetTroopRoster()
+                .Where(element => !element.Character.IsHero).ToArray();
+            int[] allocated = _invasionTroopBank.Distribute(troops.Select(element => element.Number).ToArray(), men);
 
-            for (int index = garrison.Count - 1; index >= 0 && drawn < men; index--)
+            for (int index = 0; index < troops.Length; index++)
             {
-                TroopRosterElement element = garrison.GetElementCopyAtIndex(index);
+                int taken = allocated[index];
 
-                if (!element.Character.IsHero)
+                if (taken > 0)
                 {
-                    int taken = Math.Min(element.Number, men - drawn);
-                    garrison.RemoveTroop(element.Character, taken);
-                    party.MemberRoster.AddToCounts(element.Character, taken);
-                    drawn += taken;
+                    garrison.RemoveTroop(troops[index].Character, taken);
+                    party.MemberRoster.AddToCounts(troops[index].Character, taken);
                 }
             }
 
-            return drawn;
+            return allocated.Sum();
         }
 
         private static MobileParty? Find(string partyId) =>

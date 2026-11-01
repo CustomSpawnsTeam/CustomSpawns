@@ -30,7 +30,7 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly IInvasionClanRepository _invasionClans;
         private readonly InvaderHeroCreator _invaderHeroes;
         private readonly BannerlordInvasionConfigurations _bannerlordInvasionConfigurations;
-        private readonly BannerlordInvasionWarbands _bannerlordInvasionWarbands = new();
+        private readonly BannerlordInvasionWarbands _bannerlordInvasionWarbands;
         private readonly BannerlordInvasionGarrisons _bannerlordInvasionGarrisons = new();
         private readonly InvasionTroopBank _invasionTroopBank = new();
         private readonly InvasionCapitalObjectiveLogPolicy _invasionCapitalObjectiveLogPolicy = new();
@@ -65,6 +65,7 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionClans = invasionClans;
             _invaderHeroes = new InvaderHeroCreator(invasionClans);
             _bannerlordInvasionConfigurations = new BannerlordInvasionConfigurations(spawns);
+            _bannerlordInvasionWarbands = new BannerlordInvasionWarbands(_invasionTroopBank);
             _bannerlordInvasionResupplyOrders = new BannerlordInvasionResupplyOrders(
                 _bannerlordInvasionWarbands);
             _invasionResupply = NewResupply();
