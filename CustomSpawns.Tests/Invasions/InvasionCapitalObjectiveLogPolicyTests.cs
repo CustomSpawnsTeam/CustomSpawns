@@ -29,12 +29,17 @@ namespace CustomSpawns.Tests.Invasions
         [TestCase(InvasionCapitalObjectivePhase.Dormant,
             InvasionCapitalObjectiveDormantReason.NoViableTarget, true)]
         [TestCase(InvasionCapitalObjectivePhase.Dormant,
-            InvasionCapitalObjectiveDormantReason.AttackTimedOut, false)]
+            InvasionCapitalObjectiveDormantReason.AttackTimedOut, true)]
         [TestCase(InvasionCapitalObjectivePhase.Advancing,
-            InvasionCapitalObjectiveDormantReason.None, false)]
-        public void DailyNoChangeIsLoggedOnlyWhileWaitingForAViableTarget(
-            InvasionCapitalObjectivePhase phase,
-            InvasionCapitalObjectiveDormantReason dormantReason, bool expected)
+            InvasionCapitalObjectiveDormantReason.None, true)]
+        [TestCase(InvasionCapitalObjectivePhase.Gathering,
+            InvasionCapitalObjectiveDormantReason.None, true)]
+        [TestCase(InvasionCapitalObjectivePhase.Dormant,
+            InvasionCapitalObjectiveDormantReason.SiegeAborted, true)]
+        [TestCase(null, null, false)]
+        public void DailyNoChangeIncludesEveryExistingObjective(
+            InvasionCapitalObjectivePhase? phase,
+            InvasionCapitalObjectiveDormantReason? dormantReason, bool expected)
         {
             Assert.That(_policy.IncludesDailyNoChange(phase, dormantReason),
                 Is.EqualTo(expected));

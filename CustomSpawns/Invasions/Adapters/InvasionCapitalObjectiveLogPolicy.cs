@@ -29,8 +29,7 @@ namespace CustomSpawns.Invasions.Adapters
         public bool IncludesDailyNoChange(InvasionCapitalObjectivePhase? phase,
             InvasionCapitalObjectiveDormantReason? dormantReason)
         {
-            return phase == InvasionCapitalObjectivePhase.Dormant &&
-                   dormantReason == InvasionCapitalObjectiveDormantReason.NoViableTarget;
+            return phase.HasValue;
         }
     }
 }

@@ -439,6 +439,28 @@ namespace CustomSpawns.Invasions.Adapters
             return null;
         }
 
+        public string DescribeCandidates(Invasion invasion, Kingdom kingdom) =>
+            "candidates=[" + string.Join(";", MobileParty.All
+                .Where(party => invasion.HoldsClan(party.ActualClan?.StringId))
+                .OrderBy(party => party.StringId, StringComparer.Ordinal)
+                .Select(party => party.StringId + ":component=" + party.PartyComponent?.GetType().Name +
+                    ",lord=" + party.IsLordParty + ",leader=" + party.LeaderHero?.StringId +
+                    ",leader_state=" + party.LeaderHero?.HeroState +
+                    ",leader_in_party=" + (party.LeaderHero?.PartyBelongedTo == party) +
+                    ",troops=" + party.MemberRoster.TotalManCount +
+                    ",healthy=" + party.MemberRoster.TotalHealthyCount +
+                    ",strength=" + party.Party.CalculateCurrentStrength() +
+                    ",mobilizable=" + (FindDeferralReason(party, invasion, kingdom) == null) +
+                    ",can_command=" + _partyEligibility.CanCommand(party) +
+                    ",deferred=" + FindDeferralReason(party, invasion, kingdom) +
+                    ",army_leader=" + party.Army?.LeaderParty?.StringId +
+                    ",attached_to=" + party.AttachedTo?.StringId +
+                    ",battle=" + party.MapEvent?.Id +
+                    ",settlement=" + party.CurrentSettlement?.StringId +
+                    ",order=" + party.DefaultBehavior +
+                    ",target_settlement=" + party.TargetSettlement?.StringId +
+                    ",target_party=" + party.TargetParty?.StringId)) + "]";
+
         private static CapitalArmyMobilizationResult Failure(string reason,
             IReadOnlyList<CapitalArmyPartyDeferral> deferred) =>
             new(false, null, Array.Empty<string>(), null, UniqueDeferrals(deferred), reason);

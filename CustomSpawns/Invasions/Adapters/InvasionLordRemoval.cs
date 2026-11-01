@@ -1,4 +1,5 @@
 using System.Linq;
+using NLog;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 
@@ -12,6 +13,7 @@ namespace CustomSpawns.Invasions.Adapters
      */
     public sealed class InvasionLordRemoval
     {
+        private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         private readonly InvasionState _invasionState;
         private readonly InvaderHeroCreator _invaderHeroCreator;
 
@@ -33,6 +35,12 @@ namespace CustomSpawns.Invasions.Adapters
             {
                 return;
             }
+
+            Logger.Info("Invasion defeated lord removal: day=" + CampaignTime.Now.ToDays +
+                        " hero=" + hero.StringId + " clan=" + hero.Clan?.StringId +
+                        " state=" + hero.HeroState + " party=" + hero.PartyBelongedTo?.StringId +
+                        " lost_invasion_party=" + lostItsInvasionParty +
+                        " cause=forced_remove_after_defeat");
 
             /*
              * Vanilla destroys a clan whose leader dies with no living adult lord left to succeed him, and

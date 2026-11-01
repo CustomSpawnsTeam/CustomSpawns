@@ -209,9 +209,13 @@ namespace CustomSpawns.Invasions.Adapters
             Settlement? target = targetSettlementId == null
                 ? null
                 : Settlement.Find(targetSettlementId);
+            Kingdom? kingdom = FindKingdom(invasion);
+            string candidates = kingdom == null
+                ? "candidates=[] kingdom=none"
+                : _capitalObjectiveArmy.DescribeCandidates(invasion, kingdom);
             if (commander == null)
             {
-                return "commander=none target=" + target?.StringId;
+                return "day=" + CampaignTime.Now.ToDays + " commander=none target=" + target?.StringId + " " + candidates;
             }
 
             Army? army = commander.Army?.LeaderParty == commander ? commander.Army : null;
@@ -240,7 +244,7 @@ namespace CustomSpawns.Invasions.Adapters
                 ? 0f
                 : GetNearbyHostileLordStrength(commander, capital, capitalCamp);
 
-            return "commander=" + commander.StringId +
+            return "day=" + observation.NowDays + " commander=" + commander.StringId +
                    " army=" + (army == null ? "none" : army.Name?.ToString()) +
                    " leader_troops=" + commander.MemberRoster.TotalManCount +
                    " leader_healthy=" + commander.MemberRoster.TotalHealthyCount +
@@ -279,7 +283,7 @@ namespace CustomSpawns.Invasions.Adapters
                    " attack_target_ratio=" + Ratio(assembledStrength,
                        observation.AttackForces.SettlementDefenderStrength) +
                    " attack_roaming_ratio=" + Ratio(assembledStrength,
-                       observation.AttackForces.NearbyHostileStrength);
+                       observation.AttackForces.NearbyHostileStrength) + " " + candidates;
         }
 
         private static float Ratio(float numerator, float denominator) => denominator <= 0f

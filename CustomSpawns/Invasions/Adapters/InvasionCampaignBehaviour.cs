@@ -33,6 +33,7 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly BannerlordInvasionWarbands _bannerlordInvasionWarbands;
         private readonly BannerlordInvasionGarrisons _bannerlordInvasionGarrisons = new();
         private readonly InvasionTroopBank _invasionTroopBank = new();
+        private readonly InvasionLossDiagnostics _invasionLossDiagnostics;
         private readonly InvasionCapitalObjectiveLogPolicy _invasionCapitalObjectiveLogPolicy = new();
         private readonly InvasionCapitalObjectiveSteeringPolicy _invasionCapitalObjectiveSteeringPolicy =
             new();
@@ -60,6 +61,7 @@ namespace CustomSpawns.Invasions.Adapters
             IInvasionClanRepository invasionClans)
         {
             _spawnDao = spawns;
+            _invasionLossDiagnostics = new InvasionLossDiagnostics(() => State);
             _dynamicSpawnData = parties;
             _invasionCapitals = invasionCapitals;
             _invasionClans = invasionClans;
@@ -102,6 +104,7 @@ namespace CustomSpawns.Invasions.Adapters
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, ScheduleReinforcements);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, UnloadFoodConvoys);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, UpdateCapitalObjectivesDaily);
+            _invasionLossDiagnostics.RegisterEvents();
         }
 
         public void ConfigureCapitalObjectives(
@@ -204,6 +207,7 @@ namespace CustomSpawns.Invasions.Adapters
         private void InitializeOnFirstCampaignTick()
         {
             Initialize();
+            _invasionLossDiagnostics.ObserveParties("load");
 
             if (!_reconcileCapitalObjectivesOnFirstCampaignTick)
             {
@@ -380,6 +384,7 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionReinforcementArrivals.SendDue();
             _invasionLordWarbands.RefillAtCapitals();
             _invasionReinforcementArrivals.LogStrength("daily");
+            _invasionLossDiagnostics.ObserveParties("daily");
         }
 
         private void OnSettlementEntered(MobileParty? party, Settlement settlement, Hero? hero)
