@@ -12,6 +12,7 @@ namespace CustomSpawns.Invasions.Adapters
     {
         private readonly IInvasionCapitalObjectiveQuery _invasionCapitalObjectiveQuery;
         private readonly InvasionCapitalOrderMapping _invasionCapitalOrderMapping = new();
+        private readonly BannerlordCapitalObjectivePartyEligibility _partyEligibility = new();
 
         protected InvasionCapitalOrder(IInvasionCapitalObjectiveQuery invasionCapitalObjectiveQuery)
         {
@@ -94,12 +95,11 @@ namespace CustomSpawns.Invasions.Adapters
 
         protected virtual bool IsTargetingPort(MobileParty party, Settlement target) => false;
 
-        private static bool IsEligible(MobileParty party)
+        private bool IsEligible(MobileParty party)
         {
-            return party.IsActive && !party.IsMainParty && party.IsLordParty && !party.IsDisbanding &&
-                   party.MapEvent == null && party.CurrentSettlement?.SiegeEvent == null &&
-                   party.MapFaction != null &&
-                   (party.Army == null || party.Army.LeaderParty == party);
+            return party.IsActive && !party.IsMainParty && _partyEligibility.CanCommand(party) &&
+                   !party.IsDisbanding && party.MapEvent == null &&
+                   party.CurrentSettlement?.SiegeEvent == null && party.MapFaction != null;
         }
     }
 }

@@ -23,6 +23,7 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly IMapPathQuery _mapPathQuery;
         private readonly InvasionCoastalTownResolver _coastalTownResolver;
         private readonly BannerlordCapitalObjectiveArmy _capitalObjectiveArmy;
+        private readonly BannerlordCapitalObjectivePartyEligibility _partyEligibility = new();
 
         public BannerlordInvasionCapitalObjectiveWorld(InvasionState state,
             IInvasionCapitalRepository invasionCapitals, IMapPathQuery mapPathQuery,
@@ -294,12 +295,11 @@ namespace CustomSpawns.Invasions.Adapters
             : MobileParty.All.FirstOrDefault(party =>
                 string.Equals(party.StringId, partyId, StringComparison.Ordinal));
 
-        private static bool IsEligibleCommander(MobileParty party, Kingdom kingdom)
+        private bool IsEligibleCommander(MobileParty party, Kingdom kingdom)
         {
-            return party.IsActive && !party.IsMainParty && party.IsLordParty &&
+            return party.IsActive && !party.IsMainParty && _partyEligibility.CanCommand(party) &&
                    !party.IsDisbanding && party.MapEvent == null &&
-                   party.CurrentSettlement?.SiegeEvent == null && party.MapFaction == kingdom &&
-                   (party.Army == null || party.Army.LeaderParty == party);
+                   party.CurrentSettlement?.SiegeEvent == null && party.MapFaction == kingdom;
         }
 
         private static float GetAssembledStrength(MobileParty commander)
@@ -312,13 +312,13 @@ namespace CustomSpawns.Invasions.Adapters
         private static IEnumerable<MobileParty> GetAssembledParties(MobileParty commander) =>
             commander.AttachedParties.Prepend(commander).Distinct();
 
-        private static float GetFriendlyCapitalStrength(Settlement capital, Kingdom kingdom,
+        private float GetFriendlyCapitalStrength(Settlement capital, Kingdom kingdom,
             ISet<MobileParty> assembledParties)
         {
             float garrison = capital.Town?.GarrisonParty?.Party.CalculateCurrentStrength() ?? 0f;
             float occupants = capital.Parties
                 .Where(party => !assembledParties.Contains(party) && party.IsActive &&
-                                party.IsLordParty && !party.IsVillager &&
+                                _partyEligibility.IsCombatParty(party) && !party.IsVillager &&
                                 !party.IsCaravan && !party.IsGarrison && !party.IsMilitia &&
                                 party.MapFaction == kingdom)
                 .Distinct()

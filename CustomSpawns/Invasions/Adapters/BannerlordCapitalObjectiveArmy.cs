@@ -20,6 +20,7 @@ namespace CustomSpawns.Invasions.Adapters
     public sealed class BannerlordCapitalObjectiveArmy
     {
         private readonly CapitalArmyStagingRules _capitalArmyStagingRules;
+        private readonly BannerlordCapitalObjectivePartyEligibility _partyEligibility = new();
 
         public BannerlordCapitalObjectiveArmy(CapitalArmyStagingRules capitalArmyStagingRules)
         {
@@ -70,7 +71,7 @@ namespace CustomSpawns.Invasions.Adapters
                 return Failure("commander_unavailable", deferred);
             }
 
-            if (!CanLeadArmy(commander))
+            if (!_partyEligibility.CanCommand(commander))
             {
                 return Failure("commander_cannot_create_army", deferred);
             }
@@ -354,7 +355,7 @@ namespace CustomSpawns.Invasions.Adapters
             string? reason = FindDeferralReason(party, invasion, kingdom);
             bool mobilizable = reason == null;
             bool leadsArmy = party.Army?.LeaderParty == party;
-            bool canLeadArmy = mobilizable && CanLeadArmy(party);
+            bool canLeadArmy = mobilizable && _partyEligibility.CanCommand(party);
             float strength = leadsArmy
                 ? party.Army!.Parties.Where(member => member.IsActive)
                     .Sum(member => member.Party.CalculateCurrentStrength())
@@ -363,7 +364,7 @@ namespace CustomSpawns.Invasions.Adapters
                 mobilizable, leadsArmy, canLeadArmy, reason);
         }
 
-        private static string? FindDeferralReason(MobileParty party, Invasion invasion,
+        private string? FindDeferralReason(MobileParty party, Invasion invasion,
             Kingdom kingdom)
         {
             if (!party.IsActive)
@@ -376,9 +377,9 @@ namespace CustomSpawns.Invasions.Adapters
                 return "player_party";
             }
 
-            if (!party.IsLordParty)
+            if (!_partyEligibility.IsCombatParty(party))
             {
-                return "not_lord_party";
+                return "not_combat_party";
             }
 
             if (party.IsDisbanding)
@@ -386,7 +387,8 @@ namespace CustomSpawns.Invasions.Adapters
                 return "disbanding";
             }
 
-            if (party.LeaderHero?.IsActive != true)
+            // Native army-member AI also escorts leaderless custom war parties.
+            if (party.LeaderHero?.IsActive == false || party.IsLordParty && party.LeaderHero == null)
             {
                 return "leader_unavailable";
             }
@@ -435,23 +437,6 @@ namespace CustomSpawns.Invasions.Adapters
             }
 
             return null;
-        }
-
-        private bool CanLeadArmy(MobileParty party)
-        {
-            if (party.LeaderHero?.IsActive != true)
-            {
-                return false;
-            }
-
-            if (party.Army != null)
-            {
-                // Native excludes parties already in armies from CanLordCreateArmy's candidate list.
-                return party.Army.LeaderParty == party;
-            }
-
-            return Campaign.Current.Models.ArmyManagementCalculationModel
-                .CanLordCreateArmy(party, out _);
         }
 
         private static CapitalArmyMobilizationResult Failure(string reason,
