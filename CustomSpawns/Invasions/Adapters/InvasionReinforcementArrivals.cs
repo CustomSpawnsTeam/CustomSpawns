@@ -72,6 +72,45 @@ namespace CustomSpawns.Invasions.Adapters
             }
         }
 
+        public void LogStrength(string cadence)
+        {
+            foreach (Invasion invasion in _invasionState.Invasions)
+            {
+                Clan[] clans = Clan.All.Where(clan => invasion.HoldsClan(clan.StringId)).ToArray();
+
+                if (clans.Length == 0)
+                {
+                    continue;
+                }
+
+                MobileParty[] parties = clans.SelectMany(clan => clan.WarPartyComponents)
+                    .Select(component => component.MobileParty).Where(party => party.IsActive).ToArray();
+                var statistics = new InvasionPartyStatistics(parties.Select(party =>
+                    (party.MemberRoster.TotalManCount, party.MemberRoster.TotalHealthyCount,
+                        party.Party.PartySizeLimit, party.Party.EstimatedStrength)));
+                MobileParty[] garrisons = clans.SelectMany(clan => clan.Fiefs)
+                    .Select(fief => fief.GarrisonParty).Where(party => party != null)
+                    .Select(party => party!).ToArray();
+                double garrisonStrength = garrisons.Sum(party => (double)party.Party.EstimatedStrength);
+                InvasionStrengthBudget budget = GetStrengthBudget(invasion);
+                Kingdom? kingdom = clans.Select(clan => clan.Kingdom).FirstOrDefault(value => value != null);
+                int castles = kingdom?.Fiefs.Count(fief => fief.IsCastle) ??
+                              clans.Sum(clan => clan.Fiefs.Count(fief => fief.IsCastle));
+                Settlement? capital = invasion.CapitalSettlementId == null
+                    ? null
+                    : Settlement.Find(invasion.CapitalSettlementId);
+
+                Logger.Info(FormattableString.Invariant(
+                                $"Invasion strength summary: cadence={cadence} day={CampaignTime.Now.ToDays:0.00} invasion={invasion.ClanId} kingdom={kingdom?.StringId ?? "none"} clans={clans.Length} suspended={invasion.IsSuspended}") +
+                            FormattableString.Invariant(
+                                $" towns={budget.TownsHeld} castles={castles} faction_strength={statistics.Strength + garrisonStrength:0.0} budget_strength={budget.CurrentStrength:0.0} strength_limit={budget.CurrentStrength + budget.Headroom:0.0} headroom={budget.Headroom:0.0}") +
+                            FormattableString.Invariant(
+                                $" field_strength={statistics.Strength:0.0} field_parties={statistics.Count} field_troops={statistics.Men} field_healthy={statistics.Healthy} party_size_avg={statistics.AverageSize:0.0} party_size_min={statistics.MinimumSize} party_size_max={statistics.MaximumSize} party_limit_avg={statistics.AverageLimit:0.0} party_fill_percent={statistics.FillPercent:0.0}") +
+                            FormattableString.Invariant(
+                                $" living_lords={_invasionLords.CountLivingLords(invasion)} garrison_troops={garrisons.Sum(party => party.MemberRoster.TotalManCount)} garrison_strength={garrisonStrength:0.0} capital={invasion.CapitalSettlementId ?? "none"} capital_held={_invasionState.HoldsCapital(invasion)} capital_besieged={capital?.IsUnderSiege == true} capital_garrison={capital?.Town?.GarrisonParty?.MemberRoster.TotalManCount ?? 0} capital_garrison_floor={GetConfiguration(invasion)?.MinimumCapitalGarrison ?? 0}"));
+            }
+        }
+
         private static string SkipReason(InvasionReinforcementOutcome outcome) =>
             outcome == InvasionReinforcementOutcome.CapitalUnavailable ? "no_held_capital_to_reinforce" :
             outcome == InvasionReinforcementOutcome.FactionStrengthReached ? "faction_strength" :
@@ -93,7 +132,7 @@ namespace CustomSpawns.Invasions.Adapters
         }
 
         // Read live for every draw, so a wave just banked counts against the next rule of the same day.
-        InvasionStrengthBudget IInvasionReinforcementQuery.GetStrengthBudget(Invasion invasion)
+        public InvasionStrengthBudget GetStrengthBudget(Invasion invasion)
         {
             InvasionData? configuration = GetConfiguration(invasion);
             double currentStrength = invasion.MeasureReinforcementStrength(Clan.All.Select(clan =>

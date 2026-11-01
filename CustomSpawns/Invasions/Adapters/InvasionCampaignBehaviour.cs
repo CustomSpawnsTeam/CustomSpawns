@@ -212,6 +212,7 @@ namespace CustomSpawns.Invasions.Adapters
 
             _reconcileCapitalObjectivesOnFirstCampaignTick = false;
             ReconcileCapitalObjectives("load");
+            _invasionReinforcementArrivals.LogStrength("load");
         }
 
         private void RegisterParty(MobileParty party, CsPartyData data) => _invasionMembership.Register(party, data);
@@ -378,6 +379,7 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionMembership.Reconcile();
             _invasionReinforcementArrivals.SendDue();
             _invasionLordWarbands.RefillAtCapitals();
+            _invasionReinforcementArrivals.LogStrength("daily");
         }
 
         private void OnSettlementEntered(MobileParty? party, Settlement settlement, Hero? hero)
