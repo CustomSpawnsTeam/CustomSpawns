@@ -21,7 +21,7 @@ description: >
 - CLR exception breakpoints: `.rider-debugger-settings` beside `CustomSpawns.sln`,
   enforced by the rider-clr-exception-override plugin.
 - Campaign evaluation anchor:
-  `CustomSpawns/Diplomacy/CustomSpawnsDiplomacyBehaviour.cs` line 45, inside
+  `CustomSpawns/Diplomacy/CustomSpawnsDiplomacyBehaviour.cs` line 48, inside
   `OnTick(float deltaTime)`. It requires an unpaused campaign map. Use one-shot
   evaluation breakpoints; never logging breakpoints. Remove your breakpoint before resuming.
 
@@ -42,8 +42,10 @@ description: >
 - Mod log: `Logs/<YYYY-MM-DD>.log`, relative to the CustomSpawns module folder.
 - Engine mod log:
   `%USERPROFILE%/Documents/Mount and Blade II Bannerlord/Configs/ModLogs/default<YYYYMMDD>.log`.
-- Use the normal Bannerlord sandbox/story campaign menus; CustomSpawns has no
-  `DADGNewGame` option. Load saves through the game menu.
+- Start every new playtest campaign in **Sandbox** mode (main menu > Campaign >
+  Sandbox), never Story Mode: story quests and the story kingdoms' scripted
+  diplomacy skew wars and invasions. CustomSpawns has no `DADGNewGame` option.
+  Load saves through the game menu.
 - Discover available console commands before use. CustomSpawns defines
   `campaign.cs_spawn`, `campaign.cs_declare_war`, `campaign.cs_declare_peace` and
   `campaign.cs_clan_join_kingdom_as_mercenary`. Verify the changed object after a command.
