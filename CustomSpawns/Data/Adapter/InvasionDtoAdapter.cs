@@ -16,7 +16,12 @@ namespace CustomSpawns.Data.Adapter
             return new InvasionData(config.RequiresFirstCoastalConquest, rules, config.MaxBankedTroops,
                 config.BankedTroopsPerTownHeld, config.SupplyLine, config.MinimumCapitalGarrison,
                 config.Supplies.FoodPerConvoy, config.Supplies.IntervalInDays, config.MaxLords,
-                config.LordsPerTownHeld);
+                config.LordsPerTownHeld, config.MinimumFiefGarrison,
+                config.Conquest == null
+                    ? null
+                    : new InvasionConquestData(config.Conquest.ThreatPerFiefHeld,
+                        config.Conquest.OpenFrontIntervalInDays, config.Conquest.TargetSiegePreference),
+                config.LordPartySizeBonus);
         }
     }
 }

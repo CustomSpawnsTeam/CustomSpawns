@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using CustomSpawns.CampaignData.Implementations;
+using CustomSpawns.Invasions;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.BarterSystem;
@@ -17,10 +18,16 @@ namespace CustomSpawns.Diplomacy
         private readonly CustomSpawnsDiplomacyProvider _customSpawnsDiplomacyProvider;
         private readonly ForceNoKingdomScoreProvider _forceNoKingdomScoreProvider;
         private readonly DailyLogger _dailyLogger;
+        private readonly IFactionWarStanceProvider _factionWarStanceProvider;
 
-        public CustomSpawnsDiplomacyModel(DiplomacyModel diplomacyModel, CustomSpawnsDiplomacyProvider customSpawnsDiplomacyProvider, DailyLogger dailyLogger, NonMercenaryCustomSpawnsFactionsProvider nonMercenaryCustomSpawnsFactionsProvider)
+        // What vanilla answers for a war it rules out, such as one against a realm too far away to reach.
+        private const float RuledOutWarScore = -1000000f;
+
+        public CustomSpawnsDiplomacyModel(DiplomacyModel diplomacyModel, CustomSpawnsDiplomacyProvider customSpawnsDiplomacyProvider, DailyLogger dailyLogger, NonMercenaryCustomSpawnsFactionsProvider nonMercenaryCustomSpawnsFactionsProvider,
+            IFactionWarStanceProvider factionWarStanceProvider)
         {
             _diplomacyModel = diplomacyModel;
+            _factionWarStanceProvider = factionWarStanceProvider;
             _customSpawnsDiplomacyProvider = customSpawnsDiplomacyProvider;
             _dailyLogger = dailyLogger;
             _forceNoKingdomScoreProvider = new ForceNoKingdomScoreProvider(nonMercenaryCustomSpawnsFactionsProvider);
@@ -106,17 +113,26 @@ namespace CustomSpawns.Diplomacy
             out TextObject reason, bool includeReason = false)
         {
             return _diplomacyModel.GetScoreOfDeclaringPeaceForClan(factionDeclaresPeace, factionDeclaredPeace,
-                evaluatingClan, out reason, includeReason);
+                evaluatingClan, out reason, includeReason) -
+                _factionWarStanceProvider.FindThreat(factionDeclaresPeace, factionDeclaredPeace);
         }
 
+        // A kingdom does not make peace with an invader it fears as readily as it went to war with it.
         public override float GetScoreOfDeclaringPeace(IFaction factionDeclaresPeace, IFaction factionDeclaredPeace)
         {
-            return _diplomacyModel.GetScoreOfDeclaringPeace(factionDeclaresPeace, factionDeclaredPeace);
+            return _diplomacyModel.GetScoreOfDeclaringPeace(factionDeclaresPeace, factionDeclaredPeace) -
+                   _factionWarStanceProvider.FindThreat(factionDeclaresPeace, factionDeclaredPeace);
         }
 
         public override bool IsPeaceSuitable(IFaction factionDeclaresPeace, IFaction factionDeclaredPeace)
         {
-            if (_customSpawnsDiplomacyProvider.ShouldBeAtPeace(factionDeclaresPeace, factionDeclaredPeace))
+            InvasionWarStance stance = _factionWarStanceProvider.FindStance(factionDeclaresPeace, factionDeclaredPeace);
+            if (stance == InvasionWarStance.War)
+            {
+                return false;
+            }
+
+            if (stance == InvasionWarStance.Policy && _customSpawnsDiplomacyProvider.ShouldBeAtPeace(factionDeclaresPeace, factionDeclaredPeace))
             {
                 _dailyLogger.Info("Forcing " + factionDeclaresPeace.Name + " and " + factionDeclaredPeace.Name + " to make peace due to diplomacy data");
                 return true;
@@ -128,7 +144,13 @@ namespace CustomSpawns.Diplomacy
         public override float GetScoreOfDeclaringWar(IFaction factionDeclaresWar, IFaction factionDeclaredWar, Clan evaluatingClan,
             out TextObject reason, bool includeReason = false)
         {
-            return _diplomacyModel.GetScoreOfDeclaringWar(factionDeclaresWar, factionDeclaredWar, evaluatingClan, out reason,  includeReason);
+            float score = _diplomacyModel.GetScoreOfDeclaringWar(factionDeclaresWar, factionDeclaredWar,
+                evaluatingClan, out reason, includeReason);
+
+            // The threat never brings a kingdom to a war vanilla rules out, so only an invader's neighbours feel it.
+            return score <= RuledOutWarScore
+                ? score
+                : score + _factionWarStanceProvider.FindThreat(factionDeclaresWar, factionDeclaredWar);
         }
 
         public override ExplainedNumber GetWarProgressScore(IFaction factionDeclaresWar, IFaction factionDeclaredWar,
@@ -309,6 +331,12 @@ namespace CustomSpawns.Diplomacy
 
         public override bool IsAtConstantWar(IFaction attacker, IFaction enemy)
         {
+            InvasionWarStance stance = _factionWarStanceProvider.FindStance(attacker, enemy);
+            if (stance != InvasionWarStance.Policy)
+            {
+                return stance == InvasionWarStance.War;
+            }
+
             if (_customSpawnsDiplomacyProvider.ShouldBeAtConstantWar(attacker, enemy))
             {
                 return true;

@@ -38,6 +38,20 @@ namespace CustomSpawns.Data.Model
         [XmlElement("MinimumCapitalGarrison")]
         public int MinimumCapitalGarrison { get; set; }
 
+        // How many men every other fief the invasion holds is garrisoned with out of the capital's bank. Its
+        // lords take no new fief while any of them stands below it. Left out, fiefs keep what they are left.
+        [XmlElement("MinimumFiefGarrison")]
+        public int MinimumFiefGarrison { get; set; }
+
+        // How many more men each of the invasion's lords may lead than vanilla allows him. Left out, vanilla's
+        // party size limit stands.
+        [XmlElement("LordPartySizeBonus")]
+        public int LordPartySizeBonus { get; set; }
+
+        // Who the invasion makes war on. Left out, the diplomacy configuration alone decides.
+        [XmlElement("Conquest")]
+        public InvasionConquestConfig? Conquest { get; set; }
+
         // The food convoys the invasion runs into its capital, on their own cadence.
         [XmlElement("Supplies")]
         public InvasionSuppliesConfig Supplies { get; set; } = new();
@@ -56,6 +70,28 @@ namespace CustomSpawns.Data.Model
         // How often a convoy arrives.
         [XmlElement("IntervalInDays")]
         public float IntervalInDays { get; set; } = 7f;
+    }
+
+    /**
+     * The invasion stays at war with the kingdom it first takes a fief from. Every other kingdom makes war
+     * and peace with it as with any realm, but the more fiefs it holds the more its neighbours fear it.
+     */
+    public sealed class InvasionConquestConfig
+    {
+        // The share of the invasion's own worth each fief it holds adds to its neighbours' will to fight it.
+        // Kingdoms go to war at about one sixth of that worth. Left out, nobody fears it more than vanilla does.
+        [XmlElement("ThreatPerFiefHeld")]
+        public float ThreatPerFiefHeld { get; set; }
+
+        // How often, at most, the invasion declares war on the kingdom whose fief lies nearest when that is not
+        // a kingdom it already fights. Left out, it only ever fights the wars others bring to it.
+        [XmlElement("OpenFrontIntervalInDays")]
+        public float OpenFrontIntervalInDays { get; set; }
+
+        // How many times more the invasion's lords want to besiege a fief of the kingdom they conquer than any
+        // other, until it falls. Left out, or at most one, they choose their sieges as vanilla lords do.
+        [XmlElement("TargetSiegePreference")]
+        public float TargetSiegePreference { get; set; }
     }
 
     public sealed class InvasionReinforcementsConfig
@@ -117,6 +153,16 @@ namespace CustomSpawns.Data.Model
             ValidateNonNegative("Invasion MaxLords", config.MaxLords);
             ValidateNonNegative("Invasion LordsPerTownHeld", config.LordsPerTownHeld);
             ValidateNonNegative("Invasion MinimumCapitalGarrison", config.MinimumCapitalGarrison);
+            ValidateNonNegative("Invasion MinimumFiefGarrison", config.MinimumFiefGarrison);
+            ValidateNonNegative("Invasion LordPartySizeBonus", config.LordPartySizeBonus);
+            if (config.Conquest != null)
+            {
+                ValidateNonNegativeFinite("Invasion Conquest ThreatPerFiefHeld", config.Conquest.ThreatPerFiefHeld);
+                ValidateNonNegativeFinite("Invasion Conquest OpenFrontIntervalInDays",
+                    config.Conquest.OpenFrontIntervalInDays);
+                ValidateNonNegativeFinite("Invasion Conquest TargetSiegePreference",
+                    config.Conquest.TargetSiegePreference);
+            }
             ValidateNonNegative("Invasion Supplies FoodPerConvoy", config.Supplies.FoodPerConvoy);
             // Convoys are looked at once a day, so a shorter interval than that would only lie about itself.
             if (config.Supplies.FoodPerConvoy > 0 &&

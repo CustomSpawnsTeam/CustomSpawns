@@ -84,31 +84,31 @@ namespace CustomSpawns.Invasions.Adapters
 
         public Clan? FoundClan(Invasion invasion, Settlement home)
         {
-            Clan? founder = Clan.FindFirst(candidate => candidate.StringId == invasion.ClanId);
-            Kingdom? kingdom = founder?.Kingdom;
-            CharacterObject? lordTemplate = founder?.Culture?.LordTemplates
+            Clan? leadingClan = invasion.FindLeadingClan();
+            Kingdom? kingdom = leadingClan?.Kingdom;
+            CharacterObject? lordTemplate = leadingClan?.Culture?.LordTemplates
                 .FirstOrDefault(character => character.Occupation == Occupation.Lord);
 
-            if (founder == null || kingdom == null || lordTemplate == null)
+            if (leadingClan == null || kingdom == null || lordTemplate == null)
             {
                 return null;
             }
 
             // Named before it is created: CreateClan registers the clan in Clan.All, and the generator reads
             // every clan's name there, so a clan registered without one throws.
-            TextObject name = NameGenerator.Current.GenerateClanName(founder.Culture, home);
-            Clan clan = Clan.CreateClan(founder.StringId + "_" + invasion.ClanIds.Count);
+            TextObject name = NameGenerator.Current.GenerateClanName(leadingClan.Culture, home);
+            Clan clan = Clan.CreateClan(invasion.ClanId + "_" + invasion.ClanIds.Count);
             clan.ChangeClanName(name, name);
-            clan.Culture = founder.Culture;
+            clan.Culture = leadingClan.Culture;
             clan.Banner = Banner.CreateRandomClanBanner();
-            clan.Color = founder.Color;
-            clan.Color2 = founder.Color2;
+            clan.Color = leadingClan.Color;
+            clan.Color2 = leadingClan.Color2;
             clan.IsNoble = true;
             clan.SetInitialHomeSettlement(home);
             clan.CalculateMidSettlement();
 
             // Tier has no public setter; renown is the way in, and it carries the same war party limit.
-            clan.AddRenown(Campaign.Current.Models.ClanTierModel.GetRequiredRenownForTier(founder.Tier), false);
+            clan.AddRenown(Campaign.Current.Models.ClanTierModel.GetRequiredRenownForTier(leadingClan.Tier), false);
 
             Hero leader = HeroCreator.CreateSpecialHero(lordTemplate, home, clan, null, MBRandom.RandomInt(18, 36));
             leader.ChangeState(Hero.CharacterStates.Active);

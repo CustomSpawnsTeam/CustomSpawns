@@ -25,10 +25,13 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly InvasionReinforcements _invasionReinforcements;
         private readonly InvasionTroopBanking _invasionTroopBanking;
         private readonly IInvasionLords _invasionLords;
+        private readonly IInvasionConquestTargets _invasionConquestTargets;
 
         public InvasionReinforcementArrivals(InvasionState state, SpawnDao spawns, InvasionSupplyBases supplyBases,
-            InvasionTroopBanking troopBanking, IInvasionLords invasionLords)
+            InvasionTroopBanking troopBanking, IInvasionLords invasionLords,
+            IInvasionConquestTargets invasionConquestTargets)
         {
+            _invasionConquestTargets = invasionConquestTargets;
             _invasionState = state;
             _spawnDao = spawns;
             _invasionSupplyBases = supplyBases;
@@ -101,7 +104,7 @@ namespace CustomSpawns.Invasions.Adapters
                 Logger.Info(FormattableString.Invariant(
                                 $"Invasion strength summary: cadence={cadence} day={CampaignTime.Now.ToDays:0.00} invasion={invasion.ClanId} kingdom={kingdom?.StringId ?? "none"} clans={clans.Length} suspended={invasion.IsSuspended}") +
                             FormattableString.Invariant(
-                                $" towns={bankLimit.TownsHeld} castles={castles} faction_strength={statistics.Strength + garrisonStrength:0.0} bank_troops={bankLimit.BankedTroops} bank_limit={bankLimit.Limit} headroom={bankLimit.Headroom}") +
+                                $" towns={bankLimit.TownsHeld} castles={castles} faction_strength={statistics.Strength + garrisonStrength:0.0} bank_troops={bankLimit.BankedTroops} bank_limit={bankLimit.Limit} headroom={bankLimit.Headroom} conquest_target_strength={_invasionConquestTargets.MeasureConquestTargetStrength(invasion):0.0}") +
                             FormattableString.Invariant(
                                 $" field_strength={statistics.Strength:0.0} field_parties={statistics.Count} field_troops={statistics.Men} field_healthy={statistics.Healthy} party_size_avg={statistics.AverageSize:0.0} party_size_min={statistics.MinimumSize} party_size_max={statistics.MaximumSize} party_limit_avg={statistics.AverageLimit:0.0} party_fill_percent={statistics.FillPercent:0.0}") +
                             FormattableString.Invariant(
@@ -120,7 +123,7 @@ namespace CustomSpawns.Invasions.Adapters
         IReadOnlyList<InvasionReinforcementRule>? IInvasionReinforcementQuery.GetRules(Invasion invasion)
         {
             InvasionData? configuration = GetConfiguration(invasion);
-            Clan? clan = Clan.FindFirst(candidate => candidate.StringId == invasion.ClanId);
+            Clan? clan = invasion.FindLeadingClan();
 
             return configuration == null || clan?.IsEliminated != false
                 ? null

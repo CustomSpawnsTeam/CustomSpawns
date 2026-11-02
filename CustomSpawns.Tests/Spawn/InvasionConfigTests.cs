@@ -52,7 +52,7 @@ namespace CustomSpawns.Tests.Spawn
         public void Adapt_ReadsTheGarrisonFloorAndTheLordsEachWaveBrings()
         {
             const string invasion = "<Invasion><MinimumCapitalGarrison>400</MinimumCapitalGarrison>" +
-                                    "<Reinforcements><Rule><Id>infantry</Id>" +
+                                    "<LordPartySizeBonus>50</LordPartySizeBonus><Reinforcements><Rule><Id>infantry</Id>" +
                                     "<PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId>" +
                                     "<LordsPerWave>3</LordsPerWave></Rule></Reinforcements></Invasion>";
             Spawns spawns = Read("<RegularBanditDailySpawnData party_template=\"PartyTemplate.invasion\">" + invasion +
@@ -64,6 +64,8 @@ namespace CustomSpawns.Tests.Spawn
             {
                 Assert.That(errors, Is.Empty);
                 Assert.That(data.MinimumCapitalGarrison, Is.EqualTo(400));
+                Assert.That(data.LordPartySizeBonus, Is.EqualTo(50));
+                Assert.That(AdaptValidConfig().LordPartySizeBonus, Is.EqualTo(0));
                 Assert.That(data.ReinforcementRules.Single().LordsPerWave, Is.EqualTo(3));
                 // An invasion that mentions neither keeps no floor and brings troops only.
                 Assert.That(AdaptValidConfig().MinimumCapitalGarrison, Is.EqualTo(0));
@@ -103,10 +105,13 @@ namespace CustomSpawns.Tests.Spawn
 
         [TestCase(-1, 0, "MinimumCapitalGarrison")]
         [TestCase(0, -1, "LordsPerWave")]
-        public void Adapt_RejectsNegativeGarrisonAndLordCounts(int minimumCapitalGarrison, int lordsPerWave, string expected)
+        [TestCase(0, 0, "LordPartySizeBonus", -1)]
+        public void Adapt_RejectsNegativeGarrisonAndLordCounts(int minimumCapitalGarrison, int lordsPerWave,
+            string expected, int lordPartySizeBonus = 0)
         {
             InvasionConfig config = ValidConfig();
             config.MinimumCapitalGarrison = minimumCapitalGarrison;
+            config.LordPartySizeBonus = lordPartySizeBonus;
             config.Reinforcements.Rules.Single().LordsPerWave = lordsPerWave;
 
             ArgumentException error = Assert.Throws<ArgumentException>(() => InvasionDtoAdapter.Adapt(config))!;
@@ -226,6 +231,59 @@ namespace CustomSpawns.Tests.Spawn
             ArgumentException error = Assert.Throws<ArgumentException>(() => InvasionDtoAdapter.Adapt(config))!;
 
             Assert.That(error.Message, Does.Contain("Id"));
+        }
+
+        [Test]
+        public void Adapt_ReadsTheFiefGarrisonAndTheConquest()
+        {
+            const string invasion = "<Invasion><MinimumFiefGarrison>250</MinimumFiefGarrison>" +
+                                    "<Conquest><ThreatPerFiefHeld>0.05</ThreatPerFiefHeld>" +
+                                    "<OpenFrontIntervalInDays>30</OpenFrontIntervalInDays>" +
+                                    "<TargetSiegePreference>4</TargetSiegePreference></Conquest>" +
+                                    "<Reinforcements><Rule><Id>infantry</Id>" +
+                                    "<PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId>" +
+                                    "</Rule></Reinforcements></Invasion>";
+            Spawns spawns = Read("<RegularBanditDailySpawnData party_template=\"PartyTemplate.invasion\">" + invasion +
+                                 "</RegularBanditDailySpawnData>", out List<System.Exception> errors);
+
+            InvasionData data = InvasionDtoAdapter.Adapt(spawns.AllSpawns.Single().Invasion!);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(errors, Is.Empty);
+                Assert.That(data.MinimumFiefGarrison, Is.EqualTo(250));
+                Assert.That(data.Conquest!.ThreatPerFiefHeld, Is.EqualTo(0.05f));
+                Assert.That(data.Conquest.OpenFrontIntervalInDays, Is.EqualTo(30f));
+                Assert.That(data.Conquest.TargetSiegePreference, Is.EqualTo(4f));
+            });
+        }
+
+        [Test]
+        public void Adapt_WithoutAConquestLeavesWarsToDiplomacy()
+        {
+            Assert.That(InvasionDtoAdapter.Adapt(ValidConfig()).Conquest, Is.Null);
+        }
+
+        [TestCase(-1, 0f, 0f, 0f, "MinimumFiefGarrison")]
+        [TestCase(0, -1f, 0f, 0f, "ThreatPerFiefHeld")]
+        [TestCase(0, float.NaN, 0f, 0f, "ThreatPerFiefHeld")]
+        [TestCase(0, 0f, -1f, 0f, "OpenFrontIntervalInDays")]
+        [TestCase(0, 0f, 0f, -1f, "TargetSiegePreference")]
+        [TestCase(0, 0f, 0f, float.PositiveInfinity, "TargetSiegePreference")]
+        public void Adapt_RejectsNegativeConsolidationAndConquest(int minimumFiefGarrison, float threatPerFiefHeld,
+            float openFrontIntervalInDays, float targetSiegePreference, string expected)
+        {
+            InvasionConfig config = ValidConfig();
+            config.MinimumFiefGarrison = minimumFiefGarrison;
+            config.Conquest = new InvasionConquestConfig
+            {
+                ThreatPerFiefHeld = threatPerFiefHeld, OpenFrontIntervalInDays = openFrontIntervalInDays,
+                TargetSiegePreference = targetSiegePreference
+            };
+
+            ArgumentException error = Assert.Throws<ArgumentException>(() => InvasionDtoAdapter.Adapt(config))!;
+
+            Assert.That(error.Message, Does.Contain(expected));
         }
 
         [Test]

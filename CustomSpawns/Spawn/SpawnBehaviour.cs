@@ -29,6 +29,7 @@ namespace CustomSpawns.Spawn
         private readonly DailyLogger _dailyLogger;
         private readonly ModDebug _modDebug;
         private readonly Func<CsPartyData, bool> _hasPersistentInvasionGroup;
+        private readonly Func<string, bool> _isInvasionUnderway;
         
         #region Data Management
 
@@ -45,7 +46,8 @@ namespace CustomSpawns.Spawn
             DailyLogger dailyLogger,
             ModDebug modDebug,
             PartySizeCalculatedSubject partySizeCalculatedSubject,
-            Func<CsPartyData, bool> hasPersistentInvasion
+            Func<CsPartyData, bool> hasPersistentInvasion,
+            Func<string, bool> isInvasionUnderway
         )
         {
             _spawnGroupService = spawnGroupService;
@@ -59,6 +61,7 @@ namespace CustomSpawns.Spawn
             _configLoader = configLoader;
             _dailyLogger = dailyLogger;
             _hasPersistentInvasionGroup = hasPersistentInvasion;
+            _isInvasionUnderway = isInvasionUnderway;
             saveInitialiser.RunCallbackOnFirstCampaignTick(OnSaveStart);
             // Set the party size of a custom party to the size of the actual spawned party
             // This cancels the speed malus that is applied to non-lordly parties that are too big
@@ -214,6 +217,12 @@ namespace CustomSpawns.Spawn
                 IList<SpawnDto> spawns = _spawnDao.FindAll();
                 foreach (SpawnDto spawn in spawns)
                 {
+                    // An invasion's reinforcements come through its own capital, not a second landing beside it.
+                    if (spawn.Invasion != null && _isInvasionUnderway(spawn.PartyTemplate.StringId))
+                    {
+                        continue;
+                    }
+
                     for (int i = 0; i < spawn.RepeatSpawnRolls; i++)
                     {
                         // MaximumConcurrentPrimaries is what this test keeps on the map.

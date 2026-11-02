@@ -12,6 +12,7 @@ namespace CustomSpawns.Diplomacy
         private readonly CustomSpawnsDiplomacyReconciliationProvider _reconciliationProvider;
         private readonly ForceNoKingdomMembershipProvider _membershipProvider;
         private readonly DailyLogger _dailyLogger;
+        private readonly IFactionWarStanceProvider _factionWarStanceProvider;
         private readonly ISet<string> _reportedMissingClanIds = new HashSet<string>();
         private readonly DiplomacyReconciliationScheduler _reconciliationScheduler = new DiplomacyReconciliationScheduler();
         private bool _hasInitialized;
@@ -21,9 +22,11 @@ namespace CustomSpawns.Diplomacy
             CustomSpawnsDiplomacyFactionsProvider factionsProvider,
             CustomSpawnsClanDiplomacyProvider clanDiplomacyProvider,
             NonMercenaryCustomSpawnsFactionsProvider forceNoKingdomProvider,
-            DailyLogger dailyLogger)
+            DailyLogger dailyLogger,
+            IFactionWarStanceProvider factionWarStanceProvider)
         {
             _factionsProvider = factionsProvider;
+            _factionWarStanceProvider = factionWarStanceProvider;
             _reconciliationProvider = new CustomSpawnsDiplomacyReconciliationProvider(clanDiplomacyProvider);
             _membershipProvider = new ForceNoKingdomMembershipProvider(forceNoKingdomProvider);
             _dailyLogger = dailyLogger;
@@ -161,7 +164,9 @@ namespace CustomSpawns.Diplomacy
         {
             foreach (KeyValuePair<FactionPair, List<DiplomacyReconciliationAction>> entry in actionsByFactionPair)
             {
-                DiplomacyReconciliationAction action = CustomSpawnsDiplomacyReconciliationProvider.Aggregate(entry.Value, out bool hasConflict);
+                DiplomacyReconciliationAction action = _reconciliationProvider.ApplyStance(
+                    CustomSpawnsDiplomacyReconciliationProvider.Aggregate(entry.Value, out bool hasConflict),
+                    _factionWarStanceProvider.FindStance(entry.Key.First, entry.Key.Second));
                 if (hasConflict)
                 {
                     _dailyLogger.Info("Conflicting diplomacy policies for " + entry.Key.First.Name + " and " +

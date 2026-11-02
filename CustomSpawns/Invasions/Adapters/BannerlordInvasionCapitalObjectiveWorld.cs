@@ -23,13 +23,16 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly IMapPathQuery _mapPathQuery;
         private readonly InvasionCoastalTownResolver _coastalTownResolver;
         private readonly BannerlordCapitalObjectiveArmy _capitalObjectiveArmy;
+        private readonly IInvasionConquestTargets _invasionConquestTargets;
         private readonly BannerlordCapitalObjectivePartyEligibility _partyEligibility = new();
 
         public BannerlordInvasionCapitalObjectiveWorld(InvasionState state,
             IInvasionCapitalRepository invasionCapitals, IMapPathQuery mapPathQuery,
             InvasionCoastalTownResolver coastalTownResolver,
-            BannerlordCapitalObjectiveArmy capitalObjectiveArmy)
+            BannerlordCapitalObjectiveArmy capitalObjectiveArmy, IInvasionConquestTargets invasionConquestTargets)
         {
+            _invasionConquestTargets = invasionConquestTargets ??
+                                       throw new ArgumentNullException(nameof(invasionConquestTargets));
             _state = state ?? throw new ArgumentNullException(nameof(state));
             _invasionCapitals = invasionCapitals ??
                                 throw new ArgumentNullException(nameof(invasionCapitals));
@@ -128,6 +131,8 @@ namespace CustomSpawns.Invasions.Adapters
                 return Array.Empty<SiegeTargetFacts>();
             }
 
+            // The kingdom being conquered comes first: the invasion finishes it before it turns on anyone else.
+            string? conquestTargetKingdomId = _invasionConquestTargets.FindConquestTargetKingdomId(invasion);
             var facts = new List<SiegeTargetFacts>();
             foreach (Settlement settlement in Settlement.All.Where(candidate =>
                          candidate.IsTown || candidate.IsCastle))
@@ -146,7 +151,8 @@ namespace CustomSpawns.Invasions.Adapters
                 facts.Add(new SiegeTargetFacts(settlement.StringId, kind, settlement.IsActive,
                     hostile, compatibleSiege, strategic, reachable,
                     commander.Position.Distance(settlement.GatePosition),
-                    GetSettlementDefenderStrength(commander, settlement), nearbyHostiles));
+                    GetSettlementDefenderStrength(commander, settlement), nearbyHostiles,
+                    conquestTargetKingdomId != null && settlement.MapFaction?.StringId == conquestTargetKingdomId));
             }
 
             return facts;
@@ -292,7 +298,7 @@ namespace CustomSpawns.Invasions.Adapters
 
         private static Kingdom? FindKingdom(Invasion? invasion) => invasion == null
             ? null
-            : Clan.FindFirst(clan => clan.StringId == invasion.ClanId)?.Kingdom;
+            : invasion.FindLeadingClan()?.Kingdom;
 
         private static MobileParty? FindParty(string? partyId) => partyId == null
             ? null

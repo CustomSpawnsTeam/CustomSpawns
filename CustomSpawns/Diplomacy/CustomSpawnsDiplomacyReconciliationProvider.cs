@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using CustomSpawns.Invasions;
 using TaleWorlds.CampaignSystem;
 
 namespace CustomSpawns.Diplomacy
@@ -45,6 +46,18 @@ namespace CustomSpawns.Diplomacy
             return _clanDiplomacyProvider.IsWarDeclarationPossible(policyClan, targetClan)
                 ? DiplomacyReconciliationAction.DeclareWar
                 : DiplomacyReconciliationAction.None;
+        }
+
+        // A conquest's stance outranks the configured policy: its target stays at war, and other kingdoms decide.
+        public DiplomacyReconciliationAction ApplyStance(DiplomacyReconciliationAction action,
+            InvasionWarStance stance)
+        {
+            if (stance == InvasionWarStance.War)
+            {
+                return DiplomacyReconciliationAction.DeclareWar;
+            }
+
+            return stance == InvasionWarStance.Open ? DiplomacyReconciliationAction.None : action;
         }
 
         public static DiplomacyReconciliationAction Aggregate(IList<DiplomacyReconciliationAction> actions,

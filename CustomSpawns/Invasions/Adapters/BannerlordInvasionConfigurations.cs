@@ -6,7 +6,7 @@ using TaleWorlds.CampaignSystem.Party;
 
 namespace CustomSpawns.Invasions.Adapters
 {
-    public sealed class BannerlordInvasionConfigurations : IInvasionConfigurations
+    public sealed class BannerlordInvasionConfigurations : IInvasionConfigurations, IInvasionLordPartySizes
     {
         private readonly SpawnDao _spawnDao;
 
@@ -34,6 +34,23 @@ namespace CustomSpawns.Invasions.Adapters
 
         public int? FindMinimumCapitalGarrison(string spawnTemplateId) =>
             Find(spawnTemplateId)?.MinimumCapitalGarrison;
+
+        public int FindMinimumFiefGarrison(string spawnTemplateId) =>
+            Find(spawnTemplateId)?.MinimumFiefGarrison ?? 0;
+
+        public int FindLordPartySizeBonus(string spawnTemplateId) =>
+            Find(spawnTemplateId)?.LordPartySizeBonus ?? 0;
+
+        // Null when the invasion leaves its wars to the diplomacy configuration.
+        public InvasionConquestRules? FindConquestRules(string spawnTemplateId)
+        {
+            InvasionConquestData? conquest = Find(spawnTemplateId)?.Conquest;
+
+            return conquest == null
+                ? null
+                : new InvasionConquestRules(conquest.ThreatPerFiefHeld, conquest.OpenFrontIntervalInDays,
+                    conquest.TargetSiegePreference);
+        }
 
         private InvasionData? Find(string spawnTemplateId) =>
             _spawnDao.FindByPartyTemplateId(spawnTemplateId)?.Invasion;

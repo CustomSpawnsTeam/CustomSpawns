@@ -42,7 +42,7 @@ namespace CustomSpawns.Invasions.Adapters
 
         public static Kingdom? FindRetirableKingdom(Invasion invasion)
         {
-            Kingdom? kingdom = Clan.FindFirst(clan => clan.StringId == invasion.ClanId)?.Kingdom;
+            Kingdom? kingdom = invasion.FindLeadingClan()?.Kingdom;
 
             if (kingdom == null)
             {

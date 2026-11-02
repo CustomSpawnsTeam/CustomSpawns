@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using CustomSpawns.Data.Reader;
 using CustomSpawns.Diplomacy;
+using CustomSpawns.Invasions;
 using Moq;
 using NUnit.Framework;
 using TaleWorlds.CampaignSystem;
@@ -165,6 +166,20 @@ namespace CustomSpawns.Tests.Diplomacy
 
             Assert.True(hasConflict);
             Assert.AreEqual(DiplomacyReconciliationAction.DeclareWar, action);
+        }
+
+        [TestCase(InvasionWarStance.War, DiplomacyReconciliationAction.MakePeace, DiplomacyReconciliationAction.DeclareWar)]
+        [TestCase(InvasionWarStance.Open, DiplomacyReconciliationAction.DeclareWar, DiplomacyReconciliationAction.None)]
+        [TestCase(InvasionWarStance.Policy, DiplomacyReconciliationAction.DeclareWar, DiplomacyReconciliationAction.DeclareWar)]
+        [TestCase(InvasionWarStance.Policy, DiplomacyReconciliationAction.None, DiplomacyReconciliationAction.None)]
+        public void Reconciliation_AConquestsStanceOutranksTheConfiguredPolicy(InvasionWarStance stance,
+            DiplomacyReconciliationAction configured, DiplomacyReconciliationAction expected)
+        {
+            var reconciliation = new CustomSpawnsDiplomacyReconciliationProvider(
+                new CustomSpawnsClanDiplomacyProvider(new Mock<ISuzerainProvider>().Object,
+                    new Mock<IDataReader<Dictionary<string, Data.Model.Diplomacy>>>().Object));
+
+            Assert.AreEqual(expected, reconciliation.ApplyStance(configured, stance));
         }
 
         [Test]

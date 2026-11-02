@@ -361,6 +361,31 @@ namespace CustomSpawns.Invasions
         public bool HoldsClan(string? clanId) => clanId != null && Clans.Contains(clanId);
         public void AddClan(string clanId) { if (!Clans.Contains(clanId)) Clans.Add(clanId); }
         public bool IsSuspended { get; set; }
+
+        /**
+         * The clan that leads the invasion: its founder while it lives. A founder that dies out passes the
+         * invasion on, as a realm passes its crown, to the clan of the invasion that rules in its place, or failing
+         * that to any clan of the invasion still alive. Only when none is left is there nobody to lead it.
+         */
+        public string? FindLeadingClan(Func<string, bool> isLiving, Func<string, string?> findRulingClan)
+        {
+            if (isLiving(ClanId))
+            {
+                return ClanId;
+            }
+
+            string? survivor = ClanIds.FirstOrDefault(isLiving);
+
+            if (survivor == null)
+            {
+                return null;
+            }
+
+            string? ruler = findRulingClan(survivor);
+
+            return ruler != null && HoldsClan(ruler) && isLiving(ruler) ? ruler : survivor;
+        }
+
         /**
          * The settlement the invasion founded its kingdom on. Kept once the invasion loses it, because losing
          * it is what puts the invasion back on the offensive: later conquests are the kingdom's own business,

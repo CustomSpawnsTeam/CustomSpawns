@@ -132,6 +132,7 @@ namespace CustomSpawns
             _invasionClanRepository = new InvasionClanRepository(_spawnDao, _saveInitialiser);
             _invasionCampaignBehaviour = new InvasionCampaignBehaviour(_spawnDao, _dynamicSpawnData,
                 _saveInitialiser, _invasionCapitalRepository, _invasionClanRepository);
+            _saveInitialiser.RunCallbackOnFirstCampaignTick(new VanillaMilitaryAiFirst().Reregister);
             _devestationMetricData = new DevestationMetricData(_mobilePartyTrackingBehaviour, _campaignDataConfigLoader, _saveInitialiser, _messageBoxService, _modDebug);
             _dailyLogger = new DailyLogger(_devestationMetricData, _messageBoxService);
             // The siege behaviour's own state, held here so that the targeting policy can read which
@@ -170,12 +171,17 @@ namespace CustomSpawns
             NonMercenaryCustomSpawnsFactionsProvider nonMercenaryCustomSpawnsFactionsProvider =
                 new NonMercenaryCustomSpawnsFactionsProvider(_diplomacyDataReader);
             _customSpawnsDiplomacyFactionsProvider = new CustomSpawnsDiplomacyFactionsProvider(_diplomacyDataReader);
-            _customSpawnsDiplomacyModel = new CustomSpawnsDiplomacyModel(campaignGameStarter.GetModel<DiplomacyModel>(), _customSpawnsDiplomacyProvider, _dailyLogger, nonMercenaryCustomSpawnsFactionsProvider);
+            _customSpawnsDiplomacyModel = new CustomSpawnsDiplomacyModel(campaignGameStarter.GetModel<DiplomacyModel>(), _customSpawnsDiplomacyProvider, _dailyLogger, nonMercenaryCustomSpawnsFactionsProvider,
+                _invasionCampaignBehaviour.BannerlordInvasionConquestWars);
             _customSpawnsDiplomacyBehaviour = new CustomSpawnsDiplomacyBehaviour(_customSpawnsDiplomacyFactionsProvider,
-                _customSpawnsClanDiplomacyProvider, nonMercenaryCustomSpawnsFactionsProvider, _dailyLogger);
+                _customSpawnsClanDiplomacyProvider, nonMercenaryCustomSpawnsFactionsProvider, _dailyLogger,
+                _invasionCampaignBehaviour.BannerlordInvasionConquestWars);
             _partySizeCalculatedSubject = new PartySizeCalculatedSubject();
+            // Before the spawn behaviour's resizer, which would otherwise lift a lord's limit to whatever he
+            // leads and let every refill from the bank raise it again.
+            _partySizeCalculatedSubject.Register(_invasionCampaignBehaviour.InvasionLordPartySizeObserver);
             _spawnBehaviour = new SpawnBehaviour(_spawnGroupService, _spawnDao, _dynamicSpawnData, _saveInitialiser, _devestationMetricData, _configLoader, _messageBoxService, _dailyLogger, _modDebug, _partySizeCalculatedSubject,
-                _invasionCampaignBehaviour.HasPersistentInvasion);
+                _invasionCampaignBehaviour.HasPersistentInvasion, _invasionCampaignBehaviour.IsInvasionUnderway);
             _safePassageBehaviour = new SafePassageBehaviour(_spawnDao);
             _spawnCheats = new SpawnCheats(_spawnGroupService, _spawnDao);
         }

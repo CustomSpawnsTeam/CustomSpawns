@@ -7,8 +7,12 @@ namespace CustomSpawns.Data.Dto
         public InvasionData(bool requiresFirstCoastalConquest,
             IReadOnlyList<InvasionReinforcementRuleData> reinforcementRules, int maxBankedTroops = 0,
             int bankedTroopsPerTownHeld = 0, string? supplyLine = null, int minimumCapitalGarrison = 0,
-            int foodPerConvoy = 0, float foodConvoyIntervalInDays = 0f, int maxLords = 0, int lordsPerTownHeld = 0)
+            int foodPerConvoy = 0, float foodConvoyIntervalInDays = 0f, int maxLords = 0, int lordsPerTownHeld = 0,
+            int minimumFiefGarrison = 0, InvasionConquestData? conquest = null, int lordPartySizeBonus = 0)
         {
+            LordPartySizeBonus = lordPartySizeBonus;
+            MinimumFiefGarrison = minimumFiefGarrison;
+            Conquest = conquest;
             MaxLords = maxLords;
             LordsPerTownHeld = lordsPerTownHeld;
             FoodPerConvoy = foodPerConvoy;
@@ -29,6 +33,15 @@ namespace CustomSpawns.Data.Dto
         // The garrison the invasion keeps standing in its capital: the floor its lords may draw the bank
         // down to but not below.
         public int MinimumCapitalGarrison { get; }
+
+        // What every other fief is garrisoned up to before the invasion takes another. Zero leaves fiefs alone.
+        public int MinimumFiefGarrison { get; }
+
+        // Null leaves the invasion's wars to the diplomacy configuration.
+        public InvasionConquestData? Conquest { get; }
+
+        // Added to the party size limit of every lord of the invasion. Zero leaves vanilla's limit alone.
+        public int LordPartySizeBonus { get; }
 
         // How much food each convoy adds to the capital's food stocks. Zero runs no convoys at all.
         public int FoodPerConvoy { get; }
@@ -55,6 +68,26 @@ namespace CustomSpawns.Data.Dto
 
         // In configuration order, which is the order the rules draw in.
         public IReadOnlyList<InvasionReinforcementRuleData> ReinforcementRules { get; }
+    }
+
+    public sealed class InvasionConquestData
+    {
+        public InvasionConquestData(float threatPerFiefHeld, float openFrontIntervalInDays = 0f,
+            float targetSiegePreference = 0f)
+        {
+            ThreatPerFiefHeld = threatPerFiefHeld;
+            OpenFrontIntervalInDays = openFrontIntervalInDays;
+            TargetSiegePreference = targetSiegePreference;
+        }
+
+        // Zero leaves the invasion's neighbours to vanilla diplomacy alone.
+        public float ThreatPerFiefHeld { get; }
+
+        // Zero never has the invasion start a war of its own.
+        public float OpenFrontIntervalInDays { get; }
+
+        // At most one leaves the invasion's lords to choose their sieges as vanilla lords do.
+        public float TargetSiegePreference { get; }
     }
 
     public sealed class InvasionReinforcementRuleData
