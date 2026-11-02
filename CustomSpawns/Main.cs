@@ -229,6 +229,10 @@ namespace CustomSpawns
                 starter.AddModel(new InvasionArmyManagementModel(
                     starter.GetModel<ArmyManagementCalculationModel>(), _invasionCampaignBehaviour,
                     _invasionCampaignBehaviour, new ClanInfluenceLift()));
+                starter.AddModel(new InvasionPartyDesertionModel(starter.GetModel<PartyDesertionModel>(),
+                    _invasionCampaignBehaviour, new InvasionGarrisonDesertion()));
+                starter.AddModel(new InvasionSettlementFoodModel(starter.GetModel<SettlementFoodModel>(),
+                    _invasionCampaignBehaviour, new InvasionBankRations()));
             }
             else
             {
