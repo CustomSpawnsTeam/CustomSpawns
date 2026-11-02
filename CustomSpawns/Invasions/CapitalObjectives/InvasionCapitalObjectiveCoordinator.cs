@@ -161,10 +161,11 @@ namespace CustomSpawns.Invasions.CapitalObjectives
                 return new CapitalObjectiveUpdate(CapitalObjectiveDecision.ConfigurationMissing, null);
             }
 
+            IReadOnlyList<CapitalArmyPartyCandidate> candidates =
+                _invasionCapitalObjectiveWorld.FindMobilizationCandidates(invasion.ClanId);
             CapitalArmyMobilizationPlan? plan = _capitalArmyMobilizationPlanner.Create(
                 invasion.ClanId, InvasionCapitalObjectiveKind.Attack,
-                invasion.CapitalSettlementId,
-                _invasionCapitalObjectiveWorld.FindMobilizationCandidates(invasion.ClanId));
+                invasion.CapitalSettlementId, candidates);
 
             if (plan == null)
             {
@@ -179,8 +180,11 @@ namespace CustomSpawns.Invasions.CapitalObjectives
                 return NoChange(invasion);
             }
 
-            SiegeTargetSelection? target = FindViableTarget(invasion, requirements, observation,
-                plan.CommanderPartyId, null, out IReadOnlyList<SiegeTargetFacts> targetFacts);
+            // A dormant invasion has no army yet: it is judged by the army it would raise, not by the lord who
+            // would lead it, or it never raises one.
+            SiegeTargetSelection? target = FindViableTarget(invasion, requirements,
+                FindPlannedStrength(plan, candidates), plan.CommanderPartyId, null,
+                out IReadOnlyList<SiegeTargetFacts> targetFacts);
 
             if (target == null)
             {
@@ -326,7 +330,7 @@ namespace CustomSpawns.Invasions.CapitalObjectives
 
             SiegeTargetSelection? target = objective.CommanderPartyId == null
                 ? null
-                : FindViableTarget(invasion, requirements, observation,
+                : FindViableTarget(invasion, requirements, observation.AttackForces.AssembledFieldStrength,
                     objective.CommanderPartyId, objective.TargetSettlementId, out _);
 
             if (target == null)
@@ -343,15 +347,24 @@ namespace CustomSpawns.Invasions.CapitalObjectives
                 target.Value.SettlementId);
         }
 
+        private static float FindPlannedStrength(CapitalArmyMobilizationPlan plan,
+            IReadOnlyList<CapitalArmyPartyCandidate> candidates)
+        {
+            var roster = new HashSet<string>(plan.PartyIds);
+
+            return candidates.Where(candidate => roster.Remove(candidate.PartyId))
+                .Sum(candidate => candidate.Strength);
+        }
+
         private SiegeTargetSelection? FindViableTarget(Invasion invasion,
-            InvasionAssaultRequirements requirements, CapitalObjectiveObservation observation,
+            InvasionAssaultRequirements requirements, float assembledStrength,
             string commanderPartyId, string? excludedSettlementId,
             out IReadOnlyList<SiegeTargetFacts> candidates)
         {
             candidates = _invasionCapitalObjectiveWorld.FindTargetFacts(invasion.ClanId,
                 commanderPartyId, requirements, excludedSettlementId);
             var criteria = new SiegeTargetCriteria(requirements.TargetKinds, excludedSettlementId,
-                observation.AttackForces.AssembledFieldStrength, requirements.MinimumTargetRatio,
+                assembledStrength, requirements.MinimumTargetRatio,
                 requirements.MinimumRoamingRatio, SiegeTargetSelectionMode.RequireViableNow);
 
             return _siegeTargetSelector.FindClosest(candidates, criteria);

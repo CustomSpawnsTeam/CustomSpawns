@@ -471,6 +471,7 @@ namespace CustomSpawns.Tests.Invasions.CapitalObjectives
         {
             _invasion.BeginCapitalAttack("capital", 0d);
             _invasion.WaitForViableCapitalTarget();
+            _world.Candidates.RemoveAt(1);
             _world.Targets.Add(Viable("alternative", 10f));
             _world.Observation = Observation(8d, ownsCapital: false, capitalBesieged: false,
                 commanderEligible: true, attack: new CapitalAttackForces(100f, 0f, 0f));
@@ -483,8 +484,10 @@ namespace CustomSpawns.Tests.Invasions.CapitalObjectives
             Assert.That(_invasion.CapitalObjective.TargetSettlementId, Is.Null);
             Assert.That(_world.MobilizationCalls, Is.Zero);
 
+            _world.Candidates.Add(new CapitalArmyPartyCandidate("follower", 50f, true,
+                false, false));
             _world.Observation = Observation(9d, ownsCapital: false, capitalBesieged: false,
-                commanderEligible: true, attack: new CapitalAttackForces(150f, 0f, 0f));
+                commanderEligible: true, attack: new CapitalAttackForces(100f, 0f, 0f));
 
             CapitalObjectiveUpdate sufficient = _coordinator.UpdateDaily(_invasion);
 
@@ -505,8 +508,9 @@ namespace CustomSpawns.Tests.Invasions.CapitalObjectives
             _invasion.RestoreCapitalObjective(new InvasionCapitalObjective(
                 InvasionCapitalObjectiveKind.Attack, InvasionCapitalObjectivePhase.Dormant,
                 null, null, null, reason, null));
+            // The commander alone is too weak; the army it would raise with its follower is not.
             _world.Observation = Observation(8d, ownsCapital: false, capitalBesieged: false,
-                commanderEligible: true, attack: new CapitalAttackForces(150f, 0f, 0f));
+                commanderEligible: true, attack: new CapitalAttackForces(100f, 0f, 0f));
             _world.Targets.Add(Viable("alternative", 10f));
 
             CapitalObjectiveUpdate update = _coordinator.UpdateDaily(_invasion);
