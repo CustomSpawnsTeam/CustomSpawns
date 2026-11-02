@@ -135,8 +135,10 @@ namespace CustomSpawns.Tests.Invasions
             _invasionGarrisons.Setup(g => g.HasGarrison(Capital)).Returns(true);
 
             _invasion.IsSuspended = true;
+            _invasion.HasSpentBank = true;
             Assert.IsNull(Bank().Refill(Warband(settlementId: Capital, room: 30)));
             _invasion.IsSuspended = false;
+            _invasion.HasSpentBank = false;
 
             _invasionConfigurations.Setup(c => c.FindMinimumCapitalGarrison("invasion")).Returns((int?)null);
             Assert.IsNull(Bank().Refill(Warband(settlementId: Capital, room: 30)));
@@ -357,6 +359,57 @@ namespace CustomSpawns.Tests.Invasions
             _invasionCommissariat.Verify(c => c.AddFood(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
             _invasionGarrisonDeposits.Verify(g => g.Deposit(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
             _invasionLords.Verify(l => l.Field(It.IsAny<Invasion>(), It.IsAny<string>()), Times.Never);
+        }
+
+        [Test]
+        public void ASettledInvasionsLordsKeepSpendingItsBank()
+        {
+            _invasion.IsSuspended = true;
+
+            InvasionBankVisit visit = Bank().Refill(Warband(settlementId: Capital, room: 30))!.Value;
+
+            Assert.AreEqual(30, visit.Drawn);
+            Assert.IsEmpty(Bank().CloseSpentBanks());
+            Assert.IsFalse(_invasion.HasSpentBank);
+        }
+
+        [Test]
+        public void ASettledInvasionsBankClosesForGoodOnceDrawnDownToTheMinimumGarrison()
+        {
+            _invasion.IsSuspended = true;
+            _garrison = Floor;
+
+            IReadOnlyList<InvasionBankClosure> closures = Bank().CloseSpentBanks();
+
+            Assert.AreEqual(1, closures.Count);
+            Assert.AreEqual(Floor, closures[0].GarrisonLeft);
+            Assert.IsTrue(_invasion.HasSpentBank);
+
+            _garrison = 100;
+            Assert.IsNull(Bank().Refill(Warband(settlementId: Capital, room: 30)));
+            Assert.IsEmpty(Bank().CloseSpentBanks());
+        }
+
+        [Test]
+        public void ASettledInvasionThatLosesItsCapitalLosesItsBank()
+        {
+            _invasion.IsSuspended = true;
+            _state.FootholdIndex.Remove(Capital);
+
+            IReadOnlyList<InvasionBankClosure> closures = Bank().CloseSpentBanks();
+
+            Assert.AreEqual(1, closures.Count);
+            Assert.IsNull(closures[0].GarrisonLeft);
+            Assert.IsTrue(_invasion.HasSpentBank);
+        }
+
+        [Test]
+        public void AFightingInvasionsBankNeverCloses()
+        {
+            _garrison = Floor;
+
+            Assert.IsEmpty(Bank().CloseSpentBanks());
+            Assert.IsFalse(_invasion.HasSpentBank);
         }
 
         private InvasionWarbandBank Bank() => new(_state, _invasionConfigurations.Object, _invasionWarbands.Object,

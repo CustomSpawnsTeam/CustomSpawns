@@ -11,6 +11,9 @@ namespace CustomSpawns.Invasions.Adapters
     public interface IInvaderClanQuery
     {
         bool IsInvaderClan(string? clanId);
+
+        // Whether a clan's invasion still banks its reserve: fighting, or settled with that reserve unspent.
+        bool IsBankingClan(string? clanId);
     }
 
     /**

@@ -61,6 +61,14 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
+        public void ASpentBankSurvivesSaveRoundTrip()
+        {
+            var invasion = new Invasion("template", "clan") { IsSuspended = true, HasSpentBank = true };
+
+            Assert.IsTrue(InvasionSaveData.FromState(invasion).ToState().HasSpentBank);
+        }
+
+        [Test]
         public void CapitalObjectiveArmyMetadataSurvivesSaveRoundTrip()
         {
             var objective = new InvasionCapitalObjective(InvasionCapitalObjectiveKind.Attack,

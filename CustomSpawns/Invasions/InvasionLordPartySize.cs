@@ -15,8 +15,9 @@ namespace CustomSpawns.Invasions
      * that holds thousands: the bonus is what lets each of them field a real share of it. More lords still
      * only come with more towns; this changes what each of them leads, not how many there are.
      *
-     * Only a lord's own party grows. The clans' caravans keep vanilla's limit, and a clan whose invasion
-     * is beaten or suspended goes back to it as well.
+     * Only a lord's own party grows. The clans' caravans keep vanilla's limit, and so does a clan whose
+     * invasion is spent. A settled invasion keeps the bonus: its kingdom has far fewer clans than any
+     * other, and without it every lord would shed fifty men the day it settled.
      */
     public sealed class InvasionLordPartySize
     {
@@ -32,7 +33,7 @@ namespace CustomSpawns.Invasions
 
         public int FindBonus(string? clanId, bool isLordParty)
         {
-            Invasion? invasion = isLordParty ? _invasionState().FindFightingInvasion(clanId) : null;
+            Invasion? invasion = isLordParty ? _invasionState().FindHostInvasion(clanId) : null;
 
             return invasion == null ? 0 : _invasionLordPartySizes.FindLordPartySizeBonus(invasion.SpawnTemplateId);
         }

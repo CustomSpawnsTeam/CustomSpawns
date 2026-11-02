@@ -331,6 +331,7 @@ namespace CustomSpawns.Invasions.Adapters
             Initialize();
             BannerlordInvasionConquestWars.UpdateDaily();
             _bannerlordInvasionFiefGarrisons.TopUpDaily();
+            _invasionLordWarbands.CloseSpentBanks();
         }
 
         private void OnWarDeclared(IFaction first, IFaction second, DeclareWarAction.DeclareWarDetail detail)
@@ -452,6 +453,8 @@ namespace CustomSpawns.Invasions.Adapters
         }
 
         bool IInvaderClanQuery.IsInvaderClan(string? clanId) => State.FindFightingInvasion(clanId) != null;
+
+        bool IInvaderClanQuery.IsBankingClan(string? clanId) => State.FindBankingInvasion(clanId) != null;
 
         InvasionCapitalObjectiveDirective? IInvasionCapitalObjectiveQuery.FindForKingdom(
             string kingdomId)

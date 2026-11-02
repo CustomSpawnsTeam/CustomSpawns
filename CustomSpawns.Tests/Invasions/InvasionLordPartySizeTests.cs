@@ -39,6 +39,14 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
+        public void ASettledInvasionsLordKeepsTheBonus()
+        {
+            _state.FindInvasion("clan")!.IsSuspended = true;
+
+            Assert.That(_invasionLordPartySize.FindBonus("clan", true), Is.EqualTo(Bonus));
+        }
+
+        [Test]
         public void ASpentInvasionsLordGoesBackToVanillasLimit()
         {
             _state.RemoveMember("party");

@@ -87,6 +87,20 @@ namespace CustomSpawns.Invasions
             return invasion != null && !invasion.IsSuspended && !IsInvasionSpent(invasion) ? invasion : null;
         }
 
+        // The invasion a clan belongs to for as long as it lasts, settled or not.
+        public Invasion? FindHostInvasion(string? clanId)
+        {
+            Invasion? invasion = FindInvasionHolding(clanId);
+            return invasion != null && !IsInvasionSpent(invasion) ? invasion : null;
+        }
+
+        // The invasion whose capital still banks for a clan: a fighting one, or a settled one with its bank unspent.
+        public Invasion? FindBankingInvasion(string? clanId)
+        {
+            Invasion? invasion = FindHostInvasion(clanId);
+            return invasion != null && (!invasion.IsSuspended || !invasion.HasSpentBank) ? invasion : null;
+        }
+
         // Decide before forgetting: removing the last party can spend or reconcile away its invasion.
         public string? TakeLordOfRemovedInvasionParty(string? clanId, string partyId, string? leaderId,
             Action forgetParty)
@@ -361,6 +375,14 @@ namespace CustomSpawns.Invasions
         public bool HoldsClan(string? clanId) => clanId != null && Clans.Contains(clanId);
         public void AddClan(string clanId) { if (!Clans.Contains(clanId)) Clans.Add(clanId); }
         public bool IsSuspended { get; set; }
+
+        /**
+         * Whether a settled invasion's lords have spent the bank it built. The capital keeps banking for its
+         * lords after the invasion settles, so the reserve is spent in the field rather than deserting the day
+         * vanilla takes over, until they have drawn it down to the minimum garrison or the capital is lost.
+         * From then on the bank is closed for good.
+         */
+        public bool HasSpentBank { get; set; }
 
         /**
          * The clan that leads the invasion: its founder while it lives. A founder that dies out passes the

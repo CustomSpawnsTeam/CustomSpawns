@@ -53,6 +53,19 @@ namespace CustomSpawns.Invasions
         public bool KeptFreeWarband { get; }
     }
 
+    // A settled invasion's bank closed for good, with the men its capital held then, if it still held it.
+    public readonly struct InvasionBankClosure
+    {
+        public InvasionBankClosure(Invasion invasion, int? garrisonLeft)
+        {
+            Invasion = invasion;
+            GarrisonLeft = garrisonLeft;
+        }
+
+        public Invasion Invasion { get; }
+        public int? GarrisonLeft { get; }
+    }
+
     // The warbands of the campaign. Bannerlord access stays behind this boundary.
     public interface IInvasionWarbands
     {
@@ -158,13 +171,48 @@ namespace CustomSpawns.Invasions
             .Select(visit => visit!.Value)
             .ToList();
 
-        // The lord's invasion's capital, while the invasion holds it and it has a garrison.
+        /**
+         * Closes the bank of every settled invasion that has spent it: drawn down to the minimum garrison, or
+         * lost with its capital. Its garrisons then answer to vanilla, which is what lets the kingdom decline.
+         */
+        public IReadOnlyList<InvasionBankClosure> CloseSpentBanks()
+        {
+            var closures = new List<InvasionBankClosure>();
+
+            foreach (Invasion invasion in _invasionState.Invasions.Where(i => i.IsSuspended && !i.HasSpentBank))
+            {
+                InvasionBankAccount? account = FindAccount(invasion);
+                int? garrison = null;
+
+                if (account != null)
+                {
+                    garrison = _invasionGarrisons.CountMen(account.Value.CapitalId);
+
+                    if (garrison > account.Value.Floor)
+                    {
+                        continue;
+                    }
+                }
+
+                invasion.HasSpentBank = true;
+                closures.Add(new InvasionBankClosure(invasion, garrison));
+            }
+
+            return closures;
+        }
+
+        // The lord's invasion's capital, while its bank is open.
         private InvasionBankAccount? FindAccount(InvasionWarband warband)
         {
-            Invasion? invasion = _invasionState.FindInvasionHolding(warband.ClanId);
+            Invasion? invasion = _invasionState.FindBankingInvasion(warband.ClanId);
 
-            if (!warband.IsLordParty || invasion == null || invasion.IsSuspended ||
-                !_invasionState.HoldsCapital(invasion))
+            return warband.IsLordParty && invasion != null ? FindAccount(invasion) : null;
+        }
+
+        // The invasion's capital, while it holds it and it has a garrison.
+        private InvasionBankAccount? FindAccount(Invasion invasion)
+        {
+            if (!_invasionState.HoldsCapital(invasion))
             {
                 return null;
             }
