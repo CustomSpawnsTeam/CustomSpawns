@@ -98,13 +98,38 @@ namespace CustomSpawns.Tests.AI
                 attackerStrength, minimumTargetRatio, minimumRoamingRatio, mode);
         }
 
+        [Test]
+        public void APreferredTargetIsChosenOverACloserOne()
+        {
+            SiegeTargetSelection? selected = _selector.FindClosest(new[]
+            {
+                Candidate("near", 1f),
+                Candidate("preferred-far", 5f, preferred: true),
+                Candidate("preferred-farther", 9f, preferred: true)
+            }, Criteria(SiegeTargetSelectionMode.RequireViableNow, attackerStrength: 100f));
+
+            Assert.That(selected?.SettlementId, Is.EqualTo("preferred-far"));
+        }
+
+        [Test]
+        public void TheClosestTargetIsChosenWhenNoPreferredOneIsViable()
+        {
+            SiegeTargetSelection? selected = _selector.FindClosest(new[]
+            {
+                Candidate("near", 1f),
+                Candidate("preferred-too-strong", 5f, defenders: 1000f, preferred: true)
+            }, Criteria(SiegeTargetSelectionMode.RequireViableNow, attackerStrength: 100f));
+
+            Assert.That(selected?.SettlementId, Is.EqualTo("near"));
+        }
+
         private static SiegeTargetFacts Candidate(string settlementId, float distance,
             SiegeTargetKind kind = SiegeTargetKind.Town, bool isActive = true,
             bool isHostile = true, bool compatibleSiege = true, bool strategic = true,
-            bool reachable = true, float defenders = 10f, float nearbyHostiles = 10f)
+            bool reachable = true, float defenders = 10f, float nearbyHostiles = 10f, bool preferred = false)
         {
             return new SiegeTargetFacts(settlementId, kind, isActive, isHostile,
-                compatibleSiege, strategic, reachable, distance, defenders, nearbyHostiles);
+                compatibleSiege, strategic, reachable, distance, defenders, nearbyHostiles, preferred);
         }
     }
 }

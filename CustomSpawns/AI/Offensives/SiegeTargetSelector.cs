@@ -18,7 +18,8 @@ namespace CustomSpawns.AI.Offensives
         {
             SiegeTargetFacts? closest = candidates
                 .Where(candidate => IsEligible(candidate, criteria))
-                .OrderBy(candidate => candidate.Distance)
+                .OrderByDescending(candidate => candidate.IsPreferred)
+                .ThenBy(candidate => candidate.Distance)
                 .Select(candidate => (SiegeTargetFacts?)candidate)
                 .FirstOrDefault();
 

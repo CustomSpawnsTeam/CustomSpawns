@@ -4,8 +4,10 @@ namespace CustomSpawns.AI.Offensives
     {
         public SiegeTargetFacts(string settlementId, SiegeTargetKind kind, bool isActive,
             bool isHostile, bool hasCompatibleOrJoinableSiege, bool matchesStrategicRequirement,
-            bool isReachable, float distance, float defenderStrength, float nearbyHostileStrength)
+            bool isReachable, float distance, float defenderStrength, float nearbyHostileStrength,
+            bool isPreferred = false)
         {
+            IsPreferred = isPreferred;
             SettlementId = settlementId;
             Kind = kind;
             IsActive = isActive;
@@ -28,5 +30,8 @@ namespace CustomSpawns.AI.Offensives
         public float Distance { get; }
         public float DefenderStrength { get; }
         public float NearbyHostileStrength { get; }
+
+        // Chosen over any target that is not, however much closer that one lies, as long as it is eligible.
+        public bool IsPreferred { get; }
     }
 }
