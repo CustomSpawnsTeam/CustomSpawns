@@ -114,9 +114,13 @@ namespace CustomSpawns.Invasions
         public string? FindAdoptingTemplate(string? clanId, bool alreadyRegistered, bool isLordParty) =>
             alreadyRegistered || !isLordParty ? null : FindFightingInvasion(clanId)?.SpawnTemplateId;
 
-        // A kingdom carrying a live invasion must outlive the loss of its last settlement so the invasion can retake one.
+        /**
+         * A kingdom carrying a live invasion must outlive the loss of its last settlement so the invasion can
+         * retake its capital. Once that attack has failed the remnant is left to vanilla, which disbands a
+         * landless kingdom and gives its clans their usual time to survive on their own.
+         */
         public bool ProtectsKingdomOf(IEnumerable<string> clanIds) =>
-            clanIds.Any(clanId => FindFightingInvasion(clanId) != null);
+            clanIds.Any(clanId => FindFightingInvasion(clanId) is { } invasion && MayRetakeCapital(invasion));
 
         // An invasion left with no town to hold and no party to retake one has nothing left to fight with.
         public bool IsInvasionSpent(Invasion invasion) =>
@@ -130,6 +134,10 @@ namespace CustomSpawns.Invasions
             Invasion? invasion = FindInvasionHolding(clanId);
             return invasion == null || (!invasion.IsSuspended && invasion.CapitalSettlementId == null);
         }
+
+        // Still landing, or not yet beaten back from the capital it lost.
+        private static bool MayRetakeCapital(Invasion invasion) => invasion.CapitalSettlementId == null ||
+            invasion.CapitalObjective?.Phase != InvasionCapitalObjectivePhase.Dormant;
 
         public bool HoldsCapital(Invasion invasion) => invasion.CapitalSettlementId != null &&
             FindFoothold(invasion.CapitalSettlementId)?.InvasionClanId == invasion.ClanId;

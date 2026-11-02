@@ -298,6 +298,26 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
+        public void AnInvasionMarchingOnItsLostCapitalProtectsItsKingdom()
+        {
+            _invasion.CapitalSettlementId = "capital";
+            _invasion.BeginCapitalAttack("capital", 0);
+
+            Assert.True(_state.ProtectsKingdomOf(new[] { "clan" }));
+        }
+
+        [Test]
+        public void AnInvasionBeatenBackFromItsLostCapitalLeavesItsKingdomToVanilla()
+        {
+            _invasion.CapitalSettlementId = "capital";
+            _invasion.RestoreCapitalObjective(new InvasionCapitalObjective(InvasionCapitalObjectiveKind.Attack,
+                InvasionCapitalObjectivePhase.Dormant, null, null, null,
+                InvasionCapitalObjectiveDormantReason.AttackTimedOut, null));
+
+            Assert.False(_state.ProtectsKingdomOf(new[] { "clan" }));
+        }
+
+        [Test]
         public void ASpentInvasionStopsProtectingItsKingdomAndIsHeldUntilTheKingdomRetires()
         {
             Conquer();

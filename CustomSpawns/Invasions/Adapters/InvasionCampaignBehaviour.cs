@@ -278,7 +278,7 @@ namespace CustomSpawns.Invasions.Adapters
             _lordOfRemovedInvasionParty = null;
 
             _invasionMembership.Reconcile();
-            _invasionKingdomRetirement.RetireSpent();
+            _invasionKingdomRetirement.RetireFallen();
             _invasionOccupations.ApplyReady();
             _invasionOccupations.KeepCrowns();
             UpdateCapitalObjectivesHourly();

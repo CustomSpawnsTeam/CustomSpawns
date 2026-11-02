@@ -22,15 +22,11 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionState = state;
         }
 
-        public void RetireSpent()
+        // A spent invasion's kingdom, or a landless one whose invasion can no longer retake its capital.
+        public void RetireFallen()
         {
             foreach (Invasion invasion in _invasionState.Invasions.ToList())
             {
-                if (!_invasionState.IsInvasionSpent(invasion))
-                {
-                    continue;
-                }
-
                 Kingdom? kingdom = FindRetirableKingdom(invasion);
 
                 if (kingdom == null)
@@ -38,7 +34,8 @@ namespace CustomSpawns.Invasions.Adapters
                     continue;
                 }
 
-                Logger.Info("Invasion spent: invasion=" + invasion.ClanId + " kingdom=" + kingdom.StringId);
+                Logger.Info("Invasion fallen: invasion=" + invasion.ClanId + " kingdom=" + kingdom.StringId +
+                            " spent=" + _invasionState.IsInvasionSpent(invasion));
                 DiscontinueKingdom(kingdom);
             }
         }
