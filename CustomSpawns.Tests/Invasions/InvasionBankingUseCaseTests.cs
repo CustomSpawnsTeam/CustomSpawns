@@ -39,7 +39,7 @@ namespace CustomSpawns.Tests.Invasions
             _invasionGarrisons.Setup(g => g.HasGarrison(Capital)).Returns(true);
             _invasionGarrisons.Setup(g => g.CountMen(Capital)).Returns(() => _garrison);
             _invasionGarrisonDeposits = new Mock<IInvasionGarrisonDeposits>();
-            _invasionGarrisonDeposits.Setup(g => g.Deposit(Capital, "template")).Returns(() =>
+            _invasionGarrisonDeposits.Setup(g => g.Deposit(Capital, "template", 0)).Returns(() =>
             {
                 _garrison += 40;
                 return 40;
@@ -259,7 +259,7 @@ namespace CustomSpawns.Tests.Invasions
         public void AWaveIsDepositedThenLeviedThenFunded()
         {
             var calls = new List<string>();
-            _invasionGarrisonDeposits.Setup(g => g.Deposit(Capital, "template")).Returns(40)
+            _invasionGarrisonDeposits.Setup(g => g.Deposit(Capital, "template", 0)).Returns(40)
                 .Callback(() => calls.Add("deposit"));
             _invasionLords.Setup(l => l.Field(_invasion, Capital)).Returns(true).Callback(() => calls.Add("field"));
             _invasionCommissariat.Setup(c => c.FindMinimumFoodDaysForArmy()).Callback(() => calls.Add("fund"));
@@ -273,6 +273,17 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
+        public void AWaveBanksNoMoreThanItsRuleAllows()
+        {
+            _invasionConfigurations.Setup(c => c.FindWave("invasion", "infantry"))
+                .Returns(new InvasionWave("template", 7f, 0, 0, 0, 600));
+
+            WaveBanking().Bank(Draw());
+
+            _invasionGarrisonDeposits.Verify(g => g.Deposit(Capital, "template", 600), Times.Once);
+        }
+
+        [Test]
         public void AWaveIsNotBankedIntoAMissingRuleOrAClosedCapital()
         {
             _invasionGarrisons.Setup(g => g.HasGarrison(Capital)).Returns(false);
@@ -281,21 +292,55 @@ namespace CustomSpawns.Tests.Invasions
             _invasionGarrisons.Setup(g => g.HasGarrison(Capital)).Returns(true);
             _invasionConfigurations.Setup(c => c.FindWave("invasion", "infantry")).Returns((InvasionWave?)null);
             Assert.IsNull(WaveBanking().Bank(Draw()));
-            Assert.IsNull(WaveBanking().PayOnly(Draw(InvasionReinforcementOutcome.FactionStrengthReached)));
+            Assert.IsNull(WaveBanking().PayOnly(Draw(InvasionReinforcementOutcome.BankFull)));
 
-            _invasionGarrisonDeposits.Verify(g => g.Deposit(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+            _invasionGarrisonDeposits.Verify(g => g.Deposit(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
         }
 
-        [TestCase(InvasionReinforcementOutcome.FactionStrengthReached)]
+        [Test]
+        public void AnInvasionWithAFullBankIsStillSentTheWavesLordsButNoMen()
+        {
+            _invasionLords.Setup(l => l.Field(_invasion, Capital)).Returns(true);
+
+            Assert.AreEqual(2, WaveBanking().LevyLordsOnly(Draw(InvasionReinforcementOutcome.BankFull)));
+            _invasionLords.Verify(l => l.Field(_invasion, Capital), Times.Exactly(2));
+            _invasionGarrisonDeposits.Verify(g => g.Deposit(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+        }
+
+        [Test]
+        public void AnInvasionWithAFullBankIsStillHeldToItsLordCap()
+        {
+            _invasionConfigurations.Setup(c => c.FindWave("invasion", "infantry"))
+                .Returns(new InvasionWave("template", 7f, 2, 3, 0));
+            _invasionLords.Setup(l => l.CountLivingLords(_invasion)).Returns(3);
+            _invasionLords.Setup(l => l.Field(_invasion, Capital)).Returns(true);
+
+            Assert.AreEqual(0, WaveBanking().LevyLordsOnly(Draw(InvasionReinforcementOutcome.BankFull)));
+            _invasionLords.Verify(l => l.Field(It.IsAny<Invasion>(), It.IsAny<string>()), Times.Never);
+        }
+
         [TestCase(InvasionReinforcementOutcome.AllWavesSent)]
-        public void AStrongOrExhaustedInvasionIsPaidButSentNoMenOrLords(InvasionReinforcementOutcome outcome)
+        [TestCase(InvasionReinforcementOutcome.CapitalUnavailable)]
+        [TestCase(InvasionReinforcementOutcome.Unavailable)]
+        [TestCase(InvasionReinforcementOutcome.Banking)]
+        public void OnlyAnInvasionWithAFullBankIsSentLordsWithoutMen(InvasionReinforcementOutcome outcome)
+        {
+            _invasionLords.Setup(l => l.Field(_invasion, Capital)).Returns(true);
+
+            Assert.AreEqual(0, WaveBanking().LevyLordsOnly(Draw(outcome)));
+            _invasionLords.Verify(l => l.Field(It.IsAny<Invasion>(), It.IsAny<string>()), Times.Never);
+        }
+
+        [TestCase(InvasionReinforcementOutcome.BankFull)]
+        [TestCase(InvasionReinforcementOutcome.AllWavesSent)]
+        public void AFullOrExhaustedInvasionIsPaidButSentNoMenOrLords(InvasionReinforcementOutcome outcome)
         {
             _invasionTreasury.Setup(t => t.FindGarrisonWagePerMan(Capital)).Returns(2f);
             _invasionTreasury.Setup(t => t.FindPurse("clan")).Returns(Purse("clan", 0, false, 0, Upkeep("a", 100)));
 
             Assert.AreEqual(1400, WaveBanking().PayOnly(Draw(outcome)));
             _invasionTreasury.Verify(t => t.Give("clan", 1400), Times.Once);
-            _invasionGarrisonDeposits.Verify(g => g.Deposit(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+            _invasionGarrisonDeposits.Verify(g => g.Deposit(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
             _invasionLords.Verify(l => l.Field(It.IsAny<Invasion>(), It.IsAny<string>()), Times.Never);
         }
 
@@ -310,7 +355,7 @@ namespace CustomSpawns.Tests.Invasions
             Assert.IsNull(WaveBanking().PayOnly(Draw(outcome)));
             _invasionTreasury.Verify(t => t.Give(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
             _invasionCommissariat.Verify(c => c.AddFood(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
-            _invasionGarrisonDeposits.Verify(g => g.Deposit(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+            _invasionGarrisonDeposits.Verify(g => g.Deposit(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
             _invasionLords.Verify(l => l.Field(It.IsAny<Invasion>(), It.IsAny<string>()), Times.Never);
         }
 

@@ -6,9 +6,9 @@ namespace CustomSpawns.Invasions
 {
     /**
      * The capital garrison read as the invasion's troop bank. Once the capital is held a wave of
-     * reinforcements is paid into that garrison whole, and the lords of the invasion draw their warbands
-     * back out of it. Nothing limits what the bank may hold: the faction strength ceiling is what stops
-     * the waves coming, so the bank is only ever as large as that ceiling lets the invasion grow.
+     * reinforcements is paid into that garrison, and the lords of the invasion draw their warbands back
+     * out of it. The bank limit is what stops the waves coming, so the bank is only ever about as large as
+     * that limit and the last wave over it.
      *
      * The minimum capital garrison is a floor for everyone: the men standing above it are the only ones
      * that are ever spendable.
@@ -48,6 +48,10 @@ namespace CustomSpawns.Invasions
 
             return allocated;
         }
+
+        // A wave rolled over its cap keeps the template's mix, every kind of troop cut by the same share.
+        public int[] CapWave(IReadOnlyList<int> rolled, int maxMen) =>
+            maxMen <= 0 ? rolled.ToArray() : Distribute(rolled, maxMen);
 
         // The bank only replaces vanilla's free warband when it can give back at least as many men; a lord
         // sent out with fewer than he came with is a lord sent out to be captured.

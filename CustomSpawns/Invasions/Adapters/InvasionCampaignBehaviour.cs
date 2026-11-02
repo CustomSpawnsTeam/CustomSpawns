@@ -31,7 +31,7 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly InvaderHeroCreator _invaderHeroes;
         private readonly BannerlordInvasionConfigurations _bannerlordInvasionConfigurations;
         private readonly BannerlordInvasionWarbands _bannerlordInvasionWarbands;
-        private readonly BannerlordInvasionGarrisons _bannerlordInvasionGarrisons = new();
+        private readonly BannerlordInvasionGarrisons _bannerlordInvasionGarrisons;
         private readonly InvasionTroopBank _invasionTroopBank = new();
         private readonly InvasionLossDiagnostics _invasionLossDiagnostics;
         private readonly InvasionCapitalObjectiveLogPolicy _invasionCapitalObjectiveLogPolicy = new();
@@ -67,6 +67,7 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionClans = invasionClans;
             _invaderHeroes = new InvaderHeroCreator(invasionClans);
             _bannerlordInvasionConfigurations = new BannerlordInvasionConfigurations(spawns);
+            _bannerlordInvasionGarrisons = new BannerlordInvasionGarrisons(_invasionTroopBank);
             _bannerlordInvasionWarbands = new BannerlordInvasionWarbands(_invasionTroopBank);
             _bannerlordInvasionResupplyOrders = new BannerlordInvasionResupplyOrders(
                 _bannerlordInvasionWarbands);
@@ -176,7 +177,7 @@ namespace CustomSpawns.Invasions.Adapters
                 new InvasionWaveFunding(new BannerlordInvasionTreasury(), new BannerlordInvasionCommissariat(),
                     new InvasionWarChest()));
 
-            return new InvasionReinforcementArrivals(State, _spawnDao, _dynamicSpawnData, _invasionSupplyBases,
+            return new InvasionReinforcementArrivals(State, _spawnDao, _invasionSupplyBases,
                 new InvasionTroopBanking(invasionWaveBanking), bannerlordInvasionLords);
         }
 

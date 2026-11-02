@@ -5,8 +5,8 @@ namespace CustomSpawns.Data.Dto
     public sealed class InvasionData
     {
         public InvasionData(bool requiresFirstCoastalConquest,
-            IReadOnlyList<InvasionReinforcementRuleData> reinforcementRules, float maxFactionStrength = 0f,
-            float strengthPerTownHeld = 0f, string? supplyLine = null, int minimumCapitalGarrison = 0,
+            IReadOnlyList<InvasionReinforcementRuleData> reinforcementRules, int maxBankedTroops = 0,
+            int bankedTroopsPerTownHeld = 0, string? supplyLine = null, int minimumCapitalGarrison = 0,
             int foodPerConvoy = 0, float foodConvoyIntervalInDays = 0f, int maxLords = 0, int lordsPerTownHeld = 0)
         {
             MaxLords = maxLords;
@@ -16,8 +16,8 @@ namespace CustomSpawns.Data.Dto
             SupplyLine = supplyLine;
             RequiresFirstCoastalConquest = requiresFirstCoastalConquest;
             ReinforcementRules = reinforcementRules;
-            MaxFactionStrength = maxFactionStrength;
-            StrengthPerTownHeld = strengthPerTownHeld;
+            MaxBankedTroops = maxBankedTroops;
+            BankedTroopsPerTownHeld = bankedTroopsPerTownHeld;
             MinimumCapitalGarrison = minimumCapitalGarrison;
         }
 
@@ -37,14 +37,15 @@ namespace CustomSpawns.Data.Dto
         public float FoodConvoyIntervalInDays { get; }
 
         /**
-         * The strength every reinforcement rule of the invasion draws against, shared between them.
-         * Zero leaves the invasion uncapped, which is what a configuration that does not mention it means.
+         * How many men the capital's bank may hold before the waves stop bringing men, shared by every
+         * reinforcement rule. Zero leaves the bank bottomless, which is what a configuration that does not
+         * mention it means.
          */
-        public float MaxFactionStrength { get; }
+        public int MaxBankedTroops { get; }
 
-        // What each town the invasion's kingdom holds right now adds to that ceiling, whichever of its clans
+        // What each town the invasion's kingdom holds right now adds to that limit, whichever of its clans
         // owns it. Losing the town lowers it again.
-        public float StrengthPerTownHeld { get; }
+        public int BankedTroopsPerTownHeld { get; }
 
         // The most lords the invasion keeps, the lords it already has counted. Zero leaves it uncapped.
         public int MaxLords { get; }
@@ -59,8 +60,9 @@ namespace CustomSpawns.Data.Dto
     public sealed class InvasionReinforcementRuleData
     {
         public InvasionReinforcementRuleData(string id, string partyTemplateId, float intervalInDays,
-            int lordsPerWave = 0, int maxWaves = 0)
+            int lordsPerWave = 0, int maxWaves = 0, int maxMenPerWave = 0)
         {
+            MaxMenPerWave = maxMenPerWave;
             Id = id;
             PartyTemplateId = partyTemplateId;
             IntervalInDays = intervalInDays;
@@ -77,5 +79,8 @@ namespace CustomSpawns.Data.Dto
 
         // How many waves the rule ever sends. Zero leaves it sending for as long as the invasion lives.
         public int MaxWaves { get; }
+
+        // The most men one wave banks. Zero banks the template's whole roll.
+        public int MaxMenPerWave { get; }
     }
 }

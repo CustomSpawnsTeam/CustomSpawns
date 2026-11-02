@@ -424,23 +424,6 @@ namespace CustomSpawns.Invasions
             clans.Where(clan => HoldsClan(clan.ClanId))
                 .Sum(clan => clan.Heroes.Count(hero => hero.IsAlive && !hero.IsChild && hero.IsLord));
 
-        // The spawner's non-adopted forces must not block waves; native and adopted parties count.
-        public double MeasureReinforcementStrength(
-            IEnumerable<(string ClanId, IEnumerable<(bool? IsAdopted, Func<float> Strength)> WarParties,
-                IEnumerable<float> Garrisons)> clans)
-        {
-            double strength = 0;
-
-            foreach (var clan in clans.Where(clan => HoldsClan(clan.ClanId)))
-            {
-                strength += clan.WarParties.Where(party => party.IsAdopted != false)
-                    .Sum(party => party.Strength());
-                strength += clan.Garrisons.Sum();
-            }
-
-            return strength;
-        }
-
         public void BeginCapitalDefence(string settlementId, double nowDays,
             string? siegeEpisodeId = null)
         {

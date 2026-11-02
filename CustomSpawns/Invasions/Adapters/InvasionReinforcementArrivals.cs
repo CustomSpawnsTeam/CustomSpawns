@@ -24,15 +24,13 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly InvasionSupplyBases _invasionSupplyBases;
         private readonly InvasionReinforcements _invasionReinforcements;
         private readonly InvasionTroopBanking _invasionTroopBanking;
-        private readonly DynamicSpawnData _dynamicSpawnData;
         private readonly IInvasionLords _invasionLords;
 
-        public InvasionReinforcementArrivals(InvasionState state, SpawnDao spawns, DynamicSpawnData parties,
-            InvasionSupplyBases supplyBases, InvasionTroopBanking troopBanking, IInvasionLords invasionLords)
+        public InvasionReinforcementArrivals(InvasionState state, SpawnDao spawns, InvasionSupplyBases supplyBases,
+            InvasionTroopBanking troopBanking, IInvasionLords invasionLords)
         {
             _invasionState = state;
             _spawnDao = spawns;
-            _dynamicSpawnData = parties;
             _invasionSupplyBases = supplyBases;
             _invasionTroopBanking = troopBanking;
             _invasionLords = invasionLords;
@@ -92,7 +90,7 @@ namespace CustomSpawns.Invasions.Adapters
                     .Select(fief => fief.GarrisonParty).Where(party => party != null)
                     .Select(party => party!).ToArray();
                 double garrisonStrength = garrisons.Sum(party => (double)party.Party.EstimatedStrength);
-                InvasionStrengthBudget budget = GetStrengthBudget(invasion);
+                InvasionBankLimit bankLimit = GetBankLimit(invasion);
                 Kingdom? kingdom = clans.Select(clan => clan.Kingdom).FirstOrDefault(value => value != null);
                 int castles = kingdom?.Fiefs.Count(fief => fief.IsCastle) ??
                               clans.Sum(clan => clan.Fiefs.Count(fief => fief.IsCastle));
@@ -103,7 +101,7 @@ namespace CustomSpawns.Invasions.Adapters
                 Logger.Info(FormattableString.Invariant(
                                 $"Invasion strength summary: cadence={cadence} day={CampaignTime.Now.ToDays:0.00} invasion={invasion.ClanId} kingdom={kingdom?.StringId ?? "none"} clans={clans.Length} suspended={invasion.IsSuspended}") +
                             FormattableString.Invariant(
-                                $" towns={budget.TownsHeld} castles={castles} faction_strength={statistics.Strength + garrisonStrength:0.0} budget_strength={budget.CurrentStrength:0.0} strength_limit={budget.CurrentStrength + budget.Headroom:0.0} headroom={budget.Headroom:0.0}") +
+                                $" towns={bankLimit.TownsHeld} castles={castles} faction_strength={statistics.Strength + garrisonStrength:0.0} bank_troops={bankLimit.BankedTroops} bank_limit={bankLimit.Limit} headroom={bankLimit.Headroom}") +
                             FormattableString.Invariant(
                                 $" field_strength={statistics.Strength:0.0} field_parties={statistics.Count} field_troops={statistics.Men} field_healthy={statistics.Healthy} party_size_avg={statistics.AverageSize:0.0} party_size_min={statistics.MinimumSize} party_size_max={statistics.MaximumSize} party_limit_avg={statistics.AverageLimit:0.0} party_fill_percent={statistics.FillPercent:0.0}") +
                             FormattableString.Invariant(
@@ -113,7 +111,7 @@ namespace CustomSpawns.Invasions.Adapters
 
         private static string SkipReason(InvasionReinforcementOutcome outcome) =>
             outcome == InvasionReinforcementOutcome.CapitalUnavailable ? "no_held_capital_to_reinforce" :
-            outcome == InvasionReinforcementOutcome.FactionStrengthReached ? "faction_strength" :
+            outcome == InvasionReinforcementOutcome.BankFull ? "bank_full" :
             outcome == InvasionReinforcementOutcome.AllWavesSent ? "all_waves_sent" :
             "configuration_changed";
 
@@ -132,20 +130,18 @@ namespace CustomSpawns.Invasions.Adapters
         }
 
         // Read live for every draw, so a wave just banked counts against the next rule of the same day.
-        public InvasionStrengthBudget GetStrengthBudget(Invasion invasion)
+        public InvasionBankLimit GetBankLimit(Invasion invasion)
         {
             InvasionData? configuration = GetConfiguration(invasion);
-            double currentStrength = invasion.MeasureReinforcementStrength(Clan.All.Select(clan =>
-                (clan.StringId,
-                    clan.WarPartyComponents.Select(component =>
-                        (_dynamicSpawnData.GetDynamicSpawnData(component.MobileParty)?.IsAdopted,
-                            (Func<float>)(() => component.MobileParty.Party.EstimatedStrength))),
-                    clan.Fiefs.Select(fief => fief.GarrisonParty?.Party.EstimatedStrength ?? 0f))));
+            Settlement? capital = invasion.CapitalSettlementId == null
+                ? null
+                : Settlement.Find(invasion.CapitalSettlementId);
 
             // The per-town bonus is the kingdom's, not the invading clans': a town held by any member of the
-            // kingdom raises the ceiling, however that member came by it.
-            return new InvasionStrengthBudget(configuration?.MaxFactionStrength ?? 0,
-                configuration?.StrengthPerTownHeld ?? 0, _invasionLords.CountTownsHeld(invasion), currentStrength);
+            // kingdom raises the limit, however that member came by it.
+            return new InvasionBankLimit(configuration?.MaxBankedTroops ?? 0,
+                configuration?.BankedTroopsPerTownHeld ?? 0, _invasionLords.CountTownsHeld(invasion),
+                capital?.Town?.GarrisonParty?.MemberRoster.TotalManCount ?? 0);
         }
 
         public Func<Settlement, bool>? FindInitialCoastalTargetFilter(MobileParty party)

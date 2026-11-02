@@ -9,15 +9,23 @@ namespace CustomSpawns.Invasions.Adapters
 {
     public sealed class BannerlordInvasionGarrisons : IInvasionGarrisons, IInvasionGarrisonDeposits
     {
+        private readonly InvasionTroopBank _invasionTroopBank;
+
+        public BannerlordInvasionGarrisons(InvasionTroopBank invasionTroopBank)
+        {
+            _invasionTroopBank = invasionTroopBank;
+        }
+
         public bool HasGarrison(string settlementId) => Garrison(settlementId) != null;
 
         public int CountMen(string settlementId) => Garrison(settlementId)?.TotalManCount ?? 0;
 
         /**
          * One roll per kind of troop in the template, between the numbers it declares. Heroes in a template
-         * are skipped: the lords of a wave are fielded as lords, not banked as men.
+         * are skipped: the lords of a wave are fielded as lords, not banked as men. A roll over maxMen is cut
+         * down to it, keeping the mix.
          */
-        public int Deposit(string settlementId, string partyTemplateId)
+        public int Deposit(string settlementId, string partyTemplateId, int maxMen)
         {
             TroopRoster? garrison = Garrison(settlementId);
             PartyTemplateObject? template =
@@ -28,16 +36,17 @@ namespace CustomSpawns.Invasions.Adapters
                 return 0;
             }
 
-            int banked = 0;
+            PartyTemplateStack[] stacks =
+                template.Stacks.Where(stack => stack.Character is { IsHero: false }).ToArray();
+            int[] men = _invasionTroopBank.CapWave(
+                stacks.Select(stack => MBRandom.RandomInt(stack.MinValue, stack.MaxValue + 1)).ToArray(), maxMen);
 
-            foreach (PartyTemplateStack stack in template.Stacks.Where(stack => stack.Character is { IsHero: false }))
+            for (int index = 0; index < stacks.Length; index++)
             {
-                int number = MBRandom.RandomInt(stack.MinValue, stack.MaxValue + 1);
-                garrison.AddToCounts(stack.Character, number);
-                banked += number;
+                garrison.AddToCounts(stacks[index].Character, men[index]);
             }
 
-            return banked;
+            return men.Sum();
         }
 
         private static TroopRoster? Garrison(string settlementId) =>

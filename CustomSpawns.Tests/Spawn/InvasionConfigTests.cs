@@ -298,13 +298,13 @@ namespace CustomSpawns.Tests.Spawn
         }
 
         [Test]
-        public void Adapt_ReadsTheSharedStrengthCeilingAndItsPerTownBonus()
+        public void Adapt_ReadsTheBankLimitItsPerTownBonusAndTheWaveCap()
         {
-            const string invasion = "<Invasion><MaxFactionStrength>900</MaxFactionStrength>" +
-                                    "<StrengthPerTownHeld>300</StrengthPerTownHeld>" +
+            const string invasion = "<Invasion><MaxBankedTroops>1700</MaxBankedTroops>" +
+                                    "<BankedTroopsPerTownHeld>300</BankedTroopsPerTownHeld>" +
                                     "<Reinforcements><Rule><Id>infantry</Id>" +
                                     "<PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId>" +
-                                    "</Rule></Reinforcements></Invasion>";
+                                    "<MaxMenPerWave>600</MaxMenPerWave></Rule></Reinforcements></Invasion>";
             Spawns spawns = Read("<RegularBanditDailySpawnData party_template=\"PartyTemplate.invasion\">" + invasion +
                                  "</RegularBanditDailySpawnData>", out List<System.Exception> errors);
 
@@ -313,24 +313,34 @@ namespace CustomSpawns.Tests.Spawn
             Assert.Multiple(() =>
             {
                 Assert.That(errors, Is.Empty);
-                Assert.That(data.MaxFactionStrength, Is.EqualTo(900f));
-                Assert.That(data.StrengthPerTownHeld, Is.EqualTo(300f));
-                // An invasion that does not mention a ceiling is uncapped, which is what zero means.
-                Assert.That(AdaptValidConfig().MaxFactionStrength, Is.EqualTo(0f));
+                Assert.That(data.MaxBankedTroops, Is.EqualTo(1700));
+                Assert.That(data.BankedTroopsPerTownHeld, Is.EqualTo(300));
+                Assert.That(data.ReinforcementRules.Single().MaxMenPerWave, Is.EqualTo(600));
+                // An invasion that mentions neither keeps a bottomless bank and banks whole waves.
+                Assert.That(AdaptValidConfig().MaxBankedTroops, Is.EqualTo(0));
+                Assert.That(AdaptValidConfig().ReinforcementRules.Single().MaxMenPerWave, Is.EqualTo(0));
             });
         }
 
-        [TestCase(-1f)]
-        [TestCase(float.NaN)]
-        [TestCase(float.PositiveInfinity)]
-        public void Adapt_RejectsInvalidStrengthCeiling(float maxFactionStrength)
+        [Test]
+        public void Adapt_RejectsANegativeBankLimitOrWaveCap()
         {
-            InvasionConfig config = ValidConfig();
-            config.MaxFactionStrength = maxFactionStrength;
+            InvasionConfig limit = ValidConfig();
+            limit.MaxBankedTroops = -1;
+            InvasionConfig perTown = ValidConfig();
+            perTown.BankedTroopsPerTownHeld = -1;
+            InvasionConfig cap = ValidConfig();
+            cap.Reinforcements.Rules.Single().MaxMenPerWave = -1;
 
-            ArgumentException error = Assert.Throws<ArgumentException>(() => InvasionDtoAdapter.Adapt(config))!;
-
-            Assert.That(error.Message, Does.Contain("MaxFactionStrength"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(Assert.Throws<ArgumentException>(() => InvasionDtoAdapter.Adapt(limit))!.Message,
+                    Does.Contain("MaxBankedTroops"));
+                Assert.That(Assert.Throws<ArgumentException>(() => InvasionDtoAdapter.Adapt(perTown))!.Message,
+                    Does.Contain("BankedTroopsPerTownHeld"));
+                Assert.That(Assert.Throws<ArgumentException>(() => InvasionDtoAdapter.Adapt(cap))!.Message,
+                    Does.Contain("MaxMenPerWave"));
+            });
         }
 
         [Test]

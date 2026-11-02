@@ -17,6 +17,16 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
+        public void AWaveOverItsCapIsCutDownKeepingTheTemplatesMix()
+        {
+            Assert.That(_invasionTroopBank.CapWave(new[] { 400, 300, 100 }, 600), Is.EqualTo(new[] { 300, 225, 75 }));
+            Assert.That(_invasionTroopBank.CapWave(new[] { 400, 300, 100 }, 600).Sum(), Is.EqualTo(600));
+            // A roll under the cap, or no cap at all, is banked whole.
+            Assert.That(_invasionTroopBank.CapWave(new[] { 200, 100 }, 600), Is.EqualTo(new[] { 200, 100 }));
+            Assert.That(_invasionTroopBank.CapWave(new[] { 400, 300 }, 0), Is.EqualTo(new[] { 400, 300 }));
+        }
+
+        [Test]
         public void FractionalSharesFillTheRequestedSizeWithoutExceedingTheAvailableTroops()
         {
             Assert.That(_invasionTroopBank.Distribute(new[] { 7, 2, 1, 0 }, 4),

@@ -4,8 +4,9 @@ namespace CustomSpawns.Invasions
     public readonly struct InvasionWave
     {
         public InvasionWave(string partyTemplateId, float intervalInDays, int lordsPerWave, int maxLords,
-            int lordsPerTownHeld)
+            int lordsPerTownHeld, int maxMenPerWave = 0)
         {
+            MaxMenPerWave = maxMenPerWave;
             PartyTemplateId = partyTemplateId;
             IntervalInDays = intervalInDays;
             LordsPerWave = lordsPerWave;
@@ -19,6 +20,9 @@ namespace CustomSpawns.Invasions
         public int LordsPerWave { get; }
         public int MaxLords { get; }
         public int LordsPerTownHeld { get; }
+
+        // The most men one wave brings, the template's mix kept. Zero banks the template's roll whole.
+        public int MaxMenPerWave { get; }
     }
 
     // What a wave paid into the capital came to.
@@ -51,14 +55,15 @@ namespace CustomSpawns.Invasions
     // Where a wave's men land. Bannerlord access stays behind this boundary.
     public interface IInvasionGarrisonDeposits
     {
-        // Rolls a party template's men into the settlement's garrison and says how many came.
-        int Deposit(string settlementId, string partyTemplateId);
+        // Rolls a party template's men, at most maxMen of them, into the settlement's garrison and says how
+        // many came. Zero maxMen keeps the whole roll.
+        int Deposit(string settlementId, string partyTemplateId, int maxMen);
     }
 
     /**
      * What a reinforcement wave is: men paid into the capital's garrison, lords who come to take them out
      * again, and the gold and food to keep them. Nothing marches in, and the garrison takes the wave whole
-     * however large it has grown -- the strength ceiling is what decides whether a wave comes at all.
+     * however close to its limit it is -- the bank limit is what decides whether a wave comes at all.
      */
     public sealed class InvasionWaveBanking
     {
@@ -92,17 +97,39 @@ namespace CustomSpawns.Invasions
             }
 
             // The lords are fielded before the gold is paid, so that their warbands are paid for too.
-            int men = _invasionGarrisonDeposits.Deposit(capitalId, wave.Value.PartyTemplateId);
+            int men = _invasionGarrisonDeposits.Deposit(capitalId, wave.Value.PartyTemplateId,
+                wave.Value.MaxMenPerWave);
             int lords = _invasionLordLevy.Levy(invasion, wave.Value, capitalId);
             int pay = _invasionWaveFunding.Fund(invasion, wave.Value.IntervalInDays);
 
             return new InvasionWaveReceipt(capitalId, men, lords, pay, _invasionGarrisons.CountMen(capitalId));
         }
 
-        // A strong invasion, or one with no waves left, still pays its army until the next slot.
+        /**
+         * The bank limit holds back a wave's men, not its lords: an invasion with a full bank still has the
+         * lords the wave brings, up to its lord cap, and they take their men out of the bank that is already
+         * there. Without them a full bank is a bank nobody can draw on once the lords it has are captured.
+         */
+        public int LevyLordsOnly(InvasionReinforcementDraw draw)
+        {
+            if (draw.Outcome != InvasionReinforcementOutcome.BankFull)
+            {
+                return 0;
+            }
+
+            Invasion invasion = draw.Invasion;
+            InvasionWave? wave = _invasionConfigurations.FindWave(invasion.SpawnTemplateId, draw.RuleId);
+            string? capitalId = invasion.CapitalSettlementId;
+
+            return wave == null || capitalId == null || !_invasionGarrisons.HasGarrison(capitalId)
+                ? 0
+                : _invasionLordLevy.Levy(invasion, wave.Value, capitalId);
+        }
+
+        // An invasion with a full bank, or one with no waves left, still pays its army until the next slot.
         public int? PayOnly(InvasionReinforcementDraw draw)
         {
-            if (draw.Outcome != InvasionReinforcementOutcome.FactionStrengthReached &&
+            if (draw.Outcome != InvasionReinforcementOutcome.BankFull &&
                 draw.Outcome != InvasionReinforcementOutcome.AllWavesSent)
             {
                 return null;

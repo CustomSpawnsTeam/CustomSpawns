@@ -15,14 +15,14 @@ namespace CustomSpawns.Data.Model
         [XmlElement("SupplyLine")]
         public string? SupplyLine { get; set; }
 
-        // The strength the whole invasion may field at once, shared by all of its reinforcement rules.
-        // Left out, the invasion is uncapped.
-        [XmlElement("MaxFactionStrength")]
-        public float MaxFactionStrength { get; set; }
+        // How many men the capital's garrison, the troop bank, may hold before the waves stop bringing men.
+        // Shared by all of the reinforcement rules. Left out, the bank is bottomless.
+        [XmlElement("MaxBankedTroops")]
+        public int MaxBankedTroops { get; set; }
 
-        // Raises that ceiling for every town the invasion's kingdom currently holds, allies' towns included.
-        [XmlElement("StrengthPerTownHeld")]
-        public float StrengthPerTownHeld { get; set; }
+        // Raises that limit for every town the invasion's kingdom currently holds, allies' towns included.
+        [XmlElement("BankedTroopsPerTownHeld")]
+        public int BankedTroopsPerTownHeld { get; set; }
 
         // How many lords the invasion keeps at most; the waves field no more once it has them. Left out, the
         // waves field every lord they bring.
@@ -86,6 +86,11 @@ namespace CustomSpawns.Data.Model
         // from the garrison. Left out, a wave brings troops only.
         [XmlElement("LordsPerWave")]
         public int LordsPerWave { get; set; }
+
+        // The most men one wave banks, cut from the template's roll with its mix kept. Left out, the whole
+        // roll is banked.
+        [XmlElement("MaxMenPerWave")]
+        public int MaxMenPerWave { get; set; }
     }
 
     public static class InvasionConfigValidator
@@ -107,8 +112,8 @@ namespace CustomSpawns.Data.Model
                                            InvasionSupplyLines.KnownNames + ".");
             }
 
-            ValidateNonNegativeFinite("Invasion MaxFactionStrength", config.MaxFactionStrength);
-            ValidateNonNegativeFinite("Invasion StrengthPerTownHeld", config.StrengthPerTownHeld);
+            ValidateNonNegative("Invasion MaxBankedTroops", config.MaxBankedTroops);
+            ValidateNonNegative("Invasion BankedTroopsPerTownHeld", config.BankedTroopsPerTownHeld);
             ValidateNonNegative("Invasion MaxLords", config.MaxLords);
             ValidateNonNegative("Invasion LordsPerTownHeld", config.LordsPerTownHeld);
             ValidateNonNegative("Invasion MinimumCapitalGarrison", config.MinimumCapitalGarrison);
@@ -155,6 +160,7 @@ namespace CustomSpawns.Data.Model
             }
             ValidateNonNegative("Invasion Reinforcements Rule '" + rule.Id + "' LordsPerWave", rule.LordsPerWave);
             ValidateNonNegative("Invasion Reinforcements Rule '" + rule.Id + "' MaxWaves", rule.MaxWaves);
+            ValidateNonNegative("Invasion Reinforcements Rule '" + rule.Id + "' MaxMenPerWave", rule.MaxMenPerWave);
         }
 
         private static void ValidateNonNegative(string name, int value)

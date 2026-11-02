@@ -30,38 +30,39 @@ namespace CustomSpawns.Invasions
         CapitalUnavailable,
         // The stream has delivered every wave it was allowed. It sends no more men, but still pays.
         AllWavesSent,
-        FactionStrengthReached,
+        // The capital's bank holds as many men as it may. The wave's lords still come; its men do not.
+        BankFull,
         // The wave is paid into the capital's garrison, which is the only place reinforcements go.
         Banking
     }
 
     /**
-     * What bounds how much an invasion may still field: its configured ceiling, what each town it holds
-     * adds to that ceiling, the towns it holds now, and the strength it already has on the map.
+     * How many men the capital's bank may hold: a configured base, and what each town the invasion's kingdom
+     * holds right now adds to it. A bank that never fills is a capital nobody ever dares besiege, so the
+     * limit keeps the invasion's capital something its enemies can still take.
      */
-    public readonly struct InvasionStrengthBudget
+    public readonly struct InvasionBankLimit
     {
-        public InvasionStrengthBudget(double maxFactionStrength, double strengthPerTownHeld, int townsHeld,
-            double currentStrength)
+        public InvasionBankLimit(int maxBankedTroops, int bankedTroopsPerTownHeld, int townsHeld, int bankedTroops)
         {
-            MaxFactionStrength = maxFactionStrength;
-            StrengthPerTownHeld = strengthPerTownHeld;
+            MaxBankedTroops = maxBankedTroops;
+            BankedTroopsPerTownHeld = bankedTroopsPerTownHeld;
             TownsHeld = townsHeld;
-            CurrentStrength = currentStrength;
+            BankedTroops = bankedTroops;
         }
 
-        public double MaxFactionStrength { get; }
-        public double StrengthPerTownHeld { get; }
+        public int MaxBankedTroops { get; }
+        public int BankedTroopsPerTownHeld { get; }
         public int TownsHeld { get; }
-        public double CurrentStrength { get; }
 
-        /**
-         * What the invasion may still field under its shared ceiling. An unconfigured ceiling leaves it
-         * unbounded; every town its kingdom holds right now raises the ceiling, and losing one lowers it again.
-         */
-        public double Headroom => MaxFactionStrength <= 0
-            ? double.PositiveInfinity
-            : MaxFactionStrength + StrengthPerTownHeld * TownsHeld - CurrentStrength;
+        // The men standing in the capital's garrison right now.
+        public int BankedTroops { get; }
+
+        // Every town the kingdom holds raises it, and losing one lowers it again.
+        public int Limit => MaxBankedTroops + BankedTroopsPerTownHeld * TownsHeld;
+
+        // What the bank may still take. An unconfigured limit leaves it bottomless.
+        public int Headroom => MaxBankedTroops <= 0 ? int.MaxValue : Limit - BankedTroops;
     }
 
     public readonly struct InvasionReinforcementDraw
@@ -86,8 +87,8 @@ namespace CustomSpawns.Invasions
         double NowInDays { get; }
         // In configuration order. Null when the invasion has nothing left to send with.
         IReadOnlyList<InvasionReinforcementRule>? GetRules(Invasion invasion);
-        // Read again for every draw, so that a wave banked a moment ago is already part of the strength.
-        InvasionStrengthBudget GetStrengthBudget(Invasion invasion);
+        // Read again for every draw, so that a wave banked a moment ago is already in the bank.
+        InvasionBankLimit GetBankLimit(Invasion invasion);
     }
 
     /**
@@ -220,11 +221,10 @@ namespace CustomSpawns.Invasions
             if (!HasWavesLeft(rule, schedule))
                 return new InvasionReinforcementDraw(invasion, rule.Id, InvasionReinforcementOutcome.AllWavesSent);
 
-            // The bank itself is bottomless. This is the one valve: waves stop once the invasion is as
-            // strong as it is allowed to be, and start again as soon as it is not.
-            if (_invasionReinforcementQuery.GetStrengthBudget(invasion).Headroom <= 0)
-                return new InvasionReinforcementDraw(invasion, rule.Id,
-                    InvasionReinforcementOutcome.FactionStrengthReached);
+            // This is the one valve: waves stop once the bank is full, and start again as soon as the lords
+            // have drawn it down.
+            if (_invasionReinforcementQuery.GetBankLimit(invasion).Headroom <= 0)
+                return new InvasionReinforcementDraw(invasion, rule.Id, InvasionReinforcementOutcome.BankFull);
 
             return new InvasionReinforcementDraw(invasion, rule.Id, InvasionReinforcementOutcome.Banking);
         }

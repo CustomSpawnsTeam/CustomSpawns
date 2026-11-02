@@ -12,9 +12,9 @@ namespace CustomSpawns.Data.Adapter
             InvasionConfigValidator.Validate(config);
             List<InvasionReinforcementRuleData> rules = config.Reinforcements.Rules
                 .Select(rule => new InvasionReinforcementRuleData(rule.Id!, rule.PartyTemplateId!,
-                    rule.IntervalInDays, rule.LordsPerWave, rule.MaxWaves)).ToList();
-            return new InvasionData(config.RequiresFirstCoastalConquest, rules, config.MaxFactionStrength,
-                config.StrengthPerTownHeld, config.SupplyLine, config.MinimumCapitalGarrison,
+                    rule.IntervalInDays, rule.LordsPerWave, rule.MaxWaves, rule.MaxMenPerWave)).ToList();
+            return new InvasionData(config.RequiresFirstCoastalConquest, rules, config.MaxBankedTroops,
+                config.BankedTroopsPerTownHeld, config.SupplyLine, config.MinimumCapitalGarrison,
                 config.Supplies.FoodPerConvoy, config.Supplies.IntervalInDays, config.MaxLords,
                 config.LordsPerTownHeld);
         }

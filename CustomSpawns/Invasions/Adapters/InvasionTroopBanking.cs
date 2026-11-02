@@ -35,7 +35,15 @@ namespace CustomSpawns.Invasions.Adapters
 
         public void PayOnly(InvasionReinforcementDraw draw)
         {
+            // The lords are fielded before the gold is paid, as for a banked wave.
+            int lords = _invasionWaveBanking.LevyLordsOnly(draw);
             int? pay = _invasionWaveBanking.PayOnly(draw);
+
+            if (lords > 0)
+            {
+                Logger.Info("Invasion lords fielded at full strength: invasion=" + draw.Invasion.ClanId +
+                            " rule=" + draw.RuleId + " lords=" + lords);
+            }
 
             if (pay == null)
             {

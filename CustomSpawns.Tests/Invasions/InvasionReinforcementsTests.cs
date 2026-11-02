@@ -79,10 +79,10 @@ namespace CustomSpawns.Tests.Invasions
             Assert.AreEqual(24, Schedule(_invasion, "infantry").NextDeadlineDays);
 
             Conquer();
-            _campaign.MaxFactionStrength = 900;
-            _campaign.CurrentStrength = 900;
+            _campaign.MaxBankedTroops = 900;
+            _campaign.BankedTroops = 900;
             _campaign.Now = 24;
-            Assert.AreEqual(InvasionReinforcementOutcome.FactionStrengthReached,
+            Assert.AreEqual(InvasionReinforcementOutcome.BankFull,
                 _reinforcements.DrawDue().Single().Outcome);
             Assert.AreEqual(31, Schedule(_invasion, "infantry").NextDeadlineDays);
         }
@@ -168,39 +168,41 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
-        public void TheCeilingRisesWithEveryTownHeldAndFallsAgainWhenOneIsLost()
+        public void TheBankLimitRisesWithEveryTownHeldAndFallsAgainWhenOneIsLost()
         {
-            // No configured ceiling at all leaves the invasion unbounded, whatever it already fields.
-            Assert.AreEqual(double.PositiveInfinity, new InvasionStrengthBudget(0, 300, 2, 5000).Headroom);
-            Assert.AreEqual(900, new InvasionStrengthBudget(900, 300, 0, 0).Headroom);
-            Assert.AreEqual(900, new InvasionStrengthBudget(900, 300, 2, 600).Headroom);
-            Assert.AreEqual(600, new InvasionStrengthBudget(900, 300, 1, 600).Headroom);
+            // No configured limit at all leaves the bank bottomless, whatever it already holds.
+            Assert.AreEqual(int.MaxValue, new InvasionBankLimit(0, 300, 2, 5000).Headroom);
+            Assert.AreEqual(1700, new InvasionBankLimit(1700, 300, 0, 0).Headroom);
+            Assert.AreEqual(2000, new InvasionBankLimit(1700, 300, 1, 0).Limit);
+            Assert.AreEqual(800, new InvasionBankLimit(1700, 300, 2, 1500).Headroom);
+            Assert.AreEqual(500, new InvasionBankLimit(1700, 300, 1, 1500).Headroom);
+            Assert.AreEqual(-200, new InvasionBankLimit(1700, 300, 0, 1900).Headroom);
         }
 
         [Test]
-        public void AnInvasionAtItsStrengthCeilingSpendsTheSlotWithoutBanking()
+        public void AnInvasionWithAFullBankSpendsTheSlotWithoutBanking()
         {
             Wind();
-            _campaign.MaxFactionStrength = 900;
-            _campaign.CurrentStrength = 900;
+            _campaign.MaxBankedTroops = 900;
+            _campaign.BankedTroops = 1200;
 
             _campaign.Now = 17;
-            Assert.AreEqual(InvasionReinforcementOutcome.FactionStrengthReached,
+            Assert.AreEqual(InvasionReinforcementOutcome.BankFull,
                 _reinforcements.DrawDue().Single().Outcome);
             Assert.AreEqual(24, Schedule(_invasion, "infantry").NextDeadlineDays);
         }
 
         /**
-         * The rules of one invasion share one ceiling, and each is decided only after the wave before it has
+         * The rules of one invasion share one bank, and each is decided only after the wave before it has
          * been banked, so the first rule of a day takes the room and a later one can find none left.
          */
         [Test]
-        public void RulesDueTheSameDayDrawAgainstOneSharedCeilingInConfigurationOrder()
+        public void RulesDueTheSameDayDrawAgainstOneSharedBankInConfigurationOrder()
         {
             _campaign.Rules.Add(new InvasionReinforcementRule("cavalry", 7));
             Wind();
-            _campaign.MaxFactionStrength = 500;
-            _campaign.StrengthPerTownHeld = 100;
+            _campaign.MaxBankedTroops = 500;
+            _campaign.BankedTroopsPerTownHeld = 100;
 
             _campaign.Now = 17;
             var drawn = new List<string>();
@@ -212,11 +214,11 @@ namespace CustomSpawns.Tests.Invasions
                 // What the first wave adds to the invasion is what the next one of the same day draws against.
                 if (draw.Outcome == InvasionReinforcementOutcome.Banking)
                 {
-                    _campaign.CurrentStrength += 600;
+                    _campaign.BankedTroops += 600;
                 }
             }
 
-            Assert.AreEqual(new[] { "infantry=Banking", "cavalry=FactionStrengthReached" }, drawn.ToArray());
+            Assert.AreEqual(new[] { "infantry=Banking", "cavalry=BankFull" }, drawn.ToArray());
             Assert.AreEqual(24, Schedule(_invasion, "cavalry").NextDeadlineDays);
         }
 
@@ -344,15 +346,15 @@ namespace CustomSpawns.Tests.Invasions
             public double Now;
             public readonly List<InvasionReinforcementRule> Rules =
                 new() { new InvasionReinforcementRule("infantry", 7) };
-            public double MaxFactionStrength;
-            public double StrengthPerTownHeld;
+            public int MaxBankedTroops;
+            public int BankedTroopsPerTownHeld;
             public int TownsHeld = 1;
-            public double CurrentStrength;
+            public int BankedTroops;
 
             public double NowInDays => Now;
 
-            public InvasionStrengthBudget GetStrengthBudget(Invasion invasion) =>
-                new(MaxFactionStrength, StrengthPerTownHeld, TownsHeld, CurrentStrength);
+            public InvasionBankLimit GetBankLimit(Invasion invasion) =>
+                new(MaxBankedTroops, BankedTroopsPerTownHeld, TownsHeld, BankedTroops);
 
             public IReadOnlyList<InvasionReinforcementRule>? GetRules(Invasion invasion) => Rules;
         }
