@@ -87,20 +87,6 @@ namespace CustomSpawns.Invasions
             return invasion != null && !invasion.IsSuspended && !IsInvasionSpent(invasion) ? invasion : null;
         }
 
-        // The invasion a clan belongs to for as long as it lasts, settled or not.
-        public Invasion? FindHostInvasion(string? clanId)
-        {
-            Invasion? invasion = FindInvasionHolding(clanId);
-            return invasion != null && !IsInvasionSpent(invasion) ? invasion : null;
-        }
-
-        // The invasion whose capital still banks for a clan: a fighting one, or a settled one with its bank unspent.
-        public Invasion? FindBankingInvasion(string? clanId)
-        {
-            Invasion? invasion = FindHostInvasion(clanId);
-            return invasion != null && (!invasion.IsSuspended || !invasion.HasSpentBank) ? invasion : null;
-        }
-
         // Decide before forgetting: removing the last party can spend or reconcile away its invasion.
         public string? TakeLordOfRemovedInvasionParty(string? clanId, string partyId, string? leaderId,
             Action forgetParty)
@@ -322,7 +308,10 @@ namespace CustomSpawns.Invasions
         public bool CompleteOccupation(long captureId, string currentOwnerClanId)
         {
             if (!CanApplyOccupation(captureId, currentOwnerClanId)) return false;
-            CaptureIndex[captureId].OccupationApplied = true;
+            InvasionCapture capture = CaptureIndex[captureId];
+            capture.OccupationApplied = true;
+            // Applying an occupation puts the capturing clan in a kingdom, founding one if it has none.
+            FindInvasion(capture.CapturingInvasionClanId)!.IsRealmFounded = true;
             return true;
         }
 
@@ -377,14 +366,6 @@ namespace CustomSpawns.Invasions
         public bool IsSuspended { get; set; }
 
         /**
-         * Whether a settled invasion's lords have spent the bank it built. The capital keeps banking for its
-         * lords after the invasion settles, so the reserve is spent in the field rather than deserting the day
-         * vanilla takes over, until they have drawn it down to the minimum garrison or the capital is lost.
-         * From then on the bank is closed for good.
-         */
-        public bool HasSpentBank { get; set; }
-
-        /**
          * The clan that leads the invasion: its founder while it lives. A founder that dies out passes the
          * invasion on, as a realm passes its crown, to the clan of the invasion that rules in its place, or failing
          * that to any clan of the invasion still alive. Only when none is left is there nobody to lead it.
@@ -414,6 +395,20 @@ namespace CustomSpawns.Invasions
          * but the capital it landed for has to be retaken.
          */
         public string? CapitalSettlementId { get; set; }
+
+        /**
+         * Whether the invasion has founded its kingdom on its capital. Taking the capital is not enough: the
+         * kingdom is founded once the capital's occupation is applied, an hour or more later.
+         */
+        public bool IsRealmFounded { get; set; }
+
+        /**
+         * Whether the invasion still has a realm to fight for. It needs none until it founds its kingdom; from
+         * then on its realm is a kingdom one of its clans rules. Once that is gone the invasion is over: the
+         * clans it expanded into are vanilla's, and a kingdom they join is not the invasion reborn.
+         */
+        public bool HasRealm(bool rulesAKingdom) => !IsRealmFounded || rulesAKingdom;
+
         public InvasionCapitalObjective? CapitalObjective { get; private set; }
         /**
          * When the next food convoy is due at the capital, in campaign days, or null while none has been

@@ -4,9 +4,10 @@ namespace CustomSpawns.Invasions
     public readonly struct InvasionWave
     {
         public InvasionWave(string partyTemplateId, float intervalInDays, int lordsPerWave, int maxLords,
-            int lordsPerTownHeld, int maxMenPerWave = 0)
+            int lordsPerTownHeld, int maxMenPerWave = 0, int menPerTownHeld = 0)
         {
             MaxMenPerWave = maxMenPerWave;
+            MenPerTownHeld = menPerTownHeld;
             PartyTemplateId = partyTemplateId;
             IntervalInDays = intervalInDays;
             LordsPerWave = lordsPerWave;
@@ -23,6 +24,12 @@ namespace CustomSpawns.Invasions
 
         // The most men one wave brings, the template's mix kept. Zero banks the template's roll whole.
         public int MaxMenPerWave { get; }
+
+        // The men a wave brings over MaxMenPerWave for every town the invasion holds, its capital included.
+        public int MenPerTownHeld { get; }
+
+        // A wave grows with the realm the way the bank limit and the lord cap do. Zero still banks a whole roll.
+        public int FindMaxMen(int townsHeld) => MaxMenPerWave <= 0 ? 0 : MaxMenPerWave + MenPerTownHeld * townsHeld;
     }
 
     // What a wave paid into the capital came to.
@@ -70,16 +77,18 @@ namespace CustomSpawns.Invasions
         private readonly IInvasionConfigurations _invasionConfigurations;
         private readonly IInvasionGarrisons _invasionGarrisons;
         private readonly IInvasionGarrisonDeposits _invasionGarrisonDeposits;
+        private readonly IInvasionLords _invasionLords;
         private readonly InvasionLordLevy _invasionLordLevy;
         private readonly InvasionWaveFunding _invasionWaveFunding;
 
         public InvasionWaveBanking(IInvasionConfigurations invasionConfigurations,
             IInvasionGarrisons invasionGarrisons, IInvasionGarrisonDeposits invasionGarrisonDeposits,
-            InvasionLordLevy invasionLordLevy, InvasionWaveFunding invasionWaveFunding)
+            IInvasionLords invasionLords, InvasionLordLevy invasionLordLevy, InvasionWaveFunding invasionWaveFunding)
         {
             _invasionConfigurations = invasionConfigurations;
             _invasionGarrisons = invasionGarrisons;
             _invasionGarrisonDeposits = invasionGarrisonDeposits;
+            _invasionLords = invasionLords;
             _invasionLordLevy = invasionLordLevy;
             _invasionWaveFunding = invasionWaveFunding;
         }
@@ -98,7 +107,7 @@ namespace CustomSpawns.Invasions
 
             // The lords are fielded before the gold is paid, so that their warbands are paid for too.
             int men = _invasionGarrisonDeposits.Deposit(capitalId, wave.Value.PartyTemplateId,
-                wave.Value.MaxMenPerWave);
+                wave.Value.FindMaxMen(_invasionLords.CountTownsHeld(invasion)));
             int lords = _invasionLordLevy.Levy(invasion, wave.Value, capitalId);
             int pay = _invasionWaveFunding.Fund(invasion, wave.Value.IntervalInDays);
 

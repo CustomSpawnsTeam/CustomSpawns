@@ -5,8 +5,7 @@ using TaleWorlds.CampaignSystem.Roster;
 
 namespace CustomSpawns.Invasions.Adapters
 {
-    // An invasion's garrisons are spared vanilla's wage and party size desertion while its bank is open; see
-    // InvasionGarrisonDesertion and Invasion.HasSpentBank.
+    // An invasion's garrisons are spared vanilla's wage and party size desertion; see InvasionGarrisonDesertion.
     public sealed class InvasionPartyDesertionModel : PartyDesertionModel
     {
         private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
@@ -26,7 +25,7 @@ namespace CustomSpawns.Invasions.Adapters
         {
             TroopRoster vanillaDeserters = _partyDesertionModel.GetTroopsToDesert(mobileParty);
             if (!_invasionGarrisonDesertion.KeepsTroops(mobileParty.IsGarrison,
-                    _invaderClanQuery.IsBankingClan(mobileParty.CurrentSettlement?.OwnerClan?.StringId),
+                    _invaderClanQuery.IsInvaderClan(mobileParty.CurrentSettlement?.OwnerClan?.StringId),
                     mobileParty.Morale, mobileParty.Party.NumberOfAllMembers - mobileParty.Party.PartySizeLimit,
                     _partyDesertionModel.GetMoraleThresholdForTroopDesertion()))
             {

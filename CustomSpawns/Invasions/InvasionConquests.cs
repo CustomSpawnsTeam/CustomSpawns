@@ -14,35 +14,49 @@ namespace CustomSpawns.Invasions
         Open
     }
 
-    // The realm an invasion is conquering: the kingdom it first took a fief from.
+    // The realm an invasion is conquering: the kingdom it first took a fief from, then each neighbour in turn.
     public sealed class InvasionConquest
     {
         public InvasionConquest(string invasionClanId, string targetKingdomId, double startedDay,
-            double lastFrontDay, bool isSettled = false)
+            double lastFrontDay)
         {
             InvasionClanId = invasionClanId;
             TargetKingdomId = targetKingdomId;
             StartedDay = startedDay;
             LastFrontDay = lastFrontDay;
-            IsSettled = isSettled;
         }
 
         public string InvasionClanId { get; }
-        public string TargetKingdomId { get; }
-        public double StartedDay { get; }
+        public string TargetKingdomId { get; private set; }
+
+        // When the invasion began conquering its current target.
+        public double StartedDay { get; private set; }
 
         // When the invasion last went to war on a kingdom of its own accord; its first conquest counts.
         public double LastFrontDay { get; private set; }
 
-        /**
-         * The target has fallen and the invader is one more realm of Calradia: it is no longer invading, and
-         * neither its war with everyone nor any of the invasion's own machinery applies to it any more.
-         */
-        public bool IsSettled { get; private set; }
-
         public void OpenFront(double today) => LastFrontDay = today;
 
-        public void Settle() => IsSettled = true;
+        // The target has fallen, and the invasion turns on the next.
+        public void Retarget(string targetKingdomId, double today)
+        {
+            TargetKingdomId = targetKingdomId;
+            StartedDay = today;
+            LastFrontDay = today;
+        }
+    }
+
+    // A kingdom bordering the invasion, and how strong it is.
+    public readonly struct InvasionNeighbour
+    {
+        public InvasionNeighbour(string kingdomId, float strength)
+        {
+            KingdomId = kingdomId;
+            Strength = strength;
+        }
+
+        public string KingdomId { get; }
+        public float Strength { get; }
     }
 
     // A fief the invasion could take next, and how far it lies from the nearest fief the invasion holds.
@@ -97,7 +111,7 @@ namespace CustomSpawns.Invasions
 
         /**
          * The first fief an invasion takes from a kingdom names the realm it conquers; later conquests,
-         * whoever they are taken from, leave that choice alone. A fief taken from a clan outside any kingdom
+         * whoever they are taken from, leave that choice alone until that realm falls. A fief taken from a clan outside any kingdom
          * names nothing.
          */
         public InvasionConquest? Begin(string invasionClanId, string? previousOwnerKingdomId, double today)
@@ -116,7 +130,15 @@ namespace CustomSpawns.Invasions
 
         public void Forget(string invasionClanId) => _conquestsByClanId.Remove(invasionClanId);
 
-        public bool IsSettled(string? invasionClanId) => Find(invasionClanId)?.IsSettled == true;
+        /**
+         * Once its target falls, an invasion turns on the weakest kingdom on its borders: an invader that
+         * picks a fight with a stronger neighbour is beaten back before it can grow. With no kingdom on its
+         * borders it has nothing to turn on.
+         */
+        public string? FindNextTarget(IEnumerable<InvasionNeighbour> neighbours) =>
+            neighbours.OrderBy(neighbour => neighbour.Strength)
+                .Select(neighbour => neighbour.KingdomId)
+                .FirstOrDefault();
 
         /**
          * A realm that conquers stays at war with its target and leaves every other kingdom to choose: they
@@ -131,7 +153,7 @@ namespace CustomSpawns.Invasions
                 return InvasionWarStance.Policy;
             }
 
-            if (!conquest.IsSettled && otherFactionId == conquest.TargetKingdomId)
+            if (otherFactionId == conquest.TargetKingdomId)
             {
                 return InvasionWarStance.War;
             }

@@ -362,7 +362,8 @@ namespace CustomSpawns.Tests.Spawn
                                     "<BankedTroopsPerTownHeld>300</BankedTroopsPerTownHeld>" +
                                     "<Reinforcements><Rule><Id>infantry</Id>" +
                                     "<PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId>" +
-                                    "<MaxMenPerWave>600</MaxMenPerWave></Rule></Reinforcements></Invasion>";
+                                    "<MaxMenPerWave>600</MaxMenPerWave><MenPerTownHeld>300</MenPerTownHeld>" +
+                                    "</Rule></Reinforcements></Invasion>";
             Spawns spawns = Read("<RegularBanditDailySpawnData party_template=\"PartyTemplate.invasion\">" + invasion +
                                  "</RegularBanditDailySpawnData>", out List<System.Exception> errors);
 
@@ -374,6 +375,7 @@ namespace CustomSpawns.Tests.Spawn
                 Assert.That(data.MaxBankedTroops, Is.EqualTo(1700));
                 Assert.That(data.BankedTroopsPerTownHeld, Is.EqualTo(300));
                 Assert.That(data.ReinforcementRules.Single().MaxMenPerWave, Is.EqualTo(600));
+                Assert.That(data.ReinforcementRules.Single().MenPerTownHeld, Is.EqualTo(300));
                 // An invasion that mentions neither keeps a bottomless bank and banks whole waves.
                 Assert.That(AdaptValidConfig().MaxBankedTroops, Is.EqualTo(0));
                 Assert.That(AdaptValidConfig().ReinforcementRules.Single().MaxMenPerWave, Is.EqualTo(0));

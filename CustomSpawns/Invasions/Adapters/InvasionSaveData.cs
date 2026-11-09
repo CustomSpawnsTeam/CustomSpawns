@@ -63,14 +63,13 @@ namespace CustomSpawns.Invasions.Adapters
         // Negative until this invasion loses its capital for the first time.
         [SaveableField(12)] public double CapitalRetakeDeadlineDays = -1;
         [SaveableField(13)] public InvasionCapitalObjectiveSaveData? CapitalObjective;
-        [SaveableField(14)] public bool HasSpentBank;
+        [SaveableField(14)] public bool IsRealmFounded;
 
         public static InvasionSaveData FromState(Invasion value) => new()
         {
             SpawnTemplateId = value.SpawnTemplateId,
             ClanId = value.ClanId,
             IsSuspended = value.IsSuspended,
-            HasSpentBank = value.HasSpentBank,
             CapitalSettlementId = value.CapitalSettlementId,
             Members = value.Members.ToList(),
             ClanIds = value.ClanIds.ToList(),
@@ -78,6 +77,7 @@ namespace CustomSpawns.Invasions.Adapters
                 .Select(InvasionReinforcementScheduleSaveData.FromState).ToList(),
             NextFoodConvoyDays = value.NextFoodConvoyDays ?? -1,
             CapitalRetakeDeadlineDays = -1,
+            IsRealmFounded = value.IsRealmFounded,
             CapitalObjective = value.CapitalObjective == null
                 ? null
                 : InvasionCapitalObjectiveSaveData.FromState(value.CapitalObjective)
@@ -88,8 +88,8 @@ namespace CustomSpawns.Invasions.Adapters
             var invasion = new Invasion(SpawnTemplateId, ClanId)
             {
                 IsSuspended = IsSuspended,
-                HasSpentBank = HasSpentBank,
                 CapitalSettlementId = CapitalSettlementId,
+                IsRealmFounded = IsRealmFounded,
                 NextFoodConvoyDays = NextFoodConvoyDays < 0 ? null : NextFoodConvoyDays,
                 Members = new HashSet<string>(Members ?? new List<string>(), StringComparer.Ordinal)
             };

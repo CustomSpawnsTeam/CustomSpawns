@@ -27,6 +27,28 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
+        public void AWaveLargerThanOneRollRollsAgainUntilItIsFull()
+        {
+            int rolls = 0;
+
+            int[] wave = _invasionTroopBank.RollWave(() =>
+            {
+                rolls++;
+                return new[] { 400, 300 };
+            }, 1400);
+
+            Assert.That(rolls, Is.EqualTo(2));
+            Assert.That(wave, Is.EqualTo(new[] { 800, 600 }));
+        }
+
+        [Test]
+        public void AWaveKeepsOneRollWithoutASizeOrWhenTheTemplateRollsNobody()
+        {
+            Assert.That(_invasionTroopBank.RollWave(() => new[] { 400, 300 }, 0), Is.EqualTo(new[] { 400, 300 }));
+            Assert.That(_invasionTroopBank.RollWave(() => new[] { 0, 0 }, 600), Is.EqualTo(new[] { 0, 0 }));
+        }
+
+        [Test]
         public void FractionalSharesFillTheRequestedSizeWithoutExceedingTheAvailableTroops()
         {
             Assert.That(_invasionTroopBank.Distribute(new[] { 7, 2, 1, 0 }, 4),

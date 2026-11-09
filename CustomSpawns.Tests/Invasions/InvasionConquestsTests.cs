@@ -38,26 +38,40 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
-        public void ASettledInvaderLeavesEveryKingdomToChooseAndMinorFactionsToTheConfiguration()
+        public void AnInvaderTurnsOnItsWeakestNeighbour()
         {
-            _invasionConquests.Begin("humar", "empire_w", 10)!.Settle();
-
-            Assert.Multiple(() =>
+            string? next = _invasionConquests.FindNextTarget(new[]
             {
-                Assert.True(_invasionConquests.IsSettled("humar"));
-                Assert.That(_invasionConquests.FindStance("humar", "empire_w", true), Is.EqualTo(InvasionWarStance.Open));
-                Assert.That(_invasionConquests.FindStance("humar", "vlandia", true), Is.EqualTo(InvasionWarStance.Open));
-                Assert.That(_invasionConquests.FindStance("humar", "looters", false), Is.EqualTo(InvasionWarStance.Policy));
+                new InvasionNeighbour("empire_w", 12900f),
+                new InvasionNeighbour("khuzait", 4800f),
+                new InvasionNeighbour("aserai", 7300f)
             });
+
+            Assert.That(next, Is.EqualTo("khuzait"));
         }
 
         [Test]
-        public void AnInvaderStillConqueringIsNotSettled()
+        public void AnInvaderWithoutNeighboursHasNothingToTurnOn()
         {
-            _invasionConquests.Begin("humar", "empire_w", 10);
+            Assert.That(_invasionConquests.FindNextTarget(new InvasionNeighbour[0]), Is.Null);
+        }
 
-            Assert.False(_invasionConquests.IsSettled("humar"));
-            Assert.False(_invasionConquests.IsSettled(null));
+        [Test]
+        public void ARetargetedInvaderIsAtWarWithItsNewTargetAndLeavesTheOthersToChoose()
+        {
+            InvasionConquest conquest = _invasionConquests.Begin("humar", "empire_s", 10)!;
+
+            conquest.Retarget("empire_w", 400);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(conquest.TargetKingdomId, Is.EqualTo("empire_w"));
+                Assert.That(conquest.StartedDay, Is.EqualTo(400));
+                Assert.That(conquest.LastFrontDay, Is.EqualTo(400));
+                Assert.That(_invasionConquests.FindStance("humar", "empire_w", true), Is.EqualTo(InvasionWarStance.War));
+                Assert.That(_invasionConquests.FindStance("humar", "empire_s", true), Is.EqualTo(InvasionWarStance.Open));
+                Assert.That(_invasionConquests.FindStance("humar", "looters", false), Is.EqualTo(InvasionWarStance.Policy));
+            });
         }
 
         [Test]

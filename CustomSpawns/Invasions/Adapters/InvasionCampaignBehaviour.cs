@@ -91,7 +91,7 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionKingdomRetirement = new InvasionKingdomRetirement(State);
             _invasionSieges = new InvasionSieges(State, _invasionCaptureCorrelation, _spawnDao);
             _invasionMembership = new InvasionMembership(State, _spawnDao, _dynamicSpawnData,
-                _invasionCaptureCorrelation, BannerlordInvasionConquestWars);
+                _invasionCaptureCorrelation);
             _invasionLordWarbands = NewLordWarbands();
             _invasionLordRemoval = new InvasionLordRemoval(State, _invaderHeroes);
             _invasionFoodConvoys = new InvasionFoodConvoys(State, _spawnDao);
@@ -173,7 +173,7 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionKingdomRetirement = new InvasionKingdomRetirement(State);
             _invasionSieges = new InvasionSieges(State, _invasionCaptureCorrelation, _spawnDao);
             _invasionMembership = new InvasionMembership(State, _spawnDao, _dynamicSpawnData,
-                _invasionCaptureCorrelation, BannerlordInvasionConquestWars);
+                _invasionCaptureCorrelation);
             _invasionLordWarbands = NewLordWarbands();
             _invasionLordRemoval = new InvasionLordRemoval(State, _invaderHeroes);
             _invasionFoodConvoys = new InvasionFoodConvoys(State, _spawnDao);
@@ -194,7 +194,7 @@ namespace CustomSpawns.Invasions.Adapters
         {
             BannerlordInvasionLords bannerlordInvasionLords = new(_invaderHeroes);
             InvasionWaveBanking invasionWaveBanking = new(_bannerlordInvasionConfigurations,
-                _bannerlordInvasionGarrisons, _bannerlordInvasionGarrisons,
+                _bannerlordInvasionGarrisons, _bannerlordInvasionGarrisons, bannerlordInvasionLords,
                 new InvasionLordLevy(bannerlordInvasionLords, _invasionTroopBank),
                 new InvasionWaveFunding(new BannerlordInvasionTreasury(), new BannerlordInvasionCommissariat(),
                     new InvasionWarChest()));
@@ -331,7 +331,6 @@ namespace CustomSpawns.Invasions.Adapters
             Initialize();
             BannerlordInvasionConquestWars.UpdateDaily();
             _bannerlordInvasionFiefGarrisons.TopUpDaily();
-            _invasionLordWarbands.CloseSpentBanks();
         }
 
         private void OnWarDeclared(IFaction first, IFaction second, DeclareWarAction.DeclareWarDetail detail)
@@ -453,8 +452,6 @@ namespace CustomSpawns.Invasions.Adapters
         }
 
         bool IInvaderClanQuery.IsInvaderClan(string? clanId) => State.FindFightingInvasion(clanId) != null;
-
-        bool IInvaderClanQuery.IsBankingClan(string? clanId) => State.FindBankingInvasion(clanId) != null;
 
         InvasionCapitalObjectiveDirective? IInvasionCapitalObjectiveQuery.FindForKingdom(
             string kingdomId)

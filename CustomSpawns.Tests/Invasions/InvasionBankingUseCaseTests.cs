@@ -135,10 +135,8 @@ namespace CustomSpawns.Tests.Invasions
             _invasionGarrisons.Setup(g => g.HasGarrison(Capital)).Returns(true);
 
             _invasion.IsSuspended = true;
-            _invasion.HasSpentBank = true;
             Assert.IsNull(Bank().Refill(Warband(settlementId: Capital, room: 30)));
             _invasion.IsSuspended = false;
-            _invasion.HasSpentBank = false;
 
             _invasionConfigurations.Setup(c => c.FindMinimumCapitalGarrison("invasion")).Returns((int?)null);
             Assert.IsNull(Bank().Refill(Warband(settlementId: Capital, room: 30)));
@@ -286,6 +284,30 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
+        public void AWaveGrowsWithEveryTownHeldTheCapitalIncluded()
+        {
+            _invasionLords.Setup(l => l.CountTownsHeld(_invasion)).Returns(2);
+            _invasionConfigurations.Setup(c => c.FindWave("invasion", "infantry"))
+                .Returns(new InvasionWave("template", 7f, 0, 0, 0, 800, 300));
+
+            WaveBanking().Bank(Draw());
+
+            _invasionGarrisonDeposits.Verify(g => g.Deposit(Capital, "template", 1400), Times.Once);
+        }
+
+        [Test]
+        public void AWaveWithoutASizeStaysOneWholeRollHoweverManyTownsAreHeld()
+        {
+            _invasionLords.Setup(l => l.CountTownsHeld(_invasion)).Returns(3);
+            _invasionConfigurations.Setup(c => c.FindWave("invasion", "infantry"))
+                .Returns(new InvasionWave("template", 7f, 0, 0, 0, 0, 300));
+
+            WaveBanking().Bank(Draw());
+
+            _invasionGarrisonDeposits.Verify(g => g.Deposit(Capital, "template", 0), Times.Once);
+        }
+
+        [Test]
         public void AWaveIsNotBankedIntoAMissingRuleOrAClosedCapital()
         {
             _invasionGarrisons.Setup(g => g.HasGarrison(Capital)).Returns(false);
@@ -361,57 +383,6 @@ namespace CustomSpawns.Tests.Invasions
             _invasionLords.Verify(l => l.Field(It.IsAny<Invasion>(), It.IsAny<string>()), Times.Never);
         }
 
-        [Test]
-        public void ASettledInvasionsLordsKeepSpendingItsBank()
-        {
-            _invasion.IsSuspended = true;
-
-            InvasionBankVisit visit = Bank().Refill(Warband(settlementId: Capital, room: 30))!.Value;
-
-            Assert.AreEqual(30, visit.Drawn);
-            Assert.IsEmpty(Bank().CloseSpentBanks());
-            Assert.IsFalse(_invasion.HasSpentBank);
-        }
-
-        [Test]
-        public void ASettledInvasionsBankClosesForGoodOnceDrawnDownToTheMinimumGarrison()
-        {
-            _invasion.IsSuspended = true;
-            _garrison = Floor;
-
-            IReadOnlyList<InvasionBankClosure> closures = Bank().CloseSpentBanks();
-
-            Assert.AreEqual(1, closures.Count);
-            Assert.AreEqual(Floor, closures[0].GarrisonLeft);
-            Assert.IsTrue(_invasion.HasSpentBank);
-
-            _garrison = 100;
-            Assert.IsNull(Bank().Refill(Warband(settlementId: Capital, room: 30)));
-            Assert.IsEmpty(Bank().CloseSpentBanks());
-        }
-
-        [Test]
-        public void ASettledInvasionThatLosesItsCapitalLosesItsBank()
-        {
-            _invasion.IsSuspended = true;
-            _state.FootholdIndex.Remove(Capital);
-
-            IReadOnlyList<InvasionBankClosure> closures = Bank().CloseSpentBanks();
-
-            Assert.AreEqual(1, closures.Count);
-            Assert.IsNull(closures[0].GarrisonLeft);
-            Assert.IsTrue(_invasion.HasSpentBank);
-        }
-
-        [Test]
-        public void AFightingInvasionsBankNeverCloses()
-        {
-            _garrison = Floor;
-
-            Assert.IsEmpty(Bank().CloseSpentBanks());
-            Assert.IsFalse(_invasion.HasSpentBank);
-        }
-
         private InvasionWarbandBank Bank() => new(_state, _invasionConfigurations.Object, _invasionWarbands.Object,
             _invasionGarrisons.Object, new InvasionTroopBank());
 
@@ -421,7 +392,7 @@ namespace CustomSpawns.Tests.Invasions
             new(_invasionTreasury.Object, _invasionCommissariat.Object, new InvasionWarChest());
 
         private InvasionWaveBanking WaveBanking() => new(_invasionConfigurations.Object, _invasionGarrisons.Object,
-            _invasionGarrisonDeposits.Object, Levy(), Funding());
+            _invasionGarrisonDeposits.Object, _invasionLords.Object, Levy(), Funding());
 
         private InvasionReinforcementDraw Draw(InvasionReinforcementOutcome outcome = InvasionReinforcementOutcome.Banking) =>
             new(_invasion, "infantry", outcome);

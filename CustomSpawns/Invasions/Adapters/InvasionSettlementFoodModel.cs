@@ -44,7 +44,7 @@ namespace CustomSpawns.Invasions.Adapters
             }
 
             float spared = _invasionBankRations.FoodSpared(
-                _invaderClanQuery.IsBankingClan(town.OwnerClan?.StringId), garrison.Party.NumberOfAllMembers,
+                _invaderClanQuery.IsInvaderClan(town.OwnerClan?.StringId), garrison.Party.NumberOfAllMembers,
                 garrison.Party.PartySizeLimit, NumberOfMenOnGarrisonToEatOneFood);
 
             if (spared > 0f)

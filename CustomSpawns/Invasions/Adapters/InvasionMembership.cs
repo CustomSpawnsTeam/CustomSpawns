@@ -20,12 +20,10 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly SpawnDao _spawnDao;
         private readonly DynamicSpawnData _dynamicSpawnData;
         private readonly InvasionCaptureCorrelation _invasionCaptureCorrelation;
-        private readonly ISettledInvasionQuery _settledInvasionQuery;
 
         public InvasionMembership(InvasionState state, SpawnDao spawns, DynamicSpawnData parties,
-            InvasionCaptureCorrelation correlation, ISettledInvasionQuery settledInvasionQuery)
+            InvasionCaptureCorrelation correlation)
         {
-            _settledInvasionQuery = settledInvasionQuery;
             _invasionState = state;
             _spawnDao = spawns;
             _dynamicSpawnData = parties;
@@ -89,8 +87,10 @@ namespace CustomSpawns.Invasions.Adapters
         {
             _invasionState.Reconcile(MobileParty.All.Where(p => p.IsActive).Select(p => p.StringId),
                 id => Settlement.Find(id)?.OwnerClan?.StringId,
-                invasion => GetConfiguration(invasion) != null && !_settledInvasionQuery.IsSettled(invasion.ClanId) &&
-                            invasion.FindLeadingClan() != null,
+                invasion => GetConfiguration(invasion) != null &&
+                            invasion.FindLeadingClan() != null &&
+                            invasion.HasRealm(Kingdom.All.Any(kingdom => !kingdom.IsEliminated &&
+                                invasion.HoldsClan(kingdom.RulingClan?.StringId))),
                 invasion => InvasionKingdomRetirement.FindRetirableKingdom(invasion) != null);
 
             _invasionCaptureCorrelation.Prune();

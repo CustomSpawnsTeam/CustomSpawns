@@ -29,7 +29,7 @@ namespace CustomSpawns.Invasions.Adapters
             }
 
             return new InvasionWave(rule.PartyTemplateId, rule.IntervalInDays, rule.LordsPerWave,
-                configuration!.MaxLords, configuration.LordsPerTownHeld, rule.MaxMenPerWave);
+                configuration!.MaxLords, configuration.LordsPerTownHeld, rule.MaxMenPerWave, rule.MenPerTownHeld);
         }
 
         public int? FindMinimumCapitalGarrison(string spawnTemplateId) =>

@@ -18,14 +18,13 @@ namespace CustomSpawns.Invasions.Adapters
     /**
      * Keeps an invasion at war with the kingdom it is conquering and leaves every other kingdom to its own
      * diplomacy. The diplomacy rules ask it how threatening an invader is, which is what draws its neighbours
-     * into the war as it grows. Once that kingdom has fallen the invader settles, and is left to vanilla.
+     * into the war as it grows. Once that kingdom has fallen the invader turns on the bordering kingdom it gains
+     * most by fighting.
      */
-    public sealed class BannerlordInvasionConquestWars : IFactionWarStanceProvider, ISettledInvasionQuery,
-        IInvasionConquestTargets
+    public sealed class BannerlordInvasionConquestWars : IFactionWarStanceProvider, IInvasionConquestTargets
     {
         private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         private const char Separator = '|';
-        private const string Settled = "settled";
         private readonly Func<InvasionState> _state;
         private readonly BannerlordInvasionConfigurations _bannerlordInvasionConfigurations;
         private readonly BannerlordInvasionFiefGarrisons _bannerlordInvasionFiefGarrisons;
@@ -97,11 +96,6 @@ namespace CustomSpawns.Invasions.Adapters
 
             foreach (InvasionConquest conquest in _invasionConquests.All.ToList())
             {
-                if (conquest.IsSettled)
-                {
-                    continue;
-                }
-
                 Invasion? invasion = state.FindFightingInvasion(conquest.InvasionClanId);
                 InvasionConquestRules? rules = invasion == null
                     ? null
@@ -113,11 +107,8 @@ namespace CustomSpawns.Invasions.Adapters
                     continue;
                 }
 
-                if (HasFallen(conquest.TargetKingdomId))
+                if (HasFallen(conquest.TargetKingdomId) && !Retarget(invasion, conquest))
                 {
-                    conquest.Settle();
-                    Logger.Info("Invasion conquest: settled spawn=" + invasion.SpawnTemplateId +
-                                " target=" + conquest.TargetKingdomId + " day=" + CampaignTime.Now.ToDays);
                     continue;
                 }
 
@@ -141,8 +132,6 @@ namespace CustomSpawns.Invasions.Adapters
                 }
             }
         }
-
-        public bool IsSettled(string? invasionClanId) => _invasionConquests.IsSettled(invasionClanId);
 
         // A lord of a conquering invasion would rather besiege the kingdom it conquers than anyone else.
         public void PreferTargetSieges(MobileParty party, PartyThinkParams thinkParams)
@@ -289,10 +278,12 @@ namespace CustomSpawns.Invasions.Adapters
             conquest => conquest.InvasionClanId,
             conquest => conquest.TargetKingdomId + Separator +
                         conquest.StartedDay.ToString("R", CultureInfo.InvariantCulture) + Separator +
-                        conquest.LastFrontDay.ToString("R", CultureInfo.InvariantCulture) + Separator +
-                        (conquest.IsSettled ? Settled : ""));
+                        conquest.LastFrontDay.ToString("R", CultureInfo.InvariantCulture));
 
-        // A save without a last front dates it to the conquest; one without the settled mark is still invading.
+        /**
+         * A save without a last front dates it to the conquest. A save that marked the conquest settled names a
+         * fallen target, so the invasion turns on its next one on the first day.
+         */
         public void Restore(Dictionary<string, string>? saved)
         {
             _invasionConquests = new InvasionConquests();
@@ -308,8 +299,7 @@ namespace CustomSpawns.Invasions.Adapters
                         CultureInfo.InvariantCulture, out double front)
                         ? front
                         : day;
-                    _invasionConquests.Restore(new InvasionConquest(entry.Key, fields[0], day, lastFrontDay,
-                        fields.Length >= 4 && fields[3] == Settled));
+                    _invasionConquests.Restore(new InvasionConquest(entry.Key, fields[0], day, lastFrontDay));
                 }
             }
         }
@@ -317,27 +307,15 @@ namespace CustomSpawns.Invasions.Adapters
         private InvasionWarStance FindStanceOf(IFaction invader, IFaction other) =>
             _invasionConquests.FindStance(FindInvasionClanId(invader), other.StringId, other.IsKingdomFaction);
 
-        // A settled invader is still answered for, or its diplomacy configuration would put it at war with everyone.
-        private string? FindInvasionClanId(IFaction faction)
-        {
-            string? clanId = (faction as Clan ?? (faction as Kingdom)?.RulingClan)?.StringId;
-            string? invasionClanId = _state().FindFightingInvasion(clanId)?.ClanId;
-
-            if (invasionClanId != null)
-            {
-                return invasionClanId;
-            }
-
-            invasionClanId = _state().FindInvasionHolding(clanId)?.ClanId ?? clanId;
-            return _invasionConquests.IsSettled(invasionClanId) ? invasionClanId : null;
-        }
+        private string? FindInvasionClanId(IFaction faction) =>
+            _state().FindFightingInvasion((faction as Clan ?? (faction as Kingdom)?.RulingClan)?.StringId)?.ClanId;
 
         public string? FindConquestTargetKingdomId(Invasion invasion) => FindConquestTarget(invasion)?.StringId;
 
         private Kingdom? FindConquestTarget(Invasion invasion)
         {
             InvasionConquest? conquest = _invasionConquests.Find(invasion.ClanId);
-            Kingdom? target = conquest == null || conquest.IsSettled
+            Kingdom? target = conquest == null
                 ? null
                 : Kingdom.All.FirstOrDefault(kingdom => kingdom.StringId == conquest.TargetKingdomId);
 
@@ -358,6 +336,42 @@ namespace CustomSpawns.Invasions.Adapters
                 DeclareWarAction.ApplyByDefault(invader, target);
             }
         }
+
+        // Turns a conquest whose target has fallen on the next; false while no kingdom borders the invasion.
+        private bool Retarget(Invasion invasion, InvasionConquest conquest)
+        {
+            IFaction? invader = invasion.FindLeadingClan()?.MapFaction;
+            IReadOnlyList<InvasionNeighbour> neighbours = invader == null
+                ? new InvasionNeighbour[0]
+                : FindNeighbours(invader);
+            string? kingdomId = _invasionConquests.FindNextTarget(neighbours);
+
+            if (kingdomId == null)
+            {
+                Logger.Info("Invasion conquest: no neighbour to turn on spawn=" + invasion.SpawnTemplateId +
+                            " fallen=" + conquest.TargetKingdomId + " day=" + CampaignTime.Now.ToDays);
+                return false;
+            }
+
+            Logger.Info("Invasion conquest: retargeted spawn=" + invasion.SpawnTemplateId +
+                        " fallen=" + conquest.TargetKingdomId + " target=" + kingdomId +
+                        " fiefs=" + invader!.Fiefs.Count + " neighbours=[" + string.Join(";",
+                            neighbours.Select(neighbour => neighbour.KingdomId + ":" + neighbour.Strength.ToString("0"))) +
+                        "] day=" + CampaignTime.Now.ToDays);
+            conquest.Retarget(kingdomId, CampaignTime.Now.ToDays);
+            return true;
+        }
+
+        // The kingdoms holding a fortification next to one of the invader's, as vanilla draws a realm's borders.
+        private static IReadOnlyList<InvasionNeighbour> FindNeighbours(IFaction invader) =>
+            invader.Fiefs
+                .SelectMany(fief => fief.GetNeighborFortifications(MobileParty.NavigationType.All))
+                .Select(settlement => settlement.MapFaction)
+                .OfType<Kingdom>()
+                .Where(kingdom => !kingdom.IsEliminated && kingdom != invader)
+                .Distinct()
+                .Select(kingdom => new InvasionNeighbour(kingdom.StringId, kingdom.CurrentTotalStrength))
+                .ToList();
 
         // Only an invasion whose fiefs can all hold reaches past the wars it already has.
         private void OpenFront(Invasion invasion, InvasionConquest conquest, InvasionConquestRules rules)

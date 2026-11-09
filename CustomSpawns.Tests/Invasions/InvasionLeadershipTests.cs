@@ -55,6 +55,38 @@ namespace CustomSpawns.Tests.Invasions
             Assert.That(FindLeadingClan(), Is.Null);
         }
 
+        [Test]
+        public void ALandingInvasionNeedsNoRealm()
+        {
+            Assert.That(_invasion.HasRealm(rulesAKingdom: false), Is.True);
+        }
+
+        [Test]
+        public void AnInvasionThatTookItsCapitalButHasYetToFoundItsKingdomStillFights()
+        {
+            _invasion.CapitalSettlementId = "town_ES2";
+
+            Assert.That(_invasion.HasRealm(rulesAKingdom: false), Is.True);
+        }
+
+        [Test]
+        public void AnInvasionThatFoundedItsKingdomFightsForTheRealmItRules()
+        {
+            _invasion.CapitalSettlementId = "town_ES2";
+            _invasion.IsRealmFounded = true;
+
+            Assert.That(_invasion.HasRealm(rulesAKingdom: true), Is.True);
+        }
+
+        [Test]
+        public void AnInvasionWhoseRealmFellHasNothingLeftToFightFor()
+        {
+            _invasion.CapitalSettlementId = "town_ES2";
+            _invasion.IsRealmFounded = true;
+
+            Assert.That(_invasion.HasRealm(rulesAKingdom: false), Is.False);
+        }
+
         private string? FindLeadingClan() =>
             _invasion.FindLeadingClan(clanId => _living.Contains(clanId), _ => _rulingClan);
     }

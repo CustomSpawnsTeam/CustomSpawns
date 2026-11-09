@@ -53,6 +53,30 @@ namespace CustomSpawns.Invasions
         public int[] CapWave(IReadOnlyList<int> rolled, int maxMen) =>
             maxMen <= 0 ? rolled.ToArray() : Distribute(rolled, maxMen);
 
+        /**
+         * A wave with a size rolls its template again until it has that many men, then is cut down to them
+         * with the mix kept, so a size over one roll is not lost to the template. Without a size, or with a
+         * template that rolls nobody, one roll is the wave.
+         */
+        public int[] RollWave(Func<int[]> roll, int maxMen)
+        {
+            int[] rolled = roll();
+
+            while (maxMen > 0 && rolled.Sum() < maxMen)
+            {
+                int[] more = roll();
+
+                if (more.Sum() == 0)
+                {
+                    break;
+                }
+
+                rolled = rolled.Zip(more, (men, extra) => men + extra).ToArray();
+            }
+
+            return CapWave(rolled, maxMen);
+        }
+
         // The bank only replaces vanilla's free warband when it can give back at least as many men; a lord
         // sent out with fewer than he came with is a lord sent out to be captured.
         public bool ReplacesFreeWarband(int freeTroops, int garrisonCount, int minimumCapitalGarrison) =>

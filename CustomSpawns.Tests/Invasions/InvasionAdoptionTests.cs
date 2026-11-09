@@ -80,7 +80,7 @@ namespace CustomSpawns.Tests.Invasions
         {
             var spawnDao = (SpawnDao)FormatterServices.GetUninitializedObject(typeof(SpawnDao));
             SetField(spawnDao, "_spawns", new List<SpawnDto> { spawn });
-            var membership = new InvasionMembership(_state, spawnDao, _dynamicSpawnData, null!, null!);
+            var membership = new InvasionMembership(_state, spawnDao, _dynamicSpawnData, null!);
             _dynamicSpawnData.PartyRegistered += membership.Register;
             return membership;
         }

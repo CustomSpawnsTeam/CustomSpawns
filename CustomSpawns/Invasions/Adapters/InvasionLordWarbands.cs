@@ -1,5 +1,4 @@
 using NLog;
-using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 
 namespace CustomSpawns.Invasions.Adapters
@@ -47,17 +46,6 @@ namespace CustomSpawns.Invasions.Adapters
             foreach (InvasionBankVisit visit in _invasionWarbandBank.RefillAtCapitals())
             {
                 LogRefill(visit);
-            }
-        }
-
-        public void CloseSpentBanks()
-        {
-            foreach (InvasionBankClosure closure in _invasionWarbandBank.CloseSpentBanks())
-            {
-                Logger.Info("Invasion bank spent: day=" + CampaignTime.Now.ToDays.ToString("0.00") +
-                            " invasion=" + closure.Invasion.ClanId + " capital=" +
-                            closure.Invasion.CapitalSettlementId + " garrison_left=" +
-                            (closure.GarrisonLeft?.ToString() ?? "lost"));
             }
         }
 

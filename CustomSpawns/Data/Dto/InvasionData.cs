@@ -93,9 +93,10 @@ namespace CustomSpawns.Data.Dto
     public sealed class InvasionReinforcementRuleData
     {
         public InvasionReinforcementRuleData(string id, string partyTemplateId, float intervalInDays,
-            int lordsPerWave = 0, int maxWaves = 0, int maxMenPerWave = 0)
+            int lordsPerWave = 0, int maxWaves = 0, int maxMenPerWave = 0, int menPerTownHeld = 0)
         {
             MaxMenPerWave = maxMenPerWave;
+            MenPerTownHeld = menPerTownHeld;
             Id = id;
             PartyTemplateId = partyTemplateId;
             IntervalInDays = intervalInDays;
@@ -115,5 +116,8 @@ namespace CustomSpawns.Data.Dto
 
         // The most men one wave banks. Zero banks the template's whole roll.
         public int MaxMenPerWave { get; }
+
+        // The men a wave banks over MaxMenPerWave for every town held, the capital included.
+        public int MenPerTownHeld { get; }
     }
 }

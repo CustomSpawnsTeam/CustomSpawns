@@ -171,6 +171,24 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
+        public void TheKingdomIsFoundedWhenTheCapitalIsOccupiedNotWhenItIsTaken()
+        {
+            object nativeEvent = new();
+            var capture = Bind(nativeEvent, 100);
+            Record(nativeEvent, 100, new[] { _leaderParty, _newDonor });
+            Own(nativeEvent, capture);
+            ApplyAftermath(_correlation.ResolveAftermath(nativeEvent, true, "town", "leader", "enemy", "clan",
+                new[] { _leaderParty, _newDonor })!, "new-donor");
+
+            Assert.That(_invasion.CapitalSettlementId, Is.Not.Null);
+            Assert.That(_invasion.IsRealmFounded, Is.False);
+
+            _state.CompleteOccupation(capture.Id, "clan");
+
+            Assert.That(_invasion.IsRealmFounded, Is.True);
+        }
+
+        [Test]
         public void DelayedPlayerAftermathNeedsOwnershipAndExactRetainedNativeParticipants()
         {
             object nativeEvent = new();

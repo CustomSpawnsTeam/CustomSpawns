@@ -123,10 +123,15 @@ namespace CustomSpawns.Data.Model
         [XmlElement("LordsPerWave")]
         public int LordsPerWave { get; set; }
 
-        // The most men one wave banks, cut from the template's roll with its mix kept. Left out, the whole
-        // roll is banked.
+        // How many men one wave banks. The template is rolled again until there are that many, and cut down to
+        // them with its mix kept. Left out, one whole roll is banked.
         [XmlElement("MaxMenPerWave")]
         public int MaxMenPerWave { get; set; }
+
+        // The men a wave banks over MaxMenPerWave for every town the invasion holds, its capital included, as
+        // BankedTroopsPerTownHeld and LordsPerTownHeld count them. It needs MaxMenPerWave.
+        [XmlElement("MenPerTownHeld")]
+        public int MenPerTownHeld { get; set; }
     }
 
     public static class InvasionConfigValidator
@@ -207,6 +212,7 @@ namespace CustomSpawns.Data.Model
             ValidateNonNegative("Invasion Reinforcements Rule '" + rule.Id + "' LordsPerWave", rule.LordsPerWave);
             ValidateNonNegative("Invasion Reinforcements Rule '" + rule.Id + "' MaxWaves", rule.MaxWaves);
             ValidateNonNegative("Invasion Reinforcements Rule '" + rule.Id + "' MaxMenPerWave", rule.MaxMenPerWave);
+            ValidateNonNegative("Invasion Reinforcements Rule '" + rule.Id + "' MenPerTownHeld", rule.MenPerTownHeld);
         }
 
         private static void ValidateNonNegative(string name, int value)

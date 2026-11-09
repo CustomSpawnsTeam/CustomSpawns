@@ -22,8 +22,8 @@ namespace CustomSpawns.Invasions.Adapters
 
         /**
          * One roll per kind of troop in the template, between the numbers it declares. Heroes in a template
-         * are skipped: the lords of a wave are fielded as lords, not banked as men. A roll over maxMen is cut
-         * down to it, keeping the mix.
+         * are skipped: the lords of a wave are fielded as lords, not banked as men. The template is rolled
+         * again until it reaches maxMen, and the total is cut down to it, keeping the mix.
          */
         public int Deposit(string settlementId, string partyTemplateId, int maxMen)
         {
@@ -38,8 +38,9 @@ namespace CustomSpawns.Invasions.Adapters
 
             PartyTemplateStack[] stacks =
                 template.Stacks.Where(stack => stack.Character is { IsHero: false }).ToArray();
-            int[] men = _invasionTroopBank.CapWave(
-                stacks.Select(stack => MBRandom.RandomInt(stack.MinValue, stack.MaxValue + 1)).ToArray(), maxMen);
+            int[] men = _invasionTroopBank.RollWave(
+                () => stacks.Select(stack => MBRandom.RandomInt(stack.MinValue, stack.MaxValue + 1)).ToArray(),
+                maxMen);
 
             for (int index = 0; index < stacks.Length; index++)
             {
