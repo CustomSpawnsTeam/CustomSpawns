@@ -8,8 +8,8 @@ drives and reinforces custom parties, including the invasions.
 Read these before writing code; they apply to all new and edited code.
 
 - [docs/coding-rules.md](docs/coding-rules.md): design. Hexagonal ports and adapters, interfaces
-  as methods, no public static methods, no `internal`, game extension points over Harmony, unit
-  tests.
+  as methods, classes under about 200 lines with one job (SOLID), no public static methods, no
+  `internal`, game extension points over Harmony, unit tests.
 - [docs/code-style.md](docs/code-style.md): layout. Braces, paragraphs, comments, field names.
 
 ## Bannerlord agent

@@ -28,6 +28,28 @@ Split an interface by who uses it. If one use case only deposits and another onl
 two interfaces (`IInvasionGarrisons`, `IInvasionGarrisonDeposits`), even when one adapter
 implements both.
 
+## Small classes, one reason to change
+
+A class stays under about 200 lines and does one job. When a change pushes it past that, or adds a
+second job, split it before adding more: one class per responsibility, each injected through the
+composition root. An adapter that keeps a daily update, a siege preference, alliances and a save
+format is four classes, not one.
+
+The SOLID principles apply:
+
+- **Single responsibility.** One reason to change per class. A rule holder holds one family of
+  rules: target choice, landing sites and siege scores are separate holders.
+- **Open/closed.** Extend behaviour with a new class or a decorated `GameModel`, not by growing a
+  `switch` or a flag in an existing one.
+- **Liskov substitution.** An implementation honours the whole contract of its interface. A fake
+  in a test behaves like the adapter it stands in for.
+- **Interface segregation.** Split interfaces by the use case that calls them (see below).
+- **Dependency inversion.** Use cases depend on ports the domain owns, never on adapters or
+  `TaleWorlds.*` types (see above).
+
+Splitting is a refactor: it moves code without changing behaviour, so the existing tests pass
+unchanged. Do it as its own step, before or after a behaviour change, never mixed into one.
+
 ## No public static methods
 
 Collaborators are objects, created in the composition root (the campaign behaviour) and passed in
