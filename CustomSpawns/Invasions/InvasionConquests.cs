@@ -8,9 +8,6 @@ namespace CustomSpawns.Invasions
     {
         private readonly Dictionary<string, InvasionConquest> _conquestsByClanId = new();
 
-        // Never saved: the realms that see a kingdom fall all turn on their next target the same day.
-        private readonly HashSet<string> _claimedFallenKingdomIds = new();
-
         public IReadOnlyCollection<InvasionConquest> All => _conquestsByClanId.Values;
 
         public InvasionConquest? Find(string? invasionClanId) =>
@@ -78,12 +75,6 @@ namespace CustomSpawns.Invasions
         }
 
         /**
-         * Realms of one line that conquer a kingdom together all see it fall on the same day, yet it opens only one
-         * new realm: the first to claim the fall launches the follower. False once the fall has been claimed.
-         */
-        public bool ClaimFall(string kingdomId) => _claimedFallenKingdomIds.Add(kingdomId);
-
-        /**
          * A leader and the followers launched for it, any two of them, while both still conquer. Followers of one
          * leader stay allied with each other even once that leader has fallen.
          */
@@ -103,11 +94,7 @@ namespace CustomSpawns.Invasions
         public void Restore(InvasionConquest conquest) => _conquestsByClanId[conquest.InvasionClanId] = conquest;
 
         // A loaded save replaces every conquest, so the adapters sharing this registry all see what it holds.
-        public void Clear()
-        {
-            _conquestsByClanId.Clear();
-            _claimedFallenKingdomIds.Clear();
-        }
+        public void Clear() => _conquestsByClanId.Clear();
 
         public void Forget(string invasionClanId) => _conquestsByClanId.Remove(invasionClanId);
 

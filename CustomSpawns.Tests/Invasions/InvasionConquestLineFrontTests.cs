@@ -61,16 +61,5 @@ namespace CustomSpawns.Tests.Invasions
                 Assert.That(_invasionConquests.FindFrontToJoin(gone), Is.Null);
             });
         }
-
-        [Test]
-        public void AFallIsClaimedOnlyOnce()
-        {
-            Assert.Multiple(() =>
-            {
-                Assert.That(_invasionConquests.ClaimFall("aserai"), Is.True);
-                Assert.That(_invasionConquests.ClaimFall("aserai"), Is.False);
-                Assert.That(_invasionConquests.ClaimFall("sturgia"), Is.True);
-            });
-        }
     }
 }

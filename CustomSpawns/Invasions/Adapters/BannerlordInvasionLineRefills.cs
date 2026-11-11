@@ -1,0 +1,99 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using NLog;
+using TaleWorlds.CampaignSystem;
+
+namespace CustomSpawns.Invasions.Adapters
+{
+    /**
+     * Lands the next realm of every conquering invasion line still owed one; see InvasionLineRefill. A fallen
+     * kingdom counts whoever brought it down, so long as no invasion clan ruled it. The line's realms are every
+     * invasion of its first spawn still fighting: the first itself, its configured followers and its copies.
+     */
+    public sealed class BannerlordInvasionLineRefills
+    {
+        private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+        private readonly Func<InvasionState> _state;
+        private readonly BannerlordInvasionConfigurations _bannerlordInvasionConfigurations;
+        private readonly BannerlordInvasionFollowerLaunches _bannerlordInvasionFollowerLaunches;
+        private readonly InvasionConquests _invasionConquests;
+        private readonly IInvasionClanRepository _invasionClans;
+        private readonly IInvasionCapitalRepository _invasionCapitals;
+        private readonly InvasionLineRefill _invasionLineRefill = new();
+
+        public BannerlordInvasionLineRefills(Func<InvasionState> state,
+            BannerlordInvasionConfigurations bannerlordInvasionConfigurations,
+            BannerlordInvasionFollowerLaunches bannerlordInvasionFollowerLaunches,
+            InvasionConquests invasionConquests, IInvasionClanRepository invasionClans,
+            IInvasionCapitalRepository invasionCapitals)
+        {
+            _state = state;
+            _bannerlordInvasionConfigurations = bannerlordInvasionConfigurations;
+            _bannerlordInvasionFollowerLaunches = bannerlordInvasionFollowerLaunches;
+            _invasionConquests = invasionConquests;
+            _invasionClans = invasionClans;
+            _invasionCapitals = invasionCapitals;
+        }
+
+        public void CheckDaily()
+        {
+            int day = (int)CampaignTime.Now.ToDays;
+
+            if (!_invasionLineRefill.IsCheckDay(day))
+            {
+                return;
+            }
+
+            InvasionState state = _state();
+            int fallen = Kingdom.All.Count(kingdom => kingdom.IsEliminated && !IsInvasionRealm(kingdom));
+            List<Invasion> fighting = state.Invasions
+                .Where(invasion => state.FindFightingInvasion(invasion.ClanId) == invasion).ToList();
+
+            foreach (IGrouping<string, Invasion> line in fighting.GroupBy(FindLineTemplateId))
+            {
+                if (_bannerlordInvasionConfigurations.FindConquestRules(line.Key) == null)
+                {
+                    continue;
+                }
+
+                List<Invasion> invasions = line.ToList();
+                bool hasStandingRealm = invasions.Any(invasion =>
+                    invasion.FindLeadingClan()?.Kingdom is { IsEliminated: false });
+                InvasionConquest? launcher = FindLauncher(invasions);
+                bool launch = launcher != null &&
+                              _invasionLineRefill.ShouldLaunch(fallen, invasions.Count, hasStandingRealm);
+
+                Logger.Info("Invasion line check: line=" + line.Key + " fallen=" + fallen + " invasions=" +
+                            invasions.Count + " standing_realm=" + hasStandingRealm + " launch=" + launch +
+                            " day=" + day);
+
+                if (launch)
+                {
+                    _bannerlordInvasionFollowerLaunches.LaunchFollower(launcher!);
+                }
+            }
+        }
+
+        // A copy runs its line's first spawn; a configured follower names the spawn it follows.
+        private string FindLineTemplateId(Invasion invasion) =>
+            _bannerlordInvasionConfigurations.FindLeaderTemplateId(invasion.SpawnTemplateId) ??
+            invasion.SpawnTemplateId;
+
+        // The line's leader when it still conquers, else whichever realm of the line does; null before any has.
+        private InvasionConquest? FindLauncher(IEnumerable<Invasion> invasions)
+        {
+            List<InvasionConquest> conquests = invasions.Select(invasion => _invasionConquests.Find(invasion.ClanId))
+                .OfType<InvasionConquest>().ToList();
+            InvasionConquest? conquest = conquests.FirstOrDefault(candidate => candidate.LeaderClanId == null) ??
+                                         conquests.FirstOrDefault();
+
+            return conquest == null ? null : _invasionConquests.FindLauncher(conquest);
+        }
+
+        // A retired invasion realm loses its ruling clan, but its capital stays on record.
+        private bool IsInvasionRealm(Kingdom kingdom) =>
+            (kingdom.RulingClan != null && _invasionClans.FindSpawnTemplate(kingdom.RulingClan.StringId) != null) ||
+            _invasionCapitals.FindAll().Any(capital => capital.InvaderKingdomId == kingdom.StringId);
+    }
+}

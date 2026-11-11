@@ -8,7 +8,7 @@ namespace CustomSpawns.Invasions.Adapters
     /**
      * Keeps an invasion at war with the kingdom it is conquering and leaves every other kingdom to its own
      * diplomacy. Once that kingdom has fallen the invader turns on the bordering kingdom it gains most by
-     * fighting, and a new allied invasion lands far away to conquer a kingdom of its own.
+     * fighting.
      */
     public sealed class BannerlordInvasionConquestWars
     {
@@ -97,7 +97,7 @@ namespace CustomSpawns.Invasions.Adapters
                 bool hasFallen = _bannerlordInvasionRealms.HasFallen(conquest.TargetKingdomId);
 
                 if ((hasFallen || IsAllyRealm(invasion, conquest.TargetKingdomId)) &&
-                    !_bannerlordInvasionRetargets.Retarget(invasion, conquest, hasFallen))
+                    !_bannerlordInvasionRetargets.Retarget(invasion, conquest))
                 {
                     continue;
                 }

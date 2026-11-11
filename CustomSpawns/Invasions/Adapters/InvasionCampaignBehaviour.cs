@@ -59,6 +59,7 @@ namespace CustomSpawns.Invasions.Adapters
         public InvasionState State { get; private set; } = new();
 
         private readonly BannerlordInvasionConquestWars _bannerlordInvasionConquestWars;
+        private readonly BannerlordInvasionLineRefills _bannerlordInvasionLineRefills;
         private readonly BannerlordInvasionTargetSieges _bannerlordInvasionTargetSieges;
         private readonly InvasionConquestSaveStore _invasionConquestSaveStore;
         private readonly InvasionLineClans _invasionLineClans = new();
@@ -118,11 +119,14 @@ namespace CustomSpawns.Invasions.Adapters
             _bannerlordInvasionConquestWars = new BannerlordInvasionConquestWars(() => State,
                 _bannerlordInvasionConfigurations, bannerlordInvasionRealms,
                 new BannerlordInvasionAlliances(bannerlordInvasionRealms),
-                new BannerlordInvasionRetargets(bannerlordInvasionNeighbours, bannerlordInvasionFollowerLaunches,
-                    invasionConquests, new InvasionTargetChoice()),
+                new BannerlordInvasionRetargets(bannerlordInvasionNeighbours, invasionConquests,
+                    new InvasionTargetChoice()),
                 new BannerlordInvasionFrontOpenings(_bannerlordInvasionFiefGarrisons, bannerlordInvasionNeighbours,
                     bannerlordInvasionRealms, invasionConquestFronts),
                 BannerlordInvasionConquestStances, invasionConquests, _invasionLineClans);
+            _bannerlordInvasionLineRefills = new BannerlordInvasionLineRefills(() => State,
+                _bannerlordInvasionConfigurations, bannerlordInvasionFollowerLaunches, invasionConquests,
+                invasionClans, invasionCapitals);
             InvasionLordPartySizeObserver = new InvasionLordPartySizeObserver(
                 new InvasionLordPartySize(() => State, _bannerlordInvasionConfigurations), _invasionGarrisonArmyLords);
             InvasionGarrisonArmyCampaign = new InvasionGarrisonArmyCampaign(() => State, spawns, _invasionTroopBank,
@@ -410,6 +414,7 @@ namespace CustomSpawns.Invasions.Adapters
         {
             Initialize();
             _bannerlordInvasionConquestWars.UpdateDaily();
+            _bannerlordInvasionLineRefills.CheckDaily();
             _bannerlordInvasionFiefGarrisons.TopUpDaily();
         }
 

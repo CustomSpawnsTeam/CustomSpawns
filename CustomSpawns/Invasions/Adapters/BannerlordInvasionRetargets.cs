@@ -10,28 +10,23 @@ namespace CustomSpawns.Invasions.Adapters
     {
         private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         private readonly BannerlordInvasionNeighbours _bannerlordInvasionNeighbours;
-        private readonly BannerlordInvasionFollowerLaunches _bannerlordInvasionFollowerLaunches;
         private readonly InvasionConquests _invasionConquests;
         private readonly InvasionTargetChoice _invasionTargetChoice;
 
         public BannerlordInvasionRetargets(BannerlordInvasionNeighbours bannerlordInvasionNeighbours,
-            BannerlordInvasionFollowerLaunches bannerlordInvasionFollowerLaunches,
             InvasionConquests invasionConquests, InvasionTargetChoice invasionTargetChoice)
         {
             _bannerlordInvasionNeighbours = bannerlordInvasionNeighbours;
-            _bannerlordInvasionFollowerLaunches = bannerlordInvasionFollowerLaunches;
             _invasionConquests = invasionConquests;
             _invasionTargetChoice = invasionTargetChoice;
         }
 
         /**
-         * Turns a conquest whose target has fallen on the next; false while no kingdom borders the invasion. Every
-         * kingdom that falls opens a new invasion realm, launched for the leader of the conqueror's line, once
-         * however many realms of the line conquered it together.
+         * Turns a conquest whose target has fallen on the next; false while no kingdom borders the invasion. The new
+         * realm a fall opens is landed by BannerlordInvasionLineRefills.
          */
-        public bool Retarget(Invasion invasion, InvasionConquest conquest, bool hasFallen)
+        public bool Retarget(Invasion invasion, InvasionConquest conquest)
         {
-            string fallenKingdomId = conquest.TargetKingdomId;
             IFaction? invader = invasion.FindLeadingClan()?.MapFaction;
             IReadOnlyList<InvasionNeighbour> neighbours = invader == null
                 ? new InvasionNeighbour[0]
@@ -50,12 +45,6 @@ namespace CustomSpawns.Invasions.Adapters
                         " fiefs=" + invader!.Fiefs.Count + " neighbours=[" +
                         _bannerlordInvasionNeighbours.Format(neighbours) + "] day=" + CampaignTime.Now.ToDays);
             conquest.Retarget(kingdomId, CampaignTime.Now.ToDays);
-
-            if (hasFallen && _invasionConquests.ClaimFall(fallenKingdomId))
-            {
-                _bannerlordInvasionFollowerLaunches.LaunchFollower(_invasionConquests.FindLauncher(conquest));
-            }
-
             return true;
         }
 
