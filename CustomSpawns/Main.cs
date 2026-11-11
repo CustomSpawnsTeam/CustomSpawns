@@ -131,7 +131,8 @@ namespace CustomSpawns
             _invasionCapitalRepository = new InvasionCapitalRepository();
             _invasionClanRepository = new InvasionClanRepository(_spawnDao, _saveInitialiser);
             _invasionCampaignBehaviour = new InvasionCampaignBehaviour(_spawnDao, _dynamicSpawnData,
-                _saveInitialiser, _invasionCapitalRepository, _invasionClanRepository);
+                _saveInitialiser, _invasionCapitalRepository, _invasionClanRepository, _spawnGroupService,
+                _diplomacyDataReader.Data);
             _saveInitialiser.RunCallbackOnFirstCampaignTick(new VanillaMilitaryAiFirst().Reregister);
             _devestationMetricData = new DevestationMetricData(_mobilePartyTrackingBehaviour, _campaignDataConfigLoader, _saveInitialiser, _messageBoxService, _modDebug);
             _dailyLogger = new DailyLogger(_devestationMetricData, _messageBoxService);
@@ -172,10 +173,10 @@ namespace CustomSpawns
                 new NonMercenaryCustomSpawnsFactionsProvider(_diplomacyDataReader);
             _customSpawnsDiplomacyFactionsProvider = new CustomSpawnsDiplomacyFactionsProvider(_diplomacyDataReader);
             _customSpawnsDiplomacyModel = new CustomSpawnsDiplomacyModel(campaignGameStarter.GetModel<DiplomacyModel>(), _customSpawnsDiplomacyProvider, _dailyLogger, nonMercenaryCustomSpawnsFactionsProvider,
-                _invasionCampaignBehaviour.BannerlordInvasionConquestWars);
+                _invasionCampaignBehaviour.BannerlordInvasionConquestStances);
             _customSpawnsDiplomacyBehaviour = new CustomSpawnsDiplomacyBehaviour(_customSpawnsDiplomacyFactionsProvider,
                 _customSpawnsClanDiplomacyProvider, nonMercenaryCustomSpawnsFactionsProvider, _dailyLogger,
-                _invasionCampaignBehaviour.BannerlordInvasionConquestWars);
+                _invasionCampaignBehaviour.BannerlordInvasionConquestStances);
             _partySizeCalculatedSubject = new PartySizeCalculatedSubject();
             // Before the spawn behaviour's resizer, which would otherwise lift a lord's limit to whatever he
             // leads and let every refill from the bank raise it again.

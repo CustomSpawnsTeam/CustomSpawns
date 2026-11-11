@@ -8,8 +8,10 @@ namespace CustomSpawns.Data.Dto
             IReadOnlyList<InvasionReinforcementRuleData> reinforcementRules, int maxBankedTroops = 0,
             int bankedTroopsPerTownHeld = 0, string? supplyLine = null, int minimumCapitalGarrison = 0,
             int foodPerConvoy = 0, float foodConvoyIntervalInDays = 0f, int maxLords = 0, int lordsPerTownHeld = 0,
-            int minimumFiefGarrison = 0, InvasionConquestData? conquest = null, int lordPartySizeBonus = 0)
+            int minimumFiefGarrison = 0, InvasionConquestData? conquest = null, int lordPartySizeBonus = 0,
+            string? followsInvasion = null)
         {
+            FollowsInvasion = followsInvasion;
             LordPartySizeBonus = lordPartySizeBonus;
             MinimumFiefGarrison = minimumFiefGarrison;
             Conquest = conquest;
@@ -43,6 +45,10 @@ namespace CustomSpawns.Data.Dto
         // Added to the party size limit of every lord of the invasion. Zero leaves vanilla's limit alone.
         public int LordPartySizeBonus { get; }
 
+        // The party template of the invasion this one is launched alongside. Null for an invasion that spawns
+        // by chance on its own.
+        public string? FollowsInvasion { get; }
+
         // How much food each convoy adds to the capital's food stocks. Zero runs no convoys at all.
         public int FoodPerConvoy { get; }
 
@@ -73,11 +79,12 @@ namespace CustomSpawns.Data.Dto
     public sealed class InvasionConquestData
     {
         public InvasionConquestData(float threatPerFiefHeld, float openFrontIntervalInDays = 0f,
-            float targetSiegePreference = 0f)
+            float targetSiegePreference = 0f, float reconsiderTargetIntervalInDays = 0f)
         {
             ThreatPerFiefHeld = threatPerFiefHeld;
             OpenFrontIntervalInDays = openFrontIntervalInDays;
             TargetSiegePreference = targetSiegePreference;
+            ReconsiderTargetIntervalInDays = reconsiderTargetIntervalInDays;
         }
 
         // Zero leaves the invasion's neighbours to vanilla diplomacy alone.
@@ -88,6 +95,9 @@ namespace CustomSpawns.Data.Dto
 
         // At most one leaves the invasion's lords to choose their sieges as vanilla lords do.
         public float TargetSiegePreference { get; }
+
+        // Zero keeps the invasion on its target until that kingdom falls.
+        public float ReconsiderTargetIntervalInDays { get; }
     }
 
     public sealed class InvasionReinforcementRuleData

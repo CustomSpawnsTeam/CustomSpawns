@@ -1,0 +1,92 @@
+using CustomSpawns.Invasions;
+using NUnit.Framework;
+
+namespace CustomSpawns.Tests.Invasions
+{
+    public class InvasionConquestFrontsTests
+    {
+        private readonly InvasionConquestRules _rules = new(0.05f, 30f);
+        private InvasionConquests _invasionConquests = new();
+        private InvasionConquestFronts _invasionConquestFronts = new();
+
+        [SetUp]
+        public void SetUp()
+        {
+            _invasionConquests = new InvasionConquests();
+            _invasionConquestFronts = new InvasionConquestFronts();
+        }
+
+        [Test]
+        public void AFootholdIsLessThanHalfTheThreatOfARealm()
+        {
+            float foothold = _invasionConquestFronts.FindThreat(_rules, 2, 200000f);
+            float realm = _invasionConquestFronts.FindThreat(_rules, 6, 600000f);
+
+            Assert.That(realm, Is.EqualTo(9 * foothold).Within(0.01f));
+        }
+
+        [TestCase(0, 100000f)]
+        [TestCase(3, 0f)]
+        public void AnInvaderWithNothingIsNoThreat(int fiefsHeld, float invaderWorth)
+        {
+            Assert.That(_invasionConquestFronts.FindThreat(_rules, fiefsHeld, invaderWorth), Is.Zero);
+        }
+
+        [Test]
+        public void AnUnsetThreatLeavesTheNeighboursToVanilla()
+        {
+            Assert.That(_invasionConquestFronts.FindThreat(new InvasionConquestRules(0f, 30f), 8, 800000f), Is.Zero);
+        }
+
+        [Test]
+        public void TheNearestFiefOfAKingdomAtPeaceOpensAFront()
+        {
+            InvasionConquest conquest = _invasionConquests.Begin("humar", "vlandia", 10)!;
+
+            Assert.That(_invasionConquestFronts.FindFrontToOpen(conquest, _rules, new[]
+            {
+                new InvasionPrey("vlandia", 40f, true), new InvasionPrey("empire_w", 12f, false)
+            }, 40), Is.EqualTo("empire_w"));
+        }
+
+        [Test]
+        public void TheNearestFiefOfAnEnemyIsTakenWithoutAnyNewWar()
+        {
+            InvasionConquest conquest = _invasionConquests.Begin("humar", "vlandia", 10)!;
+
+            Assert.That(_invasionConquestFronts.FindFrontToOpen(conquest, _rules, new[]
+            {
+                new InvasionPrey("vlandia", 8f, true), new InvasionPrey("empire_w", 12f, false)
+            }, 40), Is.Null);
+        }
+
+        [Test]
+        public void ANewFrontWaitsForTheLastOneToSettle()
+        {
+            InvasionConquest conquest = _invasionConquests.Begin("humar", "vlandia", 10)!;
+            conquest.OpenFront(30);
+
+            Assert.That(_invasionConquestFronts.FindFrontToOpen(conquest, _rules,
+                new[] { new InvasionPrey("empire_w", 12f, false) }, 59), Is.Null);
+            Assert.That(_invasionConquestFronts.FindFrontToOpen(conquest, _rules,
+                new[] { new InvasionPrey("empire_w", 12f, false) }, 60), Is.EqualTo("empire_w"));
+        }
+
+        [Test]
+        public void AnUnsetIntervalNeverOpensAFront()
+        {
+            InvasionConquest conquest = _invasionConquests.Begin("humar", "vlandia", 10)!;
+
+            Assert.That(_invasionConquestFronts.FindFrontToOpen(conquest, new InvasionConquestRules(0.05f, 0f),
+                new[] { new InvasionPrey("empire_w", 12f, false) }, 500), Is.Null);
+        }
+
+        [Test]
+        public void NothingLeftToTakeOpensNoFront()
+        {
+            InvasionConquest conquest = _invasionConquests.Begin("humar", "vlandia", 10)!;
+
+            Assert.That(_invasionConquestFronts.FindFrontToOpen(conquest, _rules, new InvasionPrey[0], 500), Is.Null);
+        }
+    }
+}

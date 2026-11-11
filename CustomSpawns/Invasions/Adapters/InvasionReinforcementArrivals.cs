@@ -159,9 +159,23 @@ namespace CustomSpawns.Invasions.Adapters
                 supplyLine => Settlement.All.Any(settlement => settlement.MapFaction == party.MapFaction &&
                     supplyLine.IsSupplyBase(_invasionSupplyBases.GetFacts(settlement))));
 
-            return targetFilter == null
+            if (targetFilter == null)
+            {
+                return null;
+            }
+
+            // An invasion launched against a kingdom before it holds a fief lands on that kingdom's coast and
+            // nobody else's, as long as that kingdom has a coast left to land on.
+            Invasion? invasion = _invasionState.FindInvasionOfParty(party.StringId);
+            string? targetKingdomId = invasion == null || party.MapFaction.Fiefs.Count > 0
                 ? null
-                : settlement => targetFilter(settlement.StringId, _invasionSupplyBases.GetFacts(settlement));
+                : _invasionConquestTargets.FindConquestTargetKingdomId(invasion);
+            bool landsOnTarget = targetKingdomId != null && Settlement.All.Any(settlement =>
+                settlement.MapFaction.StringId == targetKingdomId &&
+                targetFilter(settlement.StringId, _invasionSupplyBases.GetFacts(settlement)));
+
+            return settlement => (!landsOnTarget || settlement.MapFaction?.StringId == targetKingdomId) &&
+                                 targetFilter(settlement.StringId, _invasionSupplyBases.GetFacts(settlement));
         }
 
         private InvasionData? GetConfiguration(Invasion invasion) =>

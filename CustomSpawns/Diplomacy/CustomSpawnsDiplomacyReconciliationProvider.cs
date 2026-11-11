@@ -48,13 +48,19 @@ namespace CustomSpawns.Diplomacy
                 : DiplomacyReconciliationAction.None;
         }
 
-        // A conquest's stance outranks the configured policy: its target stays at war, and other kingdoms decide.
+        // A conquest's stance outranks the configured policy: its target stays at war, its ally at peace, and
+        // other kingdoms decide.
         public DiplomacyReconciliationAction ApplyStance(DiplomacyReconciliationAction action,
             InvasionWarStance stance)
         {
             if (stance == InvasionWarStance.War)
             {
                 return DiplomacyReconciliationAction.DeclareWar;
+            }
+
+            if (stance == InvasionWarStance.Peace)
+            {
+                return DiplomacyReconciliationAction.MakePeace;
             }
 
             return stance == InvasionWarStance.Open ? DiplomacyReconciliationAction.None : action;

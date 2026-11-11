@@ -21,8 +21,10 @@ namespace CustomSpawns.Data.Adapter
                 config.Conquest == null
                     ? null
                     : new InvasionConquestData(config.Conquest.ThreatPerFiefHeld,
-                        config.Conquest.OpenFrontIntervalInDays, config.Conquest.TargetSiegePreference),
-                config.LordPartySizeBonus);
+                        config.Conquest.OpenFrontIntervalInDays, config.Conquest.TargetSiegePreference,
+                        config.Conquest.ReconsiderTargetIntervalInDays),
+                config.LordPartySizeBonus,
+                string.IsNullOrWhiteSpace(config.FollowsInvasion) ? null : config.FollowsInvasion!.Trim());
         }
     }
 }

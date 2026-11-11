@@ -218,7 +218,9 @@ namespace CustomSpawns.Spawn
                 foreach (SpawnDto spawn in spawns)
                 {
                     // An invasion's reinforcements come through its own capital, not a second landing beside it.
-                    if (spawn.Invasion != null && _isInvasionUnderway(spawn.PartyTemplate.StringId))
+                    // An invasion that follows another is launched by that one's conquest, never by chance.
+                    if (spawn.Invasion != null && (_isInvasionUnderway(spawn.PartyTemplate.StringId) ||
+                                                   spawn.Invasion.FollowsInvasion != null))
                     {
                         continue;
                     }

@@ -155,7 +155,8 @@ namespace CustomSpawns.Tests.Invasions
             var dynamicSpawnData = new DynamicSpawnData(spawnDao, saveInitialiser);
             var behaviour = new InvasionCampaignBehaviour(spawnDao, dynamicSpawnData,
                 saveInitialiser, new Mock<IInvasionCapitalRepository>().Object,
-                new Mock<IInvasionClanRepository>().Object);
+                new Mock<IInvasionClanRepository>().Object, new SpawnGroupService(null!, dynamicSpawnData),
+                new Dictionary<string, CustomSpawns.Data.Model.Diplomacy>());
 
             var actions = (List<Action>)typeof(SaveInitialiser).GetField("_actions",
                 BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(saveInitialiser)!;

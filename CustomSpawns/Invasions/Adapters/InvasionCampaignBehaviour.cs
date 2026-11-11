@@ -57,15 +57,22 @@ namespace CustomSpawns.Invasions.Adapters
         private Hero? _lordOfRemovedInvasionParty;
         public InvasionState State { get; private set; } = new();
 
-        // Whose wars each invasion fights; the diplomacy rules ask it too.
-        public BannerlordInvasionConquestWars BannerlordInvasionConquestWars { get; }
+        private readonly BannerlordInvasionConquestWars _bannerlordInvasionConquestWars;
+        private readonly BannerlordInvasionTargetSieges _bannerlordInvasionTargetSieges;
+        private readonly InvasionConquestSaveStore _invasionConquestSaveStore;
+        private readonly InvasionLineClans _invasionLineClans = new();
+        private readonly InvasionCloneDiplomacy _invasionCloneDiplomacy;
+
+        // Whose wars each invasion fights and which kingdom it conquers; the diplomacy rules ask it too.
+        public BannerlordInvasionConquestStances BannerlordInvasionConquestStances { get; }
 
         // Lets the invasion's lords lead more men than their clan's tier allows them.
         public InvasionLordPartySizeObserver InvasionLordPartySizeObserver { get; }
 
         public InvasionCampaignBehaviour(SpawnDao spawns, DynamicSpawnData parties,
             SaveInitialiser initialiser, IInvasionCapitalRepository invasionCapitals,
-            IInvasionClanRepository invasionClans)
+            IInvasionClanRepository invasionClans, SpawnGroupService spawnGroupService,
+            IDictionary<string, Data.Model.Diplomacy> diplomacy)
         {
             _spawnDao = spawns;
             _invasionLossDiagnostics = new InvasionLossDiagnostics(() => State);
@@ -80,8 +87,35 @@ namespace CustomSpawns.Invasions.Adapters
                 _bannerlordInvasionWarbands);
             _bannerlordInvasionFiefGarrisons = new BannerlordInvasionFiefGarrisons(() => State,
                 _bannerlordInvasionConfigurations, new InvasionConsolidation(), _invasionTroopBank);
-            BannerlordInvasionConquestWars = new BannerlordInvasionConquestWars(() => State,
-                _bannerlordInvasionConfigurations, _bannerlordInvasionFiefGarrisons);
+            InvasionConquests invasionConquests = new();
+            InvasionConquestFronts invasionConquestFronts = new();
+            BannerlordInvasionRealms bannerlordInvasionRealms = new(() => State);
+            BannerlordInvasionLaunches bannerlordInvasionLaunches = new(spawnGroupService,
+                settlement => _invasionSupplyBases.GetFacts(settlement).IsCoastalTown);
+            BannerlordInvasionConquestStances = new BannerlordInvasionConquestStances(() => State,
+                _bannerlordInvasionConfigurations, bannerlordInvasionRealms, invasionConquests,
+                invasionConquestFronts);
+            _bannerlordInvasionTargetSieges = new BannerlordInvasionTargetSieges(() => State,
+                _bannerlordInvasionConfigurations, BannerlordInvasionConquestStances,
+                new InvasionTargetSiegeScores());
+            _invasionConquestSaveStore = new InvasionConquestSaveStore(invasionConquests);
+            BannerlordInvasionNeighbours bannerlordInvasionNeighbours = new(bannerlordInvasionLaunches,
+                bannerlordInvasionRealms, invasionConquests);
+            _invasionCloneDiplomacy = new InvasionCloneDiplomacy(diplomacy);
+            BannerlordInvasionFollowerLaunches bannerlordInvasionFollowerLaunches = new(() => State,
+                _bannerlordInvasionConfigurations, bannerlordInvasionLaunches,
+                new BannerlordInvasionClones(bannerlordInvasionLaunches, new BannerlordInvasionClanFounding(),
+                    invasionClans, _invasionLineClans, _invasionCloneDiplomacy),
+                bannerlordInvasionRealms, invasionConquests, new InvasionLandingSiteChoice(),
+                new InvasionFollowerChoice());
+            _bannerlordInvasionConquestWars = new BannerlordInvasionConquestWars(() => State,
+                _bannerlordInvasionConfigurations, bannerlordInvasionRealms,
+                new BannerlordInvasionAlliances(bannerlordInvasionRealms),
+                new BannerlordInvasionRetargets(bannerlordInvasionNeighbours, bannerlordInvasionFollowerLaunches,
+                    invasionConquests, new InvasionTargetChoice()),
+                new BannerlordInvasionFrontOpenings(_bannerlordInvasionFiefGarrisons, bannerlordInvasionNeighbours,
+                    bannerlordInvasionRealms, invasionConquestFronts),
+                BannerlordInvasionConquestStances, invasionConquests, _invasionLineClans);
             InvasionLordPartySizeObserver = new InvasionLordPartySizeObserver(
                 new InvasionLordPartySize(() => State, _bannerlordInvasionConfigurations));
             _invasionResupply = NewResupply();
@@ -154,9 +188,11 @@ namespace CustomSpawns.Invasions.Adapters
                 : null;
             dataStore.SyncData("_invasionResupplyParties", ref returningParties);
             Dictionary<string, string>? conquests = dataStore.IsSaving
-                ? BannerlordInvasionConquestWars.Export()
+                ? _invasionConquestSaveStore.Export()
                 : null;
             dataStore.SyncData("_invasionConquests", ref conquests);
+            Dictionary<string, string>? lineClans = dataStore.IsSaving ? _invasionLineClans.Export() : null;
+            dataStore.SyncData("_invasionLineClans", ref lineClans);
 
             if (!dataStore.IsLoading)
             {
@@ -164,7 +200,9 @@ namespace CustomSpawns.Invasions.Adapters
             }
 
             State = saved?.ToState() ?? new InvasionState();
-            BannerlordInvasionConquestWars.Restore(conquests);
+            _invasionConquestSaveStore.Restore(conquests);
+            _invasionLineClans.Restore(lineClans);
+            _invasionCloneDiplomacy.InheritAll(_invasionLineClans);
             _invasionResupply = NewResupply();
             _invasionResupply.Restore(returningParties ?? new List<string>());
             _invasionCaptureCorrelation = new InvasionCaptureCorrelation(State);
@@ -200,7 +238,7 @@ namespace CustomSpawns.Invasions.Adapters
                     new InvasionWarChest()));
 
             return new InvasionReinforcementArrivals(State, _spawnDao, _invasionSupplyBases,
-                new InvasionTroopBanking(invasionWaveBanking), bannerlordInvasionLords, BannerlordInvasionConquestWars);
+                new InvasionTroopBanking(invasionWaveBanking), bannerlordInvasionLords, BannerlordInvasionConquestStances);
         }
 
         private InvasionLordWarbands NewLordWarbands() =>
@@ -317,26 +355,26 @@ namespace CustomSpawns.Invasions.Adapters
         {
             Initialize();
             _bannerlordInvasionFiefGarrisons.HoldSieges(party, thinkParams,
-                BannerlordInvasionConquestWars.FindConquestTargetKingdomId);
+                BannerlordInvasionConquestStances.FindConquestTargetKingdomId);
         }
 
         private void PreferTargetSieges(MobileParty party, PartyThinkParams thinkParams)
         {
             Initialize();
-            BannerlordInvasionConquestWars.PreferTargetSieges(party, thinkParams);
+            _bannerlordInvasionTargetSieges.PreferTargetSieges(party, thinkParams);
         }
 
         private void ConsolidateDaily()
         {
             Initialize();
-            BannerlordInvasionConquestWars.UpdateDaily();
+            _bannerlordInvasionConquestWars.UpdateDaily();
             _bannerlordInvasionFiefGarrisons.TopUpDaily();
         }
 
         private void OnWarDeclared(IFaction first, IFaction second, DeclareWarAction.DeclareWarDetail detail)
         {
             Initialize();
-            BannerlordInvasionConquestWars.ObserveWar(first, second);
+            BannerlordInvasionConquestStances.ObserveWar(first, second);
         }
 
         // The party itself no longer says which invasion it serves, so the spawn it came from is asked instead.
@@ -398,7 +436,7 @@ namespace CustomSpawns.Invasions.Adapters
                 _invasionReinforcementArrivals.StartSchedule(capture.Value);
             }
 
-            BannerlordInvasionConquestWars.ObserveConquest(newOwner?.Clan, oldOwner?.Clan);
+            _bannerlordInvasionConquestWars.ObserveConquest(newOwner?.Clan, oldOwner?.Clan);
             ReconcileCapitalObjectives("owner_change");
         }
 
@@ -488,7 +526,7 @@ namespace CustomSpawns.Invasions.Adapters
 
             _invasionCapitalObjectiveWorld = new BannerlordInvasionCapitalObjectiveWorld(State,
                 _invasionCapitals, new BannerlordMapPathQuery(), new InvasionCoastalTownResolver(),
-                new BannerlordCapitalObjectiveArmy(new CapitalArmyStagingRules()), BannerlordInvasionConquestWars);
+                new BannerlordCapitalObjectiveArmy(new CapitalArmyStagingRules()), BannerlordInvasionConquestStances);
             var forceRatioRules = new ForceRatioRules();
             _invasionCapitalObjectiveCoordinator = new InvasionCapitalObjectiveCoordinator(
                 _invasionAssaultConfigurationProvider, _invasionCapitalObjectiveWorld,

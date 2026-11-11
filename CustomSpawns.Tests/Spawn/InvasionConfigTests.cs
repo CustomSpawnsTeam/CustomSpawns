@@ -52,7 +52,8 @@ namespace CustomSpawns.Tests.Spawn
         public void Adapt_ReadsTheGarrisonFloorAndTheLordsEachWaveBrings()
         {
             const string invasion = "<Invasion><MinimumCapitalGarrison>400</MinimumCapitalGarrison>" +
-                                    "<LordPartySizeBonus>50</LordPartySizeBonus><Reinforcements><Rule><Id>infantry</Id>" +
+                                    "<LordPartySizeBonus>50</LordPartySizeBonus>" +
+                                    "<FollowsInvasion> PartyTemplate.leader </FollowsInvasion><Reinforcements><Rule><Id>infantry</Id>" +
                                     "<PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId>" +
                                     "<LordsPerWave>3</LordsPerWave></Rule></Reinforcements></Invasion>";
             Spawns spawns = Read("<RegularBanditDailySpawnData party_template=\"PartyTemplate.invasion\">" + invasion +
@@ -66,6 +67,8 @@ namespace CustomSpawns.Tests.Spawn
                 Assert.That(data.MinimumCapitalGarrison, Is.EqualTo(400));
                 Assert.That(data.LordPartySizeBonus, Is.EqualTo(50));
                 Assert.That(AdaptValidConfig().LordPartySizeBonus, Is.EqualTo(0));
+                Assert.That(data.FollowsInvasion, Is.EqualTo("PartyTemplate.leader"));
+                Assert.That(AdaptValidConfig().FollowsInvasion, Is.Null);
                 Assert.That(data.ReinforcementRules.Single().LordsPerWave, Is.EqualTo(3));
                 // An invasion that mentions neither keeps no floor and brings troops only.
                 Assert.That(AdaptValidConfig().MinimumCapitalGarrison, Is.EqualTo(0));
@@ -239,7 +242,8 @@ namespace CustomSpawns.Tests.Spawn
             const string invasion = "<Invasion><MinimumFiefGarrison>250</MinimumFiefGarrison>" +
                                     "<Conquest><ThreatPerFiefHeld>0.05</ThreatPerFiefHeld>" +
                                     "<OpenFrontIntervalInDays>30</OpenFrontIntervalInDays>" +
-                                    "<TargetSiegePreference>4</TargetSiegePreference></Conquest>" +
+                                    "<TargetSiegePreference>4</TargetSiegePreference>" +
+                                    "<ReconsiderTargetIntervalInDays>30</ReconsiderTargetIntervalInDays></Conquest>" +
                                     "<Reinforcements><Rule><Id>infantry</Id>" +
                                     "<PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId>" +
                                     "</Rule></Reinforcements></Invasion>";
@@ -255,7 +259,19 @@ namespace CustomSpawns.Tests.Spawn
                 Assert.That(data.Conquest!.ThreatPerFiefHeld, Is.EqualTo(0.05f));
                 Assert.That(data.Conquest.OpenFrontIntervalInDays, Is.EqualTo(30f));
                 Assert.That(data.Conquest.TargetSiegePreference, Is.EqualTo(4f));
+                Assert.That(data.Conquest.ReconsiderTargetIntervalInDays, Is.EqualTo(30f));
             });
+        }
+
+        [Test]
+        public void Adapt_RejectsANegativeReconsiderInterval()
+        {
+            InvasionConfig config = ValidConfig();
+            config.Conquest = new InvasionConquestConfig { ReconsiderTargetIntervalInDays = -1f };
+
+            ArgumentException error = Assert.Throws<ArgumentException>(() => InvasionDtoAdapter.Adapt(config))!;
+
+            Assert.That(error.Message, Does.Contain("ReconsiderTargetIntervalInDays"));
         }
 
         [Test]

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using CustomSpawns.Data.Dao;
 using CustomSpawns.Data.Dto;
@@ -49,8 +50,17 @@ namespace CustomSpawns.Invasions.Adapters
             return conquest == null
                 ? null
                 : new InvasionConquestRules(conquest.ThreatPerFiefHeld, conquest.OpenFrontIntervalInDays,
-                    conquest.TargetSiegePreference);
+                    conquest.TargetSiegePreference, conquest.ReconsiderTargetIntervalInDays);
         }
+
+        // The invasions launched on behalf of this one, one each time a kingdom falls, in configuration order.
+        public IReadOnlyList<SpawnDto> FindFollowers(string spawnTemplateId) =>
+            _spawnDao.FindAll().Where(spawn => spawn.Invasion?.FollowsInvasion == spawnTemplateId).ToList();
+
+        // The party template of the invasion this one was launched for; null for one that came on its own.
+        public string? FindLeaderTemplateId(string spawnTemplateId) => Find(spawnTemplateId)?.FollowsInvasion;
+
+        public SpawnDto? FindSpawn(string spawnTemplateId) => _spawnDao.FindByPartyTemplateId(spawnTemplateId);
 
         private InvasionData? Find(string spawnTemplateId) =>
             _spawnDao.FindByPartyTemplateId(spawnTemplateId)?.Invasion;

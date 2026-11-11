@@ -1,3 +1,4 @@
+using System.Linq;
 using CustomSpawns.Invasions;
 using NUnit.Framework;
 
@@ -5,7 +6,6 @@ namespace CustomSpawns.Tests.Invasions
 {
     public class InvasionConquestsTests
     {
-        private readonly InvasionConquestRules _rules = new(0.05f, 30f);
         private InvasionConquests _invasionConquests = new();
 
         [SetUp]
@@ -35,25 +35,6 @@ namespace CustomSpawns.Tests.Invasions
         {
             Assert.That(_invasionConquests.FindStance("humar", "vlandia", true), Is.EqualTo(InvasionWarStance.Policy));
             Assert.That(_invasionConquests.FindStance(null, "vlandia", true), Is.EqualTo(InvasionWarStance.Policy));
-        }
-
-        [Test]
-        public void AnInvaderTurnsOnItsWeakestNeighbour()
-        {
-            string? next = _invasionConquests.FindNextTarget(new[]
-            {
-                new InvasionNeighbour("empire_w", 12900f),
-                new InvasionNeighbour("khuzait", 4800f),
-                new InvasionNeighbour("aserai", 7300f)
-            });
-
-            Assert.That(next, Is.EqualTo("khuzait"));
-        }
-
-        [Test]
-        public void AnInvaderWithoutNeighboursHasNothingToTurnOn()
-        {
-            Assert.That(_invasionConquests.FindNextTarget(new InvasionNeighbour[0]), Is.Null);
         }
 
         [Test]
@@ -91,161 +72,6 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
-        public void AWinnableSiegeOfTheConqueredKingdomIsWantedAboveEveryOtherSiege()
-        {
-            var rules = new InvasionConquestRules(0.05f, 30f, 4f);
-
-            Assert.That(_invasionConquests.FindTargetSiegeScore(rules, 0.1f, 2f), Is.EqualTo(2.2f).Within(0.001f));
-        }
-
-        [Test]
-        public void AmongTheConqueredKingdomsFiefsThePreferenceMultipliesVanillasWish()
-        {
-            var rules = new InvasionConquestRules(0.05f, 30f, 4f);
-
-            Assert.That(_invasionConquests.FindTargetSiegeScore(rules, 1f, 2f), Is.EqualTo(4f).Within(0.001f));
-        }
-
-        [Test]
-        public void ASiegeOfTheConqueredKingdomThatCannotBeWonStaysUnwanted()
-        {
-            var rules = new InvasionConquestRules(0.05f, 30f, 4f);
-
-            Assert.That(_invasionConquests.FindTargetSiegeScore(rules, 0f, 2f), Is.EqualTo(0f));
-        }
-
-        [TestCase(0f)]
-        [TestCase(1f)]
-        [TestCase(0.5f)]
-        public void WithoutAPreferenceAboveOneSiegesAreLeftToVanilla(float preference)
-        {
-            var rules = new InvasionConquestRules(0.05f, 30f, preference);
-
-            Assert.That(_invasionConquests.FindTargetSiegeScore(rules, 0.3f, 2f), Is.EqualTo(0.3f));
-        }
-
-        [Test]
-        public void AnUnborderedTargetFiefIsWantedAboveEveryOtherSiegeWhenNoTargetFiefIsWithinReach()
-        {
-            var rules = new InvasionConquestRules(0.05f, 0f, 4f);
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(_invasionConquests.FindUnborderedTargetSiegeScore(rules, 1f, 0f, 2f, false),
-                    Is.EqualTo(2.2f).Within(0.001f));
-                Assert.That(_invasionConquests.FindUnborderedTargetSiegeScore(rules, 10f, 0f, 2f, false),
-                    Is.EqualTo(4f).Within(0.001f));
-            });
-        }
-
-        [Test]
-        public void AnUnborderedTargetFiefWaitsWhileAnotherTargetFiefIsWorthASiege()
-        {
-            var rules = new InvasionConquestRules(0.05f, 0f, 4f);
-
-            Assert.That(_invasionConquests.FindUnborderedTargetSiegeScore(rules, 1f, 0.5f, 2f, false), Is.EqualTo(0f));
-        }
-
-        [Test]
-        public void ALordBesiegingAnUnborderedTargetFiefKeepsBesiegingIt()
-        {
-            var rules = new InvasionConquestRules(0.05f, 0f, 4f);
-
-            Assert.That(_invasionConquests.FindUnborderedTargetSiegeScore(rules, 1f, 0.5f, 2f, true),
-                Is.EqualTo(2.2f).Within(0.001f));
-        }
-
-        [Test]
-        public void AnUnborderedTargetFiefThatCannotBeTakenStaysUnwanted()
-        {
-            var rules = new InvasionConquestRules(0.05f, 0f, 4f);
-
-            Assert.That(_invasionConquests.FindUnborderedTargetSiegeScore(rules, 0f, 0f, 2f, false), Is.EqualTo(0f));
-        }
-
-        [TestCase(0f)]
-        [TestCase(1f)]
-        public void WithoutAPreferenceAboveOneUnborderedFiefsAreLeftToVanilla(float preference)
-        {
-            var rules = new InvasionConquestRules(0.05f, 0f, preference);
-
-            Assert.That(_invasionConquests.FindUnborderedTargetSiegeScore(rules, 1f, 0f, 2f, false), Is.EqualTo(0f));
-        }
-
-        [Test]
-        public void AFootholdIsLessThanHalfTheThreatOfARealm()
-        {
-            float foothold = _invasionConquests.FindThreat(_rules, 2, 200000f);
-            float realm = _invasionConquests.FindThreat(_rules, 6, 600000f);
-
-            Assert.That(realm, Is.EqualTo(9 * foothold).Within(0.01f));
-        }
-
-        [TestCase(0, 100000f)]
-        [TestCase(3, 0f)]
-        public void AnInvaderWithNothingIsNoThreat(int fiefsHeld, float invaderWorth)
-        {
-            Assert.That(_invasionConquests.FindThreat(_rules, fiefsHeld, invaderWorth), Is.Zero);
-        }
-
-        [Test]
-        public void AnUnsetThreatLeavesTheNeighboursToVanilla()
-        {
-            Assert.That(_invasionConquests.FindThreat(new InvasionConquestRules(0f, 30f), 8, 800000f), Is.Zero);
-        }
-
-        [Test]
-        public void TheNearestFiefOfAKingdomAtPeaceOpensAFront()
-        {
-            InvasionConquest conquest = _invasionConquests.Begin("humar", "vlandia", 10)!;
-
-            Assert.That(_invasionConquests.FindFrontToOpen(conquest, _rules, new[]
-            {
-                new InvasionPrey("vlandia", 40f, true), new InvasionPrey("empire_w", 12f, false)
-            }, 40), Is.EqualTo("empire_w"));
-        }
-
-        [Test]
-        public void TheNearestFiefOfAnEnemyIsTakenWithoutAnyNewWar()
-        {
-            InvasionConquest conquest = _invasionConquests.Begin("humar", "vlandia", 10)!;
-
-            Assert.That(_invasionConquests.FindFrontToOpen(conquest, _rules, new[]
-            {
-                new InvasionPrey("vlandia", 8f, true), new InvasionPrey("empire_w", 12f, false)
-            }, 40), Is.Null);
-        }
-
-        [Test]
-        public void ANewFrontWaitsForTheLastOneToSettle()
-        {
-            InvasionConquest conquest = _invasionConquests.Begin("humar", "vlandia", 10)!;
-            conquest.OpenFront(30);
-
-            Assert.That(_invasionConquests.FindFrontToOpen(conquest, _rules,
-                new[] { new InvasionPrey("empire_w", 12f, false) }, 59), Is.Null);
-            Assert.That(_invasionConquests.FindFrontToOpen(conquest, _rules,
-                new[] { new InvasionPrey("empire_w", 12f, false) }, 60), Is.EqualTo("empire_w"));
-        }
-
-        [Test]
-        public void AnUnsetIntervalNeverOpensAFront()
-        {
-            InvasionConquest conquest = _invasionConquests.Begin("humar", "vlandia", 10)!;
-
-            Assert.That(_invasionConquests.FindFrontToOpen(conquest, new InvasionConquestRules(0.05f, 0f),
-                new[] { new InvasionPrey("empire_w", 12f, false) }, 500), Is.Null);
-        }
-
-        [Test]
-        public void NothingLeftToTakeOpensNoFront()
-        {
-            InvasionConquest conquest = _invasionConquests.Begin("humar", "vlandia", 10)!;
-
-            Assert.That(_invasionConquests.FindFrontToOpen(conquest, _rules, new InvasionPrey[0], 500), Is.Null);
-        }
-
-        [Test]
         public void AForgottenConquestFreesTheInvasionsWars()
         {
             _invasionConquests.Begin("humar", "empire_w", 10);
@@ -266,6 +92,123 @@ namespace CustomSpawns.Tests.Invasions
                 Assert.That(conquest.TargetKingdomId, Is.EqualTo("sturgia"));
                 Assert.That(conquest.StartedDay, Is.EqualTo(27));
                 Assert.That(conquest.LastFrontDay, Is.EqualTo(40));
+            });
+        }
+
+        [Test]
+        public void AFollowerConquersItsOwnTargetAndTheLeaderRemembersItsLastFollower()
+        {
+            InvasionConquest leader = _invasionConquests.Begin("humar", "empire_s", 10)!;
+            leader.Retarget("vlandia", 300);
+
+            InvasionConquest follower = _invasionConquests.BeginFollowing("humar_2", leader, "aserai", 301)!;
+            _invasionConquests.BeginFollowing("humar_3", leader, "sturgia", 302);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(follower.TargetKingdomId, Is.EqualTo("aserai"));
+                Assert.That(follower.LeaderClanId, Is.EqualTo("humar"));
+                Assert.That(leader.TargetKingdomId, Is.EqualTo("vlandia"));
+                Assert.That(leader.FollowerClanId, Is.EqualTo("humar_3"));
+                Assert.That(_invasionConquests.FindLeader(follower), Is.SameAs(leader));
+                Assert.That(_invasionConquests.BeginFollowing("humar_2", leader, "vlandia", 303), Is.Null);
+                Assert.That(_invasionConquests.BeginFollowing("humar", leader, "vlandia", 303), Is.Null);
+                Assert.That(_invasionConquests.BeginFollowing("humar_4", leader, null, 303), Is.Null);
+            });
+        }
+
+        [Test]
+        public void AFollowerKeepsItsTargetWhenItsLeaderTurnsOnAnother()
+        {
+            InvasionConquest leader = _invasionConquests.Begin("humar", "vlandia", 10)!;
+            InvasionConquest follower = _invasionConquests.BeginFollowing("humar_2", leader, "aserai", 11)!;
+
+            leader.Retarget("sturgia", 500);
+
+            Assert.That(follower.TargetKingdomId, Is.EqualTo("aserai"));
+        }
+
+        [Test]
+        public void TheLeaderOfALineLaunchesEveryFollower()
+        {
+            InvasionConquest leader = _invasionConquests.Begin("humar", "vlandia", 10)!;
+            InvasionConquest follower = _invasionConquests.BeginFollowing("humar_2", leader, "aserai", 11)!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(_invasionConquests.FindLauncher(leader), Is.SameAs(leader));
+                Assert.That(_invasionConquests.FindLauncher(follower), Is.SameAs(leader));
+            });
+        }
+
+        [Test]
+        public void AFollowerWhoseLeaderIsGoneLaunchesItsOwn()
+        {
+            InvasionConquest leader = _invasionConquests.Begin("humar", "vlandia", 10)!;
+            InvasionConquest follower = _invasionConquests.BeginFollowing("humar_2", leader, "aserai", 11)!;
+
+            _invasionConquests.Forget("humar");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(_invasionConquests.FindLeader(follower), Is.Null);
+                Assert.That(_invasionConquests.FindLauncher(follower), Is.SameAs(follower));
+                Assert.That(_invasionConquests.AreAllied("humar_2", "humar"), Is.False);
+            });
+        }
+
+        [Test]
+        public void FollowersOfOneLeaderAreAlliedWithEachOtherEvenOnceItIsGone()
+        {
+            InvasionConquest leader = _invasionConquests.Begin("humar", "vlandia", 10)!;
+            InvasionConquest second = _invasionConquests.BeginFollowing("humar_2", leader, "aserai", 11)!;
+            _invasionConquests.BeginFollowing("humar_3", leader, "sturgia", 12);
+            _invasionConquests.Begin("makko", "battania", 13);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(_invasionConquests.AreAllied("humar_2", "humar_3"), Is.True);
+                Assert.That(_invasionConquests.FindAllies(second).Select(ally => ally.InvasionClanId),
+                    Is.EquivalentTo(new[] { "humar", "humar_3" }));
+                Assert.That(_invasionConquests.AreAllied("humar_2", "makko"), Is.False);
+            });
+
+            _invasionConquests.Forget("humar");
+
+            Assert.That(_invasionConquests.AreAllied("humar_2", "humar_3"), Is.True);
+        }
+
+        [Test]
+        public void AlliedInvasionsAreAtPeaceAndWarOnTheirOwnTargets()
+        {
+            InvasionConquest leader = _invasionConquests.Begin("humar", "vlandia", 10)!;
+            _invasionConquests.BeginFollowing("humar_2", leader, "aserai", 11);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(_invasionConquests.FindStance("humar", "humar_2_kingdom", true, "humar_2"),
+                    Is.EqualTo(InvasionWarStance.Peace));
+                Assert.That(_invasionConquests.FindStance("humar_2", "humar_kingdom", true, "humar"),
+                    Is.EqualTo(InvasionWarStance.Peace));
+                Assert.That(_invasionConquests.FindStance("humar_2", "aserai", true),
+                    Is.EqualTo(InvasionWarStance.War));
+                Assert.That(_invasionConquests.FindStance("humar_2", "vlandia", true),
+                    Is.EqualTo(InvasionWarStance.Open));
+                Assert.That(_invasionConquests.FindStance("humar", "pirates", false, "pirates"),
+                    Is.EqualTo(InvasionWarStance.Policy));
+            });
+        }
+
+        [Test]
+        public void ARestoredFollowerRemembersItsLeaderAndTheLeaderItsFollower()
+        {
+            _invasionConquests.Restore(new InvasionConquest("humar", "vlandia", 10, 10, null, "humar_2"));
+            _invasionConquests.Restore(new InvasionConquest("humar_2", "vlandia", 11, 11, "humar"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(_invasionConquests.Find("humar")!.FollowerClanId, Is.EqualTo("humar_2"));
+                Assert.That(_invasionConquests.AreAllied("humar", "humar_2"), Is.True);
             });
         }
     }

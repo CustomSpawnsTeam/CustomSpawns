@@ -48,6 +48,11 @@ namespace CustomSpawns.Data.Model
         [XmlElement("LordPartySizeBonus")]
         public int LordPartySizeBonus { get; set; }
 
+        // The party template of the invasion this one is launched to fight alongside, once that one has taken
+        // its first kingdom. Such an invasion never spawns by chance. Left out, the invasion comes on its own.
+        [XmlElement("FollowsInvasion")]
+        public string? FollowsInvasion { get; set; }
+
         // Who the invasion makes war on. Left out, the diplomacy configuration alone decides.
         [XmlElement("Conquest")]
         public InvasionConquestConfig? Conquest { get; set; }
@@ -92,6 +97,11 @@ namespace CustomSpawns.Data.Model
         // other, until it falls. Left out, or at most one, they choose their sieges as vanilla lords do.
         [XmlElement("TargetSiegePreference")]
         public float TargetSiegePreference { get; set; }
+
+        // How often the invasion weighs its target against the other kingdoms on its borders, and turns on one that
+        // has become a much better prey. Left out, it keeps its target until that kingdom falls.
+        [XmlElement("ReconsiderTargetIntervalInDays")]
+        public float ReconsiderTargetIntervalInDays { get; set; }
     }
 
     public sealed class InvasionReinforcementsConfig
@@ -167,6 +177,8 @@ namespace CustomSpawns.Data.Model
                     config.Conquest.OpenFrontIntervalInDays);
                 ValidateNonNegativeFinite("Invasion Conquest TargetSiegePreference",
                     config.Conquest.TargetSiegePreference);
+                ValidateNonNegativeFinite("Invasion Conquest ReconsiderTargetIntervalInDays",
+                    config.Conquest.ReconsiderTargetIntervalInDays);
             }
             ValidateNonNegative("Invasion Supplies FoodPerConvoy", config.Supplies.FoodPerConvoy);
             // Convoys are looked at once a day, so a shorter interval than that would only lie about itself.

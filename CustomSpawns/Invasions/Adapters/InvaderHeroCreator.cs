@@ -5,7 +5,6 @@ using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
-using TaleWorlds.Localization;
 
 namespace CustomSpawns.Invasions.Adapters
 {
@@ -23,6 +22,7 @@ namespace CustomSpawns.Invasions.Adapters
     {
         private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         private readonly IInvasionClanRepository _invasionClans;
+        private readonly BannerlordInvasionClanFounding _bannerlordInvasionClanFounding = new();
 
         public InvaderHeroCreator(IInvasionClanRepository invasionClans)
         {
@@ -86,34 +86,16 @@ namespace CustomSpawns.Invasions.Adapters
         {
             Clan? leadingClan = invasion.FindLeadingClan();
             Kingdom? kingdom = leadingClan?.Kingdom;
-            CharacterObject? lordTemplate = leadingClan?.Culture?.LordTemplates
-                .FirstOrDefault(character => character.Occupation == Occupation.Lord);
+            Clan? clan = leadingClan == null || kingdom == null
+                ? null
+                : _bannerlordInvasionClanFounding.Found(invasion.ClanId + "_" + invasion.ClanIds.Count, leadingClan,
+                    home, Banner.CreateRandomClanBanner(), leadingClan.Color, leadingClan.Color2);
 
-            if (leadingClan == null || kingdom == null || lordTemplate == null)
+            if (clan == null)
             {
                 return null;
             }
 
-            // Named before it is created: CreateClan registers the clan in Clan.All, and the generator reads
-            // every clan's name there, so a clan registered without one throws.
-            TextObject name = NameGenerator.Current.GenerateClanName(leadingClan.Culture, home);
-            Clan clan = Clan.CreateClan(invasion.ClanId + "_" + invasion.ClanIds.Count);
-            clan.ChangeClanName(name, name);
-            clan.Culture = leadingClan.Culture;
-            clan.Banner = Banner.CreateRandomClanBanner();
-            clan.Color = leadingClan.Color;
-            clan.Color2 = leadingClan.Color2;
-            clan.IsNoble = true;
-            clan.SetInitialHomeSettlement(home);
-            clan.CalculateMidSettlement();
-
-            // Tier has no public setter; renown is the way in, and it carries the same war party limit.
-            clan.AddRenown(Campaign.Current.Models.ClanTierModel.GetRequiredRenownForTier(leadingClan.Tier), false);
-
-            Hero leader = HeroCreator.CreateSpecialHero(lordTemplate, home, clan, null, MBRandom.RandomInt(18, 36));
-            leader.ChangeState(Hero.CharacterStates.Active);
-            clan.SetLeader(leader);
-            EnterSettlementAction.ApplyForCharacterOnly(leader, home);
             ChangeKingdomAction.ApplyByJoinToKingdom(clan, kingdom, default, false);
             CampaignEventDispatcher.Instance.OnClanCreated(clan, false);
             invasion.AddClan(clan.StringId);

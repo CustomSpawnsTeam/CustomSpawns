@@ -170,6 +170,7 @@ namespace CustomSpawns.Tests.Diplomacy
 
         [TestCase(InvasionWarStance.War, DiplomacyReconciliationAction.MakePeace, DiplomacyReconciliationAction.DeclareWar)]
         [TestCase(InvasionWarStance.Open, DiplomacyReconciliationAction.DeclareWar, DiplomacyReconciliationAction.None)]
+        [TestCase(InvasionWarStance.Peace, DiplomacyReconciliationAction.DeclareWar, DiplomacyReconciliationAction.MakePeace)]
         [TestCase(InvasionWarStance.Policy, DiplomacyReconciliationAction.DeclareWar, DiplomacyReconciliationAction.DeclareWar)]
         [TestCase(InvasionWarStance.Policy, DiplomacyReconciliationAction.None, DiplomacyReconciliationAction.None)]
         public void Reconciliation_AConquestsStanceOutranksTheConfiguredPolicy(InvasionWarStance stance,

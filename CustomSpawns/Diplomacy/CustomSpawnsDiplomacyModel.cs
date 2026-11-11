@@ -132,6 +132,11 @@ namespace CustomSpawns.Diplomacy
                 return false;
             }
 
+            if (stance == InvasionWarStance.Peace)
+            {
+                return true;
+            }
+
             if (stance == InvasionWarStance.Policy && _customSpawnsDiplomacyProvider.ShouldBeAtPeace(factionDeclaresPeace, factionDeclaredPeace))
             {
                 _dailyLogger.Info("Forcing " + factionDeclaresPeace.Name + " and " + factionDeclaredPeace.Name + " to make peace due to diplomacy data");
@@ -146,6 +151,12 @@ namespace CustomSpawns.Diplomacy
         {
             float score = _diplomacyModel.GetScoreOfDeclaringWar(factionDeclaresWar, factionDeclaredWar,
                 evaluatingClan, out reason, includeReason);
+
+            // Allied invasions never vote to fight each other.
+            if (_factionWarStanceProvider.FindStance(factionDeclaresWar, factionDeclaredWar) == InvasionWarStance.Peace)
+            {
+                return RuledOutWarScore;
+            }
 
             // The threat never brings a kingdom to a war vanilla rules out, so only an invader's neighbours feel it.
             return score <= RuledOutWarScore
