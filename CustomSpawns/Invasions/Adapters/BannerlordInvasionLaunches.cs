@@ -13,7 +13,7 @@ namespace CustomSpawns.Invasions.Adapters
 {
     /**
      * Lands an invasion launched on behalf of another in a coastal town. The towns it could land in are measured
-     * from the fiefs of the realms it is to be allied with, so it can land far from them and open a war of its own.
+     * from the fiefs of its line's first realm, so it can land close by and open a front the whole line shares.
      */
     public sealed class BannerlordInvasionLaunches
     {
@@ -29,10 +29,17 @@ namespace CustomSpawns.Invasions.Adapters
         public bool HasCoast(Kingdom kingdom) =>
             kingdom.Settlements.Any(settlement => settlement.IsTown && _isCoastalTown(settlement));
 
-        // Every coastal town of a standing kingdom outside the allies, with how far it lies from their nearest fief.
-        public IReadOnlyList<InvasionLandingSite> FindLandingSites(IReadOnlyCollection<IFaction> allies)
+        /**
+         * Every coastal town of a standing kingdom outside the allies, with how far it lies from the nearest fief of
+         * the first realm, or of any ally once the first realm holds none.
+         */
+        public IReadOnlyList<InvasionLandingSite> FindLandingSites(IReadOnlyCollection<IFaction> allies,
+            IFaction? firstRealm)
         {
-            List<Vec2> holdings = allies.SelectMany(ally => ally.Fiefs)
+            IEnumerable<IFaction> anchors = firstRealm != null && firstRealm.Fiefs.Any()
+                ? new[] { firstRealm }
+                : allies;
+            List<Vec2> holdings = anchors.SelectMany(ally => ally.Fiefs)
                 .Select(town => town.Settlement.GatePosition.ToVec2()).ToList();
 
             return Town.AllTowns

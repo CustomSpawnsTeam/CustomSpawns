@@ -9,7 +9,8 @@ using TaleWorlds.CampaignSystem;
 namespace CustomSpawns.Invasions.Adapters
 {
     /**
-     * Launches the next follower of an invasion line, far from every realm of the line, as a kingdom falls. A line
+     * Launches the next follower of an invasion line, next to the line's first realm, when the line is owed a
+     * realm (see BannerlordInvasionLineRefills). A line
      * sends its configured followers first, and once they are all in the field a copy of its first invasion,
      * founded for the purpose, so every fall of the line opens a new realm.
      */
@@ -41,7 +42,7 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionFollowerChoice = invasionFollowerChoice;
         }
 
-        // Lands the next follower far from every realm of the line, in a kingdom it then conquers on its own.
+        // Lands the next follower near the line's first realm, in a kingdom the whole line then conquers.
         public void LaunchFollower(InvasionConquest launcherConquest)
         {
             Invasion? launcher = _state().FindFightingInvasion(launcherConquest.InvasionClanId);
@@ -86,7 +87,7 @@ namespace CustomSpawns.Invasions.Adapters
                         " clone=" + (follower == null) + " name=" + FindClanName(launched.ClanId) +
                         " leader=" + launcherConquest.InvasionClanId + " landing=" + site!.Value.SettlementId +
                         " target=" + followerConquest.TargetKingdomId + " distance=" +
-                        site.Value.DistanceFromAllies.ToString("0", CultureInfo.InvariantCulture) +
+                        site.Value.DistanceFromFirstRealm.ToString("0", CultureInfo.InvariantCulture) +
                         " day=" + CampaignTime.Now.ToDays);
             _bannerlordInvasionRealms.DeclareWarOnTarget(launched, followerConquest);
         }
@@ -109,8 +110,8 @@ namespace CustomSpawns.Invasions.Adapters
             List<IFaction> realms = line.Select(_bannerlordInvasionRealms.FindRealm).OfType<IFaction>().Distinct()
                 .ToList();
 
-            return _invasionLandingSiteChoice.FindLandingSite(_bannerlordInvasionLaunches.FindLandingSites(realms),
-                line.Select(conquest => conquest.TargetKingdomId));
+            return _invasionLandingSiteChoice.FindLandingSite(_bannerlordInvasionLaunches.FindLandingSites(realms,
+                _bannerlordInvasionRealms.FindRealm(launcherConquest)));
         }
 
         private static string FindClanName(string clanId) =>
