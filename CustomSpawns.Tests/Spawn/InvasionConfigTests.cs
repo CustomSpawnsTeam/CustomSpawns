@@ -275,6 +275,57 @@ namespace CustomSpawns.Tests.Spawn
         }
 
         [Test]
+        public void Adapt_ReadsTheGarrisonArmy()
+        {
+            const string invasion = "<Invasion><Conquest><GarrisonArmy><IntervalInDays>90</IntervalInDays>" +
+                                    "<GarrisonShare>0.5</GarrisonShare>" +
+                                    "</GarrisonArmy></Conquest>" +
+                                    "<Reinforcements><Rule><Id>infantry</Id>" +
+                                    "<PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId>" +
+                                    "</Rule></Reinforcements></Invasion>";
+            Spawns spawns = Read("<RegularBanditDailySpawnData party_template=\"PartyTemplate.invasion\">" + invasion +
+                                 "</RegularBanditDailySpawnData>", out List<System.Exception> errors);
+
+            InvasionGarrisonArmyData? garrisonArmy =
+                InvasionDtoAdapter.Adapt(spawns.AllSpawns.Single().Invasion!).Conquest!.GarrisonArmy;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(errors, Is.Empty);
+                Assert.That(garrisonArmy!.IntervalInDays, Is.EqualTo(90f));
+                Assert.That(garrisonArmy.GarrisonShare, Is.EqualTo(0.5f));
+            });
+        }
+
+        [Test]
+        public void Adapt_WithoutAGarrisonArmyRaisesNone()
+        {
+            InvasionConfig config = ValidConfig();
+            config.Conquest = new InvasionConquestConfig();
+
+            Assert.That(InvasionDtoAdapter.Adapt(config).Conquest!.GarrisonArmy, Is.Null);
+        }
+
+        [TestCase(0.5f, 0.5f, "IntervalInDays")]
+        [TestCase(90f, -0.1f, "GarrisonShare")]
+        [TestCase(90f, 1.5f, "GarrisonShare")]
+        public void Adapt_RejectsABadGarrisonArmy(float intervalInDays, float garrisonShare, string expected)
+        {
+            InvasionConfig config = ValidConfig();
+            config.Conquest = new InvasionConquestConfig
+            {
+                GarrisonArmy = new InvasionGarrisonArmyConfig
+                {
+                    IntervalInDays = intervalInDays, GarrisonShare = garrisonShare
+                }
+            };
+
+            ArgumentException error = Assert.Throws<ArgumentException>(() => InvasionDtoAdapter.Adapt(config))!;
+
+            Assert.That(error.Message, Does.Contain(expected));
+        }
+
+        [Test]
         public void Adapt_WithoutAConquestLeavesWarsToDiplomacy()
         {
             Assert.That(InvasionDtoAdapter.Adapt(ValidConfig()).Conquest, Is.Null);

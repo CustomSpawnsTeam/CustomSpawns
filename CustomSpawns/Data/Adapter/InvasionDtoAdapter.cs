@@ -22,7 +22,11 @@ namespace CustomSpawns.Data.Adapter
                     ? null
                     : new InvasionConquestData(config.Conquest.ThreatPerFiefHeld,
                         config.Conquest.OpenFrontIntervalInDays, config.Conquest.TargetSiegePreference,
-                        config.Conquest.ReconsiderTargetIntervalInDays),
+                        config.Conquest.ReconsiderTargetIntervalInDays,
+                        config.Conquest.GarrisonArmy == null
+                            ? null
+                            : new InvasionGarrisonArmyData(config.Conquest.GarrisonArmy.IntervalInDays,
+                                config.Conquest.GarrisonArmy.GarrisonShare)),
                 config.LordPartySizeBonus,
                 string.IsNullOrWhiteSpace(config.FollowsInvasion) ? null : config.FollowsInvasion!.Trim());
         }

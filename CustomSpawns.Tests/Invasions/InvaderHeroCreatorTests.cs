@@ -26,7 +26,8 @@ namespace CustomSpawns.Tests.Invasions
             var clan = (Clan)FormatterServices.GetUninitializedObject(typeof(Clan));
             typeof(Clan).GetField("_leader", BindingFlags.Instance | BindingFlags.NonPublic)!
                 .SetValue(clan, leader);
-            var creator = new InvaderHeroCreator(Mock.Of<IInvasionClanRepository>());
+            var creator = new InvaderHeroCreator(Mock.Of<IInvasionClanRepository>(),
+                Mock.Of<IInvasionGarrisonArmyLeaders>());
 
             // No culture means there is no replacement template if the leader is unavailable.
             Hero? selected = creator.CreateLord(new Invasion("invasion", "clan"), clan, null!);

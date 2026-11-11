@@ -18,7 +18,8 @@ namespace CustomSpawns.Invasions.Adapters
      * court, so vanilla's price for calling lords to arms would keep it from ever gathering one, however
      * many men it lands.
      *
-     * Capital relief gathering also keeps its cohesion until the objective allows it to advance.
+     * Capital relief gathering also keeps its cohesion until the objective allows it to advance, and a garrison
+     * army keeps it for as long as its lord lives.
      */
     public sealed class InvasionArmyManagementModel : ArmyManagementCalculationModel
     {
@@ -30,15 +31,17 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly IInvaderClanQuery _invaderClanQuery;
         private readonly IInvasionCapitalObjectiveQuery _invasionCapitalObjectiveQuery;
         private readonly ClanInfluenceLift _clanInfluenceLift;
+        private readonly IInvasionGarrisonArmyLeaders _invasionGarrisonArmyLeaders;
 
         public InvasionArmyManagementModel(ArmyManagementCalculationModel decorated,
             IInvaderClanQuery invaderClanQuery, IInvasionCapitalObjectiveQuery invasionCapitalObjectiveQuery,
-            ClanInfluenceLift clanInfluenceLift)
+            ClanInfluenceLift clanInfluenceLift, IInvasionGarrisonArmyLeaders invasionGarrisonArmyLeaders)
         {
             _armyManagementCalculationModel = decorated;
             _invaderClanQuery = invaderClanQuery;
             _invasionCapitalObjectiveQuery = invasionCapitalObjectiveQuery;
             _clanInfluenceLift = clanInfluenceLift;
+            _invasionGarrisonArmyLeaders = invasionGarrisonArmyLeaders;
         }
 
         public override float AIMobilePartySizeRatioToCallToArmy => _armyManagementCalculationModel.AIMobilePartySizeRatioToCallToArmy;
@@ -116,9 +119,16 @@ namespace CustomSpawns.Invasions.Adapters
         private bool IsInvaderArmy(Army army) =>
             _invaderClanQuery.IsInvaderClan(army.LeaderParty?.LeaderHero?.Clan?.StringId);
 
+        // A garrison army fights on until its lord is beaten, so it never runs out of cohesion either.
         private bool KeepsArmyTogether(Army army)
         {
             MobileParty? commander = army?.LeaderParty;
+
+            if (_invasionGarrisonArmyLeaders.LeadsGarrisonArmy(commander?.LeaderHero?.StringId))
+            {
+                return true;
+            }
+
             string? kingdomId = commander?.MapFaction?.StringId;
             return kingdomId != null &&
                    _invasionCapitalObjectiveQuery.FindForKingdom(kingdomId)

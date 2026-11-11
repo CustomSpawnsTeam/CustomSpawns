@@ -28,6 +28,7 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly InvasionSupplyBases _invasionSupplyBases = new();
         private readonly IInvasionCapitalRepository _invasionCapitals;
         private readonly IInvasionClanRepository _invasionClans;
+        private readonly InvasionGarrisonArmyLords _invasionGarrisonArmyLords = new();
         private readonly InvaderHeroCreator _invaderHeroes;
         private readonly BannerlordInvasionConfigurations _bannerlordInvasionConfigurations;
         private readonly BannerlordInvasionWarbands _bannerlordInvasionWarbands;
@@ -69,6 +70,12 @@ namespace CustomSpawns.Invasions.Adapters
         // Lets the invasion's lords lead more men than their clan's tier allows them.
         public InvasionLordPartySizeObserver InvasionLordPartySizeObserver { get; }
 
+        // Leads part of each held capital's garrison out against the conquered kingdom now and then.
+        public InvasionGarrisonArmyCampaign InvasionGarrisonArmyCampaign { get; }
+
+        // Which lords lead a garrison army, so the models spare their parties and armies.
+        public IInvasionGarrisonArmyLeaders InvasionGarrisonArmyLeaders => _invasionGarrisonArmyLords;
+
         public InvasionCampaignBehaviour(SpawnDao spawns, DynamicSpawnData parties,
             SaveInitialiser initialiser, IInvasionCapitalRepository invasionCapitals,
             IInvasionClanRepository invasionClans, SpawnGroupService spawnGroupService,
@@ -79,7 +86,7 @@ namespace CustomSpawns.Invasions.Adapters
             _dynamicSpawnData = parties;
             _invasionCapitals = invasionCapitals;
             _invasionClans = invasionClans;
-            _invaderHeroes = new InvaderHeroCreator(invasionClans);
+            _invaderHeroes = new InvaderHeroCreator(invasionClans, _invasionGarrisonArmyLords);
             _bannerlordInvasionConfigurations = new BannerlordInvasionConfigurations(spawns);
             _bannerlordInvasionGarrisons = new BannerlordInvasionGarrisons(_invasionTroopBank);
             _bannerlordInvasionWarbands = new BannerlordInvasionWarbands(_invasionTroopBank);
@@ -117,7 +124,9 @@ namespace CustomSpawns.Invasions.Adapters
                     bannerlordInvasionRealms, invasionConquestFronts),
                 BannerlordInvasionConquestStances, invasionConquests, _invasionLineClans);
             InvasionLordPartySizeObserver = new InvasionLordPartySizeObserver(
-                new InvasionLordPartySize(() => State, _bannerlordInvasionConfigurations));
+                new InvasionLordPartySize(() => State, _bannerlordInvasionConfigurations), _invasionGarrisonArmyLords);
+            InvasionGarrisonArmyCampaign = new InvasionGarrisonArmyCampaign(() => State, spawns, _invasionTroopBank,
+                BannerlordInvasionConquestStances, _invaderHeroes, _invasionGarrisonArmyLords);
             _invasionResupply = NewResupply();
             _invasionCaptureCorrelation = new InvasionCaptureCorrelation(State);
             _invasionReinforcementArrivals = NewArrivals();
@@ -156,6 +165,8 @@ namespace CustomSpawns.Invasions.Adapters
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, UpdateCapitalObjectivesDaily);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, ConsolidateDaily);
             CampaignEvents.WarDeclared.AddNonSerializedListener(this, OnWarDeclared);
+            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, RaiseGarrisonArmies);
+            CampaignEvents.ArmyDispersed.AddNonSerializedListener(this, OnArmyDispersed);
             _invasionLossDiagnostics.RegisterEvents();
         }
 
@@ -191,6 +202,14 @@ namespace CustomSpawns.Invasions.Adapters
                 ? _invasionConquestSaveStore.Export()
                 : null;
             dataStore.SyncData("_invasionConquests", ref conquests);
+            Dictionary<string, string>? garrisonArmies = dataStore.IsSaving
+                ? InvasionGarrisonArmyCampaign.Export()
+                : null;
+            dataStore.SyncData("_invasionGarrisonArmies", ref garrisonArmies);
+            Dictionary<string, string>? garrisonArmyLords = dataStore.IsSaving
+                ? InvasionGarrisonArmyCampaign.ExportLords()
+                : null;
+            dataStore.SyncData("_invasionGarrisonArmyLords", ref garrisonArmyLords);
             Dictionary<string, string>? lineClans = dataStore.IsSaving ? _invasionLineClans.Export() : null;
             dataStore.SyncData("_invasionLineClans", ref lineClans);
 
@@ -203,6 +222,8 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionConquestSaveStore.Restore(conquests);
             _invasionLineClans.Restore(lineClans);
             _invasionCloneDiplomacy.InheritAll(_invasionLineClans);
+            InvasionGarrisonArmyCampaign.Restore(garrisonArmies);
+            InvasionGarrisonArmyCampaign.RestoreLords(garrisonArmyLords);
             _invasionResupply = NewResupply();
             _invasionResupply.Restore(returningParties ?? new List<string>());
             _invasionCaptureCorrelation = new InvasionCaptureCorrelation(State);
@@ -230,7 +251,7 @@ namespace CustomSpawns.Invasions.Adapters
 
         private InvasionReinforcementArrivals NewArrivals()
         {
-            BannerlordInvasionLords bannerlordInvasionLords = new(_invaderHeroes);
+            BannerlordInvasionLords bannerlordInvasionLords = new(_invaderHeroes, _invasionGarrisonArmyLords);
             InvasionWaveBanking invasionWaveBanking = new(_bannerlordInvasionConfigurations,
                 _bannerlordInvasionGarrisons, _bannerlordInvasionGarrisons, bannerlordInvasionLords,
                 new InvasionLordLevy(bannerlordInvasionLords, _invasionTroopBank),
@@ -313,10 +334,21 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionLordWarbands.DrawFromGarrison(party);
         }
 
-        // Capture and flight are the two ways an invasion lord outlives its party.
-        private void OnHeroPrisonerTaken(PartyBase capturer, Hero prisoner) => RemoveDefeatedLord(prisoner);
+        /*
+         * Capture and flight are the two ways an invasion lord outlives its party. A garrison army's lord is
+         * ended first, so his army's end is logged as his capture and his men go home before he is removed.
+         */
+        private void OnHeroPrisonerTaken(PartyBase capturer, Hero prisoner)
+        {
+            InvasionGarrisonArmyCampaign.Review();
+            RemoveDefeatedLord(prisoner);
+        }
 
-        private void OnCharacterBecameFugitive(Hero hero, bool showNotification) => RemoveDefeatedLord(hero);
+        private void OnCharacterBecameFugitive(Hero hero, bool showNotification)
+        {
+            InvasionGarrisonArmyCampaign.Review();
+            RemoveDefeatedLord(hero);
+        }
 
         // The kept lord authorises one removal decision and is spent by it: a party removal that
         // dispatches neither capture nor flight would otherwise leave it standing for the rest of the
@@ -343,7 +375,17 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionOccupations.ApplyReady();
             _invasionOccupations.KeepCrowns();
             UpdateCapitalObjectivesHourly();
+            InvasionGarrisonArmyCampaign.Review();
         }
+
+        private void RaiseGarrisonArmies()
+        {
+            Initialize();
+            InvasionGarrisonArmyCampaign.UpdateDaily();
+        }
+
+        private void OnArmyDispersed(Army army, Army.ArmyDispersionReason reason, bool isPlayersArmy) =>
+            InvasionGarrisonArmyCampaign.ObserveDispersal(army, reason);
 
         private void AddResupplyScore(MobileParty party, PartyThinkParams thinkParams)
         {

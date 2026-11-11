@@ -102,6 +102,27 @@ namespace CustomSpawns.Data.Model
         // has become a much better prey. Left out, it keeps its target until that kingdom falls.
         [XmlElement("ReconsiderTargetIntervalInDays")]
         public float ReconsiderTargetIntervalInDays { get; set; }
+
+        // Now and then raises one big army out of the capital's garrison against the kingdom it conquers. Left
+        // out, the garrison only ever feeds the lords and the fiefs.
+        [XmlElement("GarrisonArmy")]
+        public InvasionGarrisonArmyConfig? GarrisonArmy { get; set; }
+    }
+
+    /**
+     * The invasion's lords alone are seldom twice as strong as the last fiefs they besiege, which vanilla wants
+     * before it lays a siege, while thousands wait in the capital. A lord leads those out, as parties of their own
+     * in his army, and they come back to the garrison when the army breaks up.
+     */
+    public sealed class InvasionGarrisonArmyConfig
+    {
+        // The fewest days between two armies.
+        [XmlElement("IntervalInDays")]
+        public float IntervalInDays { get; set; } = 90f;
+
+        // The share of the garrison's men the army takes, never leaving fewer than MinimumCapitalGarrison behind.
+        [XmlElement("GarrisonShare")]
+        public float GarrisonShare { get; set; } = 0.5f;
     }
 
     public sealed class InvasionReinforcementsConfig
@@ -179,6 +200,10 @@ namespace CustomSpawns.Data.Model
                     config.Conquest.TargetSiegePreference);
                 ValidateNonNegativeFinite("Invasion Conquest ReconsiderTargetIntervalInDays",
                     config.Conquest.ReconsiderTargetIntervalInDays);
+                if (config.Conquest.GarrisonArmy != null)
+                {
+                    ValidateGarrisonArmy(config.Conquest.GarrisonArmy);
+                }
             }
             ValidateNonNegative("Invasion Supplies FoodPerConvoy", config.Supplies.FoodPerConvoy);
             // Convoys are looked at once a day, so a shorter interval than that would only lie about itself.
@@ -225,6 +250,21 @@ namespace CustomSpawns.Data.Model
             ValidateNonNegative("Invasion Reinforcements Rule '" + rule.Id + "' MaxWaves", rule.MaxWaves);
             ValidateNonNegative("Invasion Reinforcements Rule '" + rule.Id + "' MaxMenPerWave", rule.MaxMenPerWave);
             ValidateNonNegative("Invasion Reinforcements Rule '" + rule.Id + "' MenPerTownHeld", rule.MenPerTownHeld);
+        }
+
+        private static void ValidateGarrisonArmy(InvasionGarrisonArmyConfig garrisonArmy)
+        {
+            // Garrisons are looked at once a day, so a shorter interval than that would only lie about itself.
+            if (!IsFinite(garrisonArmy.IntervalInDays) || garrisonArmy.IntervalInDays < 1f)
+            {
+                throw new ArgumentException(
+                    "Invasion Conquest GarrisonArmy IntervalInDays must be finite and at least one day.");
+            }
+            ValidateNonNegativeFinite("Invasion Conquest GarrisonArmy GarrisonShare", garrisonArmy.GarrisonShare);
+            if (garrisonArmy.GarrisonShare > 1f)
+            {
+                throw new ArgumentException("Invasion Conquest GarrisonArmy GarrisonShare cannot be more than one.");
+            }
         }
 
         private static void ValidateNonNegative(string name, int value)

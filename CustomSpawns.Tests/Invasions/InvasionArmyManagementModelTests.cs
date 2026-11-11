@@ -1,3 +1,4 @@
+using CustomSpawns.Invasions;
 using System;
 using System.Reflection;
 using System.Runtime.Serialization;
@@ -188,7 +189,8 @@ namespace CustomSpawns.Tests.Invasions
             var query = new Mock<IInvasionCapitalObjectiveQuery>();
             query.Setup(value => value.FindForKingdom(InvaderClanId)).Returns(() => directive);
             var model = new InvasionArmyManagementModel(decorated.Object,
-                new Mock<IInvaderClanQuery>().Object, query.Object, new ClanInfluenceLift());
+                new Mock<IInvaderClanQuery>().Object, query.Object, new ClanInfluenceLift(),
+                Mock.Of<IInvasionGarrisonArmyLeaders>());
 
             Assert.That(model.CalculateDailyCohesionChange(army).ResultNumber, Is.Zero);
 
@@ -219,7 +221,7 @@ namespace CustomSpawns.Tests.Invasions
             var capitalObjectiveQuery = new Mock<IInvasionCapitalObjectiveQuery>();
             capitalObjectiveQuery.Setup(query => query.FindForKingdom(InvaderClanId)).Returns(directive);
             return new InvasionArmyManagementModel(decorated.Object, invaderClanQuery.Object,
-                capitalObjectiveQuery.Object, new ClanInfluenceLift());
+                capitalObjectiveQuery.Object, new ClanInfluenceLift(), Mock.Of<IInvasionGarrisonArmyLeaders>());
         }
 
         // Vanilla's own refusal: no army for a clan holding 100 influence or less.

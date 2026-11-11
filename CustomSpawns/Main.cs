@@ -160,7 +160,8 @@ namespace CustomSpawns
             IPartyOrder capitalOrders = new CompositePartyOrder(new IPartyOrder[]
             {
                 new InvasionCapitalDefenceOrder(_invasionCampaignBehaviour),
-                new InvasionCapitalAttackOrder(_invasionCampaignBehaviour)
+                new InvasionCapitalAttackOrder(_invasionCampaignBehaviour),
+                _invasionCampaignBehaviour.InvasionGarrisonArmyCampaign.InvasionGarrisonArmyOrder
             });
             _customSpawnsAiBehaviour = new CustomSpawnsAiBehaviour(steeredParties, partyBehaviourResolver,
                 capitalOrders,
@@ -235,9 +236,11 @@ namespace CustomSpawns
                     _partySizeCalculatedSubject));
                 starter.AddModel(new InvasionArmyManagementModel(
                     starter.GetModel<ArmyManagementCalculationModel>(), _invasionCampaignBehaviour,
-                    _invasionCampaignBehaviour, new ClanInfluenceLift()));
+                    _invasionCampaignBehaviour, new ClanInfluenceLift(),
+                    _invasionCampaignBehaviour.InvasionGarrisonArmyLeaders));
                 starter.AddModel(new InvasionPartyDesertionModel(starter.GetModel<PartyDesertionModel>(),
-                    _invasionCampaignBehaviour, new InvasionGarrisonDesertion()));
+                    _invasionCampaignBehaviour, new InvasionGarrisonDesertion(),
+                    _invasionCampaignBehaviour.InvasionGarrisonArmyLeaders));
                 starter.AddModel(new InvasionSettlementFoodModel(starter.GetModel<SettlementFoodModel>(),
                     _invasionCampaignBehaviour, new InvasionBankRations()));
             }

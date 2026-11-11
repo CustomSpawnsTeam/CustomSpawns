@@ -1,0 +1,55 @@
+using System;
+using System.Collections.Generic;
+using CustomSpawns.Data.Dao;
+using TaleWorlds.CampaignSystem;
+
+namespace CustomSpawns.Invasions.Adapters
+{
+    /**
+     * Puts the garrison armies together and answers the campaign's events for them, so the invasion behaviour only
+     * passes those events on.
+     */
+    public sealed class InvasionGarrisonArmyCampaign
+    {
+        private readonly InvasionGarrisonArmies _invasionGarrisonArmies;
+        private readonly InvasionGarrisonArmyClock _invasionGarrisonArmyClock = new();
+        private readonly InvasionGarrisonArmyLords _invasionGarrisonArmyLords;
+        private readonly BannerlordInvasionGarrisonArmyWorld _bannerlordInvasionGarrisonArmyWorld;
+
+        public InvasionGarrisonArmyCampaign(Func<InvasionState> state, SpawnDao spawnDao,
+            InvasionTroopBank invasionTroopBank, IInvasionConquestTargets invasionConquestTargets,
+            InvaderHeroCreator invaderHeroCreator, InvasionGarrisonArmyLords invasionGarrisonArmyLords)
+        {
+            _invasionGarrisonArmyLords = invasionGarrisonArmyLords;
+            BannerlordInvasionGarrisonArmyLordParties lordParties =
+                new(invaderHeroCreator, new BannerlordInvasionWarbands(invasionTroopBank));
+            BannerlordInvasionGarrisonArmyTargets targets = new(invasionConquestTargets, new InvasionNearestChoice());
+            InvasionGarrisonArmySizing sizing = new();
+            _bannerlordInvasionGarrisonArmyWorld = new BannerlordInvasionGarrisonArmyWorld(state,
+                new BannerlordInvasionGarrisonArmyConfigurations(spawnDao), lordParties, targets,
+                new BannerlordInvasionCommissariat(), invasionGarrisonArmyLords);
+            _invasionGarrisonArmies = new InvasionGarrisonArmies(_bannerlordInvasionGarrisonArmyWorld,
+                new InvasionGarrisonArmyMuster(sizing), sizing, _invasionGarrisonArmyClock, invasionGarrisonArmyLords);
+            InvasionGarrisonArmyOrder = new InvasionGarrisonArmyOrder(state, targets, invasionGarrisonArmyLords);
+        }
+
+        // Keeps each garrison army fighting; Main hands it to the AI with the other orders.
+        public InvasionGarrisonArmyOrder InvasionGarrisonArmyOrder { get; }
+
+        public void UpdateDaily() => _invasionGarrisonArmies.UpdateDaily(CampaignTime.Now.ToDays);
+
+        // Ends the armies whose lord was beaten, taken or lost his army, and reports those that finished gathering.
+        public void Review() => _invasionGarrisonArmies.Review();
+
+        public void ObserveDispersal(Army army, Army.ArmyDispersionReason reason) =>
+            _bannerlordInvasionGarrisonArmyWorld.ObserveDispersal(army, reason);
+
+        public Dictionary<string, string> Export() => _invasionGarrisonArmyClock.Export();
+
+        public void Restore(Dictionary<string, string>? saved) => _invasionGarrisonArmyClock.Restore(saved);
+
+        public Dictionary<string, string> ExportLords() => _invasionGarrisonArmyLords.Export();
+
+        public void RestoreLords(Dictionary<string, string>? saved) => _invasionGarrisonArmyLords.Restore(saved);
+    }
+}

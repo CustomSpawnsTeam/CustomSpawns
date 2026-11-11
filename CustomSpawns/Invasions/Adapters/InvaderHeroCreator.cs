@@ -22,11 +22,14 @@ namespace CustomSpawns.Invasions.Adapters
     {
         private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         private readonly IInvasionClanRepository _invasionClans;
+        private readonly IInvasionGarrisonArmyLeaders _invasionGarrisonArmyLeaders;
         private readonly BannerlordInvasionClanFounding _bannerlordInvasionClanFounding = new();
 
-        public InvaderHeroCreator(IInvasionClanRepository invasionClans)
+        public InvaderHeroCreator(IInvasionClanRepository invasionClans,
+            IInvasionGarrisonArmyLeaders invasionGarrisonArmyLeaders)
         {
             _invasionClans = invasionClans;
+            _invasionGarrisonArmyLeaders = invasionGarrisonArmyLeaders;
         }
 
         // The first clan of the invasion that can still take a war party, or a new one founded to take it.
@@ -41,7 +44,9 @@ namespace CustomSpawns.Invasions.Adapters
                     return null;
                 }
 
-                return (clan.IsEliminated, () => (clan.WarPartyComponents.Count, clan.WarPartyLimit));
+                // A garrison army's lord takes no war party place: lords come only with towns.
+                return (clan.IsEliminated, () => (clan.WarPartyComponents.Count(component =>
+                    !_invasionGarrisonArmyLeaders.LeadsGarrisonArmy(component.Leader?.StringId)), clan.WarPartyLimit));
             });
 
             return clanId == null

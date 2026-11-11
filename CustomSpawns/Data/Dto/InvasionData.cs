@@ -79,12 +79,14 @@ namespace CustomSpawns.Data.Dto
     public sealed class InvasionConquestData
     {
         public InvasionConquestData(float threatPerFiefHeld, float openFrontIntervalInDays = 0f,
-            float targetSiegePreference = 0f, float reconsiderTargetIntervalInDays = 0f)
+            float targetSiegePreference = 0f, float reconsiderTargetIntervalInDays = 0f,
+            InvasionGarrisonArmyData? garrisonArmy = null)
         {
             ThreatPerFiefHeld = threatPerFiefHeld;
             OpenFrontIntervalInDays = openFrontIntervalInDays;
             TargetSiegePreference = targetSiegePreference;
             ReconsiderTargetIntervalInDays = reconsiderTargetIntervalInDays;
+            GarrisonArmy = garrisonArmy;
         }
 
         // Zero leaves the invasion's neighbours to vanilla diplomacy alone.
@@ -98,6 +100,23 @@ namespace CustomSpawns.Data.Dto
 
         // Zero keeps the invasion on its target until that kingdom falls.
         public float ReconsiderTargetIntervalInDays { get; }
+
+        // Null never raises an army out of the capital's garrison.
+        public InvasionGarrisonArmyData? GarrisonArmy { get; }
+    }
+
+    public sealed class InvasionGarrisonArmyData
+    {
+        public InvasionGarrisonArmyData(float intervalInDays, float garrisonShare)
+        {
+            IntervalInDays = intervalInDays;
+            GarrisonShare = garrisonShare;
+        }
+
+        public float IntervalInDays { get; }
+
+        // The share of the garrison's men an army takes, never cutting below the capital's minimum garrison.
+        public float GarrisonShare { get; }
     }
 
     public sealed class InvasionReinforcementRuleData
