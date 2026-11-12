@@ -55,7 +55,7 @@ namespace CustomSpawns.Invasions.Adapters
         /**
          * Every lord of the invasion's clans free to answer a call to arms, wherever he is, the way vanilla calls a
          * kingdom's lords: leading his own party, no prisoner, in no army, not fighting or besieging, nor shut in
-         * a besieged town.
+         * a besieged town. The realm's ruler is never called: see InvasionGarrisonArmyRulerRelease.
          */
         public MBList<MobileParty> FindFreeLords(Invasion invasion, MobileParty leader)
         {
@@ -64,7 +64,8 @@ namespace CustomSpawns.Invasions.Adapters
             foreach (MobileParty party in MobileParty.All.Where(party => party != leader && party.IsActive &&
                          party.IsLordParty && !party.IsMainParty && !party.IsDisbanding &&
                          invasion.HoldsClan(party.ActualClan?.StringId) && party.MapFaction == leader.MapFaction &&
-                         party.LeaderHero is { IsActive: true, IsPrisoner: false } && party.Army == null &&
+                         party.LeaderHero is { IsActive: true, IsPrisoner: false, IsKingdomLeader: false } &&
+                         party.Army == null &&
                          party.MapEvent == null && party.SiegeEvent == null && party.BesiegedSettlement == null &&
                          party.CurrentSettlement?.SiegeEvent == null))
             {

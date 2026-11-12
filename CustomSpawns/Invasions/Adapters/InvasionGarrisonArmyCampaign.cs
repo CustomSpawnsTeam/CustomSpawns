@@ -15,6 +15,7 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly InvasionGarrisonArmyClock _invasionGarrisonArmyClock = new();
         private readonly InvasionGarrisonArmyLords _invasionGarrisonArmyLords;
         private readonly BannerlordInvasionGarrisonArmyWorld _bannerlordInvasionGarrisonArmyWorld;
+        private readonly InvasionGarrisonArmyRulerRelease _invasionGarrisonArmyRulerRelease;
 
         public InvasionGarrisonArmyCampaign(Func<InvasionState> state, SpawnDao spawnDao,
             InvasionTroopBank invasionTroopBank, IInvasionConquestTargets invasionConquestTargets,
@@ -31,6 +32,7 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionGarrisonArmies = new InvasionGarrisonArmies(_bannerlordInvasionGarrisonArmyWorld,
                 new InvasionGarrisonArmyMuster(sizing), sizing, _invasionGarrisonArmyClock, invasionGarrisonArmyLords);
             InvasionGarrisonArmyOrder = new InvasionGarrisonArmyOrder(state, targets, invasionGarrisonArmyLords);
+            _invasionGarrisonArmyRulerRelease = new InvasionGarrisonArmyRulerRelease(state);
         }
 
         // Keeps each garrison army fighting; Main hands it to the AI with the other orders.
@@ -38,8 +40,13 @@ namespace CustomSpawns.Invasions.Adapters
 
         public void UpdateDaily() => _invasionGarrisonArmies.UpdateDaily(CampaignTime.Now.ToDays);
 
-        // Ends the armies whose lord was beaten, taken or lost his army, and reports those that finished gathering.
-        public void Review() => _invasionGarrisonArmies.Review();
+        // Ends the armies whose lord was beaten, taken or lost his army, reports those that finished gathering, and
+        // sends the realm's ruler out of any besieging army he follows.
+        public void Review()
+        {
+            _invasionGarrisonArmies.Review();
+            _invasionGarrisonArmyRulerRelease.Release();
+        }
 
         public void ObserveDispersal(Army army, Army.ArmyDispersionReason reason) =>
             _bannerlordInvasionGarrisonArmyWorld.ObserveDispersal(army, reason);
