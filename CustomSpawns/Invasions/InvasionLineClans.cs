@@ -32,8 +32,11 @@ namespace CustomSpawns.Invasions
             clanId != null && _clones.TryGetValue(clanId, out var clone) ? clone.LauncherClanId : null;
 
         // The id the next copy of a configured clan asks for; vanilla still makes it unique if it is taken.
-        public string NextCloneClanId(string modelClanId) =>
-            modelClanId + CloneSuffix + (_clones.Values.Count(clone => clone.ModelClanId == modelClanId) + 1);
+        public string NextCloneClanId(string modelClanId) => modelClanId + CloneSuffix + NextCloneNumber(modelClanId);
+
+        // The next copy of a configured clan, counting from one; the clan itself stands first in its line.
+        public int NextCloneNumber(string modelClanId) =>
+            _clones.Values.Count(clone => clone.ModelClanId == modelClanId) + 1;
 
         /**
          * Whether a conquest of candidateClanId leads the invasion of followerClanId. A copy follows the invasion it

@@ -4,13 +4,15 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
+using TaleWorlds.Localization;
 
 namespace CustomSpawns.Invasions.Adapters
 {
     /**
      * Launches a copy of an invasion line's first invasion once the line has no configured follower left to send:
-     * the same spawn and settings, fighting for a clan founded for it. The clan joins no kingdom; like any
-     * invasion clan without one, it founds its own realm with the first fief it takes.
+     * the same spawn and settings, fighting for a clan founded for it and named after its place in the line. The
+     * clan joins no kingdom; like any invasion clan without one, it founds its own realm, which takes its name,
+     * with the first fief it takes.
      */
     public sealed class BannerlordInvasionClones
     {
@@ -20,6 +22,7 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly IInvasionClanRepository _invasionClans;
         private readonly InvasionLineClans _invasionLineClans;
         private readonly InvasionCloneDiplomacy _invasionCloneDiplomacy;
+        private readonly InvasionCloneNames _invasionCloneNames = new();
 
         public BannerlordInvasionClones(BannerlordInvasionLaunches bannerlordInvasionLaunches,
             BannerlordInvasionClanFounding bannerlordInvasionClanFounding, IInvasionClanRepository invasionClans,
@@ -41,10 +44,12 @@ namespace CustomSpawns.Invasions.Adapters
             Settlement? landing = Settlement.Find(landingSettlementId);
             Clan model = lineSpawn.SpawnClan;
             Banner banner = Banner.CreateRandomClanBanner();
+            TextObject name = new(_invasionCloneNames.Name(model.Name.ToString(),
+                _invasionLineClans.NextCloneNumber(model.StringId)));
             Clan? clan = landing == null
                 ? null
                 : _bannerlordInvasionClanFounding.Found(_invasionLineClans.NextCloneClanId(model.StringId), model,
-                    landing, banner, banner.GetPrimaryColor(), banner.GetFirstIconColor());
+                    landing, banner, banner.GetPrimaryColor(), banner.GetFirstIconColor(), name);
 
             if (clan == null)
             {

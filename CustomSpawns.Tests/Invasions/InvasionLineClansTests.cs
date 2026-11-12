@@ -30,6 +30,15 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
+        public void TheNextCopyNumberCountsOnlyCopiesOfTheSameClan()
+        {
+            _invasionLineClans.Register("cs_humar_line_1", "cs_humar", "cs_humar");
+            _invasionLineClans.Register("cs_other_line_1", "cs_other", "cs_other");
+
+            Assert.That(_invasionLineClans.NextCloneNumber("cs_humar"), Is.EqualTo(2));
+        }
+
+        [Test]
         public void ACopyKnowsTheInvasionItWasLaunchedFor()
         {
             _invasionLineClans.Register("cs_humar_line_1", "cs_humar_2", "cs_humar");

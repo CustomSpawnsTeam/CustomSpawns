@@ -15,8 +15,9 @@ namespace CustomSpawns.Invasions.Adapters
      */
     public sealed class BannerlordInvasionClanFounding
     {
-        // Null when the model's culture has no lord to put at the clan's head.
-        public Clan? Found(string clanId, Clan model, Settlement home, Banner banner, uint color, uint color2)
+        // Null when the model's culture has no lord to put at the clan's head. A clan given no name gets one made up.
+        public Clan? Found(string clanId, Clan model, Settlement home, Banner banner, uint color, uint color2,
+            TextObject? name = null)
         {
             CharacterObject? lordTemplate = model.Culture?.LordTemplates
                 .FirstOrDefault(character => character.Occupation == Occupation.Lord);
@@ -28,7 +29,7 @@ namespace CustomSpawns.Invasions.Adapters
 
             // Named before it is created: CreateClan registers the clan in Clan.All, and the generator reads
             // every clan's name there, so a clan registered without one throws.
-            TextObject name = NameGenerator.Current.GenerateClanName(model.Culture, home);
+            name ??= NameGenerator.Current.GenerateClanName(model.Culture, home);
             Clan clan = Clan.CreateClan(clanId);
             clan.ChangeClanName(name, name);
             clan.Culture = model.Culture;
