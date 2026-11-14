@@ -62,6 +62,7 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly BannerlordInvasionLineRefills _bannerlordInvasionLineRefills;
         private readonly BannerlordInvasionTargetSieges _bannerlordInvasionTargetSieges;
         private readonly BannerlordInvasionAlliedSieges _bannerlordInvasionAlliedSieges;
+        private readonly BannerlordInvasionCallsToWar _bannerlordInvasionCallsToWar;
         private readonly InvasionConquestSaveStore _invasionConquestSaveStore;
         private readonly InvasionLineClans _invasionLineClans = new();
         private readonly InvasionCloneDiplomacy _invasionCloneDiplomacy;
@@ -105,6 +106,8 @@ namespace CustomSpawns.Invasions.Adapters
                 _bannerlordInvasionConfigurations, bannerlordInvasionRealms, invasionConquests,
                 invasionConquestFronts);
             _bannerlordInvasionAlliedSieges = new BannerlordInvasionAlliedSieges(bannerlordInvasionRealms,
+                invasionConquests);
+            _bannerlordInvasionCallsToWar = new BannerlordInvasionCallsToWar(bannerlordInvasionRealms,
                 invasionConquests);
             _bannerlordInvasionTargetSieges = new BannerlordInvasionTargetSieges(() => State,
                 _bannerlordInvasionConfigurations, BannerlordInvasionConquestStances,
@@ -432,6 +435,7 @@ namespace CustomSpawns.Invasions.Adapters
         {
             Initialize();
             BannerlordInvasionConquestStances.ObserveWar(first, second);
+            _bannerlordInvasionCallsToWar.CallAlliesToWar(first, second);
         }
 
         // The party itself no longer says which invasion it serves, so the spawn it came from is asked instead.

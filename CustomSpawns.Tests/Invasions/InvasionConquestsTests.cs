@@ -179,6 +179,35 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
+        public void AWarOnOneRealmOfTheLineCallsInEveryOtherRealm()
+        {
+            InvasionConquest leader = _invasionConquests.Begin("humar", "vlandia", 10)!;
+            _invasionConquests.BeginFollowing("humar_2", leader, "aserai", 11);
+            _invasionConquests.BeginFollowing("humar_3", leader, "sturgia", 12);
+            _invasionConquests.Begin("makko", "battania", 13);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(_invasionConquests.FindAlliesCalledToWar("humar", null)
+                    .Select(ally => ally.InvasionClanId), Is.EquivalentTo(new[] { "humar_2", "humar_3" }));
+                Assert.That(_invasionConquests.FindAlliesCalledToWar("humar_3", "makko")
+                    .Select(ally => ally.InvasionClanId), Is.EquivalentTo(new[] { "humar", "humar_2" }));
+                Assert.That(_invasionConquests.FindAlliesCalledToWar("makko", null), Is.Empty);
+                Assert.That(_invasionConquests.FindAlliesCalledToWar("vlandia", null), Is.Empty);
+            });
+        }
+
+        [Test]
+        public void AWarWithinTheLineCallsNoAllyIn()
+        {
+            InvasionConquest leader = _invasionConquests.Begin("humar", "vlandia", 10)!;
+            _invasionConquests.BeginFollowing("humar_2", leader, "aserai", 11);
+            _invasionConquests.BeginFollowing("humar_3", leader, "sturgia", 12);
+
+            Assert.That(_invasionConquests.FindAlliesCalledToWar("humar", "humar_2"), Is.Empty);
+        }
+
+        [Test]
         public void AlliedInvasionsAreAtPeaceAndWarOnTheirOwnTargets()
         {
             InvasionConquest leader = _invasionConquests.Begin("humar", "vlandia", 10)!;

@@ -91,6 +91,20 @@ namespace CustomSpawns.Invasions
         public IEnumerable<InvasionConquest> FindAllies(InvasionConquest conquest) =>
             All.Where(other => AreAllied(conquest.InvasionClanId, other.InvasionClanId));
 
+        /**
+         * The allies a war on one realm of a line calls in: every other realm of that line, as a war with one of
+         * them is a war with all of them. None when the enemy is a realm of the same line.
+         */
+        public IEnumerable<InvasionConquest> FindAlliesCalledToWar(string? invasionClanId,
+            string? enemyInvasionClanId)
+        {
+            InvasionConquest? conquest = Find(invasionClanId);
+
+            return conquest == null || AreAllied(invasionClanId, enemyInvasionClanId)
+                ? Enumerable.Empty<InvasionConquest>()
+                : FindAllies(conquest);
+        }
+
         public void Restore(InvasionConquest conquest) => _conquestsByClanId[conquest.InvasionClanId] = conquest;
 
         // A loaded save replaces every conquest, so the adapters sharing this registry all see what it holds.
