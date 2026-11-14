@@ -31,5 +31,18 @@ namespace CustomSpawns.Invasions
                 ? 0f
                 : System.Math.Max(targetScore * UnborderedDistanceScore * rules.TargetSiegePreference,
                     bestOtherSiegeScore * LeadOverOtherSieges);
+
+        /**
+         * A lord's wish to join the siege an allied realm of its line lays to a fief of the kingdom being conquered,
+         * which vanilla never weighs because the camp is not its realm's. It is wanted above every siege the lord
+         * could open, so the first besiegers are not worn down by the garrison while their ally opens another siege.
+         * A siege it cannot win even with the camp, as vanilla judges it, stays unwanted.
+         */
+        public float FindAlliedTargetSiegeScore(InvasionConquestRules rules, float targetScore,
+            float bestTargetSiegeScore, float bestOtherSiegeScore) =>
+            rules.TargetSiegePreference <= 1f || targetScore <= 0f
+                ? 0f
+                : System.Math.Max(targetScore * UnborderedDistanceScore * rules.TargetSiegePreference,
+                    System.Math.Max(bestTargetSiegeScore, bestOtherSiegeScore) * LeadOverOtherSieges);
     }
 }

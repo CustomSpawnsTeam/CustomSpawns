@@ -94,5 +94,38 @@ namespace CustomSpawns.Tests.Invasions
 
             Assert.That(_invasionTargetSiegeScores.FindUnborderedTargetSiegeScore(rules, 1f, 0f, 2f, false), Is.EqualTo(0f));
         }
+
+        [Test]
+        public void AnAlliedSiegeOfATargetFiefIsWantedAboveEverySiegeTheLordCouldOpen()
+        {
+            var rules = new InvasionConquestRules(0.05f, 0f, 4f);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(_invasionTargetSiegeScores.FindAlliedTargetSiegeScore(rules, 1f, 3f, 2f),
+                    Is.EqualTo(3.3f).Within(0.001f));
+                Assert.That(_invasionTargetSiegeScores.FindAlliedTargetSiegeScore(rules, 1f, 2f, 3f),
+                    Is.EqualTo(3.3f).Within(0.001f));
+                Assert.That(_invasionTargetSiegeScores.FindAlliedTargetSiegeScore(rules, 10f, 0f, 2f),
+                    Is.EqualTo(4f).Within(0.001f));
+            });
+        }
+
+        [Test]
+        public void AnAlliedSiegeThatCannotBeWonStaysUnwanted()
+        {
+            var rules = new InvasionConquestRules(0.05f, 0f, 4f);
+
+            Assert.That(_invasionTargetSiegeScores.FindAlliedTargetSiegeScore(rules, 0f, 3f, 2f), Is.EqualTo(0f));
+        }
+
+        [TestCase(0f)]
+        [TestCase(1f)]
+        public void WithoutAPreferenceAboveOneAlliedSiegesAreLeftToVanilla(float preference)
+        {
+            var rules = new InvasionConquestRules(0.05f, 0f, preference);
+
+            Assert.That(_invasionTargetSiegeScores.FindAlliedTargetSiegeScore(rules, 1f, 3f, 2f), Is.EqualTo(0f));
+        }
     }
 }

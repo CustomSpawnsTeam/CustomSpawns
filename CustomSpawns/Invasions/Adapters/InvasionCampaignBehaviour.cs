@@ -61,6 +61,7 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly BannerlordInvasionConquestWars _bannerlordInvasionConquestWars;
         private readonly BannerlordInvasionLineRefills _bannerlordInvasionLineRefills;
         private readonly BannerlordInvasionTargetSieges _bannerlordInvasionTargetSieges;
+        private readonly BannerlordInvasionAlliedSieges _bannerlordInvasionAlliedSieges;
         private readonly InvasionConquestSaveStore _invasionConquestSaveStore;
         private readonly InvasionLineClans _invasionLineClans = new();
         private readonly InvasionCloneDiplomacy _invasionCloneDiplomacy;
@@ -103,9 +104,11 @@ namespace CustomSpawns.Invasions.Adapters
             BannerlordInvasionConquestStances = new BannerlordInvasionConquestStances(() => State,
                 _bannerlordInvasionConfigurations, bannerlordInvasionRealms, invasionConquests,
                 invasionConquestFronts);
+            _bannerlordInvasionAlliedSieges = new BannerlordInvasionAlliedSieges(bannerlordInvasionRealms,
+                invasionConquests);
             _bannerlordInvasionTargetSieges = new BannerlordInvasionTargetSieges(() => State,
                 _bannerlordInvasionConfigurations, BannerlordInvasionConquestStances,
-                new InvasionTargetSiegeScores());
+                new InvasionTargetSiegeScores(), _bannerlordInvasionAlliedSieges);
             _invasionConquestSaveStore = new InvasionConquestSaveStore(invasionConquests);
             BannerlordInvasionNeighbours bannerlordInvasionNeighbours = new(bannerlordInvasionLaunches,
                 bannerlordInvasionRealms, invasionConquests);
@@ -164,6 +167,7 @@ namespace CustomSpawns.Invasions.Adapters
             CampaignEvents.AiHourlyTickEvent.AddNonSerializedListener(this, AddResupplyScore);
             CampaignEvents.AiHourlyTickEvent.AddNonSerializedListener(this, HoldSieges);
             CampaignEvents.AiHourlyTickEvent.AddNonSerializedListener(this, PreferTargetSieges);
+            CampaignEvents.HourlyTickPartyEvent.AddNonSerializedListener(this, JoinAlliedSieges);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, ScheduleReinforcements);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, UnloadFoodConvoys);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, UpdateCapitalObjectivesDaily);
@@ -408,6 +412,12 @@ namespace CustomSpawns.Invasions.Adapters
         {
             Initialize();
             _bannerlordInvasionTargetSieges.PreferTargetSieges(party, thinkParams);
+        }
+
+        private void JoinAlliedSieges(MobileParty party)
+        {
+            Initialize();
+            _bannerlordInvasionAlliedSieges.JoinAlliedSiege(party);
         }
 
         private void ConsolidateDaily()

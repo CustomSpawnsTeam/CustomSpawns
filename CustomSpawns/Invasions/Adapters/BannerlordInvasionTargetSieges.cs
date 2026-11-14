@@ -8,6 +8,7 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.MapEvents;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.CampaignSystem.Siege;
 using TaleWorlds.Core;
 
 namespace CustomSpawns.Invasions.Adapters
@@ -21,16 +22,19 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly BannerlordInvasionConfigurations _bannerlordInvasionConfigurations;
         private readonly IInvasionConquestTargets _invasionConquestTargets;
         private readonly InvasionTargetSiegeScores _invasionTargetSiegeScores;
+        private readonly BannerlordInvasionAlliedSieges _bannerlordInvasionAlliedSieges;
         private readonly Dictionary<string, int> _unborderedSiegeLogDays = new();
 
         public BannerlordInvasionTargetSieges(Func<InvasionState> state,
             BannerlordInvasionConfigurations bannerlordInvasionConfigurations,
-            IInvasionConquestTargets invasionConquestTargets, InvasionTargetSiegeScores invasionTargetSiegeScores)
+            IInvasionConquestTargets invasionConquestTargets, InvasionTargetSiegeScores invasionTargetSiegeScores,
+            BannerlordInvasionAlliedSieges bannerlordInvasionAlliedSieges)
         {
             _state = state;
             _bannerlordInvasionConfigurations = bannerlordInvasionConfigurations;
             _invasionConquestTargets = invasionConquestTargets;
             _invasionTargetSiegeScores = invasionTargetSiegeScores;
+            _bannerlordInvasionAlliedSieges = bannerlordInvasionAlliedSieges;
         }
 
         // A lord of a conquering invasion would rather besiege the kingdom it conquers than anyone else.
@@ -74,7 +78,8 @@ namespace CustomSpawns.Invasions.Adapters
          * the lord's realm holds fortifications near, so once the conquered kingdom's last fiefs lie beyond the
          * invasion's border they are never besieged; while none of its nearer fiefs can be won, they are offered here.
          * Vanilla does not weigh such a siege once it has begun either, so the lord besieging it is offered it again,
-         * or it would leave the camp on its next thought.
+         * or it would leave the camp on its next thought. Nor does it weigh a siege an allied realm of the line lays,
+         * which is offered here so the lord joins it.
          */
         private void PreferTargetSieges(MobileParty party, PartyThinkParams thinkParams,
             InvasionConquestRules rules, Kingdom targetKingdom, bool willGatherArmy, float strength)
@@ -117,17 +122,25 @@ namespace CustomSpawns.Invasions.Adapters
 
             foreach (Settlement fief in targetKingdom.Settlements.Where(settlement => settlement.IsFortification &&
                          !weighed.Contains(settlement) && (settlement == besieged ||
-                             (settlement.SiegeEvent == null && settlement.Party.MapEvent == null))))
+                             (settlement.SiegeEvent == null && settlement.Party.MapEvent == null) ||
+                             _bannerlordInvasionAlliedSieges.FindAlliedCamp(party, settlement) != null)))
             {
                 bool isBesiegingIt = fief == besieged;
-                // Like vanilla, a lord weighs the siege it is in with everyone in its camp.
+                BesiegerCamp? alliedCamp = isBesiegingIt
+                    ? null
+                    : _bannerlordInvasionAlliedSieges.FindAlliedCamp(party, fief);
+                // Like vanilla, a lord weighs the siege it is in, or would join, with everyone in its camp.
                 float fiefStrength = isBesiegingIt && party.BesiegerCamp != null
                     ? party.BesiegerCamp.GetInvolvedPartiesForEventType().Sum(camper => camper.EstimatedStrength)
-                    : strength;
+                    : strength + (alliedCamp?.GetInvolvedPartiesForEventType()
+                        .Sum(camper => camper.EstimatedStrength) ?? 0f);
                 float targetScore = Campaign.Current.Models.TargetScoreCalculatingModel.GetTargetScoreForFaction(fief,
                     Army.ArmyTypes.Besieger, party, fiefStrength);
-                float score = _invasionTargetSiegeScores.FindUnborderedTargetSiegeScore(rules, targetScore,
-                    bestTargetScore, bestOtherScore, isBesiegingIt);
+                float score = alliedCamp != null
+                    ? _invasionTargetSiegeScores.FindAlliedTargetSiegeScore(rules, targetScore, bestTargetScore,
+                        bestOtherScore)
+                    : _invasionTargetSiegeScores.FindUnborderedTargetSiegeScore(rules, targetScore, bestTargetScore,
+                        bestOtherScore, isBesiegingIt);
                 AiHelper.GetBestNavigationTypeAndAdjustedDistanceOfSettlementForMobileParty(party, fief, false,
                     out MobileParty.NavigationType navigationType, out float _, out bool isFromPort);
 
