@@ -41,7 +41,8 @@ namespace CustomSpawns.Invasions.Adapters
 
         /**
          * Only kingdoms weigh the threat: they are the ones that vote on wars. They weigh the invader's whole line,
-         * not the one realm, as a war with one realm is soon a war with all of them once it calls its allies in.
+         * not the one realm, as a war with one realm is a war with all of them once it calls its allies in, and they
+         * heed less of it the more their other wars already take from them.
          */
         public float FindThreat(IFaction threatened, IFaction other)
         {
@@ -58,7 +59,10 @@ namespace CustomSpawns.Invasions.Adapters
 
             List<IFaction> realms = FindLineRealms(conquest!, other.MapFaction);
 
-            return realms.Contains(threatened) ? 0f : FindLineThreat(rules.Value, realms);
+            return realms.Contains(threatened)
+                ? 0f
+                : _invasionConquestFronts.FindStretchedThreat(FindLineThreat(rules.Value, realms),
+                    threatened.CurrentTotalStrength, FindOtherEnemiesStrength(threatened, realms));
         }
 
         // A war with a conquering invader is logged with the threat the other side saw in it.
@@ -126,6 +130,12 @@ namespace CustomSpawns.Invasions.Adapters
         private List<IFaction> FindLineRealms(InvasionConquest conquest, IFaction realm) =>
             _invasionConquests.FindAllies(conquest).Append(conquest).Select(_bannerlordInvasionRealms.FindRealm)
                 .OfType<IFaction>().Append(realm).Distinct().ToList();
+
+        // The kingdoms the threatened one already fights, the invader's line left out.
+        private static float FindOtherEnemiesStrength(IFaction threatened, ICollection<IFaction> realms) =>
+            Kingdom.All.Where(kingdom => !kingdom.IsEliminated && !realms.Contains(kingdom) &&
+                                         threatened.IsAtWarWith(kingdom))
+                .Sum(kingdom => kingdom.CurrentTotalStrength);
 
         private float FindLineThreat(InvasionConquestRules rules, IReadOnlyCollection<IFaction> realms) =>
             _invasionConquestFronts.FindThreat(rules, realms.Sum(realm => realm.Fiefs.Count),

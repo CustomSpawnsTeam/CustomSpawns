@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -31,5 +32,13 @@ namespace CustomSpawns.Invasions
          */
         public float FindThreat(InvasionConquestRules rules, int fiefsHeld, float invaderWorth) =>
             fiefsHeld <= 0 || invaderWorth <= 0f ? 0f : invaderWorth * rules.ThreatPerFiefHeld * fiefsHeld;
+
+        /**
+         * The share of the threat a kingdom still heeds while it fights other wars: its strength over its own and
+         * its other enemies' together, as vanilla weighs the risk of a war. A kingdom stretched thin opens no second
+         * front, however much it fears the invader.
+         */
+        public float FindStretchedThreat(float threat, float strength, float otherEnemiesStrength) =>
+            strength <= 0f ? 0f : threat * strength / (strength + Math.Max(0f, otherEnemiesStrength));
     }
 }

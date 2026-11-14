@@ -39,6 +39,25 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
+        public void AKingdomAtPeaceElsewhereHeedsTheWholeThreat()
+        {
+            Assert.That(_invasionConquestFronts.FindStretchedThreat(300000f, 5000f, 0f), Is.EqualTo(300000f));
+        }
+
+        [Test]
+        public void AKingdomFightingAsStrongAnEnemyHeedsHalfTheThreat()
+        {
+            Assert.That(_invasionConquestFronts.FindStretchedThreat(300000f, 5000f, 5000f),
+                Is.EqualTo(150000f).Within(0.01f));
+        }
+
+        [Test]
+        public void AKingdomWithNoStrengthHeedsNoThreat()
+        {
+            Assert.That(_invasionConquestFronts.FindStretchedThreat(300000f, 0f, 5000f), Is.Zero);
+        }
+
+        [Test]
         public void TheNearestFiefOfAKingdomAtPeaceOpensAFront()
         {
             InvasionConquest conquest = _invasionConquests.Begin("humar", "vlandia", 10)!;
