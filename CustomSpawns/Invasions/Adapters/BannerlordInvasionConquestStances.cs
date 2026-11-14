@@ -122,9 +122,23 @@ namespace CustomSpawns.Invasions.Adapters
                         " wars=[" + string.Join(";", wars) + "]");
         }
 
-        private InvasionWarStance FindStanceOf(IFaction invader, IFaction other) =>
-            _invasionConquests.FindStance(_bannerlordInvasionRealms.FindInvasionClanId(invader), other.StringId,
-                other.IsKingdomFaction, _bannerlordInvasionRealms.FindInvasionClanId(other));
+        private InvasionWarStance FindStanceOf(IFaction invader, IFaction other)
+        {
+            string? invasionClanId = _bannerlordInvasionRealms.FindInvasionClanId(invader);
+
+            return _invasionConquests.FindStance(invasionClanId, other.StringId, other.IsKingdomFaction,
+                _bannerlordInvasionRealms.FindInvasionClanId(other), IsLeaderAtWarWith(invasionClanId, other));
+        }
+
+        // Whether the realm of the invasion's line leader fights the other faction.
+        private bool IsLeaderAtWarWith(string? invasionClanId, IFaction other)
+        {
+            InvasionConquest? conquest = _invasionConquests.Find(invasionClanId);
+            InvasionConquest? leader = conquest == null ? null : _invasionConquests.FindLeader(conquest);
+            IFaction? leaderRealm = leader == null ? null : _bannerlordInvasionRealms.FindRealm(leader);
+
+            return leaderRealm != null && leaderRealm != other && leaderRealm.IsAtWarWith(other);
+        }
 
         // Every standing realm of the conquest's line, the given one among them.
         private List<IFaction> FindLineRealms(InvasionConquest conquest, IFaction realm) =>

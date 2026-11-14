@@ -208,6 +208,42 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
+        public void EveryRealmOfTheLineStaysAtWarWithEachOfItsTargets()
+        {
+            InvasionConquest leader = _invasionConquests.Begin("humar", "vlandia", 10)!;
+            _invasionConquests.BeginFollowing("humar_2", leader, "aserai", 11);
+            _invasionConquests.Begin("makko", "battania", 12);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(_invasionConquests.FindStance("humar", "aserai", true), Is.EqualTo(InvasionWarStance.War));
+                Assert.That(_invasionConquests.FindStance("humar_2", "vlandia", true),
+                    Is.EqualTo(InvasionWarStance.War));
+                Assert.That(_invasionConquests.FindStance("humar", "battania", true),
+                    Is.EqualTo(InvasionWarStance.Open));
+            });
+        }
+
+        [Test]
+        public void AFollowerMakesNoPeaceOfItsOwnWithAKingdomItsLeaderFights()
+        {
+            InvasionConquest leader = _invasionConquests.Begin("humar", "vlandia", 10)!;
+            _invasionConquests.BeginFollowing("humar_2", leader, "aserai", 11);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(_invasionConquests.FindStance("humar_2", "khuzait", true, null, true),
+                    Is.EqualTo(InvasionWarStance.War));
+                Assert.That(_invasionConquests.FindStance("humar_2", "khuzait", true),
+                    Is.EqualTo(InvasionWarStance.Open));
+                Assert.That(_invasionConquests.FindStance("humar", "khuzait", true, null, true),
+                    Is.EqualTo(InvasionWarStance.Open));
+                Assert.That(_invasionConquests.FindStance("humar_2", "looters", false, null, true),
+                    Is.EqualTo(InvasionWarStance.Policy));
+            });
+        }
+
+        [Test]
         public void AlliedInvasionsAreAtPeaceAndWarOnTheirOwnTargets()
         {
             InvasionConquest leader = _invasionConquests.Begin("humar", "vlandia", 10)!;
@@ -221,7 +257,7 @@ namespace CustomSpawns.Tests.Invasions
                     Is.EqualTo(InvasionWarStance.Peace));
                 Assert.That(_invasionConquests.FindStance("humar_2", "aserai", true),
                     Is.EqualTo(InvasionWarStance.War));
-                Assert.That(_invasionConquests.FindStance("humar_2", "vlandia", true),
+                Assert.That(_invasionConquests.FindStance("humar_2", "battania", true),
                     Is.EqualTo(InvasionWarStance.Open));
                 Assert.That(_invasionConquests.FindStance("humar", "pirates", false, "pirates"),
                     Is.EqualTo(InvasionWarStance.Policy));

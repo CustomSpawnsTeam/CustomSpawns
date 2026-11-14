@@ -116,9 +116,13 @@ namespace CustomSpawns.Invasions
          * A realm that conquers stays at war with its target and leaves every other kingdom to choose: they
          * fight it, or not, as they would any neighbour. Minor factions and bandits keep their configuration.
          * Two allied invasions never fight each other, whatever their configuration says.
+         *
+         * A line goes to war and makes peace as one: every realm of it stays at war with each of the line's
+         * targets, and a follower makes no peace of its own with a kingdom its leader still fights. The leader
+         * makes that peace for all of them.
          */
         public InvasionWarStance FindStance(string? invasionClanId, string otherFactionId, bool otherIsKingdom,
-            string? otherInvasionClanId = null)
+            string? otherInvasionClanId = null, bool isLeaderAtWarWithOther = false)
         {
             if (AreAllied(invasionClanId, otherInvasionClanId))
             {
@@ -132,7 +136,13 @@ namespace CustomSpawns.Invasions
                 return InvasionWarStance.Policy;
             }
 
-            if (otherFactionId == conquest.TargetKingdomId)
+            if (otherFactionId == conquest.TargetKingdomId ||
+                FindAllies(conquest).Any(ally => ally.TargetKingdomId == otherFactionId))
+            {
+                return InvasionWarStance.War;
+            }
+
+            if (otherIsKingdom && isLeaderAtWarWithOther && FindLeader(conquest) != null)
             {
                 return InvasionWarStance.War;
             }

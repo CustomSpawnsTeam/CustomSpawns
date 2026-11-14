@@ -63,6 +63,7 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly BannerlordInvasionTargetSieges _bannerlordInvasionTargetSieges;
         private readonly BannerlordInvasionAlliedSieges _bannerlordInvasionAlliedSieges;
         private readonly BannerlordInvasionCallsToWar _bannerlordInvasionCallsToWar;
+        private readonly BannerlordInvasionLinePeace _bannerlordInvasionLinePeace;
         private readonly InvasionConquestSaveStore _invasionConquestSaveStore;
         private readonly InvasionLineClans _invasionLineClans = new();
         private readonly InvasionCloneDiplomacy _invasionCloneDiplomacy;
@@ -109,6 +110,8 @@ namespace CustomSpawns.Invasions.Adapters
                 invasionConquests);
             _bannerlordInvasionCallsToWar = new BannerlordInvasionCallsToWar(bannerlordInvasionRealms,
                 invasionConquests);
+            _bannerlordInvasionLinePeace = new BannerlordInvasionLinePeace(bannerlordInvasionRealms,
+                invasionConquests, BannerlordInvasionConquestStances);
             _bannerlordInvasionTargetSieges = new BannerlordInvasionTargetSieges(() => State,
                 _bannerlordInvasionConfigurations, BannerlordInvasionConquestStances,
                 new InvasionTargetSiegeScores(), _bannerlordInvasionAlliedSieges);
@@ -176,6 +179,7 @@ namespace CustomSpawns.Invasions.Adapters
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, UpdateCapitalObjectivesDaily);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, ConsolidateDaily);
             CampaignEvents.WarDeclared.AddNonSerializedListener(this, OnWarDeclared);
+            CampaignEvents.MakePeace.AddNonSerializedListener(this, OnMakePeace);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, RaiseGarrisonArmies);
             CampaignEvents.ArmyDispersed.AddNonSerializedListener(this, OnArmyDispersed);
             _invasionLossDiagnostics.RegisterEvents();
@@ -436,6 +440,12 @@ namespace CustomSpawns.Invasions.Adapters
             Initialize();
             BannerlordInvasionConquestStances.ObserveWar(first, second);
             _bannerlordInvasionCallsToWar.CallAlliesToWar(first, second);
+        }
+
+        private void OnMakePeace(IFaction first, IFaction second, MakePeaceAction.MakePeaceDetail detail)
+        {
+            Initialize();
+            _bannerlordInvasionLinePeace.ShareLinePeace(first, second);
         }
 
         // The party itself no longer says which invasion it serves, so the spawn it came from is asked instead.
