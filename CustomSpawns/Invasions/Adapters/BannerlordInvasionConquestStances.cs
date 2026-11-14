@@ -39,7 +39,10 @@ namespace CustomSpawns.Invasions.Adapters
             return stance != InvasionWarStance.Policy ? stance : FindStanceOf(second, first);
         }
 
-        // Only kingdoms weigh the threat: they are the ones that vote on wars.
+        /**
+         * Only kingdoms weigh the threat: they are the ones that vote on wars. They weigh the invader's whole line,
+         * not the one realm, as a war with one realm is soon a war with all of them once it calls its allies in.
+         */
         public float FindThreat(IFaction threatened, IFaction other)
         {
             InvasionConquest? conquest = _invasionConquests.Find(_bannerlordInvasionRealms.FindInvasionClanId(other));
@@ -48,15 +51,14 @@ namespace CustomSpawns.Invasions.Adapters
                 ? null
                 : _bannerlordInvasionConfigurations.FindConquestRules(invasion.SpawnTemplateId);
 
-            if (rules == null || !threatened.IsKingdomFaction || threatened == other.MapFaction)
+            if (rules == null || !threatened.IsKingdomFaction)
             {
                 return 0f;
             }
 
-            IFaction invader = other.MapFaction;
+            List<IFaction> realms = FindLineRealms(conquest!, other.MapFaction);
 
-            return _invasionConquestFronts.FindThreat(rules.Value, invader.Fiefs.Count,
-                Campaign.Current.Models.DiplomacyModel.GetValueOfSettlementsForFaction(invader));
+            return realms.Contains(threatened) ? 0f : FindLineThreat(rules.Value, realms);
         }
 
         // A war with a conquering invader is logged with the threat the other side saw in it.
@@ -104,12 +106,13 @@ namespace CustomSpawns.Invasions.Adapters
                 .Where(kingdom => !kingdom.IsEliminated && kingdom != invader && kingdom.IsAtWarWith(invader))
                 .Select(kingdom => kingdom.StringId);
 
+            List<IFaction> realms = FindLineRealms(conquest, invader);
+
             Logger.Info("Invasion threat: spawn=" + invasion.SpawnTemplateId + " target=" + conquest.TargetKingdomId +
-                        " fiefs=" + invader.Fiefs.Count + " threat=" +
-                        _invasionConquestFronts.FindThreat(
+                        " fiefs=" + invader.Fiefs.Count + " line_fiefs=" + realms.Sum(realm => realm.Fiefs.Count) +
+                        " threat=" + FindLineThreat(
                             _bannerlordInvasionConfigurations.FindConquestRules(invasion.SpawnTemplateId)!.Value,
-                            invader.Fiefs.Count,
-                            Campaign.Current.Models.DiplomacyModel.GetValueOfSettlementsForFaction(invader)) +
+                            realms) +
                         " threshold=" +
                         Campaign.Current.Models.DiplomacyModel.GetDecisionMakingThreshold(invader) +
                         " wars=[" + string.Join(";", wars) + "]");
@@ -118,6 +121,15 @@ namespace CustomSpawns.Invasions.Adapters
         private InvasionWarStance FindStanceOf(IFaction invader, IFaction other) =>
             _invasionConquests.FindStance(_bannerlordInvasionRealms.FindInvasionClanId(invader), other.StringId,
                 other.IsKingdomFaction, _bannerlordInvasionRealms.FindInvasionClanId(other));
+
+        // Every standing realm of the conquest's line, the given one among them.
+        private List<IFaction> FindLineRealms(InvasionConquest conquest, IFaction realm) =>
+            _invasionConquests.FindAllies(conquest).Append(conquest).Select(_bannerlordInvasionRealms.FindRealm)
+                .OfType<IFaction>().Append(realm).Distinct().ToList();
+
+        private float FindLineThreat(InvasionConquestRules rules, IReadOnlyCollection<IFaction> realms) =>
+            _invasionConquestFronts.FindThreat(rules, realms.Sum(realm => realm.Fiefs.Count),
+                realms.Sum(realm => Campaign.Current.Models.DiplomacyModel.GetValueOfSettlementsForFaction(realm)));
 
         private Kingdom? FindConquestTarget(Invasion invasion)
         {
