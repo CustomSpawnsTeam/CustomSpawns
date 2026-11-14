@@ -40,13 +40,19 @@ namespace CustomSpawns.Invasions.Adapters
                     border.Count(), _bannerlordInvasionLaunches.HasCoast(border.Key), border.Key.IsAtWarWith(invader)))
                 .ToList();
 
-        // Every kingdom's fief, measured from whichever of the invader's fiefs lies nearest to it.
+        /**
+         * Every kingdom's fief, measured from whichever of the invader's fiefs lies nearest to it. An allied
+         * invasion's realm is no prey, or the invader would open a front on its own ally.
+         */
         public IEnumerable<InvasionPrey> FindPrey(IFaction invader)
         {
             List<Vec2> holdings = invader.Fiefs.Select(town => town.Settlement.GatePosition.ToVec2()).ToList();
+            string? invasionClanId = _bannerlordInvasionRealms.FindInvasionClanId(invader);
 
             return Town.AllFiefs
-                .Where(town => town.MapFaction is Kingdom { IsEliminated: false } && town.MapFaction != invader)
+                .Where(town => town.MapFaction is Kingdom { IsEliminated: false } && town.MapFaction != invader &&
+                               !_invasionConquests.AreAllied(invasionClanId,
+                                   _bannerlordInvasionRealms.FindInvasionClanId(town.MapFaction)))
                 .Select(town => new InvasionPrey(town.MapFaction.StringId,
                     holdings.Min(holding => holding.Distance(town.Settlement.GatePosition.ToVec2())),
                     town.MapFaction.IsAtWarWith(invader)))
