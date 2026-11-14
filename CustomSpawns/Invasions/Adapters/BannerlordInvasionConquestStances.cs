@@ -19,17 +19,19 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly BannerlordInvasionRealms _bannerlordInvasionRealms;
         private readonly InvasionConquests _invasionConquests;
         private readonly InvasionConquestFronts _invasionConquestFronts;
+        private readonly BannerlordInvasionLines _bannerlordInvasionLines;
 
         public BannerlordInvasionConquestStances(Func<InvasionState> state,
             BannerlordInvasionConfigurations bannerlordInvasionConfigurations,
             BannerlordInvasionRealms bannerlordInvasionRealms, InvasionConquests invasionConquests,
-            InvasionConquestFronts invasionConquestFronts)
+            InvasionConquestFronts invasionConquestFronts, BannerlordInvasionLines bannerlordInvasionLines)
         {
             _state = state;
             _bannerlordInvasionConfigurations = bannerlordInvasionConfigurations;
             _bannerlordInvasionRealms = bannerlordInvasionRealms;
             _invasionConquests = invasionConquests;
             _invasionConquestFronts = invasionConquestFronts;
+            _bannerlordInvasionLines = bannerlordInvasionLines;
         }
 
         public InvasionWarStance FindStance(IFaction first, IFaction second)
@@ -57,11 +59,11 @@ namespace CustomSpawns.Invasions.Adapters
                 return 0f;
             }
 
-            List<IFaction> realms = FindLineRealms(conquest!, other.MapFaction);
+            List<IFaction> realms = _bannerlordInvasionLines.FindRealms(conquest!, other.MapFaction);
 
             return realms.Contains(threatened)
                 ? 0f
-                : _invasionConquestFronts.FindStretchedThreat(FindLineThreat(rules.Value, realms),
+                : _invasionConquestFronts.FindStretchedThreat(_bannerlordInvasionLines.FindThreat(rules.Value, realms),
                     threatened.CurrentTotalStrength, FindOtherEnemiesStrength(threatened, realms));
         }
 
@@ -110,11 +112,11 @@ namespace CustomSpawns.Invasions.Adapters
                 .Where(kingdom => !kingdom.IsEliminated && kingdom != invader && kingdom.IsAtWarWith(invader))
                 .Select(kingdom => kingdom.StringId);
 
-            List<IFaction> realms = FindLineRealms(conquest, invader);
+            List<IFaction> realms = _bannerlordInvasionLines.FindRealms(conquest, invader);
 
             Logger.Info("Invasion threat: spawn=" + invasion.SpawnTemplateId + " target=" + conquest.TargetKingdomId +
                         " fiefs=" + invader.Fiefs.Count + " line_fiefs=" + realms.Sum(realm => realm.Fiefs.Count) +
-                        " threat=" + FindLineThreat(
+                        " threat=" + _bannerlordInvasionLines.FindThreat(
                             _bannerlordInvasionConfigurations.FindConquestRules(invasion.SpawnTemplateId)!.Value,
                             realms) +
                         " threshold=" +
@@ -140,20 +142,11 @@ namespace CustomSpawns.Invasions.Adapters
             return leaderRealm != null && leaderRealm != other && leaderRealm.IsAtWarWith(other);
         }
 
-        // Every standing realm of the conquest's line, the given one among them.
-        private List<IFaction> FindLineRealms(InvasionConquest conquest, IFaction realm) =>
-            _invasionConquests.FindAllies(conquest).Append(conquest).Select(_bannerlordInvasionRealms.FindRealm)
-                .OfType<IFaction>().Append(realm).Distinct().ToList();
-
         // The kingdoms the threatened one already fights, the invader's line left out.
         private static float FindOtherEnemiesStrength(IFaction threatened, ICollection<IFaction> realms) =>
             Kingdom.All.Where(kingdom => !kingdom.IsEliminated && !realms.Contains(kingdom) &&
                                          threatened.IsAtWarWith(kingdom))
                 .Sum(kingdom => kingdom.CurrentTotalStrength);
-
-        private float FindLineThreat(InvasionConquestRules rules, IReadOnlyCollection<IFaction> realms) =>
-            _invasionConquestFronts.FindThreat(rules, realms.Sum(realm => realm.Fiefs.Count),
-                realms.Sum(realm => Campaign.Current.Models.DiplomacyModel.GetValueOfSettlementsForFaction(realm)));
 
         private Kingdom? FindConquestTarget(Invasion invasion)
         {

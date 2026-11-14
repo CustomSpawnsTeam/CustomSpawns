@@ -103,9 +103,11 @@ namespace CustomSpawns.Invasions.Adapters
             BannerlordInvasionRealms bannerlordInvasionRealms = new(() => State);
             BannerlordInvasionLaunches bannerlordInvasionLaunches = new(spawnGroupService,
                 settlement => _invasionSupplyBases.GetFacts(settlement).IsCoastalTown);
+            BannerlordInvasionLines bannerlordInvasionLines = new(bannerlordInvasionRealms, invasionConquests,
+                invasionConquestFronts);
             BannerlordInvasionConquestStances = new BannerlordInvasionConquestStances(() => State,
                 _bannerlordInvasionConfigurations, bannerlordInvasionRealms, invasionConquests,
-                invasionConquestFronts);
+                invasionConquestFronts, bannerlordInvasionLines);
             _bannerlordInvasionAlliedSieges = new BannerlordInvasionAlliedSieges(bannerlordInvasionRealms,
                 invasionConquests);
             _bannerlordInvasionCallsToWar = new BannerlordInvasionCallsToWar(bannerlordInvasionRealms,
