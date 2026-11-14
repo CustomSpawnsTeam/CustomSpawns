@@ -171,7 +171,7 @@ namespace CustomSpawns.Invasions.Adapters
                 ? null
                 : _invasionConquestTargets.FindConquestTargetKingdomId(invasion);
             bool landsOnTarget = targetKingdomId != null && Settlement.All.Any(settlement =>
-                settlement.MapFaction.StringId == targetKingdomId &&
+                settlement.MapFaction?.StringId == targetKingdomId &&
                 targetFilter(settlement.StringId, _invasionSupplyBases.GetFacts(settlement)));
 
             return settlement => (!landsOnTarget || settlement.MapFaction?.StringId == targetKingdomId) &&
