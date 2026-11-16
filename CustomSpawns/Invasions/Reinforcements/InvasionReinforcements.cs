@@ -45,26 +45,26 @@ namespace CustomSpawns.Invasions.Reinforcements
      */
     public readonly struct InvasionBankLimit
     {
-        public InvasionBankLimit(int maxBankedTroops, int bankedTroopsPerTownHeld, int townsHeld, int bankedTroops)
+        public InvasionBankLimit(int maxCapitalGarrison, int capitalGarrisonPerTownHeld, int townsHeld, int bankedTroops)
         {
-            MaxBankedTroops = maxBankedTroops;
-            BankedTroopsPerTownHeld = bankedTroopsPerTownHeld;
+            MaxCapitalGarrison = maxCapitalGarrison;
+            CapitalGarrisonPerTownHeld = capitalGarrisonPerTownHeld;
             TownsHeld = townsHeld;
             BankedTroops = bankedTroops;
         }
 
-        public int MaxBankedTroops { get; }
-        public int BankedTroopsPerTownHeld { get; }
+        public int MaxCapitalGarrison { get; }
+        public int CapitalGarrisonPerTownHeld { get; }
         public int TownsHeld { get; }
 
         // The men standing in the capital's garrison right now.
         public int BankedTroops { get; }
 
         // Every town the kingdom holds raises it, and losing one lowers it again.
-        public int Limit => MaxBankedTroops + BankedTroopsPerTownHeld * TownsHeld;
+        public int Limit => MaxCapitalGarrison + CapitalGarrisonPerTownHeld * TownsHeld;
 
         // What the bank may still take. An unconfigured limit leaves it bottomless.
-        public int Headroom => MaxBankedTroops <= 0 ? int.MaxValue : Limit - BankedTroops;
+        public int Headroom => MaxCapitalGarrison <= 0 ? int.MaxValue : Limit - BankedTroops;
     }
 
     public readonly struct InvasionReinforcementDraw

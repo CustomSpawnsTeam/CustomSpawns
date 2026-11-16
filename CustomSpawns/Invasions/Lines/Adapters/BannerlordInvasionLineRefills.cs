@@ -70,10 +70,10 @@ namespace CustomSpawns.Invasions.Lines.Adapters
                 InvasionConquest? launcher = FindLauncher(invasions);
                 bool launch = launcher != null &&
                               _invasionLineRefill.ShouldLaunch(fallen, invasions.Count + fallenRealms,
-                                  hasStandingRealm, rules.Value.MaxRealms);
+                                  hasStandingRealm, rules.Value.MaxKingdoms);
 
                 Logger.Info("Invasion line check: line=" + line.Key + " fallen=" + fallen + " invasions=" +
-                            invasions.Count + " fallen_realms=" + fallenRealms + " max_realms=" + rules.Value.MaxRealms + " standing_realm=" +
+                            invasions.Count + " fallen_realms=" + fallenRealms + " max_realms=" + rules.Value.MaxKingdoms + " standing_realm=" +
                             hasStandingRealm + " launch=" + launch +
                             " day=" + day);
 

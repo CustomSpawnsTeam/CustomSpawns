@@ -4,9 +4,9 @@ namespace CustomSpawns.Data.Dto
 {
     public sealed class InvasionData
     {
-        public InvasionData(bool requiresFirstCoastalConquest,
-            IReadOnlyList<InvasionReinforcementRuleData> reinforcementRules, int maxBankedTroops = 0,
-            int bankedTroopsPerTownHeld = 0, string? supplyLine = null, int minimumCapitalGarrison = 0,
+        public InvasionData(bool firstConquestMustBeSupplyBase,
+            IReadOnlyList<InvasionReinforcementRuleData> reinforcementRules, int maxCapitalGarrison = 0,
+            int capitalGarrisonPerTownHeld = 0, string? supplyLine = null, int minimumCapitalGarrison = 0,
             int maxLords = 0, int lordsPerTownHeld = 0,
             int minimumFiefGarrison = 0, InvasionConquestData? conquest = null, int lordPartySizeBonus = 0,
             string? followsInvasion = null, bool relocateCapitalOnLoss = false)
@@ -19,14 +19,14 @@ namespace CustomSpawns.Data.Dto
             MaxLords = maxLords;
             LordsPerTownHeld = lordsPerTownHeld;
             SupplyLine = supplyLine;
-            RequiresFirstCoastalConquest = requiresFirstCoastalConquest;
+            FirstConquestMustBeSupplyBase = firstConquestMustBeSupplyBase;
             ReinforcementRules = reinforcementRules;
-            MaxBankedTroops = maxBankedTroops;
-            BankedTroopsPerTownHeld = bankedTroopsPerTownHeld;
+            MaxCapitalGarrison = maxCapitalGarrison;
+            CapitalGarrisonPerTownHeld = capitalGarrisonPerTownHeld;
             MinimumCapitalGarrison = minimumCapitalGarrison;
         }
 
-        public bool RequiresFirstCoastalConquest { get; }
+        public bool FirstConquestMustBeSupplyBase { get; }
 
         // Whether a lost capital moves to another fief the invasion holds instead of being retaken.
         public bool RelocateCapitalOnLoss { get; }
@@ -56,11 +56,11 @@ namespace CustomSpawns.Data.Dto
          * reinforcement rule. Zero leaves the bank bottomless, which is what a configuration that does not
          * mention it means.
          */
-        public int MaxBankedTroops { get; }
+        public int MaxCapitalGarrison { get; }
 
         // What each town the invasion's kingdom holds right now adds to that limit, whichever of its clans
         // owns it. Losing the town lowers it again.
-        public int BankedTroopsPerTownHeld { get; }
+        public int CapitalGarrisonPerTownHeld { get; }
 
         // The most lords the invasion keeps, the lords it already has counted. Zero leaves it uncapped.
         public int MaxLords { get; }
@@ -76,14 +76,14 @@ namespace CustomSpawns.Data.Dto
     {
         public InvasionConquestData(float threatPerFiefHeld, float openFrontIntervalInDays = 0f,
             float targetSiegePreference = 0f, float reconsiderTargetIntervalInDays = 0f,
-            InvasionGarrisonArmyData? garrisonArmy = null, int maxRealms = 0)
+            InvasionGarrisonArmyData? garrisonArmy = null, int maxKingdoms = 0)
         {
             ThreatPerFiefHeld = threatPerFiefHeld;
             OpenFrontIntervalInDays = openFrontIntervalInDays;
             TargetSiegePreference = targetSiegePreference;
             ReconsiderTargetIntervalInDays = reconsiderTargetIntervalInDays;
             GarrisonArmy = garrisonArmy;
-            MaxRealms = maxRealms;
+            MaxKingdoms = maxKingdoms;
         }
 
         // Zero leaves the invasion's neighbours to vanilla diplomacy alone.
@@ -101,8 +101,8 @@ namespace CustomSpawns.Data.Dto
         // Null never raises an army out of the capital's garrison.
         public InvasionGarrisonArmyData? GarrisonArmy { get; }
 
-        // Zero lands a realm for every fallen kingdom, however many already fight.
-        public int MaxRealms { get; }
+        // Zero lands a kingdom of the line for every fallen kingdom, however many already stand.
+        public int MaxKingdoms { get; }
     }
 
     public sealed class InvasionGarrisonArmyData
@@ -122,9 +122,9 @@ namespace CustomSpawns.Data.Dto
     public sealed class InvasionReinforcementRuleData
     {
         public InvasionReinforcementRuleData(string id, string partyTemplateId, float intervalInDays,
-            int lordsPerWave = 0, int maxWaves = 0, int maxMenPerWave = 0, int menPerTownHeld = 0)
+            int lordsPerWave = 0, int maxWaves = 0, int menPerWave = 0, int menPerTownHeld = 0)
         {
-            MaxMenPerWave = maxMenPerWave;
+            MenPerWave = menPerWave;
             MenPerTownHeld = menPerTownHeld;
             Id = id;
             PartyTemplateId = partyTemplateId;
@@ -144,9 +144,9 @@ namespace CustomSpawns.Data.Dto
         public int MaxWaves { get; }
 
         // The most men one wave banks. Zero banks the template's whole roll.
-        public int MaxMenPerWave { get; }
+        public int MenPerWave { get; }
 
-        // The men a wave banks over MaxMenPerWave for every town held, the capital included.
+        // The men a wave banks over MenPerWave for every town held, the capital included.
         public int MenPerTownHeld { get; }
     }
 }

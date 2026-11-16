@@ -14,9 +14,9 @@ namespace CustomSpawns.Invasions.Lines
 
         public bool IsCheckDay(int day) => day % CheckIntervalInDays == 0;
 
-        // Zero maxRealms sets no limit.
-        public bool ShouldLaunch(int fallenKingdoms, int fightingInvasions, bool hasStandingRealm, int maxRealms) =>
+        // Zero maxKingdoms sets no limit.
+        public bool ShouldLaunch(int fallenKingdoms, int fightingInvasions, bool hasStandingRealm, int maxKingdoms) =>
             hasStandingRealm && fightingInvasions < fallenKingdoms + 1 &&
-            (maxRealms <= 0 || fightingInvasions < maxRealms);
+            (maxKingdoms <= 0 || fightingInvasions < maxKingdoms);
     }
 }

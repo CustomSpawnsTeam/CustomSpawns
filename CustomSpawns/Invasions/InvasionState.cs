@@ -149,7 +149,7 @@ namespace CustomSpawns.Invasions
 
         public Func<string, InvasionSettlementFacts, bool>? FindInitialTargetFilter(string partyId,
             string? partyClanId,
-            Func<string, (bool RequiresFirstCoastalConquest, IInvasionSupplyLine? SupplyLine)> findConfiguration,
+            Func<string, (bool FirstConquestMustBeSupplyBase, IInvasionSupplyLine? SupplyLine)> findConfiguration,
             Func<IInvasionSupplyLine, bool> factionHasSupplyBase)
         {
             Invasion? invasion = FindInvasionOfParty(partyId);
@@ -169,7 +169,7 @@ namespace CustomSpawns.Invasions
             var configuration = findConfiguration(invasion.SpawnTemplateId);
             IInvasionSupplyLine? supplyLine = configuration.SupplyLine;
 
-            if (!configuration.RequiresFirstCoastalConquest || supplyLine?.DependsOnASupplyBase != true ||
+            if (!configuration.FirstConquestMustBeSupplyBase || supplyLine?.DependsOnASupplyBase != true ||
                 factionHasSupplyBase(supplyLine))
             {
                 return null;

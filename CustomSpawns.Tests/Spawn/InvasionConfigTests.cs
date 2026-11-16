@@ -42,7 +42,7 @@ namespace CustomSpawns.Tests.Spawn
             Assert.Multiple(() =>
             {
                 Assert.That(errors, Is.Empty);
-                Assert.That(data.RequiresFirstCoastalConquest, Is.False);
+                Assert.That(data.FirstConquestMustBeSupplyBase, Is.False);
                 Assert.That(data.ReinforcementRules.Single().Id, Is.EqualTo("infantry"));
                 Assert.That(data.ReinforcementRules.Single().PartyTemplateId, Is.EqualTo("PartyTemplate.reinforcements"));
                 Assert.That(data.ReinforcementRules.Single().IntervalInDays, Is.EqualTo(7f));
@@ -329,7 +329,7 @@ namespace CustomSpawns.Tests.Spawn
         [Test]
         public void Adapt_ExplicitCoastalConquestRequirementEnablesInitialCoastalTargeting()
         {
-            const string invasion = "<Invasion><RequiresFirstCoastalConquest>true</RequiresFirstCoastalConquest>" +
+            const string invasion = "<Invasion><FirstConquestMustBeSupplyBase>true</FirstConquestMustBeSupplyBase>" +
                                     "<Reinforcements><Rule><Id>infantry</Id>" +
                                     "<PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId>" +
                                     "</Rule></Reinforcements></Invasion>";
@@ -341,7 +341,7 @@ namespace CustomSpawns.Tests.Spawn
             Assert.Multiple(() =>
             {
                 Assert.That(errors, Is.Empty);
-                Assert.That(data.RequiresFirstCoastalConquest, Is.True);
+                Assert.That(data.FirstConquestMustBeSupplyBase, Is.True);
             });
         }
 
@@ -411,11 +411,11 @@ namespace CustomSpawns.Tests.Spawn
         [Test]
         public void Adapt_ReadsTheBankLimitItsPerTownBonusAndTheWaveCap()
         {
-            const string invasion = "<Invasion><MaxBankedTroops>1700</MaxBankedTroops>" +
-                                    "<BankedTroopsPerTownHeld>300</BankedTroopsPerTownHeld>" +
+            const string invasion = "<Invasion><MaxCapitalGarrison>1700</MaxCapitalGarrison>" +
+                                    "<CapitalGarrisonPerTownHeld>300</CapitalGarrisonPerTownHeld>" +
                                     "<Reinforcements><Rule><Id>infantry</Id>" +
                                     "<PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId>" +
-                                    "<MaxMenPerWave>600</MaxMenPerWave><MenPerTownHeld>300</MenPerTownHeld>" +
+                                    "<MenPerWave>600</MenPerWave><MenPerTownHeld>300</MenPerTownHeld>" +
                                     "</Rule></Reinforcements></Invasion>";
             Spawns spawns = Read("<RegularBanditDailySpawnData party_template=\"PartyTemplate.invasion\">" + invasion +
                                  "</RegularBanditDailySpawnData>", out List<System.Exception> errors);
@@ -425,13 +425,13 @@ namespace CustomSpawns.Tests.Spawn
             Assert.Multiple(() =>
             {
                 Assert.That(errors, Is.Empty);
-                Assert.That(data.MaxBankedTroops, Is.EqualTo(1700));
-                Assert.That(data.BankedTroopsPerTownHeld, Is.EqualTo(300));
-                Assert.That(data.ReinforcementRules.Single().MaxMenPerWave, Is.EqualTo(600));
+                Assert.That(data.MaxCapitalGarrison, Is.EqualTo(1700));
+                Assert.That(data.CapitalGarrisonPerTownHeld, Is.EqualTo(300));
+                Assert.That(data.ReinforcementRules.Single().MenPerWave, Is.EqualTo(600));
                 Assert.That(data.ReinforcementRules.Single().MenPerTownHeld, Is.EqualTo(300));
                 // An invasion that mentions neither keeps a bottomless bank and banks whole waves.
-                Assert.That(AdaptValidConfig().MaxBankedTroops, Is.EqualTo(0));
-                Assert.That(AdaptValidConfig().ReinforcementRules.Single().MaxMenPerWave, Is.EqualTo(0));
+                Assert.That(AdaptValidConfig().MaxCapitalGarrison, Is.EqualTo(0));
+                Assert.That(AdaptValidConfig().ReinforcementRules.Single().MenPerWave, Is.EqualTo(0));
             });
         }
 
@@ -439,20 +439,20 @@ namespace CustomSpawns.Tests.Spawn
         public void Adapt_RejectsANegativeBankLimitOrWaveCap()
         {
             InvasionConfig limit = ValidConfig();
-            limit.MaxBankedTroops = -1;
+            limit.MaxCapitalGarrison = -1;
             InvasionConfig perTown = ValidConfig();
-            perTown.BankedTroopsPerTownHeld = -1;
+            perTown.CapitalGarrisonPerTownHeld = -1;
             InvasionConfig cap = ValidConfig();
-            cap.Reinforcements.Rules.Single().MaxMenPerWave = -1;
+            cap.Reinforcements.Rules.Single().MenPerWave = -1;
 
             Assert.Multiple(() =>
             {
                 Assert.That(Assert.Throws<ArgumentException>(() => InvasionDtoAdapter.Adapt(limit))!.Message,
-                    Does.Contain("MaxBankedTroops"));
+                    Does.Contain("MaxCapitalGarrison"));
                 Assert.That(Assert.Throws<ArgumentException>(() => InvasionDtoAdapter.Adapt(perTown))!.Message,
-                    Does.Contain("BankedTroopsPerTownHeld"));
+                    Does.Contain("CapitalGarrisonPerTownHeld"));
                 Assert.That(Assert.Throws<ArgumentException>(() => InvasionDtoAdapter.Adapt(cap))!.Message,
-                    Does.Contain("MaxMenPerWave"));
+                    Does.Contain("MenPerWave"));
             });
         }
 

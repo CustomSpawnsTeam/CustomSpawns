@@ -12,10 +12,10 @@ namespace CustomSpawns.Data.Adapter
             InvasionConfigValidator.Validate(config);
             List<InvasionReinforcementRuleData> rules = config.Reinforcements.Rules
                 .Select(rule => new InvasionReinforcementRuleData(rule.Id!, rule.PartyTemplateId!,
-                    rule.IntervalInDays, rule.LordsPerWave, rule.MaxWaves, rule.MaxMenPerWave,
+                    rule.IntervalInDays, rule.LordsPerWave, rule.MaxWaves, rule.MenPerWave,
                     rule.MenPerTownHeld)).ToList();
-            return new InvasionData(config.RequiresFirstCoastalConquest, rules, config.MaxBankedTroops,
-                config.BankedTroopsPerTownHeld, config.SupplyLine, config.MinimumCapitalGarrison,
+            return new InvasionData(config.FirstConquestMustBeSupplyBase, rules, config.MaxCapitalGarrison,
+                config.CapitalGarrisonPerTownHeld, config.SupplyLine, config.MinimumCapitalGarrison,
                 config.MaxLords,
                 config.LordsPerTownHeld, config.MinimumFiefGarrison,
                 config.Conquest == null
@@ -27,7 +27,7 @@ namespace CustomSpawns.Data.Adapter
                             ? null
                             : new InvasionGarrisonArmyData(config.Conquest.GarrisonArmy.IntervalInDays,
                                 config.Conquest.GarrisonArmy.GarrisonShare),
-                        config.Conquest.MaxRealms),
+                        config.Conquest.MaxKingdoms),
                 config.LordPartySizeBonus,
                 string.IsNullOrWhiteSpace(config.FollowsInvasion) ? null : config.FollowsInvasion!.Trim(),
                 config.RelocateCapitalOnLoss);

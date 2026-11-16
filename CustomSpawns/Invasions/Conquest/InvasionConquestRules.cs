@@ -3,13 +3,13 @@ namespace CustomSpawns.Invasions.Conquest
     public readonly struct InvasionConquestRules
     {
         public InvasionConquestRules(float threatPerFiefHeld, float openFrontIntervalInDays,
-            float targetSiegePreference = 0f, float reconsiderTargetIntervalInDays = 0f, int maxRealms = 0)
+            float targetSiegePreference = 0f, float reconsiderTargetIntervalInDays = 0f, int maxKingdoms = 0)
         {
             ThreatPerFiefHeld = threatPerFiefHeld;
             OpenFrontIntervalInDays = openFrontIntervalInDays;
             TargetSiegePreference = targetSiegePreference;
             ReconsiderTargetIntervalInDays = reconsiderTargetIntervalInDays;
-            MaxRealms = maxRealms;
+            MaxKingdoms = maxKingdoms;
         }
 
         // The share of the invader's own worth every fief it holds adds to a kingdom's will to fight it.
@@ -26,7 +26,7 @@ namespace CustomSpawns.Invasions.Conquest
         // target until it falls.
         public float ReconsiderTargetIntervalInDays { get; }
 
-        // How many realms of the line may fight at once, its first included. Zero sets no limit.
-        public int MaxRealms { get; }
+        // How many kingdoms of the line may stand at once, its first included. Zero sets no limit.
+        public int MaxKingdoms { get; }
     }
 }

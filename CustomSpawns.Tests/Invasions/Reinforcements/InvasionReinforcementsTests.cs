@@ -80,7 +80,7 @@ namespace CustomSpawns.Tests.Invasions.Reinforcements
             Assert.AreEqual(24, Schedule(_invasion, "infantry").NextDeadlineDays);
 
             Conquer();
-            _campaign.MaxBankedTroops = 900;
+            _campaign.MaxCapitalGarrison = 900;
             _campaign.BankedTroops = 900;
             _campaign.Now = 24;
             Assert.AreEqual(InvasionReinforcementOutcome.BankFull,
@@ -200,7 +200,7 @@ namespace CustomSpawns.Tests.Invasions.Reinforcements
         public void AnInvasionWithAFullBankSpendsTheSlotWithoutBanking()
         {
             Wind();
-            _campaign.MaxBankedTroops = 900;
+            _campaign.MaxCapitalGarrison = 900;
             _campaign.BankedTroops = 1200;
 
             _campaign.Now = 17;
@@ -213,7 +213,7 @@ namespace CustomSpawns.Tests.Invasions.Reinforcements
         public void AWaveIsDrawnWithTheRoomLeftInTheBank()
         {
             Wind();
-            _campaign.MaxBankedTroops = 900;
+            _campaign.MaxCapitalGarrison = 900;
             _campaign.BankedTroops = 600;
 
             _campaign.Now = 17;
@@ -229,8 +229,8 @@ namespace CustomSpawns.Tests.Invasions.Reinforcements
         {
             _campaign.Rules.Add(new InvasionReinforcementRule("cavalry", 7));
             Wind();
-            _campaign.MaxBankedTroops = 500;
-            _campaign.BankedTroopsPerTownHeld = 100;
+            _campaign.MaxCapitalGarrison = 500;
+            _campaign.CapitalGarrisonPerTownHeld = 100;
 
             _campaign.Now = 17;
             var drawn = new List<string>();
@@ -374,8 +374,8 @@ namespace CustomSpawns.Tests.Invasions.Reinforcements
             public double Now;
             public readonly List<InvasionReinforcementRule> Rules =
                 new() { new InvasionReinforcementRule("infantry", 7) };
-            public int MaxBankedTroops;
-            public int BankedTroopsPerTownHeld;
+            public int MaxCapitalGarrison;
+            public int CapitalGarrisonPerTownHeld;
             public int TownsHeld = 1;
             public int BankedTroops;
             public bool CapitalBesieged;
@@ -385,7 +385,7 @@ namespace CustomSpawns.Tests.Invasions.Reinforcements
             public bool IsCapitalBesieged(Invasion invasion) => CapitalBesieged;
 
             public InvasionBankLimit GetBankLimit(Invasion invasion) =>
-                new(MaxBankedTroops, BankedTroopsPerTownHeld, TownsHeld, BankedTroops);
+                new(MaxCapitalGarrison, CapitalGarrisonPerTownHeld, TownsHeld, BankedTroops);
 
             public IReadOnlyList<InvasionReinforcementRule>? GetRules(Invasion invasion) => Rules;
         }

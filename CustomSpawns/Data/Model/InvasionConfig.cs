@@ -15,8 +15,8 @@ namespace CustomSpawns.Data.Model
         // The invasion's first conquest, and so its capital, must be a fief its supply line can be fed through,
         // a coastal town for supplies that come by sea: its parties besiege nothing else until they hold one, and
         // gather their strength before that first siege. Left out, they take whatever fief vanilla would.
-        [XmlElement("RequiresFirstCoastalConquest")]
-        public bool RequiresFirstCoastalConquest { get; set; }
+        [XmlElement("FirstConquestMustBeSupplyBase")]
+        public bool FirstConquestMustBeSupplyBase { get; set; }
 
         // When the capital falls, the nearest fief the invasion holds that could have been its first conquest, a
         // coastal town for one that must land on the coast, becomes its capital instead of the invasion setting out
@@ -31,12 +31,12 @@ namespace CustomSpawns.Data.Model
 
         // How many men the capital's garrison, the troop bank, may hold before the waves stop bringing men.
         // Shared by all of the reinforcement rules. Left out, the bank is bottomless.
-        [XmlElement("MaxBankedTroops")]
-        public int MaxBankedTroops { get; set; }
+        [XmlElement("MaxCapitalGarrison")]
+        public int MaxCapitalGarrison { get; set; }
 
         // Raises that limit for every town the invasion's kingdom currently holds, allies' towns included.
-        [XmlElement("BankedTroopsPerTownHeld")]
-        public int BankedTroopsPerTownHeld { get; set; }
+        [XmlElement("CapitalGarrisonPerTownHeld")]
+        public int CapitalGarrisonPerTownHeld { get; set; }
 
         // How many lords the invasion keeps at most; the waves field no more once it has them. Left out, the
         // waves field every lord they bring.
@@ -102,10 +102,11 @@ namespace CustomSpawns.Data.Model
         [XmlElement("ReconsiderTargetIntervalInDays")]
         public float ReconsiderTargetIntervalInDays { get; set; }
 
-        // How many realms, the waves of the line, may fight at once, its first included: no new one lands while that
-        // many stand, however many kingdoms have fallen. Left out, the line lands one for every fallen kingdom.
-        [XmlElement("MaxRealms")]
-        public int MaxRealms { get; set; }
+        // How many kingdoms the invasion's line may have standing at once, its first included: no new one lands while
+        // that many stand, however many other kingdoms have fallen. Left out, the line lands one for every fallen
+        // kingdom.
+        [XmlElement("MaxKingdoms")]
+        public int MaxKingdoms { get; set; }
 
         // Now and then raises one big army out of the capital's garrison against the kingdom it conquers. Left
         // out, the garrison only ever feeds the lords and the fiefs.
@@ -164,11 +165,11 @@ namespace CustomSpawns.Data.Model
 
         // How many men one wave banks. The template is rolled again until there are that many, and cut down to
         // them with its mix kept. Left out, one whole roll is banked.
-        [XmlElement("MaxMenPerWave")]
-        public int MaxMenPerWave { get; set; }
+        [XmlElement("MenPerWave")]
+        public int MenPerWave { get; set; }
 
-        // The men a wave banks over MaxMenPerWave for every town the invasion holds, its capital included, as
-        // BankedTroopsPerTownHeld and LordsPerTownHeld count them. It needs MaxMenPerWave.
+        // The men a wave banks over MenPerWave for every town the invasion holds, its capital included, as
+        // CapitalGarrisonPerTownHeld and LordsPerTownHeld count them. It needs MenPerWave.
         [XmlElement("MenPerTownHeld")]
         public int MenPerTownHeld { get; set; }
     }
@@ -192,8 +193,8 @@ namespace CustomSpawns.Data.Model
                                            InvasionSupplyLines.KnownNames + ".");
             }
 
-            ValidateNonNegative("Invasion MaxBankedTroops", config.MaxBankedTroops);
-            ValidateNonNegative("Invasion BankedTroopsPerTownHeld", config.BankedTroopsPerTownHeld);
+            ValidateNonNegative("Invasion MaxCapitalGarrison", config.MaxCapitalGarrison);
+            ValidateNonNegative("Invasion CapitalGarrisonPerTownHeld", config.CapitalGarrisonPerTownHeld);
             ValidateNonNegative("Invasion MaxLords", config.MaxLords);
             ValidateNonNegative("Invasion LordsPerTownHeld", config.LordsPerTownHeld);
             ValidateNonNegative("Invasion MinimumCapitalGarrison", config.MinimumCapitalGarrison);
@@ -208,7 +209,7 @@ namespace CustomSpawns.Data.Model
                     config.Conquest.TargetSiegePreference);
                 ValidateNonNegativeFinite("Invasion Conquest ReconsiderTargetIntervalInDays",
                     config.Conquest.ReconsiderTargetIntervalInDays);
-                ValidateNonNegative("Invasion Conquest MaxRealms", config.Conquest.MaxRealms);
+                ValidateNonNegative("Invasion Conquest MaxKingdoms", config.Conquest.MaxKingdoms);
 
                 if (config.Conquest.GarrisonArmy != null)
                 {
@@ -251,7 +252,7 @@ namespace CustomSpawns.Data.Model
             }
             ValidateNonNegative("Invasion Reinforcements Rule '" + rule.Id + "' LordsPerWave", rule.LordsPerWave);
             ValidateNonNegative("Invasion Reinforcements Rule '" + rule.Id + "' MaxWaves", rule.MaxWaves);
-            ValidateNonNegative("Invasion Reinforcements Rule '" + rule.Id + "' MaxMenPerWave", rule.MaxMenPerWave);
+            ValidateNonNegative("Invasion Reinforcements Rule '" + rule.Id + "' MenPerWave", rule.MenPerWave);
             ValidateNonNegative("Invasion Reinforcements Rule '" + rule.Id + "' MenPerTownHeld", rule.MenPerTownHeld);
         }
 

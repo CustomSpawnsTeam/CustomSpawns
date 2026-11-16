@@ -147,8 +147,8 @@ namespace CustomSpawns.Invasions.Reinforcements.Adapters
 
             // The per-town bonus is the kingdom's, not the invading clans': a town held by any member of the
             // kingdom raises the limit, however that member came by it.
-            return new InvasionBankLimit(configuration?.MaxBankedTroops ?? 0,
-                configuration?.BankedTroopsPerTownHeld ?? 0, _invasionLords.CountTownsHeld(invasion),
+            return new InvasionBankLimit(configuration?.MaxCapitalGarrison ?? 0,
+                configuration?.CapitalGarrisonPerTownHeld ?? 0, _invasionLords.CountTownsHeld(invasion),
                 capital?.Town?.GarrisonParty?.MemberRoster.TotalManCount ?? 0);
         }
 
@@ -161,7 +161,7 @@ namespace CustomSpawns.Invasions.Reinforcements.Adapters
                 spawnTemplateId =>
                 {
                     InvasionData? configuration = _spawnDao.FindByPartyTemplateId(spawnTemplateId)?.Invasion;
-                    return (configuration?.RequiresFirstCoastalConquest == true,
+                    return (configuration?.FirstConquestMustBeSupplyBase == true,
                         InvasionSupplyLines.Find(configuration?.SupplyLine));
                 },
                 supplyLine => Settlement.All.Any(settlement => settlement.MapFaction == party.MapFaction &&

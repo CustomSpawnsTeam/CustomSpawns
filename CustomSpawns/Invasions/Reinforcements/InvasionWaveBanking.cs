@@ -7,9 +7,9 @@ namespace CustomSpawns.Invasions.Reinforcements
     public readonly struct InvasionWave
     {
         public InvasionWave(string partyTemplateId, float intervalInDays, int lordsPerWave, int maxLords,
-            int lordsPerTownHeld, int maxMenPerWave = 0, int menPerTownHeld = 0)
+            int lordsPerTownHeld, int menPerWave = 0, int menPerTownHeld = 0)
         {
-            MaxMenPerWave = maxMenPerWave;
+            MenPerWave = menPerWave;
             MenPerTownHeld = menPerTownHeld;
             PartyTemplateId = partyTemplateId;
             IntervalInDays = intervalInDays;
@@ -26,13 +26,13 @@ namespace CustomSpawns.Invasions.Reinforcements
         public int LordsPerTownHeld { get; }
 
         // The most men one wave brings, the template's mix kept. Zero banks the template's roll whole.
-        public int MaxMenPerWave { get; }
+        public int MenPerWave { get; }
 
-        // The men a wave brings over MaxMenPerWave for every town the invasion holds, its capital included.
+        // The men a wave brings over MenPerWave for every town the invasion holds, its capital included.
         public int MenPerTownHeld { get; }
 
         // A wave grows with the realm the way the bank limit and the lord cap do. Zero still banks a whole roll.
-        public int FindMaxMen(int townsHeld) => MaxMenPerWave <= 0 ? 0 : MaxMenPerWave + MenPerTownHeld * townsHeld;
+        public int FindMaxMen(int townsHeld) => MenPerWave <= 0 ? 0 : MenPerWave + MenPerTownHeld * townsHeld;
 
         /**
          * The bank limit is a hard ceiling: a wave brings no more men than the bank has room for, so it never

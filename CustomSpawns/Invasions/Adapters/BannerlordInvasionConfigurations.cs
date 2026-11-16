@@ -33,7 +33,7 @@ namespace CustomSpawns.Invasions.Adapters
             }
 
             return new InvasionWave(rule.PartyTemplateId, rule.IntervalInDays, rule.LordsPerWave,
-                configuration!.MaxLords, configuration.LordsPerTownHeld, rule.MaxMenPerWave, rule.MenPerTownHeld);
+                configuration!.MaxLords, configuration.LordsPerTownHeld, rule.MenPerWave, rule.MenPerTownHeld);
         }
 
         public int? FindMinimumCapitalGarrison(string spawnTemplateId) =>
@@ -53,7 +53,7 @@ namespace CustomSpawns.Invasions.Adapters
             return conquest == null
                 ? null
                 : new InvasionConquestRules(conquest.ThreatPerFiefHeld, conquest.OpenFrontIntervalInDays,
-                    conquest.TargetSiegePreference, conquest.ReconsiderTargetIntervalInDays, conquest.MaxRealms);
+                    conquest.TargetSiegePreference, conquest.ReconsiderTargetIntervalInDays, conquest.MaxKingdoms);
         }
 
         // The invasions launched on behalf of this one, one each time a kingdom falls, in configuration order.
