@@ -80,13 +80,18 @@ namespace CustomSpawns.Data.Dto
     {
         public InvasionConquestData(float threatPerFiefHeld, float openFrontIntervalInDays = 0f,
             float targetSiegePreference = 0f, float reconsiderTargetIntervalInDays = 0f,
-            InvasionGarrisonArmyData? garrisonArmy = null)
+            InvasionGarrisonArmyData? garrisonArmy = null, float coalitionFiefShare = 0f, int maxRealms = 0,
+            int coalitionCapitalRing = 0, float coalitionDisbandFiefShare = 0f)
         {
             ThreatPerFiefHeld = threatPerFiefHeld;
             OpenFrontIntervalInDays = openFrontIntervalInDays;
             TargetSiegePreference = targetSiegePreference;
             ReconsiderTargetIntervalInDays = reconsiderTargetIntervalInDays;
             GarrisonArmy = garrisonArmy;
+            CoalitionFiefShare = coalitionFiefShare;
+            MaxRealms = maxRealms;
+            CoalitionCapitalRing = coalitionCapitalRing;
+            CoalitionDisbandFiefShare = coalitionDisbandFiefShare;
         }
 
         // Zero leaves the invasion's neighbours to vanilla diplomacy alone.
@@ -103,6 +108,18 @@ namespace CustomSpawns.Data.Dto
 
         // Null never raises an army out of the capital's garrison.
         public InvasionGarrisonArmyData? GarrisonArmy { get; }
+
+        // Zero never bands the other kingdoms together against the invasion's line.
+        public float CoalitionFiefShare { get; }
+
+        // Zero lands a realm for every fallen kingdom, however many already fight.
+        public int MaxRealms { get; }
+
+        // Zero never turns the coalition on a capital of the line before its other sieges.
+        public int CoalitionCapitalRing { get; }
+
+        // Zero keeps the coalition standing until the line is destroyed.
+        public float CoalitionDisbandFiefShare { get; }
     }
 
     public sealed class InvasionGarrisonArmyData

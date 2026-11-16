@@ -28,6 +28,8 @@ namespace CustomSpawns.Invasions
         Unavailable,
         // No capital to send to: none taken yet, or the one taken has fallen. Nothing arrives while that is true.
         CapitalUnavailable,
+        // The capital is besieged. Neither men nor lords get through the siege lines, and nothing is paid in.
+        CapitalBesieged,
         // The stream has delivered every wave it was allowed. It sends no more men, but still pays.
         AllWavesSent,
         // The capital's bank holds as many men as it may. The wave's lords still come; its men do not.
@@ -68,17 +70,21 @@ namespace CustomSpawns.Invasions
     public readonly struct InvasionReinforcementDraw
     {
         public InvasionReinforcementDraw(Invasion invasion, string ruleId,
-            InvasionReinforcementOutcome outcome)
+            InvasionReinforcementOutcome outcome, int bankHeadroom = int.MaxValue)
         {
             Invasion = invasion;
             RuleId = ruleId;
             Outcome = outcome;
+            BankHeadroom = bankHeadroom;
         }
 
         public Invasion Invasion { get; }
         // Which stream drew. The wave is rolled off this rule's own party template.
         public string RuleId { get; }
         public InvasionReinforcementOutcome Outcome { get; }
+
+        // The men the bank could still take when the wave was drawn; the wave banks no more than that.
+        public int BankHeadroom { get; }
     }
 
     // Campaign facts the reinforcement rules read. Bannerlord access stays behind this boundary.
@@ -89,6 +95,8 @@ namespace CustomSpawns.Invasions
         IReadOnlyList<InvasionReinforcementRule>? GetRules(Invasion invasion);
         // Read again for every draw, so that a wave banked a moment ago is already in the bank.
         InvasionBankLimit GetBankLimit(Invasion invasion);
+        // Whether an enemy besieges the invasion's capital right now.
+        bool IsCapitalBesieged(Invasion invasion);
     }
 
     /**
@@ -206,15 +214,19 @@ namespace CustomSpawns.Invasions
                     InvasionReinforcementOutcome.Unavailable);
 
             /**
-             * A wave has one destination: the capital's own garrison, and losing the capital is the only
-             * thing that stops the waves. An invasion that has yet to take a capital, or that has lost the
-             * one it took, is sent nothing and has to fight on with what it landed with; a besieged capital
-             * is still held, and is reinforced like any other. The clock runs through all of it, so nothing
-             * accumulates to be paid later.
+             * A wave has one destination: the capital's own garrison. An invasion that has yet to take a
+             * capital, or that has lost the one it took, is sent nothing and has to fight on with what it
+             * landed with; a besieged capital is sent nothing either, so a siege can starve it out instead of
+             * meeting a fresh wave every week. The clock runs through all of it, so nothing accumulates to be
+             * paid later, and a wave that never came is not counted against the stream's waves.
              */
             if (invasion.CapitalSettlementId == null || !_invasionState.HoldsCapital(invasion))
                 return new InvasionReinforcementDraw(invasion, rule.Id,
                     InvasionReinforcementOutcome.CapitalUnavailable);
+
+            if (_invasionReinforcementQuery.IsCapitalBesieged(invasion))
+                return new InvasionReinforcementDraw(invasion, rule.Id,
+                    InvasionReinforcementOutcome.CapitalBesieged);
 
             // A stream that has delivered all the waves it was allowed sends no more men, but the army it
             // brought still has to be paid for as long as the capital stands.
@@ -222,11 +234,13 @@ namespace CustomSpawns.Invasions
                 return new InvasionReinforcementDraw(invasion, rule.Id, InvasionReinforcementOutcome.AllWavesSent);
 
             // This is the one valve: waves stop once the bank is full, and start again as soon as the lords
-            // have drawn it down.
-            if (_invasionReinforcementQuery.GetBankLimit(invasion).Headroom <= 0)
+            // have drawn it down. A wave drawn into a bank with little room left brings only that much.
+            int headroom = _invasionReinforcementQuery.GetBankLimit(invasion).Headroom;
+
+            if (headroom <= 0)
                 return new InvasionReinforcementDraw(invasion, rule.Id, InvasionReinforcementOutcome.BankFull);
 
-            return new InvasionReinforcementDraw(invasion, rule.Id, InvasionReinforcementOutcome.Banking);
+            return new InvasionReinforcementDraw(invasion, rule.Id, InvasionReinforcementOutcome.Banking, headroom);
         }
 
         /**

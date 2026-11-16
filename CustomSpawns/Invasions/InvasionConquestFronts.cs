@@ -40,5 +40,18 @@ namespace CustomSpawns.Invasions
          */
         public float FindStretchedThreat(float threat, float strength, float otherEnemiesStrength) =>
             strength <= 0f ? 0f : threat * strength / (strength + Math.Max(0f, otherEnemiesStrength));
+
+        /**
+         * Whether a line holds so much of the land that every other kingdom bands together against it: at least the
+         * configured share of all the fiefs there are.
+         */
+        public bool IsCoalitionFormed(InvasionConquestRules rules, int lineFiefs, int allFiefs) =>
+            rules.CoalitionFiefShare > 0f && allFiefs > 0 && lineFiefs >= rules.CoalitionFiefShare * allFiefs;
+
+        // Whether a line is so beaten that the coalition against it breaks up: none of its capitals held, and less
+        // than the configured share of all the fiefs there are.
+        public bool IsCoalitionSpent(InvasionConquestRules rules, int lineFiefs, int allFiefs, bool holdsACapital) =>
+            rules.CoalitionDisbandFiefShare > 0f && !holdsACapital &&
+            lineFiefs < rules.CoalitionDisbandFiefShare * allFiefs;
     }
 }

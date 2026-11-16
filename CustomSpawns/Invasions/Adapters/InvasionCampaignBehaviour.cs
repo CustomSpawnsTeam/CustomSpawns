@@ -62,8 +62,15 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly BannerlordInvasionLineRefills _bannerlordInvasionLineRefills;
         private readonly BannerlordInvasionTargetSieges _bannerlordInvasionTargetSieges;
         private readonly BannerlordInvasionAlliedSieges _bannerlordInvasionAlliedSieges;
+        private readonly BannerlordInvasionCoalitionSieges _bannerlordInvasionCoalitionSieges;
+        private readonly BannerlordInvasionCoalitionHunts _bannerlordInvasionCoalitionHunts;
         private readonly BannerlordInvasionCallsToWar _bannerlordInvasionCallsToWar;
         private readonly BannerlordInvasionLinePeace _bannerlordInvasionLinePeace;
+        private readonly InvasionCoalitionAlliances _invasionCoalitionAlliances;
+        private readonly InvasionCoalitionWars _invasionCoalitionWars;
+        private readonly InvasionCoalitionPlayerChoice _invasionCoalitionPlayerChoice = new();
+        private readonly InvasionStandingCoalitions _invasionStandingCoalitions = new();
+        private readonly BannerlordInvasionCoalitions _bannerlordInvasionCoalitions;
         private readonly InvasionConquestSaveStore _invasionConquestSaveStore;
         private readonly InvasionLineClans _invasionLineClans = new();
         private readonly InvasionCloneDiplomacy _invasionCloneDiplomacy;
@@ -79,6 +86,12 @@ namespace CustomSpawns.Invasions.Adapters
 
         // Which lords lead a garrison army, so the models spare their parties and armies.
         public IInvasionGarrisonArmyLeaders InvasionGarrisonArmyLeaders => _invasionGarrisonArmyLords;
+
+        // Which kingdoms may ally or trade with an invasion's realm; the alliance and trade models ask it.
+        public BannerlordInvasionPacts BannerlordInvasionPacts { get; }
+
+        // Which battles nearby a lord of a coalition, or of a line, joins beside its allies; the party AI model asks it.
+        public BannerlordInvasionAlliedBattles BannerlordInvasionAlliedBattles { get; }
 
         public InvasionCampaignBehaviour(SpawnDao spawns, DynamicSpawnData parties,
             SaveInitialiser initialiser, IInvasionCapitalRepository invasionCapitals,
@@ -105,13 +118,40 @@ namespace CustomSpawns.Invasions.Adapters
                 settlement => _invasionSupplyBases.GetFacts(settlement).IsCoastalTown);
             BannerlordInvasionLines bannerlordInvasionLines = new(bannerlordInvasionRealms, invasionConquests,
                 invasionConquestFronts);
+            BannerlordInvasionCoalitions bannerlordInvasionCoalitions = new(() => State,
+                _bannerlordInvasionConfigurations, bannerlordInvasionRealms, invasionConquests,
+                invasionConquestFronts, bannerlordInvasionLines, _invasionCoalitionPlayerChoice,
+                _invasionStandingCoalitions);
+            _bannerlordInvasionCoalitions = bannerlordInvasionCoalitions;
             BannerlordInvasionConquestStances = new BannerlordInvasionConquestStances(() => State,
                 _bannerlordInvasionConfigurations, bannerlordInvasionRealms, invasionConquests,
-                invasionConquestFronts, bannerlordInvasionLines);
+                invasionConquestFronts, bannerlordInvasionLines, bannerlordInvasionCoalitions);
+            BannerlordInvasionPacts = new BannerlordInvasionPacts(bannerlordInvasionRealms, invasionConquests);
+            BannerlordInvasionAlliances bannerlordInvasionAlliances = new(bannerlordInvasionRealms);
+            _invasionCoalitionAlliances = new InvasionCoalitionAlliances(bannerlordInvasionCoalitions,
+                bannerlordInvasionAlliances,
+                new BannerlordInvasionCoalitionInvitations(bannerlordInvasionCoalitions, bannerlordInvasionRealms),
+                _invasionCoalitionPlayerChoice);
+            _invasionCoalitionWars = new InvasionCoalitionWars(bannerlordInvasionCoalitions,
+                new BannerlordInvasionKingdomWars());
+            BannerlordInvasionCoalitionFronts bannerlordInvasionCoalitionFronts = new(() => State,
+                bannerlordInvasionCoalitions, bannerlordInvasionRealms, new InvasionCapitalIsolation());
             _bannerlordInvasionAlliedSieges = new BannerlordInvasionAlliedSieges(bannerlordInvasionRealms,
-                invasionConquests);
+                invasionConquests, bannerlordInvasionCoalitionFronts);
+            InvasionCoalitionWarScores invasionCoalitionWarScores = new();
+            BannerlordInvasionSiegeOffers bannerlordInvasionSiegeOffers = new();
+            _bannerlordInvasionCoalitionSieges = new BannerlordInvasionCoalitionSieges(
+                bannerlordInvasionCoalitionFronts, _bannerlordInvasionAlliedSieges,
+                new BannerlordInvasionCoalitionCapitalSieges(_bannerlordInvasionAlliedSieges,
+                    new BannerlordInvasionCoalitionForces(bannerlordInvasionCoalitionFronts),
+                    bannerlordInvasionSiegeOffers, invasionCoalitionWarScores),
+                bannerlordInvasionSiegeOffers, invasionCoalitionWarScores);
+            _bannerlordInvasionCoalitionHunts = new BannerlordInvasionCoalitionHunts(
+                bannerlordInvasionCoalitionFronts, invasionCoalitionWarScores);
+            BannerlordInvasionAlliedBattles = new BannerlordInvasionAlliedBattles(bannerlordInvasionCoalitionFronts,
+                new InvasionAlliedBattles());
             _bannerlordInvasionCallsToWar = new BannerlordInvasionCallsToWar(bannerlordInvasionRealms,
-                invasionConquests);
+                invasionConquests, new InvasionRebellions(invasionConquests));
             _bannerlordInvasionLinePeace = new BannerlordInvasionLinePeace(bannerlordInvasionRealms,
                 invasionConquests, BannerlordInvasionConquestStances);
             _bannerlordInvasionTargetSieges = new BannerlordInvasionTargetSieges(() => State,
@@ -129,7 +169,7 @@ namespace CustomSpawns.Invasions.Adapters
                 new InvasionFollowerChoice());
             _bannerlordInvasionConquestWars = new BannerlordInvasionConquestWars(() => State,
                 _bannerlordInvasionConfigurations, bannerlordInvasionRealms,
-                new BannerlordInvasionAlliances(bannerlordInvasionRealms),
+                bannerlordInvasionAlliances,
                 new BannerlordInvasionRetargets(bannerlordInvasionNeighbours, invasionConquests,
                     new InvasionTargetChoice()),
                 new BannerlordInvasionFrontOpenings(_bannerlordInvasionFiefGarrisons, bannerlordInvasionNeighbours,
@@ -146,7 +186,7 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionCaptureCorrelation = new InvasionCaptureCorrelation(State);
             _invasionReinforcementArrivals = NewArrivals();
             _invasionOccupations = NewOccupations();
-            _invasionKingdomRetirement = new InvasionKingdomRetirement(State);
+            _invasionKingdomRetirement = new InvasionKingdomRetirement(State, new InvasionRealmCollapse(), new InvasionMercenaryClans());
             _invasionSieges = new InvasionSieges(State, _invasionCaptureCorrelation, _spawnDao);
             _invasionMembership = new InvasionMembership(State, _spawnDao, _dynamicSpawnData,
                 _invasionCaptureCorrelation);
@@ -175,6 +215,8 @@ namespace CustomSpawns.Invasions.Adapters
             CampaignEvents.AiHourlyTickEvent.AddNonSerializedListener(this, AddResupplyScore);
             CampaignEvents.AiHourlyTickEvent.AddNonSerializedListener(this, HoldSieges);
             CampaignEvents.AiHourlyTickEvent.AddNonSerializedListener(this, PreferTargetSieges);
+            CampaignEvents.AiHourlyTickEvent.AddNonSerializedListener(this, PreferLineSieges);
+            CampaignEvents.AiHourlyTickEvent.AddNonSerializedListener(this, HuntLineParties);
             CampaignEvents.HourlyTickPartyEvent.AddNonSerializedListener(this, JoinAlliedSieges);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, ScheduleReinforcements);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, UnloadFoodConvoys);
@@ -183,6 +225,8 @@ namespace CustomSpawns.Invasions.Adapters
             CampaignEvents.WarDeclared.AddNonSerializedListener(this, OnWarDeclared);
             CampaignEvents.MakePeace.AddNonSerializedListener(this, OnMakePeace);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, RaiseGarrisonArmies);
+            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, EndForbiddenPacts);
+            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, KeepCoalitionAlliances);
             CampaignEvents.ArmyDispersed.AddNonSerializedListener(this, OnArmyDispersed);
             _invasionLossDiagnostics.RegisterEvents();
         }
@@ -229,6 +273,10 @@ namespace CustomSpawns.Invasions.Adapters
             dataStore.SyncData("_invasionGarrisonArmyLords", ref garrisonArmyLords);
             Dictionary<string, string>? lineClans = dataStore.IsSaving ? _invasionLineClans.Export() : null;
             dataStore.SyncData("_invasionLineClans", ref lineClans);
+            string? coalitionAnswer = dataStore.IsSaving ? _invasionCoalitionPlayerChoice.Export() : null;
+            dataStore.SyncData("_invasionCoalitionAnswer", ref coalitionAnswer);
+            List<string>? coalitionLines = dataStore.IsSaving ? _invasionStandingCoalitions.Export() : null;
+            dataStore.SyncData("_invasionCoalitionLines", ref coalitionLines);
 
             if (!dataStore.IsLoading)
             {
@@ -238,6 +286,8 @@ namespace CustomSpawns.Invasions.Adapters
             State = saved?.ToState() ?? new InvasionState();
             _invasionConquestSaveStore.Restore(conquests);
             _invasionLineClans.Restore(lineClans);
+            _invasionCoalitionPlayerChoice.Restore(coalitionAnswer);
+            _invasionStandingCoalitions.Restore(coalitionLines);
             _invasionCloneDiplomacy.InheritAll(_invasionLineClans);
             InvasionGarrisonArmyCampaign.Restore(garrisonArmies);
             InvasionGarrisonArmyCampaign.RestoreLords(garrisonArmyLords);
@@ -246,7 +296,7 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionCaptureCorrelation = new InvasionCaptureCorrelation(State);
             _invasionReinforcementArrivals = NewArrivals();
             _invasionOccupations = NewOccupations();
-            _invasionKingdomRetirement = new InvasionKingdomRetirement(State);
+            _invasionKingdomRetirement = new InvasionKingdomRetirement(State, new InvasionRealmCollapse(), new InvasionMercenaryClans());
             _invasionSieges = new InvasionSieges(State, _invasionCaptureCorrelation, _spawnDao);
             _invasionMembership = new InvasionMembership(State, _spawnDao, _dynamicSpawnData,
                 _invasionCaptureCorrelation);
@@ -401,6 +451,20 @@ namespace CustomSpawns.Invasions.Adapters
             InvasionGarrisonArmyCampaign.UpdateDaily();
         }
 
+        private void EndForbiddenPacts()
+        {
+            Initialize();
+            BannerlordInvasionPacts.EndForbiddenPacts();
+        }
+
+        private void KeepCoalitionAlliances()
+        {
+            Initialize();
+            _bannerlordInvasionCoalitions.DisbandBeatenLines();
+            _invasionCoalitionAlliances.KeepAlliances();
+            _invasionCoalitionWars.KeepWars();
+        }
+
         private void OnArmyDispersed(Army army, Army.ArmyDispersionReason reason, bool isPlayersArmy) =>
             InvasionGarrisonArmyCampaign.ObserveDispersal(army, reason);
 
@@ -423,6 +487,18 @@ namespace CustomSpawns.Invasions.Adapters
             _bannerlordInvasionTargetSieges.PreferTargetSieges(party, thinkParams);
         }
 
+        private void PreferLineSieges(MobileParty party, PartyThinkParams thinkParams)
+        {
+            Initialize();
+            _bannerlordInvasionCoalitionSieges.PreferLineSieges(party, thinkParams);
+        }
+
+        private void HuntLineParties(MobileParty party, PartyThinkParams thinkParams)
+        {
+            Initialize();
+            _bannerlordInvasionCoalitionHunts.HuntLineParties(party, thinkParams);
+        }
+
         private void JoinAlliedSieges(MobileParty party)
         {
             Initialize();
@@ -441,7 +517,7 @@ namespace CustomSpawns.Invasions.Adapters
         {
             Initialize();
             BannerlordInvasionConquestStances.ObserveWar(first, second);
-            _bannerlordInvasionCallsToWar.CallAlliesToWar(first, second);
+            _bannerlordInvasionCallsToWar.CallAlliesToWar(first, second, detail);
         }
 
         private void OnMakePeace(IFaction first, IFaction second, MakePeaceAction.MakePeaceDetail detail)

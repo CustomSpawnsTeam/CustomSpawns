@@ -6,11 +6,13 @@ namespace CustomSpawns.Invasions.Adapters
 {
     /**
      * Writes every conquest into the save as one line per invasion clan,
-     * target|startedDay|lastFrontDay|leader|follower|lastReconsideredDay, and reads older saves that hold fewer fields.
+     * target|startedDay|lastFrontDay|leader|follower|lastReconsideredDay|warsLed, the kingdoms whose war it leads
+     * joined by commas, and reads older saves that hold fewer fields.
      */
     public sealed class InvasionConquestSaveStore
     {
         private const char Separator = '|';
+        private const char ListSeparator = ',';
         private readonly InvasionConquests _invasionConquests;
 
         public InvasionConquestSaveStore(InvasionConquests invasionConquests)
@@ -24,7 +26,8 @@ namespace CustomSpawns.Invasions.Adapters
                         conquest.StartedDay.ToString("R", CultureInfo.InvariantCulture) + Separator +
                         conquest.LastFrontDay.ToString("R", CultureInfo.InvariantCulture) + Separator +
                         conquest.LeaderClanId + Separator + conquest.FollowerClanId + Separator +
-                        conquest.LastReconsideredDay.ToString("R", CultureInfo.InvariantCulture));
+                        conquest.LastReconsideredDay.ToString("R", CultureInfo.InvariantCulture) + Separator +
+                        string.Join(ListSeparator.ToString(), conquest.WarsLed));
 
         /**
          * A save without a last front dates it to the conquest. A save that marked the conquest settled names a
@@ -51,7 +54,8 @@ namespace CustomSpawns.Invasions.Adapters
                         ? reconsidered
                         : null;
                     _invasionConquests.Restore(new InvasionConquest(entry.Key, fields[0], day, lastFrontDay,
-                        FindSavedClanId(fields, 3), FindSavedClanId(fields, 4), lastReconsideredDay));
+                        FindSavedClanId(fields, 3), FindSavedClanId(fields, 4), lastReconsideredDay,
+                        FindSavedWarsLed(fields)));
                 }
             }
         }
@@ -59,5 +63,11 @@ namespace CustomSpawns.Invasions.Adapters
         // A save older than leaders and followers has neither.
         private static string? FindSavedClanId(string[] fields, int index) =>
             fields.Length > index && fields[index].Length > 0 ? fields[index] : null;
+
+        // A save older than led wars leads none, so the line's leader leads each war it already fights.
+        private static IEnumerable<string> FindSavedWarsLed(string[] fields) =>
+            fields.Length > 6
+                ? fields[6].Split(ListSeparator).Where(kingdomId => kingdomId.Length > 0)
+                : Enumerable.Empty<string>();
     }
 }

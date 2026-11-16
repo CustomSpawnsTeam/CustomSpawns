@@ -114,20 +114,30 @@ namespace CustomSpawns.Diplomacy
         {
             return _diplomacyModel.GetScoreOfDeclaringPeaceForClan(factionDeclaresPeace, factionDeclaredPeace,
                 evaluatingClan, out reason, includeReason) -
-                _factionWarStanceProvider.FindThreat(factionDeclaresPeace, factionDeclaredPeace);
+                _factionWarStanceProvider.FindThreat(factionDeclaresPeace, factionDeclaredPeace) +
+                _factionWarStanceProvider.FindCoalitionThreat(factionDeclaresPeace, factionDeclaredPeace);
         }
 
-        // A kingdom does not make peace with an invader it fears as readily as it went to war with it.
+        /**
+         * A kingdom does not make peace with an invader it fears as readily as it went to war with it, and makes it
+         * all the more readily with a kingdom that stands with it against one.
+         */
         public override float GetScoreOfDeclaringPeace(IFaction factionDeclaresPeace, IFaction factionDeclaredPeace)
         {
             return _diplomacyModel.GetScoreOfDeclaringPeace(factionDeclaresPeace, factionDeclaredPeace) -
-                   _factionWarStanceProvider.FindThreat(factionDeclaresPeace, factionDeclaredPeace);
+                   _factionWarStanceProvider.FindThreat(factionDeclaresPeace, factionDeclaredPeace) +
+                   _factionWarStanceProvider.FindCoalitionThreat(factionDeclaresPeace, factionDeclaredPeace);
         }
 
+        /**
+         * Vanilla lets either side of a war make the peace alone, so neither a coalition nor the line it stands
+         * against may: a line beaten back would otherwise buy peace from the kingdoms fighting it one by one.
+         */
         public override bool IsPeaceSuitable(IFaction factionDeclaresPeace, IFaction factionDeclaredPeace)
         {
             InvasionWarStance stance = _factionWarStanceProvider.FindStance(factionDeclaresPeace, factionDeclaredPeace);
-            if (stance == InvasionWarStance.War)
+            if (stance == InvasionWarStance.War ||
+                _factionWarStanceProvider.IsAtCoalitionWar(factionDeclaresPeace, factionDeclaredPeace))
             {
                 return false;
             }
@@ -152,8 +162,9 @@ namespace CustomSpawns.Diplomacy
             float score = _diplomacyModel.GetScoreOfDeclaringWar(factionDeclaresWar, factionDeclaredWar,
                 evaluatingClan, out reason, includeReason);
 
-            // Allied invasions never vote to fight each other.
-            if (_factionWarStanceProvider.FindStance(factionDeclaresWar, factionDeclaredWar) == InvasionWarStance.Peace)
+            // Allied invasions never vote to fight each other, nor kingdoms banded together against an invader.
+            if (_factionWarStanceProvider.FindStance(factionDeclaresWar, factionDeclaredWar) == InvasionWarStance.Peace ||
+                _factionWarStanceProvider.FindCoalitionThreat(factionDeclaresWar, factionDeclaredWar) > 0f)
             {
                 return RuledOutWarScore;
             }

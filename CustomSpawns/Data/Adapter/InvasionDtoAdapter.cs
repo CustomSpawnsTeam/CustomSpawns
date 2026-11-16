@@ -26,7 +26,9 @@ namespace CustomSpawns.Data.Adapter
                         config.Conquest.GarrisonArmy == null
                             ? null
                             : new InvasionGarrisonArmyData(config.Conquest.GarrisonArmy.IntervalInDays,
-                                config.Conquest.GarrisonArmy.GarrisonShare)),
+                                config.Conquest.GarrisonArmy.GarrisonShare),
+                        config.Conquest.CoalitionFiefShare, config.Conquest.MaxRealms,
+                        config.Conquest.CoalitionCapitalRing, config.Conquest.CoalitionDisbandFiefShare),
                 config.LordPartySizeBonus,
                 string.IsNullOrWhiteSpace(config.FollowsInvasion) ? null : config.FollowsInvasion!.Trim());
         }

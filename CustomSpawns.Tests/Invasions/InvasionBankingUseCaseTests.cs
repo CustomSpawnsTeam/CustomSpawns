@@ -296,6 +296,31 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
+        public void AWaveBanksNoMoreThanTheBankHasRoomFor()
+        {
+            _invasionLords.Setup(l => l.CountTownsHeld(_invasion)).Returns(6);
+            _invasionConfigurations.Setup(c => c.FindWave("invasion", "infantry"))
+                .Returns(new InvasionWave("template", 7f, 0, 0, 0, 600, 100));
+
+            WaveBanking().Bank(new InvasionReinforcementDraw(_invasion, "infantry",
+                InvasionReinforcementOutcome.Banking, 300));
+
+            _invasionGarrisonDeposits.Verify(g => g.Deposit(Capital, "template", 300), Times.Once);
+        }
+
+        [Test]
+        public void AWaveWithoutASizeFillsALimitedBankAndNoMore()
+        {
+            _invasionConfigurations.Setup(c => c.FindWave("invasion", "infantry"))
+                .Returns(new InvasionWave("template", 7f, 0, 0, 0));
+
+            WaveBanking().Bank(new InvasionReinforcementDraw(_invasion, "infantry",
+                InvasionReinforcementOutcome.Banking, 250));
+
+            _invasionGarrisonDeposits.Verify(g => g.Deposit(Capital, "template", 250), Times.Once);
+        }
+
+        [Test]
         public void AWaveWithoutASizeStaysOneWholeRollHoweverManyTownsAreHeld()
         {
             _invasionLords.Setup(l => l.CountTownsHeld(_invasion)).Returns(3);
@@ -345,6 +370,7 @@ namespace CustomSpawns.Tests.Invasions
 
         [TestCase(InvasionReinforcementOutcome.AllWavesSent)]
         [TestCase(InvasionReinforcementOutcome.CapitalUnavailable)]
+        [TestCase(InvasionReinforcementOutcome.CapitalBesieged)]
         [TestCase(InvasionReinforcementOutcome.Unavailable)]
         [TestCase(InvasionReinforcementOutcome.Banking)]
         public void OnlyAnInvasionWithAFullBankIsSentLordsWithoutMen(InvasionReinforcementOutcome outcome)
@@ -370,6 +396,7 @@ namespace CustomSpawns.Tests.Invasions
 
         [TestCase(InvasionReinforcementOutcome.Unavailable)]
         [TestCase(InvasionReinforcementOutcome.CapitalUnavailable)]
+        [TestCase(InvasionReinforcementOutcome.CapitalBesieged)]
         [TestCase(InvasionReinforcementOutcome.Banking)]
         public void OtherReinforcementOutcomesDoNotReceivePayOnlyFunding(InvasionReinforcementOutcome outcome)
         {

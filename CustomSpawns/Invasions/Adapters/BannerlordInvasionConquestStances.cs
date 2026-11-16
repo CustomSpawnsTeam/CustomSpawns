@@ -20,11 +20,13 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly InvasionConquests _invasionConquests;
         private readonly InvasionConquestFronts _invasionConquestFronts;
         private readonly BannerlordInvasionLines _bannerlordInvasionLines;
+        private readonly BannerlordInvasionCoalitions _bannerlordInvasionCoalitions;
 
         public BannerlordInvasionConquestStances(Func<InvasionState> state,
             BannerlordInvasionConfigurations bannerlordInvasionConfigurations,
             BannerlordInvasionRealms bannerlordInvasionRealms, InvasionConquests invasionConquests,
-            InvasionConquestFronts invasionConquestFronts, BannerlordInvasionLines bannerlordInvasionLines)
+            InvasionConquestFronts invasionConquestFronts, BannerlordInvasionLines bannerlordInvasionLines,
+            BannerlordInvasionCoalitions bannerlordInvasionCoalitions)
         {
             _state = state;
             _bannerlordInvasionConfigurations = bannerlordInvasionConfigurations;
@@ -32,6 +34,7 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionConquests = invasionConquests;
             _invasionConquestFronts = invasionConquestFronts;
             _bannerlordInvasionLines = bannerlordInvasionLines;
+            _bannerlordInvasionCoalitions = bannerlordInvasionCoalitions;
         }
 
         public InvasionWarStance FindStance(IFaction first, IFaction second)
@@ -44,7 +47,8 @@ namespace CustomSpawns.Invasions.Adapters
         /**
          * Only kingdoms weigh the threat: they are the ones that vote on wars. They weigh the invader's whole line,
          * not the one realm, as a war with one realm is a war with all of them once it calls its allies in, and they
-         * heed less of it the more their other wars already take from them.
+         * heed less of it the more their other wars already take from them, until a coalition stands against the
+         * line and they heed all of it.
          */
         public float FindThreat(IFaction threatened, IFaction other)
         {
@@ -61,11 +65,25 @@ namespace CustomSpawns.Invasions.Adapters
 
             List<IFaction> realms = _bannerlordInvasionLines.FindRealms(conquest!, other.MapFaction);
 
-            return realms.Contains(threatened)
-                ? 0f
-                : _invasionConquestFronts.FindStretchedThreat(_bannerlordInvasionLines.FindThreat(rules.Value, realms),
-                    threatened.CurrentTotalStrength, FindOtherEnemiesStrength(threatened, realms));
+            if (realms.Contains(threatened))
+            {
+                return 0f;
+            }
+
+            float threat = _bannerlordInvasionLines.FindThreat(rules.Value, realms);
+
+            return _bannerlordInvasionCoalitions.IsFormedAgainst(realms)
+                ? threat
+                : _invasionConquestFronts.FindStretchedThreat(threat, threatened.CurrentTotalStrength,
+                    FindOtherEnemiesStrength(threatened, realms));
         }
+
+        public float FindCoalitionThreat(IFaction first, IFaction second) =>
+            _bannerlordInvasionCoalitions.FindCoalitionThreat(first, second);
+
+        public bool IsAtCoalitionWar(IFaction first, IFaction second) =>
+            _bannerlordInvasionCoalitions.StandsAgainst(first, second) ||
+            _bannerlordInvasionCoalitions.StandsAgainst(second, first);
 
         // A war with a conquering invader is logged with the threat the other side saw in it.
         public void ObserveWar(IFaction first, IFaction second)
@@ -119,6 +137,7 @@ namespace CustomSpawns.Invasions.Adapters
                         " threat=" + _bannerlordInvasionLines.FindThreat(
                             _bannerlordInvasionConfigurations.FindConquestRules(invasion.SpawnTemplateId)!.Value,
                             realms) +
+                        " coalition=" + _bannerlordInvasionCoalitions.IsFormedAgainst(realms) +
                         " threshold=" +
                         Campaign.Current.Models.DiplomacyModel.GetDecisionMakingThreshold(invader) +
                         " wars=[" + string.Join(";", wars) + "]");
@@ -129,15 +148,22 @@ namespace CustomSpawns.Invasions.Adapters
             string? invasionClanId = _bannerlordInvasionRealms.FindInvasionClanId(invader);
 
             return _invasionConquests.FindStance(invasionClanId, other.StringId, other.IsKingdomFaction,
-                _bannerlordInvasionRealms.FindInvasionClanId(other), IsLeaderAtWarWith(invasionClanId, other));
+                _bannerlordInvasionRealms.FindInvasionClanId(other), IsWarLeaderAtWarWith(invasionClanId, other));
         }
 
-        // Whether the realm of the invasion's line leader fights the other faction.
-        private bool IsLeaderAtWarWith(string? invasionClanId, IFaction other)
+        /**
+         * Whether another realm leading the line's war with the other faction still fights it. A realm leading the
+         * war itself is never asked: vanilla answers a war between factions with no stance yet by asking this
+         * stance again, which would never end.
+         */
+        private bool IsWarLeaderAtWarWith(string? invasionClanId, IFaction other)
         {
             InvasionConquest? conquest = _invasionConquests.Find(invasionClanId);
-            InvasionConquest? leader = conquest == null ? null : _invasionConquests.FindLeader(conquest);
-            IFaction? leaderRealm = leader == null ? null : _bannerlordInvasionRealms.FindRealm(leader);
+            InvasionConquest? leader =
+                conquest == null ? null : _invasionConquests.FindWarLeader(conquest, other.StringId);
+            IFaction? leaderRealm = leader == null || leader == conquest
+                ? null
+                : _bannerlordInvasionRealms.FindRealm(leader);
 
             return leaderRealm != null && leaderRealm != other && leaderRealm.IsAtWarWith(other);
         }

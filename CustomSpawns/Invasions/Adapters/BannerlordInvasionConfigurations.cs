@@ -50,7 +50,9 @@ namespace CustomSpawns.Invasions.Adapters
             return conquest == null
                 ? null
                 : new InvasionConquestRules(conquest.ThreatPerFiefHeld, conquest.OpenFrontIntervalInDays,
-                    conquest.TargetSiegePreference, conquest.ReconsiderTargetIntervalInDays);
+                    conquest.TargetSiegePreference, conquest.ReconsiderTargetIntervalInDays,
+                    conquest.CoalitionFiefShare, conquest.MaxRealms, conquest.CoalitionCapitalRing,
+                    conquest.CoalitionDisbandFiefShare);
         }
 
         // The invasions launched on behalf of this one, one each time a kingdom falls, in configuration order.

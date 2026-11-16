@@ -232,6 +232,10 @@ namespace CustomSpawns
                 starter.AddBehavior(_aiDecisionLoggerBehaviour);
 
                 starter.AddModel(_customSpawnsDiplomacyModel);
+                starter.AddModel(new InvasionAllianceModel(starter.GetModel<AllianceModel>(),
+                    _invasionCampaignBehaviour.BannerlordInvasionPacts));
+                starter.AddModel(new InvasionTradeAgreementModel(starter.GetModel<TradeAgreementModel>(),
+                    _invasionCampaignBehaviour.BannerlordInvasionPacts));
                 starter.AddModel(new CustomSpawnsPartySizeLimitModel(starter.GetModel<PartySizeLimitModel>(),
                     _partySizeCalculatedSubject));
                 starter.AddModel(new InvasionArmyManagementModel(
@@ -243,6 +247,8 @@ namespace CustomSpawns
                     _invasionCampaignBehaviour.InvasionGarrisonArmyLeaders));
                 starter.AddModel(new InvasionSettlementFoodModel(starter.GetModel<SettlementFoodModel>(),
                     _invasionCampaignBehaviour, new InvasionBankRations()));
+                starter.AddModel(new InvasionMobilePartyAIModel(starter.GetModel<MobilePartyAIModel>(),
+                    _invasionCampaignBehaviour.BannerlordInvasionAlliedBattles));
             }
             else
             {

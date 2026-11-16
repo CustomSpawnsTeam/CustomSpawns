@@ -13,6 +13,8 @@ namespace CustomSpawns.Invasions
         public readonly Dictionary<string, Invasion> InvasionIndex = new(StringComparer.Ordinal);
         public readonly Dictionary<long, InvasionCapture> CaptureIndex = new();
         public readonly Dictionary<string, InvasionFoothold> FootholdIndex = new(StringComparer.Ordinal);
+        // The spawn template of every founded realm whose kingdom has fallen, once per fall: a line never replaces one.
+        public readonly List<string> FallenRealmTemplateIds = new();
         public IReadOnlyCollection<Invasion> Invasions => InvasionIndex.Values;
         public IReadOnlyCollection<InvasionCapture> Captures => CaptureIndex.Values;
         public IReadOnlyCollection<InvasionFoothold> Footholds => FootholdIndex.Values;
@@ -116,11 +118,11 @@ namespace CustomSpawns.Invasions
 
         /**
          * A kingdom carrying a live invasion must outlive the loss of its last settlement so the invasion can
-         * retake its capital. Once that attack has failed the remnant is left to vanilla, which disbands a
-         * landless kingdom and gives its clans their usual time to survive on their own.
+         * retake its capital. Vanilla would disband it and scatter its clans into other realms; the invasion's
+         * own collapse ends it instead, once it has been too weak to come back for long enough.
          */
         public bool ProtectsKingdomOf(IEnumerable<string> clanIds) =>
-            clanIds.Any(clanId => FindFightingInvasion(clanId) is { } invasion && MayRetakeCapital(invasion));
+            clanIds.Any(clanId => FindFightingInvasion(clanId) != null);
 
         // An invasion left with no town to hold and no party to retake one has nothing left to fight with.
         public bool IsInvasionSpent(Invasion invasion) =>
@@ -134,10 +136,6 @@ namespace CustomSpawns.Invasions
             Invasion? invasion = FindInvasionHolding(clanId);
             return invasion == null || (!invasion.IsSuspended && invasion.CapitalSettlementId == null);
         }
-
-        // Still landing, or not yet beaten back from the capital it lost.
-        private static bool MayRetakeCapital(Invasion invasion) => invasion.CapitalSettlementId == null ||
-            invasion.CapitalObjective?.Phase != InvasionCapitalObjectivePhase.Dormant;
 
         public bool HoldsCapital(Invasion invasion) => invasion.CapitalSettlementId != null &&
             FindFoothold(invasion.CapitalSettlementId)?.InvasionClanId == invasion.ClanId;
@@ -416,6 +414,12 @@ namespace CustomSpawns.Invasions
          * the invasion is reinforced.
          */
         public double? NextFoodConvoyDays { get; set; }
+
+        // Since when, in campaign days, the invasion has been too weak to retake a fief, or null while it is not.
+        public double? WeakSinceDays { get; set; }
+
+        // The fiefs its realm held when last looked at, so the loss of one is noticed.
+        public int? LastFiefCount { get; set; }
 
         // The founder keeps the crown when another clan of its invasion is elected to rule.
         public bool ShouldRestoreCrown(string kingdomId, string? rulingClanId, bool kingdomIsEliminated,

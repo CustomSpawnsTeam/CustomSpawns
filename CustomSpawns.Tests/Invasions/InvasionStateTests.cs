@@ -307,14 +307,29 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
-        public void AnInvasionBeatenBackFromItsLostCapitalLeavesItsKingdomToVanilla()
+        public void AnInvasionBeatenBackFromItsLostCapitalStillProtectsItsKingdomUntilItCollapses()
         {
             _invasion.CapitalSettlementId = "capital";
             _invasion.RestoreCapitalObjective(new InvasionCapitalObjective(InvasionCapitalObjectiveKind.Attack,
                 InvasionCapitalObjectivePhase.Dormant, null, null, null,
                 InvasionCapitalObjectiveDormantReason.AttackTimedOut, null));
 
-            Assert.False(_state.ProtectsKingdomOf(new[] { "clan" }));
+            Assert.True(_state.ProtectsKingdomOf(new[] { "clan" }));
+        }
+
+        [Test]
+        public void TheCollapseClockSurvivesASave()
+        {
+            _invasion.WeakSinceDays = 12.5;
+            _invasion.LastFiefCount = 0;
+            _state.FallenRealmTemplateIds.Add("fallen-realm");
+
+            InvasionState state = InvasionStateSaveData.FromState(_state).ToState();
+            Invasion restored = state.Invasions.Single();
+
+            Assert.AreEqual(12.5, restored.WeakSinceDays);
+            Assert.AreEqual(0, restored.LastFiefCount);
+            Assert.That(state.FallenRealmTemplateIds, Is.EqualTo(new[] { "fallen-realm" }));
         }
 
         [Test]

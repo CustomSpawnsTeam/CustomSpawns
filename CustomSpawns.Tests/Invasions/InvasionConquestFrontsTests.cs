@@ -57,6 +57,39 @@ namespace CustomSpawns.Tests.Invasions
             Assert.That(_invasionConquestFronts.FindStretchedThreat(300000f, 0f, 5000f), Is.Zero);
         }
 
+        [TestCase(44, true)]
+        [TestCase(43, false)]
+        public void ALineHoldingAThirdOfTheLandFormsACoalition(int lineFiefs, bool formed)
+        {
+            var rules = new InvasionConquestRules(0.02f, 0f, coalitionFiefShare: 0.33f);
+
+            Assert.That(_invasionConquestFronts.IsCoalitionFormed(rules, lineFiefs, 133), Is.EqualTo(formed));
+        }
+
+        [TestCase(6, false, true)]
+        [TestCase(7, false, false)]
+        [TestCase(0, true, false)]
+        public void ALineHoldingNoCapitalAndLessThanTheShareIsSpent(int lineFiefs, bool holdsACapital, bool spent)
+        {
+            var rules = new InvasionConquestRules(0.02f, 0f, coalitionFiefShare: 0.25f,
+                coalitionDisbandFiefShare: 0.05f);
+
+            Assert.That(_invasionConquestFronts.IsCoalitionSpent(rules, lineFiefs, 133, holdsACapital),
+                Is.EqualTo(spent));
+        }
+
+        [Test]
+        public void AnUnsetDisbandShareNeverSpendsTheCoalition()
+        {
+            Assert.That(_invasionConquestFronts.IsCoalitionSpent(_rules, 0, 133, false), Is.False);
+        }
+
+        [Test]
+        public void AnUnsetCoalitionShareNeverFormsOne()
+        {
+            Assert.That(_invasionConquestFronts.IsCoalitionFormed(_rules, 133, 133), Is.False);
+        }
+
         [Test]
         public void TheNearestFiefOfAKingdomAtPeaceOpensAFront()
         {

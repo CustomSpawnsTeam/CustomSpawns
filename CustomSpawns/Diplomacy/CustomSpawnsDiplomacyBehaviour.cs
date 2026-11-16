@@ -43,7 +43,7 @@ namespace CustomSpawns.Diplomacy
 
         public override void SyncData(IDataStore dataStore) { }
 
-        private void OnTick(float deltaTime)
+        private void OnTick(float deltaThime)
         {
             if (!_hasInitialized)
             {

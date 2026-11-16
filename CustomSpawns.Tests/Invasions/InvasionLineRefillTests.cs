@@ -10,31 +10,49 @@ namespace CustomSpawns.Tests.Invasions
         [Test]
         public void TheFirstRealmAloneLandsNothingBeforeAnyFall()
         {
-            Assert.That(_invasionLineRefill.ShouldLaunch(0, 1, true), Is.False);
+            Assert.That(_invasionLineRefill.ShouldLaunch(0, 1, true, 0), Is.False);
         }
 
         [Test]
         public void TheFirstFallLandsASecondRealm()
         {
-            Assert.That(_invasionLineRefill.ShouldLaunch(1, 1, true), Is.True);
+            Assert.That(_invasionLineRefill.ShouldLaunch(1, 1, true, 0), Is.True);
         }
 
         [Test]
         public void ACopyStillOnItsWayCountsAsTheRealmOwed()
         {
-            Assert.That(_invasionLineRefill.ShouldLaunch(1, 2, true), Is.False);
+            Assert.That(_invasionLineRefill.ShouldLaunch(1, 2, true, 0), Is.False);
         }
 
         [Test]
         public void EveryFurtherFallLandsOneMore()
         {
-            Assert.That(_invasionLineRefill.ShouldLaunch(3, 2, true), Is.True);
+            Assert.That(_invasionLineRefill.ShouldLaunch(3, 2, true, 0), Is.True);
         }
 
         [Test]
         public void ALineWithNoStandingRealmLandsNothing()
         {
-            Assert.That(_invasionLineRefill.ShouldLaunch(2, 1, false), Is.False);
+            Assert.That(_invasionLineRefill.ShouldLaunch(2, 1, false, 0), Is.False);
+        }
+
+        [Test]
+        public void ALineFieldingItsMostRealmsLandsNoMoreHoweverManyKingdomsFall()
+        {
+            Assert.That(_invasionLineRefill.ShouldLaunch(5, 3, true, 3), Is.False);
+        }
+
+        [Test]
+        public void ALineBelowItsMostRealmsLandsAnotherWhenOwedOne()
+        {
+            Assert.That(_invasionLineRefill.ShouldLaunch(5, 2, true, 3), Is.True);
+        }
+
+        [Test]
+        public void TheMostRealmsNeverLandsOneTheLineIsNotOwed()
+        {
+            Assert.That(_invasionLineRefill.ShouldLaunch(0, 1, true, 3), Is.False);
         }
 
         [TestCase(91530, true)]

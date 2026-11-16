@@ -6,8 +6,8 @@ namespace CustomSpawns.Invasions.Adapters
 {
     /**
      * Brings every realm of an invasion line into a peace one of them makes with a kingdom, as the line went to
-     * war as one. A realm the line's stance keeps at war with that kingdom, such as one whose target it is,
-     * fights on.
+     * war as one; only the realm leading that war can make it. A realm the line's stance keeps at war with that
+     * kingdom, such as one whose target it is, fights on.
      */
     public sealed class BannerlordInvasionLinePeace
     {
@@ -43,6 +43,8 @@ namespace CustomSpawns.Invasions.Adapters
             {
                 return;
             }
+
+            _invasionConquests.EndWar(conquest.InvasionClanId, enemy.StringId);
 
             foreach (InvasionConquest ally in _invasionConquests.FindAllies(conquest))
             {

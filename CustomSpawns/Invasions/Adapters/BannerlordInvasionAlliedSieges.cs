@@ -8,9 +8,10 @@ using TaleWorlds.CampaignSystem.Siege;
 namespace CustomSpawns.Invasions.Adapters
 {
     /**
-     * Lets the lords of a conquering invasion join the sieges the allied realms of its line lay. Vanilla keeps a
-     * siege to the realm that began it: its lords never weigh an ally's siege, and one that marches there anyway is
-     * stopped at the gate without joining the camp.
+     * Lets the lords of a conquering invasion join the sieges the allied realms of its line lay, and the lords of a
+     * coalition join the sieges its other kingdoms lay to the line's fiefs. Vanilla keeps a siege to the realm that
+     * began it: its lords never weigh an ally's siege, and one that marches there anyway is stopped at the gate
+     * without joining the camp.
      */
     public sealed class BannerlordInvasionAlliedSieges
     {
@@ -20,22 +21,26 @@ namespace CustomSpawns.Invasions.Adapters
         private const float JoinDistance = 1f;
         private readonly BannerlordInvasionRealms _bannerlordInvasionRealms;
         private readonly InvasionConquests _invasionConquests;
+        private readonly BannerlordInvasionCoalitionFronts _bannerlordInvasionCoalitionFronts;
 
         public BannerlordInvasionAlliedSieges(BannerlordInvasionRealms bannerlordInvasionRealms,
-            InvasionConquests invasionConquests)
+            InvasionConquests invasionConquests, BannerlordInvasionCoalitionFronts bannerlordInvasionCoalitionFronts)
         {
             _bannerlordInvasionRealms = bannerlordInvasionRealms;
             _invasionConquests = invasionConquests;
+            _bannerlordInvasionCoalitionFronts = bannerlordInvasionCoalitionFronts;
         }
 
-        // The camp besieging a fief, when an allied realm of the lord's line lays it.
+        // The camp besieging a fief, when an allied realm of the lord's line lays it, or another kingdom of the
+        // lord's coalition lays it to a fief of the line.
         public BesiegerCamp? FindAlliedCamp(MobileParty party, Settlement settlement)
         {
             BesiegerCamp? camp = settlement.SiegeEvent?.BesiegerCamp;
 
             return camp != null && camp.MapFaction != party.MapFaction &&
-                   _invasionConquests.AreAllied(_bannerlordInvasionRealms.FindInvasionClanId(party.MapFaction),
-                       _bannerlordInvasionRealms.FindInvasionClanId(camp.MapFaction))
+                   (IsCoalitionCamp(party, settlement, camp) ||
+                    _invasionConquests.AreAllied(_bannerlordInvasionRealms.FindInvasionClanId(party.MapFaction),
+                        _bannerlordInvasionRealms.FindInvasionClanId(camp.MapFaction)))
                 ? camp
                 : null;
         }
@@ -67,5 +72,10 @@ namespace CustomSpawns.Invasions.Adapters
             Logger.Info("Invasion allied siege joined: party=" + party.StringId + " fief=" + settlement.StringId +
                         " camp=" + camp.LeaderParty?.StringId + " joined=" + (party.BesiegerCamp == camp));
         }
+
+        private bool IsCoalitionCamp(MobileParty party, Settlement settlement, BesiegerCamp camp) =>
+            _bannerlordInvasionCoalitionFronts.IsLineRealm(settlement.MapFaction) &&
+            _bannerlordInvasionCoalitionFronts.IsMember(party.MapFaction) &&
+            _bannerlordInvasionCoalitionFronts.IsMember(camp.MapFaction);
     }
 }

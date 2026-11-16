@@ -158,6 +158,23 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
+        public void OnlyTheRealmsOfOneLineMakePactsWithEachOther()
+        {
+            InvasionConquest leader = _invasionConquests.Begin("humar", "vlandia", 10)!;
+            _invasionConquests.BeginFollowing("humar_2", leader, "aserai", 11);
+            _invasionConquests.Begin("sturgian_horde", "khuzait", 12);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(_invasionConquests.MayMakePact(null, null), Is.True);
+                Assert.That(_invasionConquests.MayMakePact("humar", "humar_2"), Is.True);
+                Assert.That(_invasionConquests.MayMakePact("humar", null), Is.False);
+                Assert.That(_invasionConquests.MayMakePact(null, "humar_2"), Is.False);
+                Assert.That(_invasionConquests.MayMakePact("humar", "sturgian_horde"), Is.False);
+            });
+        }
+
+        [Test]
         public void FollowersOfOneLeaderAreAlliedWithEachOtherEvenOnceItIsGone()
         {
             InvasionConquest leader = _invasionConquests.Begin("humar", "vlandia", 10)!;
@@ -241,6 +258,45 @@ namespace CustomSpawns.Tests.Invasions
                 Assert.That(_invasionConquests.FindStance("humar_2", "looters", false, null, true),
                     Is.EqualTo(InvasionWarStance.Policy));
             });
+        }
+
+        [Test]
+        public void TheRealmAWarBeganWithMakesTheLinesPeaceInsteadOfTheLeader()
+        {
+            InvasionConquest leader = _invasionConquests.Begin("humar", "vlandia", 10)!;
+            _invasionConquests.BeginFollowing("humar_2", leader, "aserai", 11);
+            _invasionConquests.BeginWar("humar_2", "khuzait");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(_invasionConquests.FindStance("humar", "khuzait", true, null, true),
+                    Is.EqualTo(InvasionWarStance.War));
+                Assert.That(_invasionConquests.FindStance("humar_2", "khuzait", true, null, true),
+                    Is.EqualTo(InvasionWarStance.Open));
+            });
+        }
+
+        [Test]
+        public void AWarBegunAnewIsLedByTheRealmItBeganWith()
+        {
+            InvasionConquest leader = _invasionConquests.Begin("humar", "vlandia", 10)!;
+            InvasionConquest follower = _invasionConquests.BeginFollowing("humar_2", leader, "aserai", 11)!;
+            _invasionConquests.BeginWar("humar_2", "khuzait");
+            _invasionConquests.BeginWar("humar", "khuzait");
+
+            Assert.That(_invasionConquests.FindWarLeader(follower, "khuzait"), Is.SameAs(leader));
+            Assert.That(follower.WarsLed, Is.Empty);
+        }
+
+        [Test]
+        public void AnEndedWarFallsBackToTheLinesLeader()
+        {
+            InvasionConquest leader = _invasionConquests.Begin("humar", "vlandia", 10)!;
+            InvasionConquest follower = _invasionConquests.BeginFollowing("humar_2", leader, "aserai", 11)!;
+            _invasionConquests.BeginWar("humar_2", "khuzait");
+            _invasionConquests.EndWar("humar_2", "khuzait");
+
+            Assert.That(_invasionConquests.FindWarLeader(follower, "khuzait"), Is.SameAs(leader));
         }
 
         [Test]

@@ -9,7 +9,8 @@ namespace CustomSpawns.Invasions.Adapters
     /**
      * Lands the next realm of every conquering invasion line still owed one; see InvasionLineRefill. A fallen
      * kingdom counts whoever brought it down, so long as no invasion clan ruled it. The line's realms are every
-     * invasion of its first spawn still fighting: the first itself, its configured followers and its copies.
+     * invasion of its first spawn still fighting: the first itself, its configured followers and its copies,
+     * and every founded one whose kingdom has fallen, since a fallen realm is never replaced.
      */
     public sealed class BannerlordInvasionLineRefills
     {
@@ -52,20 +53,26 @@ namespace CustomSpawns.Invasions.Adapters
 
             foreach (IGrouping<string, Invasion> line in fighting.GroupBy(FindLineTemplateId))
             {
-                if (_bannerlordInvasionConfigurations.FindConquestRules(line.Key) == null)
+                InvasionConquestRules? rules = _bannerlordInvasionConfigurations.FindConquestRules(line.Key);
+
+                if (rules == null)
                 {
                     continue;
                 }
 
                 List<Invasion> invasions = line.ToList();
+                int fallenRealms = state.FallenRealmTemplateIds.Count(templateId =>
+                    FindLineTemplateId(templateId) == line.Key);
                 bool hasStandingRealm = invasions.Any(invasion =>
                     invasion.FindLeadingClan()?.Kingdom is { IsEliminated: false });
                 InvasionConquest? launcher = FindLauncher(invasions);
                 bool launch = launcher != null &&
-                              _invasionLineRefill.ShouldLaunch(fallen, invasions.Count, hasStandingRealm);
+                              _invasionLineRefill.ShouldLaunch(fallen, invasions.Count + fallenRealms,
+                                  hasStandingRealm, rules.Value.MaxRealms);
 
                 Logger.Info("Invasion line check: line=" + line.Key + " fallen=" + fallen + " invasions=" +
-                            invasions.Count + " standing_realm=" + hasStandingRealm + " launch=" + launch +
+                            invasions.Count + " fallen_realms=" + fallenRealms + " max_realms=" + rules.Value.MaxRealms + " standing_realm=" +
+                            hasStandingRealm + " launch=" + launch +
                             " day=" + day);
 
                 if (launch)
@@ -76,9 +83,10 @@ namespace CustomSpawns.Invasions.Adapters
         }
 
         // A copy runs its line's first spawn; a configured follower names the spawn it follows.
-        private string FindLineTemplateId(Invasion invasion) =>
-            _bannerlordInvasionConfigurations.FindLeaderTemplateId(invasion.SpawnTemplateId) ??
-            invasion.SpawnTemplateId;
+        private string FindLineTemplateId(Invasion invasion) => FindLineTemplateId(invasion.SpawnTemplateId);
+
+        private string FindLineTemplateId(string spawnTemplateId) =>
+            _bannerlordInvasionConfigurations.FindLeaderTemplateId(spawnTemplateId) ?? spawnTemplateId;
 
         // The line's leader when it still conquers, else whichever realm of the line does; null before any has.
         private InvasionConquest? FindLauncher(IEnumerable<Invasion> invasions)

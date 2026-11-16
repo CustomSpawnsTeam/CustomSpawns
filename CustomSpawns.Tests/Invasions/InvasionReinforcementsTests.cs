@@ -87,6 +87,22 @@ namespace CustomSpawns.Tests.Invasions
             Assert.AreEqual(31, Schedule(_invasion, "infantry").NextDeadlineDays);
         }
 
+        [Test]
+        public void ABesiegedCapitalIsSentNothingUntilTheSiegeIsLifted()
+        {
+            Wind();
+            _campaign.CapitalBesieged = true;
+
+            _campaign.Now = 17;
+            Assert.AreEqual(InvasionReinforcementOutcome.CapitalBesieged, Deliver().Single().Outcome);
+            Assert.AreEqual(24, Schedule(_invasion, "infantry").NextDeadlineDays);
+            Assert.AreEqual(0, Schedule(_invasion, "infantry").WavesSent);
+
+            _campaign.CapitalBesieged = false;
+            _campaign.Now = 24;
+            Assert.AreEqual(InvasionReinforcementOutcome.Banking, Deliver().Single().Outcome);
+        }
+
         // Nothing arrives for an invasion that has no capital to send it to, or that has lost the one it took.
         [Test]
         public void LosingTheCapitalStopsTheWavesUntilItIsRetaken()
@@ -190,6 +206,17 @@ namespace CustomSpawns.Tests.Invasions
             Assert.AreEqual(InvasionReinforcementOutcome.BankFull,
                 _reinforcements.DrawDue().Single().Outcome);
             Assert.AreEqual(24, Schedule(_invasion, "infantry").NextDeadlineDays);
+        }
+
+        [Test]
+        public void AWaveIsDrawnWithTheRoomLeftInTheBank()
+        {
+            Wind();
+            _campaign.MaxBankedTroops = 900;
+            _campaign.BankedTroops = 600;
+
+            _campaign.Now = 17;
+            Assert.AreEqual(300, _reinforcements.DrawDue().Single().BankHeadroom);
         }
 
         /**
@@ -350,8 +377,11 @@ namespace CustomSpawns.Tests.Invasions
             public int BankedTroopsPerTownHeld;
             public int TownsHeld = 1;
             public int BankedTroops;
+            public bool CapitalBesieged;
 
             public double NowInDays => Now;
+
+            public bool IsCapitalBesieged(Invasion invasion) => CapitalBesieged;
 
             public InvasionBankLimit GetBankLimit(Invasion invasion) =>
                 new(MaxBankedTroops, BankedTroopsPerTownHeld, TownsHeld, BankedTroops);

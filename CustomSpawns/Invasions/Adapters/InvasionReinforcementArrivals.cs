@@ -114,6 +114,7 @@ namespace CustomSpawns.Invasions.Adapters
 
         private static string SkipReason(InvasionReinforcementOutcome outcome) =>
             outcome == InvasionReinforcementOutcome.CapitalUnavailable ? "no_held_capital_to_reinforce" :
+            outcome == InvasionReinforcementOutcome.CapitalBesieged ? "capital_besieged" :
             outcome == InvasionReinforcementOutcome.BankFull ? "bank_full" :
             outcome == InvasionReinforcementOutcome.AllWavesSent ? "all_waves_sent" :
             "configuration_changed";
@@ -146,6 +147,9 @@ namespace CustomSpawns.Invasions.Adapters
                 configuration?.BankedTroopsPerTownHeld ?? 0, _invasionLords.CountTownsHeld(invasion),
                 capital?.Town?.GarrisonParty?.MemberRoster.TotalManCount ?? 0);
         }
+
+        bool IInvasionReinforcementQuery.IsCapitalBesieged(Invasion invasion) =>
+            invasion.CapitalSettlementId != null && Settlement.Find(invasion.CapitalSettlementId)?.IsUnderSiege == true;
 
         public Func<Settlement, bool>? FindInitialCoastalTargetFilter(MobileParty party)
         {

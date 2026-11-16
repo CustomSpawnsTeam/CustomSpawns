@@ -1,3 +1,4 @@
+using System.Linq;
 using NLog;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
@@ -5,8 +6,8 @@ using TaleWorlds.CampaignSystem.CampaignBehaviors;
 
 namespace CustomSpawns.Invasions.Adapters
 {
-    // Keeps the realms of one invasion line at peace and allied with each other.
-    public sealed class BannerlordInvasionAlliances
+    // Keeps the realms of one invasion line, and the kingdoms of a coalition, at peace and allied with each other.
+    public sealed class BannerlordInvasionAlliances : IInvasionKingdomAlliances
     {
         private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         private readonly BannerlordInvasionRealms _bannerlordInvasionRealms;
@@ -23,9 +24,17 @@ namespace CustomSpawns.Invasions.Adapters
          */
         public void KeepAlliance(Invasion invasion, InvasionConquest allyConquest)
         {
-            IFaction? realm = invasion.FindLeadingClan()?.MapFaction;
-            IFaction? allyRealm = _bannerlordInvasionRealms.FindRealm(allyConquest);
+            AllyRealms(invasion.FindLeadingClan()?.MapFaction, _bannerlordInvasionRealms.FindRealm(allyConquest));
+        }
 
+        public void Ally(string kingdomId, string otherKingdomId) =>
+            AllyRealms(FindKingdom(kingdomId), FindKingdom(otherKingdomId));
+
+        private static Kingdom? FindKingdom(string kingdomId) =>
+            Kingdom.All.FirstOrDefault(kingdom => kingdom.StringId == kingdomId);
+
+        private static void AllyRealms(IFaction? realm, IFaction? allyRealm)
+        {
             if (realm == null || allyRealm == null || realm == allyRealm)
             {
                 return;

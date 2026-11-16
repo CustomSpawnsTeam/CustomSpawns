@@ -16,18 +16,21 @@ namespace CustomSpawns.Invasions.Adapters
         [SaveableField(4)] public List<InvasionCaptureSaveData> Captures = new();
         [SaveableField(5)] public List<InvasionFootholdSaveData> Footholds = new();
         [SaveableField(6)] public List<InvasionCaptureEvidenceSaveData> OwnedCaptureEvidence = new();
+        [SaveableField(7)] public List<string> FallenRealmTemplateIds = new();
 
         public static InvasionStateSaveData FromState(InvasionState state) => new()
         {
             NextCaptureId = state.NextCaptureId,
             Invasions = state.Invasions.Select(InvasionSaveData.FromState).ToList(),
             Captures = state.Captures.Select(InvasionCaptureSaveData.FromState).ToList(),
-            Footholds = state.Footholds.Select(InvasionFootholdSaveData.FromState).ToList()
+            Footholds = state.Footholds.Select(InvasionFootholdSaveData.FromState).ToList(),
+            FallenRealmTemplateIds = state.FallenRealmTemplateIds.ToList()
         };
 
         public InvasionState ToState()
         {
             var state = new InvasionState { NextCaptureId = Math.Max(1, NextCaptureId) };
+            state.FallenRealmTemplateIds.AddRange(FallenRealmTemplateIds ?? new List<string>());
             foreach (var invasion in Invasions ?? new List<InvasionSaveData>()) state.InvasionIndex.Add(invasion.ClanId, invasion.ToState());
             foreach (var capture in Captures ?? new List<InvasionCaptureSaveData>()) state.CaptureIndex.Add(capture.Id, capture.ToState());
             foreach (var foothold in Footholds ?? new List<InvasionFootholdSaveData>())
@@ -64,6 +67,9 @@ namespace CustomSpawns.Invasions.Adapters
         [SaveableField(12)] public double CapitalRetakeDeadlineDays = -1;
         [SaveableField(13)] public InvasionCapitalObjectiveSaveData? CapitalObjective;
         [SaveableField(14)] public bool IsRealmFounded;
+        // Negative while the invasion is not too weak to retake a fief, or before its realm was first looked at.
+        [SaveableField(15)] public double WeakSinceDays = -1;
+        [SaveableField(16)] public int LastFiefCount = -1;
 
         public static InvasionSaveData FromState(Invasion value) => new()
         {
@@ -78,6 +84,8 @@ namespace CustomSpawns.Invasions.Adapters
             NextFoodConvoyDays = value.NextFoodConvoyDays ?? -1,
             CapitalRetakeDeadlineDays = -1,
             IsRealmFounded = value.IsRealmFounded,
+            WeakSinceDays = value.WeakSinceDays ?? -1,
+            LastFiefCount = value.LastFiefCount ?? -1,
             CapitalObjective = value.CapitalObjective == null
                 ? null
                 : InvasionCapitalObjectiveSaveData.FromState(value.CapitalObjective)
@@ -91,6 +99,8 @@ namespace CustomSpawns.Invasions.Adapters
                 CapitalSettlementId = CapitalSettlementId,
                 IsRealmFounded = IsRealmFounded,
                 NextFoodConvoyDays = NextFoodConvoyDays < 0 ? null : NextFoodConvoyDays,
+                WeakSinceDays = WeakSinceDays < 0 ? null : WeakSinceDays,
+                LastFiefCount = LastFiefCount < 0 ? null : LastFiefCount,
                 Members = new HashSet<string>(Members ?? new List<string>(), StringComparer.Ordinal)
             };
 

@@ -88,6 +88,13 @@ namespace CustomSpawns.Invasions
                     (first.LeaderClanId != null && first.LeaderClanId == second.LeaderClanId));
         }
 
+        /**
+         * Whether two kingdoms, known by the invasion clan each belongs to or null for none, may ally or trade: other
+         * kingdoms deal with each other, and an invasion's realm only with the realms of its own line.
+         */
+        public bool MayMakePact(string? firstClanId, string? secondClanId) =>
+            (firstClanId == null && secondClanId == null) || AreAllied(firstClanId, secondClanId);
+
         public IEnumerable<InvasionConquest> FindAllies(InvasionConquest conquest) =>
             All.Where(other => AreAllied(conquest.InvasionClanId, other.InvasionClanId));
 
@@ -105,6 +112,37 @@ namespace CustomSpawns.Invasions
                 : FindAllies(conquest);
         }
 
+        /**
+         * A war a kingdom begins with a realm of the line, rather than one the line is called into, is that realm's
+         * to lead: it alone makes the line's peace with that kingdom.
+         */
+        public void BeginWar(string? invasionClanId, string kingdomId)
+        {
+            InvasionConquest? conquest = Find(invasionClanId);
+
+            if (conquest == null)
+            {
+                return;
+            }
+
+            foreach (InvasionConquest ally in FindAllies(conquest))
+            {
+                ally.EndWar(kingdomId);
+            }
+
+            conquest.LeadWar(kingdomId);
+        }
+
+        public void EndWar(string? invasionClanId, string kingdomId) => Find(invasionClanId)?.EndWar(kingdomId);
+
+        /**
+         * The realm leading the line's war with a kingdom: the one that war began with or, for a war that began
+         * before the line kept count, the line's leader. Null when there is neither.
+         */
+        public InvasionConquest? FindWarLeader(InvasionConquest conquest, string kingdomId) =>
+            FindAllies(conquest).Append(conquest).FirstOrDefault(realm => realm.WarsLed.Contains(kingdomId)) ??
+            FindLeader(conquest);
+
         public void Restore(InvasionConquest conquest) => _conquestsByClanId[conquest.InvasionClanId] = conquest;
 
         // A loaded save replaces every conquest, so the adapters sharing this registry all see what it holds.
@@ -118,11 +156,11 @@ namespace CustomSpawns.Invasions
          * Two allied invasions never fight each other, whatever their configuration says.
          *
          * A line goes to war and makes peace as one: every realm of it stays at war with each of the line's
-         * targets, and a follower makes no peace of its own with a kingdom its leader still fights. The leader
-         * makes that peace for all of them.
+         * targets, and a realm makes no peace of its own with a kingdom whose war another realm of the line leads
+         * and still fights. The leading realm makes that peace for all of them.
          */
         public InvasionWarStance FindStance(string? invasionClanId, string otherFactionId, bool otherIsKingdom,
-            string? otherInvasionClanId = null, bool isLeaderAtWarWithOther = false)
+            string? otherInvasionClanId = null, bool isWarLeaderAtWarWithOther = false)
         {
             if (AreAllied(invasionClanId, otherInvasionClanId))
             {
@@ -142,7 +180,8 @@ namespace CustomSpawns.Invasions
                 return InvasionWarStance.War;
             }
 
-            if (otherIsKingdom && isLeaderAtWarWithOther && FindLeader(conquest) != null)
+            if (otherIsKingdom && isWarLeaderAtWarWithOther &&
+                FindWarLeader(conquest, otherFactionId) is { } warLeader && warLeader != conquest)
             {
                 return InvasionWarStance.War;
             }

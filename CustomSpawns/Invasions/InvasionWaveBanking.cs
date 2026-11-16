@@ -30,6 +30,22 @@ namespace CustomSpawns.Invasions
 
         // A wave grows with the realm the way the bank limit and the lord cap do. Zero still banks a whole roll.
         public int FindMaxMen(int townsHeld) => MaxMenPerWave <= 0 ? 0 : MaxMenPerWave + MenPerTownHeld * townsHeld;
+
+        /**
+         * The bank limit is a hard ceiling: a wave brings no more men than the bank has room for, so it never
+         * fills the bank past its limit. Zero still banks a whole roll, which only an unlimited bank allows.
+         */
+        public int FindMaxMen(int townsHeld, int bankHeadroom)
+        {
+            int maxMen = FindMaxMen(townsHeld);
+
+            if (bankHeadroom == int.MaxValue)
+            {
+                return maxMen;
+            }
+
+            return maxMen <= 0 ? bankHeadroom : System.Math.Min(maxMen, bankHeadroom);
+        }
     }
 
     // What a wave paid into the capital came to.
@@ -69,8 +85,8 @@ namespace CustomSpawns.Invasions
 
     /**
      * What a reinforcement wave is: men paid into the capital's garrison, lords who come to take them out
-     * again, and the gold and food to keep them. Nothing marches in, and the garrison takes the wave whole
-     * however close to its limit it is -- the bank limit is what decides whether a wave comes at all.
+     * again, and the gold and food to keep them. Nothing marches in, and the garrison takes the wave only up
+     * to its bank limit: a wave drawn into a nearly full bank brings just the men that fill it.
      */
     public sealed class InvasionWaveBanking
     {
@@ -107,7 +123,7 @@ namespace CustomSpawns.Invasions
 
             // The lords are fielded before the gold is paid, so that their warbands are paid for too.
             int men = _invasionGarrisonDeposits.Deposit(capitalId, wave.Value.PartyTemplateId,
-                wave.Value.FindMaxMen(_invasionLords.CountTownsHeld(invasion)));
+                wave.Value.FindMaxMen(_invasionLords.CountTownsHeld(invasion), draw.BankHeadroom));
             int lords = _invasionLordLevy.Levy(invasion, wave.Value, capitalId);
             int pay = _invasionWaveFunding.Fund(invasion, wave.Value.IntervalInDays);
 

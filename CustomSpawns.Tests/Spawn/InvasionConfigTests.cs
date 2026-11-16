@@ -243,7 +243,8 @@ namespace CustomSpawns.Tests.Spawn
                                     "<Conquest><ThreatPerFiefHeld>0.05</ThreatPerFiefHeld>" +
                                     "<OpenFrontIntervalInDays>30</OpenFrontIntervalInDays>" +
                                     "<TargetSiegePreference>4</TargetSiegePreference>" +
-                                    "<ReconsiderTargetIntervalInDays>30</ReconsiderTargetIntervalInDays></Conquest>" +
+                                    "<ReconsiderTargetIntervalInDays>30</ReconsiderTargetIntervalInDays>" +
+                                    "<CoalitionCapitalRing>3</CoalitionCapitalRing></Conquest>" +
                                     "<Reinforcements><Rule><Id>infantry</Id>" +
                                     "<PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId>" +
                                     "</Rule></Reinforcements></Invasion>";
@@ -260,7 +261,19 @@ namespace CustomSpawns.Tests.Spawn
                 Assert.That(data.Conquest.OpenFrontIntervalInDays, Is.EqualTo(30f));
                 Assert.That(data.Conquest.TargetSiegePreference, Is.EqualTo(4f));
                 Assert.That(data.Conquest.ReconsiderTargetIntervalInDays, Is.EqualTo(30f));
+                Assert.That(data.Conquest.CoalitionCapitalRing, Is.EqualTo(3));
             });
+        }
+
+        [Test]
+        public void Adapt_RejectsANegativeCoalitionCapitalRing()
+        {
+            InvasionConfig config = ValidConfig();
+            config.Conquest = new InvasionConquestConfig { CoalitionCapitalRing = -1 };
+
+            ArgumentException error = Assert.Throws<ArgumentException>(() => InvasionDtoAdapter.Adapt(config))!;
+
+            Assert.That(error.Message, Does.Contain("CoalitionCapitalRing"));
         }
 
         [Test]
