@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CustomSpawns.Invasions.CapitalObjectives;
+using CustomSpawns.Invasions.Reinforcements;
 
 namespace CustomSpawns.Invasions
 {

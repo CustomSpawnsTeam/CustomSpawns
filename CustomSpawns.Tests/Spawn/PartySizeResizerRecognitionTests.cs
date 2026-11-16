@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Runtime.Serialization;
 using CustomSpawns.Data.Dao;
 using CustomSpawns.Data.Dto;
+using CustomSpawns.Invasions;
 using CustomSpawns.Spawn;
 using CustomSpawns.Spawn.PartySize;
 using Moq;

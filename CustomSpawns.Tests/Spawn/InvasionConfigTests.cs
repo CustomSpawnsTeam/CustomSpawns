@@ -7,6 +7,7 @@ using CustomSpawns.Data.Adapter;
 using CustomSpawns.Data.Dto;
 using CustomSpawns.Data.Model;
 using CustomSpawns.Data.Reader.Impl;
+using CustomSpawns.Invasions;
 using NUnit.Framework;
 
 namespace CustomSpawns.Tests.Spawn

@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using CustomSpawns.Invasions;
+using CustomSpawns.Invasions.Alliances;
 using TaleWorlds.CampaignSystem;
 
 namespace CustomSpawns.Diplomacy

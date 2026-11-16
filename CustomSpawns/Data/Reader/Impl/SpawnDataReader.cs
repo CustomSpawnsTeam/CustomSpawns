@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Xml.Serialization;
 using CustomSpawns.Data.Model;
+using CustomSpawns.Invasions;
 using CustomSpawns.ModIntegration;
 using CustomSpawns.Utils;
 using Path = System.IO.Path;

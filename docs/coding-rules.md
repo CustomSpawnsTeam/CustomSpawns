@@ -7,8 +7,13 @@ lives in [code-style.md](code-style.md); this is about where code goes and how i
 
 Game rules live in plain classes that take and return plain data: ids as `string`, counts as
 `int`, small `readonly struct`s such as `InvasionWarband` or `InvasionClanPurse`. Everything that
-touches `TaleWorlds.*` lives in an `Adapters/` folder (`Invasions/Adapters`, `AI/Adapters`) and is
-reached through an interface the domain owns.
+touches `TaleWorlds.*` lives in an `Adapters/` folder (`Invasions/Coalitions/Adapters`, `AI/Adapters`) and
+is reached through an interface the domain owns.
+
+Group a large area by feature: each feature is a folder and namespace with its domain classes at
+its root and its adapters in its own `Adapters/` (`Invasions/Conquest`, `Invasions/Conquest/Adapters`).
+The area's root keeps only what every feature shares, such as `InvasionState` and the campaign
+behaviour that wires the features together. Tests mirror the same folders.
 
 - A port interface carries no TaleWorlds type, not in a parameter, not in a return value.
   `IInvasionWarbands.FindIn(string settlementId)` is right; `FindIn(Settlement settlement)` is not.

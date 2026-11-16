@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using CustomSpawns.CampaignData.Implementations;
-using CustomSpawns.Invasions;
+using CustomSpawns.Invasions.Alliances;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.BarterSystem;

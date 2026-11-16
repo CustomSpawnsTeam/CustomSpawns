@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Xml.Serialization;
-using CustomSpawns.Invasions;
+using CustomSpawns.Invasions.Reinforcements;
 
 namespace CustomSpawns.Data.Model
 {

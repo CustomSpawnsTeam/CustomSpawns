@@ -1,9 +1,9 @@
-using CustomSpawns.Invasions;
 using System;
 using System.Reflection;
 using System.Runtime.Serialization;
 using CustomSpawns.Invasions.Adapters;
 using CustomSpawns.Invasions.CapitalObjectives;
+using CustomSpawns.Invasions.GarrisonArmies;
 using Moq;
 using NUnit.Framework;
 using TaleWorlds.CampaignSystem;

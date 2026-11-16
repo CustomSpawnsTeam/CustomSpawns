@@ -7,6 +7,7 @@ using CustomSpawns.Data;
 using CustomSpawns.Data.Dao;
 using CustomSpawns.Data.Dto;
 using CustomSpawns.Economics;
+using CustomSpawns.Invasions;
 using CustomSpawns.Spawn.PartySize;
 using CustomSpawns.UtilityBehaviours;
 using CustomSpawns.Utils;

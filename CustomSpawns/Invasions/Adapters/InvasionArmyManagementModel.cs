@@ -1,4 +1,5 @@
 using CustomSpawns.Invasions.CapitalObjectives;
+using CustomSpawns.Invasions.GarrisonArmies;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.ComponentInterfaces;
 using TaleWorlds.CampaignSystem.Party;

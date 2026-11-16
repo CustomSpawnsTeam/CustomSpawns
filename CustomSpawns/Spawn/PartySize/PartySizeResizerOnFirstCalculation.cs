@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using CustomSpawns.Data.Dao;
+using CustomSpawns.Invasions;
 using CustomSpawns.Utils;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;

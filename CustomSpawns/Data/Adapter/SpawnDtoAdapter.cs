@@ -8,6 +8,7 @@ using CustomSpawns.Data.Dao;
 using CustomSpawns.Data.Model;
 using CustomSpawns.Data.Reader.Impl;
 using CustomSpawns.Exception;
+using CustomSpawns.Invasions;
 using CustomSpawns.Utils;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;

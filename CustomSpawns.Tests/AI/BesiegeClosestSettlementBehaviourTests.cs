@@ -9,7 +9,7 @@ using CustomSpawns.AI.Model;
 using CustomSpawns.AI.Offensives;
 using CustomSpawns.Data.Adapter;
 using CustomSpawns.Data.Dto;
-using CustomSpawns.Invasions.Adapters;
+using CustomSpawns.Invasions.Reinforcements.Adapters;
 using CustomSpawns.Spawn;
 using NUnit.Framework;
 using TaleWorlds.CampaignSystem;

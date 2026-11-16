@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using CustomSpawns.Data.Reader;
 using CustomSpawns.Diplomacy;
-using CustomSpawns.Invasions;
+using CustomSpawns.Invasions.Alliances;
 using Moq;
 using NUnit.Framework;
 using TaleWorlds.CampaignSystem;

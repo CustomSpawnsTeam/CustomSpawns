@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using CustomSpawns.Data.Dao;
-using CustomSpawns.Invasions;
 using CustomSpawns.Invasions.Adapters;
 using CustomSpawns.UtilityBehaviours;
 using Moq;

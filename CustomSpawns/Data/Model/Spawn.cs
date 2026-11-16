@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Xml;
 using System.Xml.Serialization;
+using CustomSpawns.Invasions;
 
 namespace CustomSpawns.Data.Model
 {
