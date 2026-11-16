@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using NLog;
 using TaleWorlds.CampaignSystem;
@@ -10,12 +11,17 @@ namespace CustomSpawns.Invasions.Adapters
      * temporarily without a party and hands it a fresh one on its clan's next daily tick, so a lord the
      * player beat returned a day later at full strength. Removing it at the moment of defeat stops that
      * at its source instead of cleaning up after it.
+     *
+     * The removal waits for the next campaign tick. Capture and flight fire from inside vanilla's own
+     * loops over a settlement's heroes, and removing the lord there -- or making his successor -- shrinks
+     * the list under the loop and crashes the game.
      */
     public sealed class InvasionLordRemoval
     {
         private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         private readonly InvasionState _invasionState;
         private readonly InvaderHeroCreator _invaderHeroCreator;
+        private readonly List<(Hero Hero, bool LostItsInvasionParty)> _defeated = new();
 
         public InvasionLordRemoval(InvasionState invasionState, InvaderHeroCreator invaderHeroCreator)
         {
@@ -23,7 +29,28 @@ namespace CustomSpawns.Invasions.Adapters
             _invaderHeroCreator = invaderHeroCreator;
         }
 
-        public void RemoveDefeated(Hero hero, bool lostItsInvasionParty)
+        public void Defer(Hero hero, bool lostItsInvasionParty)
+        {
+            _defeated.Add((hero, lostItsInvasionParty));
+        }
+
+        public void RemoveDeferred()
+        {
+            if (_defeated.Count == 0)
+            {
+                return;
+            }
+
+            var defeated = _defeated.ToList();
+            _defeated.Clear();
+
+            foreach (var (hero, lostItsInvasionParty) in defeated)
+            {
+                RemoveDefeated(hero, lostItsInvasionParty);
+            }
+        }
+
+        private void RemoveDefeated(Hero hero, bool lostItsInvasionParty)
         {
             if (!_invasionState.IsRemovableInvasionLord(hero.Clan?.StringId,
                     isMainHero: hero == Hero.MainHero,

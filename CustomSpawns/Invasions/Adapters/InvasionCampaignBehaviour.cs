@@ -212,6 +212,7 @@ namespace CustomSpawns.Invasions.Adapters
             CampaignEvents.CharacterBecameFugitiveEvent.AddNonSerializedListener(this, OnCharacterBecameFugitive);
             CampaignEvents.SettlementEntered.AddNonSerializedListener(this, OnSettlementEntered);
             CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, OnHourlyTick);
+            CampaignEvents.TickEvent.AddNonSerializedListener(this, RemoveDefeatedLords);
             CampaignEvents.AiHourlyTickEvent.AddNonSerializedListener(this, AddResupplyScore);
             CampaignEvents.AiHourlyTickEvent.AddNonSerializedListener(this, HoldSieges);
             CampaignEvents.AiHourlyTickEvent.AddNonSerializedListener(this, PreferTargetSieges);
@@ -425,7 +426,12 @@ namespace CustomSpawns.Invasions.Adapters
             Initialize();
             bool lostItsInvasionParty = hero == _lordOfRemovedInvasionParty;
             _lordOfRemovedInvasionParty = null;
-            _invasionLordRemoval.RemoveDefeated(hero, lostItsInvasionParty);
+            _invasionLordRemoval.Defer(hero, lostItsInvasionParty);
+        }
+
+        private void RemoveDefeatedLords(float dt)
+        {
+            _invasionLordRemoval?.RemoveDeferred();
         }
 
         private void OnHourlyTick()
