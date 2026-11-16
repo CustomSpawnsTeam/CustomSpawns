@@ -7,6 +7,12 @@ namespace CustomSpawns.Invasions
     // When a conquering invasion starts a new war of its own, and how much its neighbours fear it.
     public sealed class InvasionConquestFronts
     {
+        // The share of every fief in the land a line holds when every other kingdom bands together against it.
+        private const float CoalitionFiefShare = 0.25f;
+
+        // The share of every fief in the land below which the coalition breaks up against a line holding no capital.
+        private const float CoalitionDisbandFiefShare = 0.05f;
+
         /**
          * An invader goes for whatever lies closest. When the nearest fief belongs to a kingdom it is at peace
          * with, it declares war on that kingdom rather than march past it, but only once its last new front
@@ -42,16 +48,15 @@ namespace CustomSpawns.Invasions
             strength <= 0f ? 0f : threat * strength / (strength + Math.Max(0f, otherEnemiesStrength));
 
         /**
-         * Whether a line holds so much of the land that every other kingdom bands together against it: at least the
-         * configured share of all the fiefs there are.
+         * Whether a line holds so much of the land that every other kingdom bands together against it: at least a
+         * quarter of all the fiefs there are.
          */
-        public bool IsCoalitionFormed(InvasionConquestRules rules, int lineFiefs, int allFiefs) =>
-            rules.CoalitionFiefShare > 0f && allFiefs > 0 && lineFiefs >= rules.CoalitionFiefShare * allFiefs;
+        public bool IsCoalitionFormed(int lineFiefs, int allFiefs) =>
+            allFiefs > 0 && lineFiefs >= CoalitionFiefShare * allFiefs;
 
         // Whether a line is so beaten that the coalition against it breaks up: none of its capitals held, and less
-        // than the configured share of all the fiefs there are.
-        public bool IsCoalitionSpent(InvasionConquestRules rules, int lineFiefs, int allFiefs, bool holdsACapital) =>
-            rules.CoalitionDisbandFiefShare > 0f && !holdsACapital &&
-            lineFiefs < rules.CoalitionDisbandFiefShare * allFiefs;
+        // than a twentieth of all the fiefs there are.
+        public bool IsCoalitionSpent(int lineFiefs, int allFiefs, bool holdsACapital) =>
+            !holdsACapital && lineFiefs < CoalitionDisbandFiefShare * allFiefs;
     }
 }

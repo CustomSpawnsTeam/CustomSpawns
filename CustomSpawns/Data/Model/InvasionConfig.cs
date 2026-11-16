@@ -63,24 +63,8 @@ namespace CustomSpawns.Data.Model
         [XmlElement("Conquest")]
         public InvasionConquestConfig? Conquest { get; set; }
 
-        // The food convoys the invasion runs into its capital, on their own cadence.
-        [XmlElement("Supplies")]
-        public InvasionSuppliesConfig Supplies { get; set; } = new();
-
         [XmlElement("Reinforcements")]
         public InvasionReinforcementsConfig Reinforcements { get; set; } = new();
-    }
-
-    public sealed class InvasionSuppliesConfig
-    {
-        // How much food each convoy adds straight to the capital's food stocks, which the market only does
-        // once grain sells. Left out, the invasion runs no convoys and its capital feeds itself.
-        [XmlElement("FoodPerConvoy")]
-        public int FoodPerConvoy { get; set; }
-
-        // How often a convoy arrives.
-        [XmlElement("IntervalInDays")]
-        public float IntervalInDays { get; set; } = 7f;
     }
 
     /**
@@ -109,27 +93,10 @@ namespace CustomSpawns.Data.Model
         [XmlElement("ReconsiderTargetIntervalInDays")]
         public float ReconsiderTargetIntervalInDays { get; set; }
 
-        // The share of every fief in the land the invasion's whole line holds when every other kingdom drops its
-        // quarrels to fight it: they make peace with each other and declare no war but on the line, until the line
-        // is destroyed. Left out, the kingdoms never band together against it.
-        [XmlElement("CoalitionFiefShare")]
-        public float CoalitionFiefShare { get; set; }
-
-        // The share of every fief in the land below which the coalition breaks up against a line that holds none of
-        // its capitals: the line is beaten, and the kingdoms go back to their own quarrels. Below CoalitionFiefShare.
-        // Left out, the coalition stands until the line is destroyed.
-        [XmlElement("CoalitionDisbandFiefShare")]
-        public float CoalitionDisbandFiefShare { get; set; }
-
         // How many realms, the waves of the line, may fight at once, its first included: no new one lands while that
         // many stand, however many kingdoms have fallen. Left out, the line lands one for every fallen kingdom.
         [XmlElement("MaxRealms")]
         public int MaxRealms { get; set; }
-
-        // How many of the fiefs nearest a capital of the line the coalition must hold before it turns on that
-        // capital above every other siege, to cut the line's reinforcements. Left out, it never does.
-        [XmlElement("CoalitionCapitalRing")]
-        public int CoalitionCapitalRing { get; set; }
 
         // Now and then raises one big army out of the capital's garrison against the kingdom it conquers. Left
         // out, the garrison only ever feeds the lords and the fiefs.
@@ -201,7 +168,7 @@ namespace CustomSpawns.Data.Model
             {
                 throw new ArgumentNullException(nameof(config));
             }
-            if (config.Supplies == null || config.Reinforcements?.Rules == null)
+            if (config.Reinforcements?.Rules == null)
             {
                 throw new ArgumentException("Invasion configuration groups cannot be null.");
             }
@@ -228,35 +195,12 @@ namespace CustomSpawns.Data.Model
                     config.Conquest.TargetSiegePreference);
                 ValidateNonNegativeFinite("Invasion Conquest ReconsiderTargetIntervalInDays",
                     config.Conquest.ReconsiderTargetIntervalInDays);
-                ValidateNonNegativeFinite("Invasion Conquest CoalitionFiefShare", config.Conquest.CoalitionFiefShare);
                 ValidateNonNegative("Invasion Conquest MaxRealms", config.Conquest.MaxRealms);
-                ValidateNonNegative("Invasion Conquest CoalitionCapitalRing", config.Conquest.CoalitionCapitalRing);
-                if (config.Conquest.CoalitionFiefShare > 1f)
-                {
-                    throw new ArgumentException("Invasion Conquest CoalitionFiefShare cannot be more than one.");
-                }
 
-                ValidateNonNegativeFinite("Invasion Conquest CoalitionDisbandFiefShare",
-                    config.Conquest.CoalitionDisbandFiefShare);
-
-                // At or above the forming share, a coalition would break up and form again against the same line.
-                if (config.Conquest.CoalitionDisbandFiefShare > 0f &&
-                    config.Conquest.CoalitionDisbandFiefShare >= config.Conquest.CoalitionFiefShare)
-                {
-                    throw new ArgumentException(
-                        "Invasion Conquest CoalitionDisbandFiefShare must be less than CoalitionFiefShare.");
-                }
                 if (config.Conquest.GarrisonArmy != null)
                 {
                     ValidateGarrisonArmy(config.Conquest.GarrisonArmy);
                 }
-            }
-            ValidateNonNegative("Invasion Supplies FoodPerConvoy", config.Supplies.FoodPerConvoy);
-            // Convoys are looked at once a day, so a shorter interval than that would only lie about itself.
-            if (config.Supplies.FoodPerConvoy > 0 &&
-                (!IsFinite(config.Supplies.IntervalInDays) || config.Supplies.IntervalInDays < 1f))
-            {
-                throw new ArgumentException("Invasion Supplies IntervalInDays must be finite and at least one day.");
             }
             if (config.Reinforcements.Rules.Count == 0)
             {

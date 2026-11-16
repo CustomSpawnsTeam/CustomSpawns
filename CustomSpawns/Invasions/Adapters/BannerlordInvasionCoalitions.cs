@@ -78,8 +78,8 @@ namespace CustomSpawns.Invasions.Adapters
 
             _invasionStandingCoalitions.DisbandAllBut(FindLines()
                 .Where(line => line.Realms.Any(realm => !realm.IsEliminated) &&
-                               !_invasionConquestFronts.IsCoalitionSpent(line.Rules,
-                                   line.Realms.Sum(realm => realm.Fiefs.Count), allFiefs, HoldsACapital(line.Realms)))
+                               !_invasionConquestFronts.IsCoalitionSpent(line.Realms.Sum(realm => realm.Fiefs.Count),
+                                   allFiefs, HoldsACapital(line.Realms)))
                 .Select(line => line.LineId));
         }
 
@@ -114,8 +114,7 @@ namespace CustomSpawns.Invasions.Adapters
 
             return FindLines()
                 .Where(line => _invasionStandingCoalitions.StandsAgainst(line.LineId,
-                    _invasionConquestFronts.IsCoalitionFormed(line.Rules, line.Realms.Sum(realm => realm.Fiefs.Count),
-                        allFiefs)))
+                    _invasionConquestFronts.IsCoalitionFormed(line.Realms.Sum(realm => realm.Fiefs.Count), allFiefs)))
                 .Select(line => (line.Realms, _bannerlordInvasionRealms.FindRealm(line.Launcher),
                     _bannerlordInvasionLines.FindThreat(line.Rules, line.Realms), line.Rules))
                 .ToList();

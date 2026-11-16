@@ -13,6 +13,9 @@ namespace CustomSpawns.Invasions.Adapters
      */
     public sealed class BannerlordInvasionCoalitionFronts
     {
+        // How many of the fortifications nearest a capital of a line its isolation is weighed on.
+        private const int CapitalRing = 3;
+
         private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         private readonly Func<InvasionState> _state;
         private readonly BannerlordInvasionCoalitions _bannerlordInvasionCoalitions;
@@ -80,7 +83,7 @@ namespace CustomSpawns.Invasions.Adapters
                 _bannerlordInvasionCoalitions.FindFormedLineRealms();
             _lineRealms = new HashSet<IFaction>(lines.SelectMany(line => line.Realms));
             HashSet<Settlement> isolatedCapitals = new(lines.SelectMany(line =>
-                FindIsolatedCapitals(new HashSet<IFaction>(line.Realms), line.Rules.CoalitionCapitalRing)));
+                FindIsolatedCapitals(new HashSet<IFaction>(line.Realms))));
 
             if (!isolatedCapitals.SetEquals(_isolatedCapitals))
             {
@@ -93,13 +96,8 @@ namespace CustomSpawns.Invasions.Adapters
         }
 
         // The capitals each realm of the line still holds, whose nearest fiefs the line holds fewer than half of.
-        private IEnumerable<Settlement> FindIsolatedCapitals(HashSet<IFaction> realms, int ringSize)
+        private IEnumerable<Settlement> FindIsolatedCapitals(HashSet<IFaction> realms)
         {
-            if (ringSize <= 0)
-            {
-                yield break;
-            }
-
             foreach (IFaction realm in realms)
             {
                 string? capitalId = _state().FindFightingInvasion(_bannerlordInvasionRealms.FindInvasionClanId(realm))
@@ -114,10 +112,10 @@ namespace CustomSpawns.Invasions.Adapters
                 IEnumerable<bool> nearestHeld = Settlement.All
                     .Where(settlement => settlement.IsFortification && settlement != capital)
                     .OrderBy(settlement => settlement.Position.DistanceSquared(capital.Position))
-                    .Take(ringSize)
+                    .Take(CapitalRing)
                     .Select(settlement => realms.Contains(settlement.MapFaction));
 
-                if (_invasionCapitalIsolation.IsIsolated(nearestHeld, ringSize))
+                if (_invasionCapitalIsolation.IsIsolated(nearestHeld, CapitalRing))
                 {
                     yield return capital;
                 }

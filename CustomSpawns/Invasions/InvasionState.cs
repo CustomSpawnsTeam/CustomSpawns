@@ -414,12 +414,6 @@ namespace CustomSpawns.Invasions
         public bool HasRealm(bool rulesAKingdom) => !IsRealmFounded || rulesAKingdom;
 
         public InvasionCapitalObjective? CapitalObjective { get; private set; }
-        /**
-         * When the next food convoy is due at the capital, in campaign days, or null while none has been
-         * scheduled. It is its own clock on purpose: supplying the capital has nothing to do with how often
-         * the invasion is reinforced.
-         */
-        public double? NextFoodConvoyDays { get; set; }
 
         // Since when, in campaign days, the invasion has been too weak to retake a fief, or null while it is not.
         public double? WeakSinceDays { get; set; }

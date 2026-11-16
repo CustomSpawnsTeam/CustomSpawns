@@ -61,8 +61,6 @@ namespace CustomSpawns.Invasions.Adapters
         [SaveableField(7)] public List<string> Members = new();
         [SaveableField(9)] public List<string> ClanIds = new();
         [SaveableField(10)] public List<InvasionReinforcementScheduleSaveData> ReinforcementSchedules = new();
-        // Negative for a convoy clock that has yet to be wound, which is every invasion without a capital.
-        [SaveableField(11)] public double NextFoodConvoyDays = -1;
         // Negative until this invasion loses its capital for the first time.
         [SaveableField(12)] public double CapitalRetakeDeadlineDays = -1;
         [SaveableField(13)] public InvasionCapitalObjectiveSaveData? CapitalObjective;
@@ -81,7 +79,6 @@ namespace CustomSpawns.Invasions.Adapters
             ClanIds = value.ClanIds.ToList(),
             ReinforcementSchedules = value.ReinforcementSchedules
                 .Select(InvasionReinforcementScheduleSaveData.FromState).ToList(),
-            NextFoodConvoyDays = value.NextFoodConvoyDays ?? -1,
             CapitalRetakeDeadlineDays = -1,
             IsRealmFounded = value.IsRealmFounded,
             WeakSinceDays = value.WeakSinceDays ?? -1,
@@ -98,7 +95,6 @@ namespace CustomSpawns.Invasions.Adapters
                 IsSuspended = IsSuspended,
                 CapitalSettlementId = CapitalSettlementId,
                 IsRealmFounded = IsRealmFounded,
-                NextFoodConvoyDays = NextFoodConvoyDays < 0 ? null : NextFoodConvoyDays,
                 WeakSinceDays = WeakSinceDays < 0 ? null : WeakSinceDays,
                 LastFiefCount = LastFiefCount < 0 ? null : LastFiefCount,
                 Members = new HashSet<string>(Members ?? new List<string>(), StringComparer.Ordinal)

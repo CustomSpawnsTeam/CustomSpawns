@@ -16,7 +16,7 @@ namespace CustomSpawns.Data.Adapter
                     rule.MenPerTownHeld)).ToList();
             return new InvasionData(config.RequiresFirstCoastalConquest, rules, config.MaxBankedTroops,
                 config.BankedTroopsPerTownHeld, config.SupplyLine, config.MinimumCapitalGarrison,
-                config.Supplies.FoodPerConvoy, config.Supplies.IntervalInDays, config.MaxLords,
+                config.MaxLords,
                 config.LordsPerTownHeld, config.MinimumFiefGarrison,
                 config.Conquest == null
                     ? null
@@ -27,8 +27,7 @@ namespace CustomSpawns.Data.Adapter
                             ? null
                             : new InvasionGarrisonArmyData(config.Conquest.GarrisonArmy.IntervalInDays,
                                 config.Conquest.GarrisonArmy.GarrisonShare),
-                        config.Conquest.CoalitionFiefShare, config.Conquest.MaxRealms,
-                        config.Conquest.CoalitionCapitalRing, config.Conquest.CoalitionDisbandFiefShare),
+                        config.Conquest.MaxRealms),
                 config.LordPartySizeBonus,
                 string.IsNullOrWhiteSpace(config.FollowsInvasion) ? null : config.FollowsInvasion!.Trim(),
                 config.RelocateCapitalOnLoss);

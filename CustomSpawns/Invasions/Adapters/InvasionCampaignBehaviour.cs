@@ -48,7 +48,6 @@ namespace CustomSpawns.Invasions.Adapters
         private InvasionMembership _invasionMembership;
         private InvasionLordWarbands _invasionLordWarbands;
         private InvasionLordRemoval _invasionLordRemoval;
-        private InvasionFoodConvoys _invasionFoodConvoys;
         private IInvasionAssaultConfigurationProvider? _invasionAssaultConfigurationProvider;
         private BannerlordInvasionCapitalObjectiveWorld? _invasionCapitalObjectiveWorld;
         private InvasionCapitalObjectiveCoordinator? _invasionCapitalObjectiveCoordinator;
@@ -192,7 +191,6 @@ namespace CustomSpawns.Invasions.Adapters
                 _invasionCaptureCorrelation);
             _invasionLordWarbands = NewLordWarbands();
             _invasionLordRemoval = new InvasionLordRemoval(State, _invaderHeroes);
-            _invasionFoodConvoys = new InvasionFoodConvoys(State, _spawnDao);
 
             // DynamicSpawnData registers its discovery callback first; scheduling/AI are composed later.
             initialiser.RunCallbackOnFirstCampaignTick(InitializeOnFirstCampaignTick);
@@ -220,7 +218,6 @@ namespace CustomSpawns.Invasions.Adapters
             CampaignEvents.AiHourlyTickEvent.AddNonSerializedListener(this, HuntLineParties);
             CampaignEvents.HourlyTickPartyEvent.AddNonSerializedListener(this, JoinAlliedSieges);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, ScheduleReinforcements);
-            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, UnloadFoodConvoys);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, UpdateCapitalObjectivesDaily);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, ConsolidateDaily);
             CampaignEvents.WarDeclared.AddNonSerializedListener(this, OnWarDeclared);
@@ -303,7 +300,6 @@ namespace CustomSpawns.Invasions.Adapters
                 _invasionCaptureCorrelation);
             _invasionLordWarbands = NewLordWarbands();
             _invasionLordRemoval = new InvasionLordRemoval(State, _invaderHeroes);
-            _invasionFoodConvoys = new InvasionFoodConvoys(State, _spawnDao);
             RebuildCapitalObjectiveCoordinator();
 
             foreach (var evidence in saved?.OwnedCaptureEvidence ?? new List<InvasionCaptureEvidenceSaveData>())
@@ -841,12 +837,5 @@ namespace CustomSpawns.Invasions.Adapters
               "/commander=" + objective.CommanderPartyId +
               "/gather_deadline=" + objective.GatherDeadlineDays +
               "/attack_deadline=" + objective.AttackDeadlineDays;
-
-        // Its own clock, so a change to how often the invasion is reinforced leaves its supplies alone.
-        private void UnloadFoodConvoys()
-        {
-            Initialize();
-            _invasionFoodConvoys.UnloadDue();
-        }
     }
 }

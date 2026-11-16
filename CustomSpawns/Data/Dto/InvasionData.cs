@@ -7,7 +7,7 @@ namespace CustomSpawns.Data.Dto
         public InvasionData(bool requiresFirstCoastalConquest,
             IReadOnlyList<InvasionReinforcementRuleData> reinforcementRules, int maxBankedTroops = 0,
             int bankedTroopsPerTownHeld = 0, string? supplyLine = null, int minimumCapitalGarrison = 0,
-            int foodPerConvoy = 0, float foodConvoyIntervalInDays = 0f, int maxLords = 0, int lordsPerTownHeld = 0,
+            int maxLords = 0, int lordsPerTownHeld = 0,
             int minimumFiefGarrison = 0, InvasionConquestData? conquest = null, int lordPartySizeBonus = 0,
             string? followsInvasion = null, bool relocateCapitalOnLoss = false)
         {
@@ -18,8 +18,6 @@ namespace CustomSpawns.Data.Dto
             Conquest = conquest;
             MaxLords = maxLords;
             LordsPerTownHeld = lordsPerTownHeld;
-            FoodPerConvoy = foodPerConvoy;
-            FoodConvoyIntervalInDays = foodConvoyIntervalInDays;
             SupplyLine = supplyLine;
             RequiresFirstCoastalConquest = requiresFirstCoastalConquest;
             ReinforcementRules = reinforcementRules;
@@ -53,12 +51,6 @@ namespace CustomSpawns.Data.Dto
         // by chance on its own.
         public string? FollowsInvasion { get; }
 
-        // How much food each convoy adds to the capital's food stocks. Zero runs no convoys at all.
-        public int FoodPerConvoy { get; }
-
-        // How often a convoy arrives, in days. Nothing to do with the reinforcement cadence.
-        public float FoodConvoyIntervalInDays { get; }
-
         /**
          * How many men the capital's bank may hold before the waves stop bringing men, shared by every
          * reinforcement rule. Zero leaves the bank bottomless, which is what a configuration that does not
@@ -84,18 +76,14 @@ namespace CustomSpawns.Data.Dto
     {
         public InvasionConquestData(float threatPerFiefHeld, float openFrontIntervalInDays = 0f,
             float targetSiegePreference = 0f, float reconsiderTargetIntervalInDays = 0f,
-            InvasionGarrisonArmyData? garrisonArmy = null, float coalitionFiefShare = 0f, int maxRealms = 0,
-            int coalitionCapitalRing = 0, float coalitionDisbandFiefShare = 0f)
+            InvasionGarrisonArmyData? garrisonArmy = null, int maxRealms = 0)
         {
             ThreatPerFiefHeld = threatPerFiefHeld;
             OpenFrontIntervalInDays = openFrontIntervalInDays;
             TargetSiegePreference = targetSiegePreference;
             ReconsiderTargetIntervalInDays = reconsiderTargetIntervalInDays;
             GarrisonArmy = garrisonArmy;
-            CoalitionFiefShare = coalitionFiefShare;
             MaxRealms = maxRealms;
-            CoalitionCapitalRing = coalitionCapitalRing;
-            CoalitionDisbandFiefShare = coalitionDisbandFiefShare;
         }
 
         // Zero leaves the invasion's neighbours to vanilla diplomacy alone.
@@ -113,17 +101,8 @@ namespace CustomSpawns.Data.Dto
         // Null never raises an army out of the capital's garrison.
         public InvasionGarrisonArmyData? GarrisonArmy { get; }
 
-        // Zero never bands the other kingdoms together against the invasion's line.
-        public float CoalitionFiefShare { get; }
-
         // Zero lands a realm for every fallen kingdom, however many already fight.
         public int MaxRealms { get; }
-
-        // Zero never turns the coalition on a capital of the line before its other sieges.
-        public int CoalitionCapitalRing { get; }
-
-        // Zero keeps the coalition standing until the line is destroyed.
-        public float CoalitionDisbandFiefShare { get; }
     }
 
     public sealed class InvasionGarrisonArmyData
