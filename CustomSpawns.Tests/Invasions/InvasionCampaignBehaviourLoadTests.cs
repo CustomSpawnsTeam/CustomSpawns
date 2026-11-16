@@ -103,7 +103,8 @@ namespace CustomSpawns.Tests.Invasions
             var ratios = new ForceRatioRules();
             var coordinator = new InvasionCapitalObjectiveCoordinator(configurations.Object,
                 world.Object, new CapitalObjectiveStrengthRules(ratios),
-                new CapitalArmyMobilizationPlanner(), new SiegeTargetSelector(ratios));
+                new CapitalArmyMobilizationPlanner(), new SiegeTargetSelector(ratios),
+                new InvasionCapitalSuccession());
 
             SetPrivateField(behaviour, "_initialized", true);
             SetPrivateField(behaviour, "_invasionCapitalObjectiveWorld", null);

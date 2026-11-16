@@ -192,7 +192,26 @@ namespace CustomSpawns.Invasions.Adapters
             FindParty(commanderPartyId)?.Ai.SetDoNotMakeNewDecisions(false);
         }
 
-        public void RelocateCapitalAfterObjectiveCapture(string invasionId, string settlementId)
+        public IReadOnlyList<CapitalSuccessorFacts> FindHeldFiefs(string invasionId, string lostCapitalSettlementId)
+        {
+            Invasion? invasion = _state.FindInvasion(invasionId);
+            Settlement? lostCapital = Settlement.Find(lostCapitalSettlementId);
+            if (invasion == null || lostCapital == null)
+            {
+                return Array.Empty<CapitalSuccessorFacts>();
+            }
+
+            return Settlement.All
+                .Where(settlement => (settlement.IsTown || settlement.IsCastle) && settlement != lostCapital &&
+                                     invasion.HoldsClan(settlement.OwnerClan?.StringId))
+                .Select(settlement => new CapitalSuccessorFacts(settlement.StringId,
+                    settlement.IsTown ? SiegeTargetKind.Town : SiegeTargetKind.Castle,
+                    _coastalTownResolver.IsCoastalTown(settlement),
+                    lostCapital.GatePosition.Distance(settlement.GatePosition)))
+                .ToList();
+        }
+
+        public void RelocateCapital(string invasionId, string settlementId)
         {
             Kingdom? kingdom = FindKingdom(_state.FindInvasion(invasionId));
             if (kingdom != null)

@@ -11,19 +11,21 @@ namespace CustomSpawns.Invasions.CapitalObjectives
         private readonly CapitalObjectiveStrengthRules _capitalObjectiveStrengthRules;
         private readonly CapitalArmyMobilizationPlanner _capitalArmyMobilizationPlanner;
         private readonly SiegeTargetSelector _siegeTargetSelector;
+        private readonly InvasionCapitalSuccession _invasionCapitalSuccession;
 
         public InvasionCapitalObjectiveCoordinator(
             IInvasionAssaultConfigurationProvider invasionAssaultConfigurationProvider,
             IInvasionCapitalObjectiveWorld invasionCapitalObjectiveWorld,
             CapitalObjectiveStrengthRules capitalObjectiveStrengthRules,
             CapitalArmyMobilizationPlanner capitalArmyMobilizationPlanner,
-            SiegeTargetSelector siegeTargetSelector)
+            SiegeTargetSelector siegeTargetSelector, InvasionCapitalSuccession invasionCapitalSuccession)
         {
             _invasionAssaultConfigurationProvider = invasionAssaultConfigurationProvider;
             _invasionCapitalObjectiveWorld = invasionCapitalObjectiveWorld;
             _capitalObjectiveStrengthRules = capitalObjectiveStrengthRules;
             _capitalArmyMobilizationPlanner = capitalArmyMobilizationPlanner;
             _siegeTargetSelector = siegeTargetSelector;
+            _invasionCapitalSuccession = invasionCapitalSuccession;
         }
 
         public CapitalObjectiveUpdate UpdateHourly(Invasion invasion)
@@ -50,7 +52,12 @@ namespace CustomSpawns.Invasions.CapitalObjectives
                 objective?.CommanderPartyId);
 
             CapitalObjectiveDecision ownershipDecision = ReconcileCapitalOwnership(invasion,
-                capitalSettlementId, observation);
+                capitalSettlementId, observation, requirements);
+
+            if (ownershipDecision == CapitalObjectiveDecision.CapitalRelocated)
+            {
+                return new CapitalObjectiveUpdate(ownershipDecision, invasion.CapitalSettlementId);
+            }
 
             if (ownershipDecision == CapitalObjectiveDecision.Complete)
             {
@@ -161,6 +168,15 @@ namespace CustomSpawns.Invasions.CapitalObjectives
                 return new CapitalObjectiveUpdate(CapitalObjectiveDecision.ConfigurationMissing, null);
             }
 
+            // A fief fit to be the capital may have been taken since the lost one was given up on.
+            if (requirements.RelocatesCapitalOnLoss && !_invasionCapitalObjectiveWorld.Observe(invasion.ClanId,
+                    invasion.CapitalSettlementId, null, null).OwnsDesignatedCapital &&
+                RelocateLostCapital(invasion, invasion.CapitalSettlementId, requirements))
+            {
+                return new CapitalObjectiveUpdate(CapitalObjectiveDecision.CapitalRelocated,
+                    invasion.CapitalSettlementId);
+            }
+
             IReadOnlyList<CapitalArmyPartyCandidate> candidates =
                 _invasionCapitalObjectiveWorld.FindMobilizationCandidates(invasion.ClanId);
             CapitalArmyMobilizationPlan? plan = _capitalArmyMobilizationPlanner.Create(
@@ -202,7 +218,8 @@ namespace CustomSpawns.Invasions.CapitalObjectives
         }
 
         private CapitalObjectiveDecision ReconcileCapitalOwnership(Invasion invasion,
-            string capitalSettlementId, CapitalObjectiveObservation observation)
+            string capitalSettlementId, CapitalObjectiveObservation observation,
+            InvasionAssaultRequirements requirements)
         {
             InvasionCapitalObjective? objective = invasion.CapitalObjective;
 
@@ -211,6 +228,11 @@ namespace CustomSpawns.Invasions.CapitalObjectives
                 if (objective?.Kind != InvasionCapitalObjectiveKind.Attack ||
                     objective.DefenceSiegeEpisodeId != null)
                 {
+                    if (RelocateLostCapital(invasion, capitalSettlementId, requirements))
+                    {
+                        return CapitalObjectiveDecision.CapitalRelocated;
+                    }
+
                     invasion.BeginCapitalAttack(capitalSettlementId, observation.NowDays);
                     return CapitalObjectiveDecision.Gather;
                 }
@@ -370,6 +392,28 @@ namespace CustomSpawns.Invasions.CapitalObjectives
             return _siegeTargetSelector.FindClosest(candidates, criteria);
         }
 
+        // Moves the capital to a fief fit to take its place, when so configured, instead of setting out to retake it.
+        private bool RelocateLostCapital(Invasion invasion, string lostCapitalSettlementId,
+            InvasionAssaultRequirements requirements)
+        {
+            if (!requirements.RelocatesCapitalOnLoss)
+            {
+                return false;
+            }
+
+            string? successor = _invasionCapitalSuccession.FindSuccessor(requirements,
+                _invasionCapitalObjectiveWorld.FindHeldFiefs(invasion.ClanId, lostCapitalSettlementId));
+
+            if (successor == null)
+            {
+                return false;
+            }
+
+            _invasionCapitalObjectiveWorld.RelocateCapital(invasion.ClanId, successor);
+            invasion.RelocateCapital(successor);
+            return true;
+        }
+
         private CapitalObjectiveUpdate CompleteCapturedTarget(Invasion invasion,
             CapitalObjectiveObservation observation)
         {
@@ -377,8 +421,7 @@ namespace CustomSpawns.Invasions.CapitalObjectives
 
             if (!observation.OwnsDesignatedCapital)
             {
-                _invasionCapitalObjectiveWorld.RelocateCapitalAfterObjectiveCapture(invasion.ClanId,
-                    targetSettlementId);
+                _invasionCapitalObjectiveWorld.RelocateCapital(invasion.ClanId, targetSettlementId);
                 invasion.RelocateCapitalAfterObjectiveCapture(targetSettlementId);
             }
             else

@@ -9,8 +9,9 @@ namespace CustomSpawns.Data.Dto
             int bankedTroopsPerTownHeld = 0, string? supplyLine = null, int minimumCapitalGarrison = 0,
             int foodPerConvoy = 0, float foodConvoyIntervalInDays = 0f, int maxLords = 0, int lordsPerTownHeld = 0,
             int minimumFiefGarrison = 0, InvasionConquestData? conquest = null, int lordPartySizeBonus = 0,
-            string? followsInvasion = null)
+            string? followsInvasion = null, bool relocateCapitalOnLoss = false)
         {
+            RelocateCapitalOnLoss = relocateCapitalOnLoss;
             FollowsInvasion = followsInvasion;
             LordPartySizeBonus = lordPartySizeBonus;
             MinimumFiefGarrison = minimumFiefGarrison;
@@ -28,6 +29,9 @@ namespace CustomSpawns.Data.Dto
         }
 
         public bool RequiresFirstCoastalConquest { get; }
+
+        // Whether a lost capital moves to another fief the invasion holds instead of being retaken.
+        public bool RelocateCapitalOnLoss { get; }
 
         // Which supply doctrine the invasion lives under. Null means supplies come by sea.
         public string? SupplyLine { get; }

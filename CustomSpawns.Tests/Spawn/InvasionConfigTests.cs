@@ -395,6 +395,28 @@ namespace CustomSpawns.Tests.Spawn
         }
 
         [Test]
+        public void Adapt_RelocateCapitalOnLossIsReadAndOffWhenLeftOut()
+        {
+            const string rules = "<Reinforcements><Rule><Id>infantry</Id>" +
+                                 "<PartyTemplateId>PartyTemplate.reinforcements</PartyTemplateId>" +
+                                 "</Rule></Reinforcements>";
+            Spawns on = Read("<RegularBanditDailySpawnData party_template=\"PartyTemplate.invasion\"><Invasion>" +
+                             "<RelocateCapitalOnLoss>true</RelocateCapitalOnLoss>" + rules +
+                             "</Invasion></RegularBanditDailySpawnData>", out List<System.Exception> errors);
+            Spawns off = Read("<RegularBanditDailySpawnData party_template=\"PartyTemplate.invasion\"><Invasion>" +
+                              rules + "</Invasion></RegularBanditDailySpawnData>", out _);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(errors, Is.Empty);
+                Assert.That(InvasionDtoAdapter.Adapt(on.AllSpawns.Single().Invasion!).RelocateCapitalOnLoss,
+                    Is.True);
+                Assert.That(InvasionDtoAdapter.Adapt(off.AllSpawns.Single().Invasion!).RelocateCapitalOnLoss,
+                    Is.False);
+            });
+        }
+
+        [Test]
         public void DeserializeAndResolve_LegacyCoastalTownElementsAreIgnored()
         {
             const string invasion = "<Invasion><Foothold><CoastalTownIds><TownId>town_V7</TownId>" +

@@ -17,7 +17,8 @@ namespace CustomSpawns.Invasions.CapitalObjectives
         Complete = 7,
         ConfigurationMissing = 8,
         AbandonSiegeAborted = 9,
-        MobilizationFailed = 10
+        MobilizationFailed = 10,
+        CapitalRelocated = 11
     }
 
     public readonly struct CapitalObjectiveUpdate

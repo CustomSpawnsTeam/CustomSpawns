@@ -541,6 +541,18 @@ namespace CustomSpawns.Invasions
             CapitalObjective = null;
         }
 
+        // The capital moves to a fief the invasion already holds, and whatever it was doing about the old one is dropped.
+        public void RelocateCapital(string settlementId)
+        {
+            if (string.IsNullOrWhiteSpace(settlementId))
+            {
+                throw new ArgumentException("A capital settlement id is required.", nameof(settlementId));
+            }
+
+            CapitalSettlementId = settlementId;
+            CapitalObjective = null;
+        }
+
         public void RelocateCapitalAfterObjectiveCapture(string settlementId)
         {
             InvasionCapitalObjective objective = RequiredCapitalObjective();

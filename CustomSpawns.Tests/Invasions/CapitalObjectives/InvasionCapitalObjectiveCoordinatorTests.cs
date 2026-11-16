@@ -24,11 +24,66 @@ namespace CustomSpawns.Tests.Invasions.CapitalObjectives
             _world.MobilizationResult = Success("commander", "staging", "commander",
                 "follower");
 
+            _coordinator = Coordinator(Requirements());
+        }
+
+        [Test]
+        public void ALostCapitalMovesToAFitFiefTheInvasionHoldsWhenSoConfigured()
+        {
+            _coordinator = Coordinator(Requirements(relocatesCapitalOnLoss: true));
+            _world.HeldFiefs.Add(new CapitalSuccessorFacts("port", SiegeTargetKind.Town, true, 4f));
+            _world.Observation = Observation(1d, ownsCapital: false, capitalBesieged: false,
+                commanderEligible: true);
+
+            CapitalObjectiveUpdate update = _coordinator.UpdateHourly(_invasion);
+
+            Assert.That(update.Decision, Is.EqualTo(CapitalObjectiveDecision.CapitalRelocated));
+            Assert.That(update.TargetSettlementId, Is.EqualTo("port"));
+            Assert.That(_world.RelocatedSettlementId, Is.EqualTo("port"));
+            Assert.That(_invasion.CapitalSettlementId, Is.EqualTo("port"));
+            Assert.That(_invasion.CapitalObjective, Is.Null);
+        }
+
+        [Test]
+        public void ALostCapitalIsRetakenWhenNoHeldFiefIsFitToReplaceIt()
+        {
+            _coordinator = Coordinator(Requirements(relocatesCapitalOnLoss: true));
+            _world.Observation = Observation(1d, ownsCapital: false, capitalBesieged: false,
+                commanderEligible: true);
+
+            CapitalObjectiveUpdate update = _coordinator.UpdateHourly(_invasion);
+
+            Assert.That(update.Decision, Is.Not.EqualTo(CapitalObjectiveDecision.CapitalRelocated));
+            Assert.That(_world.RelocatedSettlementId, Is.Null);
+            Assert.That(_invasion.CapitalObjective!.Kind, Is.EqualTo(InvasionCapitalObjectiveKind.Attack));
+            Assert.That(_invasion.CapitalObjective!.TargetSettlementId, Is.EqualTo("capital"));
+        }
+
+        [Test]
+        public void ADormantInvasionMovesItsCapitalOnceItHoldsAFitFief()
+        {
+            _coordinator = Coordinator(Requirements(relocatesCapitalOnLoss: true));
+            _invasion.RestoreCapitalObjective(new InvasionCapitalObjective(InvasionCapitalObjectiveKind.Attack,
+                InvasionCapitalObjectivePhase.Dormant, null, null, null,
+                InvasionCapitalObjectiveDormantReason.AttackTimedOut, null));
+            _world.HeldFiefs.Add(new CapitalSuccessorFacts("port", SiegeTargetKind.Town, true, 4f));
+            _world.Observation = Observation(1d, ownsCapital: false, capitalBesieged: false,
+                commanderEligible: true);
+
+            CapitalObjectiveUpdate update = _coordinator.UpdateDaily(_invasion);
+
+            Assert.That(update.Decision, Is.EqualTo(CapitalObjectiveDecision.CapitalRelocated));
+            Assert.That(_invasion.CapitalSettlementId, Is.EqualTo("port"));
+            Assert.That(_world.MobilizationCalls, Is.Zero);
+        }
+
+        private InvasionCapitalObjectiveCoordinator Coordinator(InvasionAssaultRequirements requirements)
+        {
             var ratios = new ForceRatioRules();
-            _coordinator = new InvasionCapitalObjectiveCoordinator(
-                new FakeConfigurationProvider(Requirements()), _world,
-                new CapitalObjectiveStrengthRules(ratios),
-                new CapitalArmyMobilizationPlanner(), new SiegeTargetSelector(ratios));
+
+            return new InvasionCapitalObjectiveCoordinator(new FakeConfigurationProvider(requirements), _world,
+                new CapitalObjectiveStrengthRules(ratios), new CapitalArmyMobilizationPlanner(),
+                new SiegeTargetSelector(ratios), new InvasionCapitalSuccession());
         }
 
         [Test]
@@ -554,9 +609,9 @@ namespace CustomSpawns.Tests.Invasions.CapitalObjectives
                 Success("commander", "staging", "commander", "follower"), nowDays);
         }
 
-        private static InvasionAssaultRequirements Requirements() =>
+        private static InvasionAssaultRequirements Requirements(bool relocatesCapitalOnLoss = false) =>
             new(new[] { SiegeTargetKind.Town }, 1.5f, 1.2f, false,
-                InvasionSupplyLineKind.Coastal);
+                InvasionSupplyLineKind.Coastal, relocatesCapitalOnLoss);
 
         private static SiegeTargetFacts Viable(string settlementId, float distance) =>
             new(settlementId, SiegeTargetKind.Town, true, true, true, true, true, distance,
@@ -591,6 +646,7 @@ namespace CustomSpawns.Tests.Invasions.CapitalObjectives
             public CapitalObjectiveObservation Observation;
             public readonly List<CapitalArmyPartyCandidate> Candidates = new();
             public readonly List<SiegeTargetFacts> Targets = new();
+            public readonly List<CapitalSuccessorFacts> HeldFiefs = new();
             public CapitalArmyMobilizationResult MobilizationResult = null!;
             public CapitalArmyMobilizationPlan? LastPlan;
             public string? AdvancedCommander;
@@ -638,7 +694,10 @@ namespace CustomSpawns.Tests.Invasions.CapitalObjectives
                 AdvancedCommander = commanderPartyId;
             }
 
-            public void RelocateCapitalAfterObjectiveCapture(string invasionId, string settlementId)
+            public IReadOnlyList<CapitalSuccessorFacts> FindHeldFiefs(string invasionId,
+                string lostCapitalSettlementId) => HeldFiefs;
+
+            public void RelocateCapital(string invasionId, string settlementId)
             {
                 RelocatedSettlementId = settlementId;
             }

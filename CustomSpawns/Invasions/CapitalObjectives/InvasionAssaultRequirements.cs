@@ -16,7 +16,7 @@ namespace CustomSpawns.Invasions.CapitalObjectives
     {
         public InvasionAssaultRequirements(IReadOnlyList<SiegeTargetKind> targetKinds,
             float minimumTargetRatio, float minimumRoamingRatio, bool requiresOriginalCoastalTarget,
-            InvasionSupplyLineKind supplyLine)
+            InvasionSupplyLineKind supplyLine, bool relocatesCapitalOnLoss = false)
         {
             if (targetKinds == null || targetKinds.Count == 0)
             {
@@ -46,6 +46,7 @@ namespace CustomSpawns.Invasions.CapitalObjectives
             MinimumRoamingRatio = minimumRoamingRatio;
             RequiresOriginalCoastalTarget = requiresOriginalCoastalTarget;
             SupplyLine = supplyLine;
+            RelocatesCapitalOnLoss = relocatesCapitalOnLoss;
         }
 
         public IReadOnlyList<SiegeTargetKind> TargetKinds { get; }
@@ -53,6 +54,9 @@ namespace CustomSpawns.Invasions.CapitalObjectives
         public float MinimumRoamingRatio { get; }
         public bool RequiresOriginalCoastalTarget { get; }
         public InvasionSupplyLineKind SupplyLine { get; }
+
+        // Whether a lost capital moves to another fief the invasion holds instead of being retaken.
+        public bool RelocatesCapitalOnLoss { get; }
 
         public bool MatchesStrategicRequirement(bool isTown, bool isCoastalTown)
         {

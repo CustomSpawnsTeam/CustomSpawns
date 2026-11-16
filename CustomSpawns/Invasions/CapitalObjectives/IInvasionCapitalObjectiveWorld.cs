@@ -17,6 +17,8 @@ namespace CustomSpawns.Invasions.CapitalObjectives
         IReadOnlyList<string> InviteToArmy(string invasionId, string commanderPartyId,
             IReadOnlyList<string> partyIds);
         void BeginAdvance(string commanderPartyId);
-        void RelocateCapitalAfterObjectiveCapture(string invasionId, string settlementId);
+        IReadOnlyList<CapitalSuccessorFacts> FindHeldFiefs(string invasionId, string lostCapitalSettlementId);
+
+        void RelocateCapital(string invasionId, string settlementId);
     }
 }

@@ -74,7 +74,7 @@ namespace CustomSpawns.Invasions.Adapters
             return new InvasionAssaultRequirements(targetKinds,
                 selected.MinimumAttackerToTargetRatio,
                 selected.MinimumAttackerToRoamingHostilesRatio,
-                spawn.Invasion.RequiresFirstCoastalConquest, supplyLine);
+                spawn.Invasion.RequiresFirstCoastalConquest, supplyLine, spawn.Invasion.RelocateCapitalOnLoss);
         }
 
         private static SiegeTargetKind? MapTargetKind(SpawnSettlementType targetType)

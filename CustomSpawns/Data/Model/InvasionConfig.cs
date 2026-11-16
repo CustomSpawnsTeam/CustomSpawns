@@ -10,6 +10,12 @@ namespace CustomSpawns.Data.Model
         [XmlElement("RequiresFirstCoastalConquest")]
         public bool RequiresFirstCoastalConquest { get; set; }
 
+        // When the capital falls, the nearest fief the invasion holds that could have been its first conquest, a
+        // coastal town for one that must land on the coast, becomes its capital instead of the invasion setting out
+        // to retake the old one. Left out, the invasion retakes it.
+        [XmlElement("RelocateCapitalOnLoss")]
+        public bool RelocateCapitalOnLoss { get; set; }
+
         // Where the invasion's supplies may come from: Coastal, Any or None. Left out, supplies come by
         // sea, which is what every invasion did before there was a choice.
         [XmlElement("SupplyLine")]

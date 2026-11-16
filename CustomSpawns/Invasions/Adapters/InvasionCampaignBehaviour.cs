@@ -686,7 +686,8 @@ namespace CustomSpawns.Invasions.Adapters
             _invasionCapitalObjectiveCoordinator = new InvasionCapitalObjectiveCoordinator(
                 _invasionAssaultConfigurationProvider, _invasionCapitalObjectiveWorld,
                 new CapitalObjectiveStrengthRules(forceRatioRules),
-                new CapitalArmyMobilizationPlanner(), new SiegeTargetSelector(forceRatioRules));
+                new CapitalArmyMobilizationPlanner(), new SiegeTargetSelector(forceRatioRules),
+                new InvasionCapitalSuccession());
         }
 
         private void UpdateCapitalObjectivesHourly()
