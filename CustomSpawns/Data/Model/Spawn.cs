@@ -88,6 +88,7 @@ namespace CustomSpawns.Data.Model
         [XmlElement(ElementName="PatrolAroundClosestLestInterruptedAndSwitch")]
         public PatrolAroundConfig? PatrolAroundConfig { get; set; }
 
+        // Makes the spawn an invasion that takes and holds fiefs. Left out, the spawn is an ordinary party.
         [XmlElement(ElementName = "Invasion")]
         public InvasionConfig? Invasion { get; set; }
 

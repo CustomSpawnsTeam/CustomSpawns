@@ -5,8 +5,16 @@ using CustomSpawns.Invasions.Reinforcements;
 
 namespace CustomSpawns.Data.Model
 {
+    /**
+     * Turns a spawn into an invasion: a clan that takes a fief for its capital, banks the men its waves bring in
+     * that capital's garrison and conquers from there. Every setting left out keeps vanilla's behaviour or the
+     * invasion's default.
+     */
     public sealed class InvasionConfig
     {
+        // The invasion's first conquest, and so its capital, must be a fief its supply line can be fed through,
+        // a coastal town for supplies that come by sea: its parties besiege nothing else until they hold one, and
+        // gather their strength before that first siege. Left out, they take whatever fief vanilla would.
         [XmlElement("RequiresFirstCoastalConquest")]
         public bool RequiresFirstCoastalConquest { get; set; }
 
@@ -63,6 +71,7 @@ namespace CustomSpawns.Data.Model
         [XmlElement("Conquest")]
         public InvasionConquestConfig? Conquest { get; set; }
 
+        // The waves that bring the invasion its men and lords once it holds a capital. Required.
         [XmlElement("Reinforcements")]
         public InvasionReinforcementsConfig Reinforcements { get; set; } = new();
     }
@@ -122,6 +131,7 @@ namespace CustomSpawns.Data.Model
 
     public sealed class InvasionReinforcementsConfig
     {
+        // Each rule sends waves on its own clock, all into the same bank. At least one is required.
         [XmlElement("Rule")]
         public List<InvasionReinforcementRuleConfig> Rules { get; set; } = new();
     }
@@ -133,9 +143,12 @@ namespace CustomSpawns.Data.Model
         [XmlElement("Id")]
         public string? Id { get; set; }
 
+        // The party template each wave rolls its men from. Required.
         [XmlElement("PartyTemplateId")]
         public string? PartyTemplateId { get; set; }
 
+        // The days between two waves, at least one, counted from the day the invasion takes its capital. Left
+        // out, a wave arrives every week.
         [XmlElement("IntervalInDays")]
         public float IntervalInDays { get; set; } = 7f;
 
