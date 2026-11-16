@@ -434,6 +434,13 @@ namespace CustomSpawns.Invasions
             !founder.IsEliminated && founder.HasLeader &&
             (founder.KingdomId == null || founder.KingdomId == kingdomId);
 
+        // The clan leading the invasion takes back the crown of its realm from a clan not of the invasion: a lord
+        // who defected into the realm and was elected to rule it would turn the realm against its own line.
+        public bool ShouldReclaimCrown(string kingdomId, string? rulingClanId, bool kingdomIsEliminated,
+            string? leadingClanId, string? leadingClanKingdomId) =>
+            !kingdomIsEliminated && leadingClanId != null && leadingClanKingdomId == kingdomId &&
+            rulingClanId != null && rulingClanId != ClanId && !HoldsClan(rulingClanId);
+
         public string? FindClanWithRoom(
             Func<string, (bool IsEliminated, Func<(int WarParties, int WarPartyLimit)> PartyCapacity)?> findClan)
         {

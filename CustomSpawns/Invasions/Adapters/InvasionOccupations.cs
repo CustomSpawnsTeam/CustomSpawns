@@ -80,31 +80,62 @@ namespace CustomSpawns.Invasions.Adapters
          */
         public void KeepCrowns()
         {
+            var realmIds = new HashSet<string>(_invasionCapitals.FindAll().Select(capital => capital.InvaderKingdomId));
+
             foreach (Kingdom kingdom in Kingdom.All.ToList())
             {
-                Invasion? invasion = _invasionState.FindInvasionHolding(kingdom.RulingClan?.StringId);
-                Clan? founder = invasion == null
-                    ? null
-                    : Clan.FindFirst(candidate => candidate.StringId == invasion.ClanId);
+                if (!RestoreFounder(kingdom) && realmIds.Contains(kingdom.StringId))
+                {
+                    ReclaimFromForeignRuler(kingdom);
+                }
+            }
+        }
 
-                if (invasion == null || founder == null ||
-                    !invasion.ShouldRestoreCrown(kingdom.StringId, kingdom.RulingClan?.StringId, kingdom.IsEliminated,
-                        (founder.IsEliminated, founder.Leader != null, founder.Kingdom?.StringId)))
+        private bool RestoreFounder(Kingdom kingdom)
+        {
+            Invasion? invasion = _invasionState.FindInvasionHolding(kingdom.RulingClan?.StringId);
+            Clan? founder = invasion == null
+                ? null
+                : Clan.FindFirst(candidate => candidate.StringId == invasion.ClanId);
+
+            if (invasion == null || founder == null ||
+                !invasion.ShouldRestoreCrown(kingdom.StringId, kingdom.RulingClan?.StringId, kingdom.IsEliminated,
+                    (founder.IsEliminated, founder.Leader != null, founder.Kingdom?.StringId)))
+            {
+                return false;
+            }
+
+            // Crowned before it rejoins: the no-kingdom policy evicts it again the moment it joins a realm
+            // it does not rule.
+            ChangeRulingClanAction.Apply(kingdom, founder);
+
+            if (founder.Kingdom == null)
+            {
+                ChangeKingdomAction.ApplyByJoinToKingdom(founder, kingdom, default, false);
+            }
+
+            Logger.Info("Invasion crown restored: invasion=" + invasion.ClanId + " kingdom=" +
+                        kingdom.StringId);
+            return true;
+        }
+
+        // An invasion realm a clan not of the invasion came to rule goes back to the invasion's leading clan.
+        private void ReclaimFromForeignRuler(Kingdom kingdom)
+        {
+            foreach (Invasion invasion in _invasionState.Invasions)
+            {
+                Clan? leader = invasion.FindLeadingClan();
+
+                if (leader?.Leader == null || !invasion.ShouldReclaimCrown(kingdom.StringId,
+                        kingdom.RulingClan?.StringId, kingdom.IsEliminated, leader.StringId, leader.Kingdom?.StringId))
                 {
                     continue;
                 }
 
-                // Crowned before it rejoins: the no-kingdom policy evicts it again the moment it joins a realm
-                // it does not rule.
-                ChangeRulingClanAction.Apply(kingdom, founder);
-
-                if (founder.Kingdom == null)
-                {
-                    ChangeKingdomAction.ApplyByJoinToKingdom(founder, kingdom, default, false);
-                }
-
-                Logger.Info("Invasion crown restored: invasion=" + invasion.ClanId + " kingdom=" +
-                            kingdom.StringId);
+                Logger.Info("Invasion crown reclaimed: invasion=" + invasion.ClanId + " kingdom=" +
+                            kingdom.StringId + " from=" + kingdom.RulingClan?.StringId + " to=" + leader.StringId);
+                ChangeRulingClanAction.Apply(kingdom, leader);
+                return;
             }
         }
 

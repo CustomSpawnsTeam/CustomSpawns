@@ -48,6 +48,36 @@ namespace CustomSpawns.Tests.Invasions
                 (eliminated, hasLeader, founderKingdomId)));
         }
 
+        [TestCase("founder")]
+        [TestCase("expanded-clan")]
+        public void ALeadingClanInItsRealmReclaimsTheCrownFromAForeignRuler(string leadingClanId)
+        {
+            Assert.True(_invasion.ShouldReclaimCrown("kingdom", "foreign-clan", false, leadingClanId, "kingdom"));
+        }
+
+        [TestCase("founder")]
+        [TestCase("expanded-clan")]
+        [TestCase(null)]
+        public void AnInvasionRulerOrAnEmptyThroneIsNotReclaimed(string? rulingClanId)
+        {
+            Assert.False(_invasion.ShouldReclaimCrown("kingdom", rulingClanId, false, "founder", "kingdom"));
+        }
+
+        [TestCase(null)]
+        [TestCase("other-kingdom")]
+        public void ALeadingClanOutsideTheRealmClaimsNoCrown(string? leadingClanKingdomId)
+        {
+            Assert.False(_invasion.ShouldReclaimCrown("kingdom", "foreign-clan", false, "founder",
+                leadingClanKingdomId));
+        }
+
+        [Test]
+        public void AnEliminatedRealmOrALeaderlessInvasionReclaimsNoCrown()
+        {
+            Assert.False(_invasion.ShouldReclaimCrown("kingdom", "foreign-clan", true, "founder", "kingdom"));
+            Assert.False(_invasion.ShouldReclaimCrown("kingdom", "foreign-clan", false, null, "kingdom"));
+        }
+
         [Test]
         public void SuspensionAndSpentForcesDoNotChangeCrownEligibility()
         {
