@@ -2,8 +2,8 @@ namespace CustomSpawns.Invasions
 {
     /**
      * Whether a lord rides into a battle its allies fight nearby. Vanilla weighs a battle with its own realm's
-     * strength alone, so a lord of one kingdom of a coalition shies from the line's army another kingdom is already
-     * beating, and the coalition fights its battles one realm at a time.
+     * strength alone, so a lord of one kingdom shies from an invasion's army another kingdom is already beating, and a
+     * lord of one realm of a line flees the army another realm of the line is fighting.
      */
     public sealed class InvasionAlliedBattles
     {
@@ -34,6 +34,14 @@ namespace CustomSpawns.Invasions
                 ? 0f
                 : BattlePreference * System.Math.Min(MaximumAdvantageScore, 0.5f * (1f + advantage));
         }
+
+        /**
+         * Whether a lord may ride against the enemy of an allied battle, a coalition formed or not: it is at war with
+         * that enemy, and the enemy is an invasion realm, or a kingdom fought by an invasion realm's lord. Bandits and
+         * minor clans are left to vanilla, so a line's lords keep to its conquest.
+         */
+        public bool AreRivals(bool isInvasionRealm, bool enemyIsInvasionRealm, bool enemyIsKingdom, bool isAtWar) =>
+            isAtWar && (enemyIsInvasionRealm || (isInvasionRealm && enemyIsKingdom));
 
         /**
          * Whether joining the battle replaces vanilla's initiative: when it is wanted more, or when vanilla would flee

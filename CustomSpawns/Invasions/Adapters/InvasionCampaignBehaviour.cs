@@ -148,7 +148,7 @@ namespace CustomSpawns.Invasions.Adapters
                 bannerlordInvasionSiegeOffers, invasionCoalitionWarScores);
             _bannerlordInvasionCoalitionHunts = new BannerlordInvasionCoalitionHunts(
                 bannerlordInvasionCoalitionFronts, invasionCoalitionWarScores);
-            BannerlordInvasionAlliedBattles = new BannerlordInvasionAlliedBattles(bannerlordInvasionCoalitionFronts,
+            BannerlordInvasionAlliedBattles = new BannerlordInvasionAlliedBattles(bannerlordInvasionRealms,
                 new InvasionAlliedBattles());
             _bannerlordInvasionCallsToWar = new BannerlordInvasionCallsToWar(bannerlordInvasionRealms,
                 invasionConquests, new InvasionRebellions(invasionConquests));

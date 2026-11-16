@@ -10,9 +10,9 @@ using TaleWorlds.Core;
 namespace CustomSpawns.Invasions.Adapters
 {
     /**
-     * Sends the lords of a coalition into the field battles the other kingdoms of the coalition fight against the
-     * line nearby, and the line's lords into those of the line's other realms, as vanilla does for a battle of the
-     * lord's own realm. A lord riding in another's army, at sea or held by a siege is left to vanilla.
+     * Sends a lord into the field battles fought nearby against an invasion realm it is at war with, or, for a lord of
+     * an invasion realm, against a kingdom it is at war with, as vanilla does for a battle of the lord's own realm, a
+     * coalition formed or not. A lord riding in another's army, at sea or held by a siege is left to vanilla.
      */
     public sealed class BannerlordInvasionAlliedBattles
     {
@@ -21,13 +21,16 @@ namespace CustomSpawns.Invasions.Adapters
         // How far vanilla looks for a battle to join, in encounter joining radii.
         private const float SightInJoiningRadii = 6f;
         private const float MinimumAggressiveness = 0.01f;
-        private readonly BannerlordInvasionCoalitionFronts _bannerlordInvasionCoalitionFronts;
+        private readonly BannerlordInvasionRealms _bannerlordInvasionRealms;
         private readonly InvasionAlliedBattles _invasionAlliedBattles;
 
-        public BannerlordInvasionAlliedBattles(BannerlordInvasionCoalitionFronts bannerlordInvasionCoalitionFronts,
+        // The battle each lord was last logged joining: vanilla asks a lord's initiative several times a tick.
+        private readonly Dictionary<MobileParty, MapEvent> _loggedBattles = new();
+
+        public BannerlordInvasionAlliedBattles(BannerlordInvasionRealms bannerlordInvasionRealms,
             InvasionAlliedBattles invasionAlliedBattles)
         {
-            _bannerlordInvasionCoalitionFronts = bannerlordInvasionCoalitionFronts;
+            _bannerlordInvasionRealms = bannerlordInvasionRealms;
             _invasionAlliedBattles = invasionAlliedBattles;
         }
 
@@ -45,6 +48,7 @@ namespace CustomSpawns.Invasions.Adapters
             float strength = party.Army?.EstimatedStrength ?? party.Party.EstimatedStrength;
             MapEventSide? bestEnemySide = null;
             float bestScore = 0f;
+            bool fled = false;
 
             foreach (MapEventSide enemySide in FindEnemySides(party))
             {
@@ -58,6 +62,7 @@ namespace CustomSpawns.Invasions.Adapters
                 {
                     bestEnemySide = enemySide;
                     bestScore = joinScore;
+                    fled = isFleeingTheBattle;
                 }
             }
 
@@ -69,8 +74,18 @@ namespace CustomSpawns.Invasions.Adapters
             behavior = AiBehavior.EngageParty;
             targetParty = bestEnemySide.LeaderParty.MobileParty;
             score = bestScore;
-            Logger.Debug("Invasion allied battle joined: party=" + party.StringId + " enemy=" +
-                         targetParty.StringId + " strength=" + strength + " score=" + bestScore);
+
+            if (_loggedBattles.TryGetValue(party, out MapEvent logged) && logged == bestEnemySide.MapEvent)
+            {
+                return;
+            }
+
+            _loggedBattles[party] = bestEnemySide.MapEvent;
+            Logger.Info("Invasion allied battle joined: party=" + party.StringId + " faction=" +
+                        party.MapFaction.StringId + " enemy=" + targetParty.StringId + " enemy_faction=" +
+                        targetParty.MapFaction?.StringId + " strength=" + strength + " allies=" +
+                        FindStrength(bestEnemySide.OtherSide) + " enemy_strength=" + FindStrength(bestEnemySide) +
+                        " score=" + bestScore + " fled=" + fled + " day=" + (int)CampaignTime.Now.ToDays);
         }
 
         // The enemy's side of each field battle nearby the lord can join, its allies fighting the other side.
@@ -108,16 +123,17 @@ namespace CustomSpawns.Invasions.Adapters
             }
         }
 
+        // An invasion realm, or a kingdom at war with one.
         private bool IsInvasionSide(IFaction faction) =>
-            _bannerlordInvasionCoalitionFronts.IsMember(faction) ||
-            _bannerlordInvasionCoalitionFronts.IsLineRealm(faction);
+            IsInvasionRealm(faction) ||
+            Kingdom.All.Any(kingdom => !kingdom.IsEliminated && IsInvasionRealm(kingdom) && faction.IsAtWarWith(kingdom));
 
-        // A coalition against a line, or a line against a kingdom of the coalition.
         private bool IsRival(IFaction faction, IFaction enemy) =>
-            (_bannerlordInvasionCoalitionFronts.IsMember(faction) &&
-             _bannerlordInvasionCoalitionFronts.IsLineRealm(enemy)) ||
-            (_bannerlordInvasionCoalitionFronts.IsLineRealm(faction) &&
-             _bannerlordInvasionCoalitionFronts.IsMember(enemy));
+            _invasionAlliedBattles.AreRivals(IsInvasionRealm(faction), IsInvasionRealm(enemy), enemy is Kingdom,
+                faction.IsAtWarWith(enemy));
+
+        private bool IsInvasionRealm(IFaction faction) =>
+            _bannerlordInvasionRealms.FindInvasionClanId(faction) != null;
 
         private static float FindStrength(MapEventSide side) =>
             side.Parties.Sum(battleParty => battleParty.Party.EstimatedStrength);

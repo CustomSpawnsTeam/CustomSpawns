@@ -64,6 +64,40 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
+        public void ALordOfALineRidesAgainstAKingdomItIsAtWarWithBeforeAnyCoalition()
+        {
+            Assert.That(_invasionAlliedBattles.AreRivals(true, false, true, true), Is.True);
+        }
+
+        [Test]
+        public void AKingdomRidesAgainstAnInvasionRealmItIsAtWarWith()
+        {
+            Assert.That(_invasionAlliedBattles.AreRivals(false, true, true, true), Is.True);
+        }
+
+        [Test]
+        public void TwoKingdomsAtWarAreLeftToVanilla()
+        {
+            Assert.That(_invasionAlliedBattles.AreRivals(false, false, true, true), Is.False);
+        }
+
+        [Test]
+        public void ALordOfALineLeavesBanditsAndMinorClansToVanilla()
+        {
+            Assert.That(_invasionAlliedBattles.AreRivals(true, false, false, true), Is.False);
+        }
+
+        [Test]
+        public void NoLordRidesAgainstAFactionItIsAtPeaceWith()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(_invasionAlliedBattles.AreRivals(true, false, true, false), Is.False);
+                Assert.That(_invasionAlliedBattles.AreRivals(false, true, true, false), Is.False);
+            });
+        }
+
+        [Test]
         public void ABattleBelowVanillasThresholdIsNeverJoined()
         {
             Assert.That(_invasionAlliedBattles.OverridesInitiative(0.9f, 0f, true), Is.False);
