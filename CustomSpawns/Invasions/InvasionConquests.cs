@@ -98,6 +98,20 @@ namespace CustomSpawns.Invasions
         public IEnumerable<InvasionConquest> FindAllies(InvasionConquest conquest) =>
             All.Where(other => AreAllied(conquest.InvasionClanId, other.InvasionClanId));
 
+        // The whole line a conquest is of: its allies, theirs, and so on. Allies are named through a shared leader,
+        // so a follower one realm of the line launched is that realm's ally alone, yet of the same line.
+        public List<InvasionConquest> FindLine(InvasionConquest conquest)
+        {
+            var line = new List<InvasionConquest> { conquest };
+
+            for (int i = 0; i < line.Count; i++)
+            {
+                line.AddRange(FindAllies(line[i]).Where(ally => !line.Contains(ally)).ToList());
+            }
+
+            return line;
+        }
+
         /**
          * The allies a war on one realm of a line calls in: every other realm of that line, as a war with one of
          * them is a war with all of them. None when the enemy is a realm of the same line.

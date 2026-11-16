@@ -196,6 +196,24 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
+        public void AFollowerOneRealmLaunchedIsOfTheWholeLineThoughAllyOfThatRealmAlone()
+        {
+            InvasionConquest leader = _invasionConquests.Begin("humar", "vlandia", 10)!;
+            InvasionConquest second = _invasionConquests.BeginFollowing("humar_2", leader, "aserai", 11)!;
+            _invasionConquests.BeginFollowing("humar_4", leader, "sturgia", 12);
+            InvasionConquest fifth = _invasionConquests.BeginFollowing("humar_5", second, "empire", 13)!;
+            _invasionConquests.Begin("makko", "battania", 14);
+            _invasionConquests.Forget("humar");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(_invasionConquests.AreAllied("humar_5", "humar_4"), Is.False);
+                Assert.That(_invasionConquests.FindLine(fifth).Select(conquest => conquest.InvasionClanId),
+                    Is.EquivalentTo(new[] { "humar_5", "humar_2", "humar_4" }));
+            });
+        }
+
+        [Test]
         public void AWarOnOneRealmOfTheLineCallsInEveryOtherRealm()
         {
             InvasionConquest leader = _invasionConquests.Begin("humar", "vlandia", 10)!;

@@ -133,7 +133,8 @@ namespace CustomSpawns.Invasions.Adapters
                 InvasionConquestRules? rules = invasion == null
                     ? null
                     : _bannerlordInvasionConfigurations.FindConquestRules(invasion.SpawnTemplateId);
-                List<IFaction> realms = _bannerlordInvasionLines.FindRealms(conquest);
+                List<IFaction> realms = _invasionConquests.FindLine(conquest)
+                    .Select(_bannerlordInvasionRealms.FindRealm).OfType<IFaction>().Distinct().ToList();
 
                 // Every realm of a line names the same line, so each is counted once.
                 if (rules == null || lines.Any(line => line.Item2.Intersect(realms).Any()))
