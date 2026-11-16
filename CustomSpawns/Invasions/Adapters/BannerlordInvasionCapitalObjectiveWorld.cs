@@ -213,7 +213,13 @@ namespace CustomSpawns.Invasions.Adapters
 
         public void RelocateCapital(string invasionId, string settlementId)
         {
-            Kingdom? kingdom = FindKingdom(_state.FindInvasion(invasionId));
+            Invasion? invasion = _state.FindInvasion(invasionId);
+            if (invasion != null)
+            {
+                _state.TakeFoothold(settlementId, invasion);
+            }
+
+            Kingdom? kingdom = FindKingdom(invasion);
             if (kingdom != null)
             {
                 _invasionCapitals.RelocateAfterObjectiveCapture(kingdom.StringId, settlementId);

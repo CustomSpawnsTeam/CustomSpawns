@@ -77,6 +77,12 @@ namespace CustomSpawns.Invasions
         public InvasionFoothold? FindFoothold(string settlementId) => FootholdIndex.TryGetValue(settlementId, out var foothold) ? foothold : null;
         public InvasionCapture? FindCapture(long id) => CaptureIndex.TryGetValue(id, out var capture) ? capture : null;
 
+        // A fief its realm holds becomes the invasion's foothold, though no siege of its own took it: so a capital
+        // moved there is held. A capture the fief came from is kept.
+        public void TakeFoothold(string settlementId, Invasion invasion) =>
+            FootholdIndex[settlementId] = new InvasionFoothold(settlementId, invasion.ClanId,
+                FindFoothold(settlementId)?.CaptureId ?? 0);
+
         /**
          * The live invasion a clan fights for. Vanilla rebuilds a living invasion party under a party name
          * no recognition path of ours matches, and this is the invasion that has to take it back: the clan

@@ -333,6 +333,15 @@ namespace CustomSpawns.Tests.Invasions
         }
 
         [Test]
+        public void ACapitalMovedToAFiefItsRealmTookWithoutTheInvasionIsHeld()
+        {
+            _invasion.RelocateCapital("successor");
+            _state.TakeFoothold("successor", _invasion);
+
+            Assert.True(_state.HoldsCapital(_invasion));
+        }
+
+        [Test]
         public void ASpentInvasionStopsProtectingItsKingdomAndIsHeldUntilTheKingdomRetires()
         {
             Conquer();
