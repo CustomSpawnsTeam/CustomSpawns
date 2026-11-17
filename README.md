@@ -30,3 +30,5 @@ The CustomSpawns folder must be placed directly under your Module folder. Curren
 
 Priority patrol, raid, and siege configuration is documented in [Priority party behaviour XML API](docs/party-behaviour-api.md).
 
+Invasions, spawns that land, found a realm and conquer kingdom after kingdom, are explained in [Invasions](docs/invasions.md).
+
