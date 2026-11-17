@@ -18,7 +18,6 @@ namespace CustomSpawns.Invasions.Reinforcements
             LordsPerTownHeld = lordsPerTownHeld;
         }
 
-        // The men are rolled off this template.
         public string PartyTemplateId { get; }
         public float IntervalInDays { get; }
         public int LordsPerWave { get; }
@@ -78,7 +77,7 @@ namespace CustomSpawns.Invasions.Reinforcements
         int? FindMinimumCapitalGarrison(string spawnTemplateId);
     }
 
-    // Where a wave's men land. Bannerlord access stays behind this boundary.
+    // Where a wave's men land.
     public interface IInvasionGarrisonDeposits
     {
         // Rolls a party template's men, at most maxMen of them, into the settlement's garrison and says how

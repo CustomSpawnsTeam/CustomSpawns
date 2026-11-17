@@ -12,7 +12,6 @@ namespace CustomSpawns.Invasions.GarrisonArmies
         // The fewest days between two armies raised out of the capital's garrison.
         public float IntervalInDays { get; }
 
-        // The share of the garrison's men an army takes.
         public float GarrisonShare { get; }
 
         // The garrison an army, like the invasion's lords, never draws the capital below.

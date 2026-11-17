@@ -46,7 +46,7 @@ namespace CustomSpawns.Invasions.Reinforcements
         public IReadOnlyList<InvasionWarbandUpkeep> Warbands { get; }
     }
 
-    // The clans' gold. Bannerlord access stays behind this boundary.
+    // The clans' gold.
     public interface IInvasionTreasury
     {
         // Null for a clan that is gone or has no leader to hold its purse.
@@ -60,7 +60,7 @@ namespace CustomSpawns.Invasions.Reinforcements
         void Give(string clanId, int gold);
     }
 
-    // The warbands' food. Bannerlord access stays behind this boundary.
+    // The warbands' food.
     public interface IInvasionCommissariat
     {
         int FindMenPerFoodPerDay();

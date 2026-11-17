@@ -3,7 +3,6 @@ using CustomSpawns.Data.Dto;
 
 namespace CustomSpawns.Invasions.GarrisonArmies.Adapters
 {
-    // Reads each invasion's garrison army out of its spawn's configuration.
     public sealed class BannerlordInvasionGarrisonArmyConfigurations
     {
         private readonly SpawnDao _spawnDao;

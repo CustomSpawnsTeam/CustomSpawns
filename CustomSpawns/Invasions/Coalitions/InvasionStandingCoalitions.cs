@@ -24,7 +24,6 @@ namespace CustomSpawns.Invasions.Coalitions
             return _lineIds.Contains(lineId);
         }
 
-        // Breaks up the coalition against every line but those still standing.
         public void DisbandAllBut(IEnumerable<string> standingLineIds) =>
             _lineIds.IntersectWith(standingLineIds.ToList());
 
