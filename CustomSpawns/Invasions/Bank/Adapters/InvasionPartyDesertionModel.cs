@@ -54,7 +54,7 @@ namespace CustomSpawns.Invasions.Bank.Adapters
 
             if (vanillaDeserters.TotalManCount > 0 || unpaidDesertions > 0)
             {
-                Logger.Info("Invasion garrison desertion: settlement=" + mobileParty.CurrentSettlement?.StringId +
+                Logger.Debug("Invasion garrison desertion: settlement=" + mobileParty.CurrentSettlement?.StringId +
                             " owner=" + mobileParty.CurrentSettlement?.OwnerClan?.StringId +
                             " troops=" + mobileParty.MemberRoster.TotalManCount +
                             " size_limit=" + mobileParty.Party.PartySizeLimit +

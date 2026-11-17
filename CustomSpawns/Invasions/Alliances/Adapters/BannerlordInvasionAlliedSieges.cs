@@ -72,7 +72,7 @@ namespace CustomSpawns.Invasions.Alliances.Adapters
             }
 
             EncounterManager.StartSettlementEncounter(party, settlement);
-            Logger.Info("Invasion allied siege joined: party=" + party.StringId + " fief=" + settlement.StringId +
+            Logger.Debug("Invasion allied siege joined: party=" + party.StringId + " fief=" + settlement.StringId +
                         " camp=" + camp.LeaderParty?.StringId + " joined=" + (party.BesiegerCamp == camp));
         }
 

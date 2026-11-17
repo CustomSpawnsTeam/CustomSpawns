@@ -52,7 +52,7 @@ namespace CustomSpawns.UtilityBehaviours
             if (!_previousStates.TryGetValue(party, out string previousState))
             {
                 _previousStates.Add(party, currentState);
-                _dailyLogger.Info("[" + party.StringId + "][" + party.Name + "] AI state observed" +
+                _dailyLogger.Trace("[" + party.StringId + "][" + party.Name + "] AI state observed" +
                     " | source=partial_hourly_ai" +
                     " | " + currentState +
                     DescribeTargetPositions(party) +
@@ -66,7 +66,7 @@ namespace CustomSpawns.UtilityBehaviours
             }
 
             _previousStates[party] = currentState;
-            _dailyLogger.Info("[" + party.StringId + "][" + party.Name + "] AI state changed" +
+            _dailyLogger.Trace("[" + party.StringId + "][" + party.Name + "] AI state changed" +
                 " | source=partial_hourly_ai" +
                 " | previous={" + previousState + "}" +
                 " | current={" + currentState + "}" +

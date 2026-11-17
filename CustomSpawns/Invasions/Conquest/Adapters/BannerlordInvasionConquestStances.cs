@@ -136,7 +136,7 @@ namespace CustomSpawns.Invasions.Conquest.Adapters
 
             List<IFaction> realms = _bannerlordInvasionLines.FindRealms(conquest, invader);
 
-            Logger.Info("Invasion threat: spawn=" + invasion.SpawnTemplateId + " target=" + conquest.TargetKingdomId +
+            Logger.Debug("Invasion threat: spawn=" + invasion.SpawnTemplateId + " target=" + conquest.TargetKingdomId +
                         " fiefs=" + invader.Fiefs.Count + " line_fiefs=" + realms.Sum(realm => realm.Fiefs.Count) +
                         " threat=" + _bannerlordInvasionLines.FindThreat(
                             _bannerlordInvasionConfigurations.FindConquestRules(invasion.SpawnTemplateId)!.Value,

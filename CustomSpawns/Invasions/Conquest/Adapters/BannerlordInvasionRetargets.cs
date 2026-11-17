@@ -70,7 +70,7 @@ namespace CustomSpawns.Invasions.Conquest.Adapters
             }
 
             conquest.Retarget(kingdomId, CampaignTime.Now.ToDays);
-            Logger.Info("Invasion conquest: reconsidered spawn=" + invasion.SpawnTemplateId + " from=" +
+            Logger.Debug("Invasion conquest: reconsidered spawn=" + invasion.SpawnTemplateId + " from=" +
                         previousTargetId + " target=" + kingdomId + " fiefs=" + invader.Fiefs.Count +
                         " neighbours=[" + _bannerlordInvasionNeighbours.Format(neighbours) + "] day=" +
                         CampaignTime.Now.ToDays);

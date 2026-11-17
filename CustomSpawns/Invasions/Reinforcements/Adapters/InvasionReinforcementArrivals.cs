@@ -22,6 +22,7 @@ namespace CustomSpawns.Invasions.Reinforcements.Adapters
      */
     public sealed class InvasionReinforcementArrivals : IInvasionReinforcementQuery
     {
+        private const int WeeklyStrengthDays = 7;
         private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         private readonly InvasionState _invasionState;
         private readonly SpawnDao _spawnDao;
@@ -79,6 +80,15 @@ namespace CustomSpawns.Invasions.Reinforcements.Adapters
 
         public void LogStrength(string cadence)
         {
+            LogLevel level = cadence != "daily" || (int)CampaignTime.Now.ToDays % WeeklyStrengthDays == 0
+                ? LogLevel.Info
+                : LogLevel.Debug;
+
+            if (!Logger.IsEnabled(level))
+            {
+                return;
+            }
+
             foreach (Invasion invasion in _invasionState.Invasions)
             {
                 Clan[] clans = Clan.All.Where(clan => invasion.HoldsClan(clan.StringId)).ToArray();
@@ -105,7 +115,7 @@ namespace CustomSpawns.Invasions.Reinforcements.Adapters
                     ? null
                     : Settlement.Find(invasion.CapitalSettlementId);
 
-                Logger.Info(FormattableString.Invariant(
+                Logger.Log(level, FormattableString.Invariant(
                                 $"Invasion strength summary: cadence={cadence} day={CampaignTime.Now.ToDays:0.00} invasion={invasion.ClanId} kingdom={kingdom?.StringId ?? "none"} clans={clans.Length} suspended={invasion.IsSuspended}") +
                             FormattableString.Invariant(
                                 $" towns={bankLimit.TownsHeld} castles={castles} faction_strength={statistics.Strength + garrisonStrength:0.0} bank_troops={bankLimit.BankedTroops} bank_limit={bankLimit.Limit} headroom={bankLimit.Headroom} conquest_target_strength={_invasionConquestTargets.MeasureConquestTargetStrength(invasion):0.0}") +

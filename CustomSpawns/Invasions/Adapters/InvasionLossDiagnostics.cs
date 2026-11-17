@@ -59,7 +59,7 @@ namespace CustomSpawns.Invasions.Adapters
                     string facts = Describe(party);
                     _partyObservations.TryGetValue(party.StringId, out PartyObservation previous);
                     int count = party.MemberRoster.TotalManCount;
-                    Logger.Info("Invasion party observation: cadence=" + cadence +
+                    Logger.Trace("Invasion party observation: cadence=" + cadence +
                                 " day=" + Number(CampaignTime.Now.ToDays) +
                                 " invasion=" + invasionId +
                                 " party=" + party.StringId +
@@ -74,7 +74,7 @@ namespace CustomSpawns.Invasions.Adapters
                 foreach (string staleId in _partyObservations.Keys.Where(id => !activeIds.Contains(id)).ToArray())
                 {
                     PartyObservation previous = _partyObservations[staleId];
-                    Logger.Info("Invasion party no longer observed: party=" + staleId +
+                    Logger.Trace("Invasion party no longer observed: party=" + staleId +
                                 " invasion=" + previous.InvasionId +
                                 " last_day=" + Number(previous.Day) +
                                 " cause=unknown_or_membership_changed last=[" + previous.Facts + "]");
@@ -118,7 +118,7 @@ namespace CustomSpawns.Invasions.Adapters
 
         private static void LogBattle(string stage, MapEvent mapEvent, string invasionIds)
         {
-            Logger.Info("Invasion battle: stage=" + stage +
+            Logger.Trace("Invasion battle: stage=" + stage +
                         " event=" + mapEvent.Id +
                         " start_day=" + Number(mapEvent.BattleStartTime.ToDays) +
                         " day=" + Number(CampaignTime.Now.ToDays) +
@@ -168,7 +168,7 @@ namespace CustomSpawns.Invasions.Adapters
                 return;
             }
 
-            Logger.Info("Invasion party loss: stage=" + stage +
+            Logger.Trace("Invasion party loss: stage=" + stage +
                         " day=" + Number(CampaignTime.Now.ToDays) +
                         " invasion=" + invasionId +
                         " party=" + party.Id +
@@ -192,7 +192,7 @@ namespace CustomSpawns.Invasions.Adapters
                     return;
                 }
 
-                Logger.Info("Invasion desertion: day=" + Number(CampaignTime.Now.ToDays) +
+                Logger.Trace("Invasion desertion: day=" + Number(CampaignTime.Now.ToDays) +
                             " invasion=" + invasionId + " party=" + party.StringId +
                             " deserted=" + deserters.TotalManCount +
                             " roster=[" + string.Join(";", deserters.GetTroopRoster().Select(troop =>
@@ -226,7 +226,7 @@ namespace CustomSpawns.Invasions.Adapters
                 return;
             }
 
-            Logger.Info("Invasion lord event: stage=" + stage +
+            Logger.Trace("Invasion lord event: stage=" + stage +
                         " day=" + Number(CampaignTime.Now.ToDays) +
                         " invasion=" + invasion.ClanId + " hero=" + hero.StringId +
                         " clan=" + hero.Clan?.StringId +
@@ -289,6 +289,11 @@ namespace CustomSpawns.Invasions.Adapters
 
         private static void Record(Action write)
         {
+            if (!Logger.IsTraceEnabled)
+            {
+                return;
+            }
+
             try
             {
                 write();

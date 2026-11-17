@@ -56,7 +56,7 @@ namespace CustomSpawns.Invasions.Bank.Adapters
                 foreach (InvasionGarrisonTransfer transfer in transfers)
                 {
                     int moved = Transfer(capital, transfer.SettlementId, transfer.Men);
-                    Logger.Info("Invasion fief garrison: spawn=" + invasion.SpawnTemplateId +
+                    Logger.Debug("Invasion fief garrison: spawn=" + invasion.SpawnTemplateId +
                                 " capital=" + capital.StringId + " fief=" + transfer.SettlementId +
                                 " wanted=" + transfer.Men + " moved=" + moved +
                                 " capital_left=" + capital.Town.GarrisonParty.MemberRoster.TotalManCount);

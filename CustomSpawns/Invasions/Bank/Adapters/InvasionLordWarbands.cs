@@ -29,12 +29,12 @@ namespace CustomSpawns.Invasions.Bank.Adapters
 
             if (visit.Value.KeptFreeWarband)
             {
-                Logger.Info("Invasion lord kept his free warband, the capital cannot match it: " +
+                Logger.Debug("Invasion lord kept his free warband, the capital cannot match it: " +
                             Describe(visit.Value) + " men=" + visit.Value.Warband.FreeTroops);
                 return;
             }
 
-            Logger.Info("Invasion lord drew his warband from the capital: " + Describe(visit.Value) +
+            Logger.Debug("Invasion lord drew his warband from the capital: " + Describe(visit.Value) +
                         " free_troops_returned=" + visit.Value.Returned + " men=" + visit.Value.Drawn);
         }
 
@@ -53,7 +53,7 @@ namespace CustomSpawns.Invasions.Bank.Adapters
         {
             if (visit != null)
             {
-                Logger.Info("Invasion lord refilled his warband from the capital: " + Describe(visit.Value) +
+                Logger.Debug("Invasion lord refilled his warband from the capital: " + Describe(visit.Value) +
                             " men=" + visit.Value.Drawn);
             }
         }

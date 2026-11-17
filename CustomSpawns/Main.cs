@@ -95,6 +95,7 @@ namespace CustomSpawns
         private CustomSpawnsAiBehaviour _customSpawnsAiBehaviour;
         private AccompanyingPartySiegeBehaviour _accompanyingPartySiegeBehaviour;
         private AiDecisionLoggerBehaviour _aiDecisionLoggerBehaviour;
+        private StartupLogReport _startupLogReport;
 
 
         private void InstantiateDependencies(CampaignGameStarter campaignGameStarter)
@@ -193,6 +194,7 @@ namespace CustomSpawns
                 _invasionCampaignBehaviour.HasPersistentInvasion, _invasionCampaignBehaviour.IsInvasionUnderway);
             _safePassageBehaviour = new SafePassageBehaviour(_spawnDao);
             _spawnCheats = new SpawnCheats(_spawnGroupService, _spawnDao);
+            _startupLogReport = new StartupLogReport(_subModService, _spawnDao);
         }
         #endregion
 
@@ -213,6 +215,7 @@ namespace CustomSpawns
                 return;
             }
             InstantiateDependencies(campaignGameStarter);
+            _startupLogReport.Write();
             AddBehaviours(campaignGameStarter);
             DisplayLoadedModules();
         }

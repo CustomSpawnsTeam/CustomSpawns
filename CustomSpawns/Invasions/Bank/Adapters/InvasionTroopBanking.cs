@@ -21,12 +21,12 @@ namespace CustomSpawns.Invasions.Bank.Adapters
 
             if (receipt == null)
             {
-                Logger.Info("Invasion reinforcement slot skipped: invasion=" + draw.Invasion.ClanId +
+                Logger.Debug("Invasion reinforcement slot skipped: invasion=" + draw.Invasion.ClanId +
                             " rule=" + draw.RuleId + " reason=template_or_capital_changed");
                 return false;
             }
 
-            Logger.Info("Invasion reinforcement banked: invasion=" + draw.Invasion.ClanId + " rule=" +
+            Logger.Debug("Invasion reinforcement banked: invasion=" + draw.Invasion.ClanId + " rule=" +
                         draw.RuleId + " town=" + receipt.Value.CapitalId + " men=" + receipt.Value.Men +
                         " lords=" + receipt.Value.Lords + " pay=" + receipt.Value.Pay + " garrison=" +
                         receipt.Value.Garrison + " next_arrival_day=" +
@@ -42,7 +42,7 @@ namespace CustomSpawns.Invasions.Bank.Adapters
 
             if (lords > 0)
             {
-                Logger.Info("Invasion lords fielded at full strength: invasion=" + draw.Invasion.ClanId +
+                Logger.Debug("Invasion lords fielded at full strength: invasion=" + draw.Invasion.ClanId +
                             " rule=" + draw.RuleId + " lords=" + lords);
             }
 
@@ -51,7 +51,7 @@ namespace CustomSpawns.Invasions.Bank.Adapters
                 return;
             }
 
-            Logger.Info("Invasion wages paid: invasion=" + draw.Invasion.ClanId + " rule=" + draw.RuleId +
+            Logger.Debug("Invasion wages paid: invasion=" + draw.Invasion.ClanId + " rule=" + draw.RuleId +
                         " pay=" + pay);
         }
     }

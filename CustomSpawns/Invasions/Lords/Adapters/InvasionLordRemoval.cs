@@ -63,7 +63,7 @@ namespace CustomSpawns.Invasions.Lords.Adapters
                 return;
             }
 
-            Logger.Info("Invasion defeated lord removal: day=" + CampaignTime.Now.ToDays +
+            Logger.Debug("Invasion defeated lord removal: day=" + CampaignTime.Now.ToDays +
                         " hero=" + hero.StringId + " clan=" + hero.Clan?.StringId +
                         " state=" + hero.HeroState + " party=" + hero.PartyBelongedTo?.StringId +
                         " lost_invasion_party=" + lostItsInvasionParty +

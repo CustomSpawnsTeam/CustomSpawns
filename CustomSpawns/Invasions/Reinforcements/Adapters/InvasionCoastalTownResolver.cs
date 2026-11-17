@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using NLog;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
@@ -11,12 +10,10 @@ namespace CustomSpawns.Invasions.Reinforcements.Adapters
     // Bannerlord-specific navmesh access for the pure coastal-town policy.
     public sealed class InvasionCoastalTownResolver : IInvasionCoastalMapFaceQuery
     {
-        private const string CoastalDiagnosticTownId = "town_V7";
         private const int AdjacencyProbeCount = 360;
         private const float AdjacencyProbeLength = 100f;
         private const float BoundaryCrossingDistance = 0.05f;
 
-        private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         private readonly Dictionary<string, bool> _coastalBySettlementId = new();
         private readonly Dictionary<int, IReadOnlyCollection<InvasionCoastalMapFace>> _adjacentFacesByFaceIndex = new();
         private object? _mapScene;
@@ -36,11 +33,6 @@ namespace CustomSpawns.Invasions.Reinforcements.Adapters
                 coastal = currentFace.IsValid() && InvasionCoastalTownClassification.IsSettlementAdjacentToSea(
                     ToCoastalMapFace(currentFace), this);
                 _coastalBySettlementId[settlement.StringId] = coastal;
-
-                if (settlement.StringId == CoastalDiagnosticTownId)
-                    Logger.Info("Invasion coastal classification: town=" + CoastalDiagnosticTownId +
-                                " coastal=" + coastal + " has_port=" + settlement.HasPort +
-                                " source=current_navigation_face");
             }
 
             return coastal;

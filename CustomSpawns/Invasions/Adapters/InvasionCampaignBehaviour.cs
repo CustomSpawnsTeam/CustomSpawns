@@ -775,7 +775,7 @@ namespace CustomSpawns.Invasions.Adapters
                     current != null, previousCommanderPartyId, current?.CommanderPartyId);
             string diagnostics = FindDiagnostics(invasion, previousDiagnostics, update,
                 diagnosticsSource);
-            Logger.Info("Invasion capital objective: cadence=" + cadence +
+            Logger.Trace("Invasion capital objective: cadence=" + cadence +
                         " decision=" + update.Decision +
                         " spawn=" + invasion.SpawnTemplateId +
                         " kingdom=" + kingdom?.StringId +

@@ -13,6 +13,7 @@ namespace CustomSpawns.Invasions.GarrisonArmies.Adapters
     // The invasions' garrison armies and their one-time lords on the campaign map.
     public sealed class BannerlordInvasionGarrisonArmyWorld : IInvasionGarrisonArmyWorld
     {
+        private const string ArmyRefused = "army_refused";
         private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         private readonly Func<InvasionState> _state;
         private readonly BannerlordInvasionGarrisonArmyConfigurations _bannerlordInvasionGarrisonArmyConfigurations;
@@ -86,7 +87,7 @@ namespace CustomSpawns.Invasions.GarrisonArmies.Adapters
 
             if (party.Army == null)
             {
-                ReportSkip(invasionClanId, "army_refused");
+                ReportSkip(invasionClanId, ArmyRefused);
                 return false;
             }
 
@@ -103,7 +104,9 @@ namespace CustomSpawns.Invasions.GarrisonArmies.Adapters
             Invasion? invasion = _state().FindInvasion(invasionClanId);
             Settlement? capital = invasion?.CapitalSettlementId == null ? null : Settlement.Find(invasion.CapitalSettlementId);
 
-            Logger.Info("Invasion garrison army: skipped spawn=" + invasion?.SpawnTemplateId +
+            LogLevel level = reason == ArmyRefused ? LogLevel.Warn : LogLevel.Info;
+
+            Logger.Log(level, "Invasion garrison army: skipped spawn=" + invasion?.SpawnTemplateId +
                         " capital=" + capital?.StringId +
                         " garrison_men=" + capital?.Town?.GarrisonParty?.MemberRoster.TotalRegulars +
                         " reason=" + reason);
@@ -135,7 +138,7 @@ namespace CustomSpawns.Invasions.GarrisonArmies.Adapters
         {
             Army army = FindLedParty(FindHero(heroId))!.Army;
 
-            Logger.Info("Invasion garrison army: gathered spawn=" + _state().FindInvasion(invasionClanId)?.SpawnTemplateId +
+            Logger.Debug("Invasion garrison army: gathered spawn=" + _state().FindInvasion(invasionClanId)?.SpawnTemplateId +
                         " leader=" + heroId + " lords=" + (army.Parties.Count - 1) +
                         " joined=" + army.LeaderParty.AttachedParties.Count + " men=" + army.TotalManCount +
                         " target=" + (army.AiBehaviorObject as Settlement)?.StringId);

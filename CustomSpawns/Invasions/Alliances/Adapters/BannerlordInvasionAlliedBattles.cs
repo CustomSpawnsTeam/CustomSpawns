@@ -82,7 +82,7 @@ namespace CustomSpawns.Invasions.Alliances.Adapters
             }
 
             _loggedBattles[party] = bestEnemySide.MapEvent;
-            Logger.Info("Invasion allied battle joined: party=" + party.StringId + " faction=" +
+            Logger.Debug("Invasion allied battle joined: party=" + party.StringId + " faction=" +
                         party.MapFaction.StringId + " enemy=" + targetParty.StringId + " enemy_faction=" +
                         targetParty.MapFaction?.StringId + " strength=" + strength + " allies=" +
                         FindStrength(bestEnemySide.OtherSide) + " enemy_strength=" + FindStrength(bestEnemySide) +

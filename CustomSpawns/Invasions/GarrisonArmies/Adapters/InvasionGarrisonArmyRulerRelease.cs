@@ -43,7 +43,7 @@ namespace CustomSpawns.Invasions.GarrisonArmies.Adapters
                          party.LeaderHero is { IsKingdomLeader: true } && party.MapEvent == null).ToList())
             {
                 ruler.Army = null;
-                Logger.Info("Invasion army: ruler released leader=" + army.LeaderParty.LeaderHero?.StringId +
+                Logger.Debug("Invasion army: ruler released leader=" + army.LeaderParty.LeaderHero?.StringId +
                             " ruler=" + ruler.LeaderHero.StringId + " party=" + ruler.StringId + " besieging=" +
                             army.LeaderParty.BesiegedSettlement?.StringId);
             }

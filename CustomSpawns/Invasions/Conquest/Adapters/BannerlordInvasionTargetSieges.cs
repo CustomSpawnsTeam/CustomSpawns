@@ -176,7 +176,7 @@ namespace CustomSpawns.Invasions.Conquest.Adapters
             }
 
             _unborderedSiegeLogDays[key] = day;
-            Logger.Info(string.Format(CultureInfo.InvariantCulture,
+            Logger.Debug(string.Format(CultureInfo.InvariantCulture,
                 "Invasion unbordered siege: fief={0} party={1} army={2} strength={3:0} target_score={4:0.####} " +
                 "best_target={5:0.####} best_other={6:0.####} score={7:0.####} navigation={8} day={9}",
                 fief.StringId, party.StringId, willGatherArmy, strength, targetScore, bestTargetScore,

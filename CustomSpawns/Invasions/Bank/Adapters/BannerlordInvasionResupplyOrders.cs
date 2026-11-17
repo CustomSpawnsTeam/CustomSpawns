@@ -38,7 +38,7 @@ namespace CustomSpawns.Invasions.Bank.Adapters
             {
                 if (wasReturning)
                 {
-                    Logger.Info("Invasion resupply order ended: party=" + party.StringId +
+                    Logger.Debug("Invasion resupply order ended: party=" + party.StringId +
                                 " troops=" + party.Party.NumberOfAllMembers +
                                 " strength=" + party.Party.CalculateCurrentStrength() +
                                 " party_limit=" + party.Party.PartySizeLimit +
@@ -71,7 +71,7 @@ namespace CustomSpawns.Invasions.Bank.Adapters
 
             if (!wasReturning)
             {
-                Logger.Info("Invasion resupply ordered: party=" + party.StringId + " capital=" + destination +
+                Logger.Debug("Invasion resupply ordered: party=" + party.StringId + " capital=" + destination +
                             " troops=" + party.Party.NumberOfAllMembers +
                             " strength=" + party.Party.CalculateCurrentStrength() +
                             " party_limit=" + party.Party.PartySizeLimit +
