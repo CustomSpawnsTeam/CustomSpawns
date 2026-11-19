@@ -23,12 +23,24 @@ namespace CustomSpawns.CampaignData.Implementations
             // NLog.config sets the levels and targets; it finds the mod's folder through this item.
             GlobalDiagnosticsContext.Set("modRoot", modRootFolder);
             var configPath = Path.Combine(modRootFolder, "ModuleData", "NLog.config");
-            if (File.Exists(configPath))
+            var config = File.Exists(configPath)
+                ? new XmlLoggingConfiguration(configPath)
+                : DefaultConfiguration(modRootFolder);
+#if DEBUG
+            // A debug build logs at Debug at least, whatever NLog.config says.
+            foreach (var rule in config.LoggingRules)
             {
-                LogManager.Configuration = new XmlLoggingConfiguration(configPath);
-                return;
+                if (!rule.IsLoggingEnabledForLevel(LogLevel.Debug))
+                {
+                    rule.EnableLoggingForLevels(LogLevel.Debug, LogLevel.Fatal);
+                }
             }
+#endif
+            LogManager.Configuration = config;
+        }
 
+        private static LoggingConfiguration DefaultConfiguration(string modRootFolder)
+        {
             var config = new LoggingConfiguration();
             var logFilePath = Path.Combine(modRootFolder, "Logs", "${shortdate}.log");
 
@@ -48,7 +60,7 @@ namespace CustomSpawns.CampaignData.Implementations
             config.AddRule(LogLevel.Info, LogLevel.Fatal, logfile);
             config.AddRule(LogLevel.Info, LogLevel.Fatal, logconsole);
 
-            LogManager.Configuration = config;
+            return config;
         }
 
         private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
