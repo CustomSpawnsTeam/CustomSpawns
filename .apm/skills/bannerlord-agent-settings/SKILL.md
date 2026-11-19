@@ -15,9 +15,10 @@ description: >
 - The GABS-enabled launch profile is `CalradiaAtWar.Debug` in
   `CustomSpawns/Properties/launchSettings.json`. Other profiles do not enable GABP.
   Ask which profile to launch when the user has not already selected one.
-- Read the selected profile's `GABP_SERVER_PORT`, `GABP_TOKEN`, `GABS_GAME_ID` and
-  `GABS_BRIDGE_PATH` locally; `bridge.json` must match. Do not copy tokens into
-  instructions or MCP configuration.
+- Read the selected profile's `GABP_SERVER_PORT`, `GABS_GAME_ID` and `GABS_BRIDGE_PATH`
+  locally. The profile's `GABP_TOKEN` is `$(GabpToken)`, set in the untracked `local.props`
+  at the repository root; read the token there. `bridge.json` must match. Do not copy tokens
+  into tracked files, instructions or MCP configuration.
 - CLR exception breakpoints: `.rider-debugger-settings` beside `CustomSpawns.sln`,
   enforced by the rider-clr-exception-override plugin.
 - Campaign evaluation anchor:

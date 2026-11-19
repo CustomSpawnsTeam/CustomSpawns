@@ -32,5 +32,7 @@ and MCP servers. Installing the package does not start or restart Bannerlord.
 For live debugging, install the Rider Debugger MCP Server and
 rider-clr-exception-override plugins, and follow the package's prerequisites.
 The project settings skill identifies the CustomSpawns launch profile, log and
-campaign evaluation anchor. Keep launch-profile secrets in the existing local
-configuration; generated MCP configuration does not need them.
+campaign evaluation anchor. The `CalradiaAtWar.Debug` launch profile reads its GABP
+token from `$(GabpToken)`: create an untracked `local.props` at the repository root with
+`<Project><PropertyGroup><GabpToken>your-token</GabpToken></PropertyGroup></Project>`.
+Never put the token in a tracked file; generated MCP configuration does not need it.

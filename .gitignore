@@ -104,3 +104,14 @@ apm_modules/
 # Runtime logs and generated Fody schema
 /Logs/
 /CustomSpawns/FodyWeavers.xsd
+
+# Machine-specific build values (GABP token)
+/local.props
+
+# Agent working files, playtest evidence and saves
+/.superpowers/
+/runtime-evidence/
+*.sav
+bridge.json
+.gabs*/
+TestResults/

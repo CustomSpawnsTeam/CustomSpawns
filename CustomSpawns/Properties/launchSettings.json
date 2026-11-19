@@ -13,9 +13,9 @@
       "workingDirectory": "$(GameFolder)\\bin\\Win64_Shipping_Client",
       "environmentVariables": {
         "GABP_SERVER_PORT": "4826",
-        "GABP_TOKEN": "766dd15dc6db391444910169a16ee5a7dd902ed7c7fee8be58bd2da8455c0671",
+        "GABP_TOKEN": "$(GabpToken)",
         "GABS_GAME_ID": "bannerlord",
-        "GABS_BRIDGE_PATH": "C:\\Users\\Joe\\.gabs-cs\\bannerlord\\bridge.json",
+        "GABS_BRIDGE_PATH": "$(USERPROFILE)\\.gabs-cs\\bannerlord\\bridge.json",
         "COMPlus_JITMinOpts": "1",
         "DOTNET_ReadyToRun": "0",
         "COMPlus_ReadyToRun": "0"
