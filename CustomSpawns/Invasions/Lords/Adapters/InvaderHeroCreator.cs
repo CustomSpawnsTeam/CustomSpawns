@@ -97,7 +97,7 @@ namespace CustomSpawns.Invasions.Lords.Adapters
             Clan? clan = leadingClan == null || kingdom == null
                 ? null
                 : _bannerlordInvasionClanFounding.Found(invasion.ClanId + "_" + invasion.ClanIds.Count, leadingClan,
-                    home, Banner.CreateRandomClanBanner(), leadingClan.Color, leadingClan.Color2);
+                    home, CreateBannerInColoursOf(kingdom), leadingClan.Color, leadingClan.Color2);
 
             if (clan == null)
             {
@@ -111,6 +111,22 @@ namespace CustomSpawns.Invasions.Lords.Adapters
             Logger.Info("Invasion clan founded: invasion=" + invasion.ClanId + " clan=" + clan.StringId +
                         " kingdom=" + kingdom.StringId);
             return clan;
+        }
+
+        // A new clan flies its kingdom's colours. Vanilla repaints a joining clan's banner in the kingdom's
+        // colours only when they are banner palette colours, and a submod's clan colours may not be, so the
+        // banner takes the colours of the kingdom's banner, which always are.
+        private static Banner CreateBannerInColoursOf(Kingdom kingdom)
+        {
+            Banner banner = Banner.CreateRandomClanBanner();
+
+            if (kingdom.Banner != null)
+            {
+                banner.ChangeBackgroundColor(kingdom.Banner.GetPrimaryColor(), kingdom.Banner.GetSecondaryColor());
+                banner.ChangeIconColors(kingdom.Banner.GetFirstIconColor());
+            }
+
+            return banner;
         }
     }
 }
