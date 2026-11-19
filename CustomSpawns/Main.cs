@@ -194,7 +194,7 @@ namespace CustomSpawns
                 _invasionCampaignBehaviour.HasPersistentInvasion, _invasionCampaignBehaviour.IsInvasionUnderway);
             _safePassageBehaviour = new SafePassageBehaviour(_spawnDao);
             _spawnCheats = new SpawnCheats(_spawnGroupService, _spawnDao);
-            _startupLogReport = new StartupLogReport(_subModService, _spawnDao);
+            _startupLogReport = new StartupLogReport(_subModService);
         }
         #endregion
 

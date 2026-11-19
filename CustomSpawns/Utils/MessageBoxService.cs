@@ -30,7 +30,7 @@ namespace CustomSpawns.Utils
 
         public virtual void ShowMessage(string errorMessage)
         {
-            Logger.Error(errorMessage);
+            Logger.Warn(errorMessage);
             Show(errorMessage);
         }
 
