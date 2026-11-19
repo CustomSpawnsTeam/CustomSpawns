@@ -10,10 +10,13 @@ namespace CustomSpawns.Diplomacy
     public class CustomSpawnsDiplomacyFactionsProvider
     {
         private readonly IDataReader<Dictionary<string, Data.Model.Diplomacy>> _diplomacyDataReader;
+        private readonly IClanFinder _clanFinder;
 
-        public CustomSpawnsDiplomacyFactionsProvider(IDataReader<Dictionary<string, Data.Model.Diplomacy>> diplomacyDataReader)
+        public CustomSpawnsDiplomacyFactionsProvider(IDataReader<Dictionary<string, Data.Model.Diplomacy>> diplomacyDataReader,
+            IClanFinder clanFinder)
         {
             _diplomacyDataReader = diplomacyDataReader;
+            _clanFinder = clanFinder;
         }
 
         public IList<IFaction> GetCustomSpawnDiplomacyFactions()
@@ -36,7 +39,7 @@ namespace CustomSpawns.Diplomacy
             IList<Clan> clans = new List<Clan>();
             foreach (KeyValuePair<string, Data.Model.Diplomacy> clanData in _diplomacyDataReader.Data)
             {
-                Clan clan = Clan.All.FirstOrDefault(candidate => candidate.StringId == clanData.Key);
+                Clan? clan = _clanFinder.FindClan(clanData.Key);
                 if (clan == null)
                 {
                     missingClanIds.Add(clanData.Key);

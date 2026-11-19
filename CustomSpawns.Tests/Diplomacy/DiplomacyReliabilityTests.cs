@@ -191,7 +191,7 @@ namespace CustomSpawns.Tests.Diplomacy
             {
                 ["not_loaded"] = new Data.Model.Diplomacy()
             });
-            var provider = new CustomSpawnsDiplomacyFactionsProvider(reader.Object);
+            var provider = new CustomSpawnsDiplomacyFactionsProvider(reader.Object, new Mock<IClanFinder>().Object);
 
             IList<Clan> clans = provider.GetConfiguredClans(out IList<string> missingClanIds);
 
