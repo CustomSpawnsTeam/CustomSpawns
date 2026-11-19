@@ -24,13 +24,13 @@ namespace CustomSpawns.AI.Barterables
                 OriginalParty.MapFaction.IsBanditFaction);
         }
 
-        internal static int ApplyCustomSpawnsPriceAdjustment(int unitValue, bool isCustomSpawnsParty,
+        public static int ApplyCustomSpawnsPriceAdjustment(int unitValue, bool isCustomSpawnsParty,
             bool isBanditFaction)
         {
             return isCustomSpawnsParty && !isBanditFaction ? unitValue / 8 : unitValue;
         }
 
-        internal static bool IsCustomSpawnsParty(string mobilePartyStringId, ISet<string> partyTemplateIds,
+        public static bool IsCustomSpawnsParty(string mobilePartyStringId, ISet<string> partyTemplateIds,
             ISet<string> subPartyTemplateIds)
         {
             string partyTemplateId = CampaignUtils.IsolateMobilePartyStringID(mobilePartyStringId);

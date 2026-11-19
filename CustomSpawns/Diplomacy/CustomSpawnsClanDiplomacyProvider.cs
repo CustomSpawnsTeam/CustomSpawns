@@ -6,6 +6,7 @@ namespace CustomSpawns.Diplomacy
 {
     public class CustomSpawnsClanDiplomacyProvider
     {
+        private const string PlayerFactionId = "player_faction";
         private readonly ISuzerainProvider _suzerainProvider;
         private readonly IDictionary<string, Data.Model.Diplomacy> _customSpawnsClanData;
 
@@ -45,6 +46,11 @@ namespace CustomSpawns.Diplomacy
         public bool IsWarDeclarationPossible(IFaction? attacker, IFaction? warTarget)
         {
             if (attacker == null || warTarget == null)
+            {
+                return false;
+            }
+
+            if (IsPlayerActionAgainstCustomSpawnFaction(attacker, warTarget))
             {
                 return false;
             }
@@ -153,6 +159,11 @@ namespace CustomSpawns.Diplomacy
                 return false;
             }
 
+            if (IsPlayerActionAgainstCustomSpawnFaction(attacker, peaceTarget))
+            {
+                return false;
+            }
+
             var hasAttackerForcedWarPeaceBehaviour = _customSpawnsClanData.ContainsKey(attacker.StringId) &&
                                                      _customSpawnsClanData[attacker.StringId].ForcedWarPeaceDataInstance != null;
             var hasWarTargetForcedWarPeaceBehaviour = _customSpawnsClanData.ContainsKey(peaceTarget.StringId) &&
@@ -177,6 +188,20 @@ namespace CustomSpawns.Diplomacy
             return false;
         }
 
+        public bool HasForcedWarPeaceBehaviour(IFaction faction)
+        {
+            return _customSpawnsClanData.ContainsKey(faction.StringId) &&
+                   _customSpawnsClanData[faction.StringId].ForcedWarPeaceDataInstance != null;
+        }
+
+        private bool IsPlayerActionAgainstCustomSpawnFaction(IFaction attacker, IFaction warTarget)
+        {
+            return _customSpawnsClanData.ContainsKey(warTarget.StringId)
+                && !_suzerainProvider.IsVassal(warTarget)
+                && (attacker.StringId.Equals(PlayerFactionId)
+                || attacker.IsKingdomFaction && attacker.Leader == Hero.MainHero);
+        }
+        
         private bool IsCustomSpawnsClanPeaceDeclarationPossible(IFaction? attacker, IFaction? peaceTarget)
         {
             if (attacker == null || peaceTarget == null || attacker == peaceTarget || attacker.IsEliminated || peaceTarget.IsEliminated ||

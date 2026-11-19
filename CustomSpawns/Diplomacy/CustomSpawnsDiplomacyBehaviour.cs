@@ -12,6 +12,7 @@ namespace CustomSpawns.Diplomacy
         private readonly CustomSpawnsDiplomacyReconciliationProvider _reconciliationProvider;
         private readonly ForceNoKingdomMembershipProvider _membershipProvider;
         private readonly DailyLogger _dailyLogger;
+        private readonly IFactionWarStanceProvider _factionWarStanceProvider;
         private readonly ISet<string> _reportedMissingClanIds = new HashSet<string>();
         private readonly DiplomacyReconciliationScheduler _reconciliationScheduler = new DiplomacyReconciliationScheduler();
         private bool _hasInitialized;
@@ -21,9 +22,11 @@ namespace CustomSpawns.Diplomacy
             CustomSpawnsDiplomacyFactionsProvider factionsProvider,
             CustomSpawnsClanDiplomacyProvider clanDiplomacyProvider,
             NonMercenaryCustomSpawnsFactionsProvider forceNoKingdomProvider,
-            DailyLogger dailyLogger)
+            DailyLogger dailyLogger,
+            IFactionWarStanceProvider factionWarStanceProvider)
         {
             _factionsProvider = factionsProvider;
+            _factionWarStanceProvider = factionWarStanceProvider;
             _reconciliationProvider = new CustomSpawnsDiplomacyReconciliationProvider(clanDiplomacyProvider);
             _membershipProvider = new ForceNoKingdomMembershipProvider(forceNoKingdomProvider);
             _dailyLogger = dailyLogger;
@@ -40,7 +43,7 @@ namespace CustomSpawns.Diplomacy
 
         public override void SyncData(IDataStore dataStore) { }
 
-        private void OnTick(float deltaTime)
+        private void OnTick(float deltaThime)
         {
             if (!_hasInitialized)
             {
@@ -89,7 +92,7 @@ namespace CustomSpawns.Diplomacy
         private void EnforceNoKingdom(Clan clan)
         {
             ForceNoKingdomMembershipAction action = _membershipProvider.GetAction(clan.StringId,
-                clan.Kingdom != null, clan.IsUnderMercenaryService);
+                clan.Kingdom != null, clan.IsUnderMercenaryService, clan.Kingdom?.RulingClan == clan);
             if (action == ForceNoKingdomMembershipAction.LeaveKingdomAsMercenary)
             {
                 ChangeKingdomAction.ApplyByLeaveKingdomAsMercenary(clan, false);
@@ -161,7 +164,9 @@ namespace CustomSpawns.Diplomacy
         {
             foreach (KeyValuePair<FactionPair, List<DiplomacyReconciliationAction>> entry in actionsByFactionPair)
             {
-                DiplomacyReconciliationAction action = CustomSpawnsDiplomacyReconciliationProvider.Aggregate(entry.Value, out bool hasConflict);
+                DiplomacyReconciliationAction action = _reconciliationProvider.ApplyStance(
+                    CustomSpawnsDiplomacyReconciliationProvider.Aggregate(entry.Value, out bool hasConflict),
+                    _factionWarStanceProvider.FindStance(entry.Key.First, entry.Key.Second));
                 if (hasConflict)
                 {
                     _dailyLogger.Info("Conflicting diplomacy policies for " + entry.Key.First.Name + " and " +
@@ -218,7 +223,7 @@ namespace CustomSpawns.Diplomacy
         }
     }
 
-    internal sealed class DiplomacyReconciliationScheduler
+    public sealed class DiplomacyReconciliationScheduler
     {
         private bool _isPending;
 

@@ -6,6 +6,21 @@
       "commandLineArgs": "/singleplayer _MODULES_*Native*SandBoxCore*Sandbox*StoryMode*CustomBattle*$(ModuleName)*CalradiaAtWar*_MODULES_",
       "workingDirectory": "$(GameFolder)\\bin\\Win64_Shipping_Client"
     },
+    "CalradiaAtWar.Debug": {
+      "commandName": "Executable",
+      "executablePath": "$(GameFolder)\\bin\\Win64_Shipping_Client\\Bannerlord_CS.exe",
+      "commandLineArgs": "/singleplayer _MODULES_*Bannerlord.Harmony*Bannerlord.ButterLib*Bannerlord.UIExtenderEx*Bannerlord.MBOptionScreen*Native*SandBoxCore*Sandbox*StoryMode*CustomBattle*CustomSpawns*CalradiaAtWar*Bannerlord.GABS*_MODULES_",
+      "workingDirectory": "$(GameFolder)\\bin\\Win64_Shipping_Client",
+      "environmentVariables": {
+        "GABP_SERVER_PORT": "4826",
+        "GABP_TOKEN": "$(GabpToken)",
+        "GABS_GAME_ID": "bannerlord",
+        "GABS_BRIDGE_PATH": "$(USERPROFILE)\\.gabs-cs\\bannerlord\\bridge.json",
+        "COMPlus_JITMinOpts": "1",
+        "DOTNET_ReadyToRun": "0",
+        "COMPlus_ReadyToRun": "0"
+      }
+    },
     "CustomSpawns": {
       "commandName": "Executable",
       "executablePath": "$(GameFolder)\\bin\\Win64_Shipping_Client\\Bannerlord.exe",

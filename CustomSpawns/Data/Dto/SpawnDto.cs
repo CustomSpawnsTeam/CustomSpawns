@@ -1,6 +1,7 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using CustomSpawns.Data.Adapter;
+using CustomSpawns.Invasions;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -21,12 +22,13 @@ namespace CustomSpawns.Data.Dto
         public ReadOnlyCollection<AccompanyingParty> SpawnAlongWith { get; set; }
         public int MaximumOnMap { get; set; }
         public int MinimumNumberOfDaysUntilSpawn { get; set; }
-        public bool AttackClosestIfIdleForADay { get; set; }
         public float DynamicSpawnChancePeriod { get; set; }
         public float DynamicSpawnChanceEffect { get; set; }
         public float MinimumDevestationToSpawn { get; set; }
         public float DevestationLinearMultiplier { get; set; }
-        public AI.PatrolAroundClosestLestInterruptedAndSwitchBehaviour.PatrolAroundClosestLestInterruptedAndSwitchBehaviourData PatrolAroundClosestLestInterruptedAndSwitch { get; set; }
+        public PatrolAroundClosestLestInterruptedAndSwitchData? PatrolAroundClosestLestInterruptedAndSwitch { get; set; }
+        public string? PriorityPartyBehaviourTemplateId { get; set; }
+        public InvasionData? Invasion { get; set; }
         public float ChanceOfSpawn { get; set; }
         public float ChanceInverseConstant { get; set; }
         public PartyTemplateObject PartyTemplate { get; set; }
@@ -38,8 +40,12 @@ namespace CustomSpawns.Data.Dto
         public bool inquiryPause { get; set; }
         public InformationMessage? DeathMessage { get; set; }
         public int SoundEvent { get; set; }
-        public bool PatrolAroundSpawn { get; set; }
         public bool InheritClanFromSettlement { get; set; }
-    }
 
+        /**
+         * How many main parties of this spawn the spawner keeps on the map at once. It tests its count
+         * before incrementing it, so it keeps one more than MaximumOnMap names.
+         */
+        public int MaximumConcurrentPrimaries => MaximumOnMap + 1;
+    }
 }

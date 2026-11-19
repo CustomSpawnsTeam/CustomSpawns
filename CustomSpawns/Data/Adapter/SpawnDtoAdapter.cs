@@ -1,12 +1,14 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text.RegularExpressions;
 using CustomSpawns.Data.Dto;
+using CustomSpawns.Data.Dao;
 using CustomSpawns.Data.Model;
 using CustomSpawns.Data.Reader.Impl;
 using CustomSpawns.Exception;
+using CustomSpawns.Invasions;
 using CustomSpawns.Utils;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
@@ -22,13 +24,21 @@ namespace CustomSpawns.Data.Adapter
         private readonly NameSignifierDataReader _nameSignifierDataReader;
         private readonly MBObjectManager _objectManager;
         private readonly CampaignObjectManager _campaignObjectManager;
+        private readonly IPartyBehaviourDao? _partyBehaviourDao;
 
         public SpawnDtoAdapter(NameSignifierDataReader nameSignifierDataReader, MBObjectManager objectManager,
             CampaignObjectManager campaignObjectManager)
+            : this(nameSignifierDataReader, objectManager, campaignObjectManager, null)
+        {
+        }
+
+        public SpawnDtoAdapter(NameSignifierDataReader nameSignifierDataReader, MBObjectManager objectManager,
+            CampaignObjectManager campaignObjectManager, IPartyBehaviourDao? partyBehaviourDao)
         {
             _nameSignifierDataReader = nameSignifierDataReader;
             _objectManager = objectManager;
             _campaignObjectManager = campaignObjectManager;
+            _partyBehaviourDao = partyBehaviourDao;
         }
         
         public SpawnDto Adapt(Model.Spawn spawn)
@@ -77,9 +87,7 @@ namespace CustomSpawns.Data.Adapter
             dat.Name = spawn.Name;
             dat.ChanceInverseConstant = spawn.ChanceInverseConstant;
             dat.RepeatSpawnRolls = spawn.RepeatSpawnRolls;
-            dat.PatrolAroundSpawn = spawn.IsConfiguredToPatrolAroundSpawn;
             dat.MinimumNumberOfDaysUntilSpawn = spawn.MinimumNumberOfDaysUntilSpawn;
-            dat.AttackClosestIfIdleForADay = spawn.AttackClosestIfIdleForADay;
             dat.DynamicSpawnChancePeriod = spawn.DynamicSpawnChancePeriod;
             // TODO create an xsd schema to force the DynamicSpawnChanceEffect value between 0 and 1
             dat.DynamicSpawnChanceEffect = spawn.DynamicSpawnChanceEffect;
@@ -116,17 +124,22 @@ namespace CustomSpawns.Data.Adapter
             dat.MinimumDevestationToSpawn = spawn.MinimumDevestationToSpawn;
             dat.DevestationLinearMultiplier = spawn.DevestationLinearMultiplier;
 
-            //patrol around closest lest interrupted and switch
-            PatrolAroundConfig? patrolAroundConfig = spawn.PatrolAroundConfig;
-            if (patrolAroundConfig != null && patrolAroundConfig.IsEnabled)
+            dat.PriorityPartyBehaviourTemplateId = spawn.PriorityPartyBehaviourTemplateIdSpecified
+                ? spawn.PriorityPartyBehaviourTemplateId ?? string.Empty
+                : null;
+
+            if (spawn.Invasion != null)
             {
-                List<SpawnSettlementType> patrolLocationTypes = new();
-                if (patrolAroundConfig.PatrolLocationType != null)
-                {
-                    patrolLocationTypes = ConstructTrySettlementList(patrolAroundConfig.PatrolLocationType);   
-                }
-                dat.PatrolAroundClosestLestInterruptedAndSwitch = new (null, patrolAroundConfig.MinStableDays, patrolAroundConfig.MinStableDays, patrolLocationTypes);
+                dat.Invasion = InvasionDtoAdapter.Adapt(spawn.Invasion);
+                InvasionRuntimeConfigurationValidator.ValidateReferences(dat.Invasion, spawn.PartyTemplate,
+                    dat.SpawnClan.IsBanditFaction, ReinforcementTemplateExists);
+                InvasionRuntimeConfigurationValidator.ValidateFixedInvasionClan(spawn.PartyTemplate,
+                    dat.OverridenSpawnClan.Count, dat.InheritClanFromSettlement);
+                ValidateInvasionBehaviourTemplate(spawn.PartyTemplate, dat.PriorityPartyBehaviourTemplateId);
             }
+
+            //patrol around closest lest interrupted and switch
+            dat.PatrolAroundClosestLestInterruptedAndSwitch = AdaptLegacyPatrol(spawn);
 
             //Spawn along with
             List<AccompanyingParty> supportingParties = new List<AccompanyingParty>(spawn.SupportingPartyTemplates.Count); 
@@ -139,6 +152,27 @@ namespace CustomSpawns.Data.Adapter
             dat.SpawnAlongWith = new ReadOnlyCollection<AccompanyingParty>(supportingParties);
 
             return dat;
+        }
+
+        public static PatrolAroundClosestLestInterruptedAndSwitchData? AdaptLegacyPatrol(Model.Spawn spawn)
+        {
+            PatrolAroundConfig? patrolAroundConfig = spawn.PatrolAroundConfig;
+            if (spawn.PriorityPartyBehaviourTemplateIdSpecified || patrolAroundConfig == null ||
+                !patrolAroundConfig.IsEnabled)
+            {
+                return null;
+            }
+
+            PriorityPartyBehaviourConfigValidator.ValidateRange("legacy patrol stable time",
+                patrolAroundConfig.MinStableDays, patrolAroundConfig.MaxStableDays);
+            List<SpawnSettlementType> patrolLocationTypes = new();
+            if (patrolAroundConfig.PatrolLocationType != null)
+            {
+                patrolLocationTypes = ConstructTrySettlementList(patrolAroundConfig.PatrolLocationType);
+            }
+
+            return new PatrolAroundClosestLestInterruptedAndSwitchData(patrolAroundConfig.MinStableDays,
+                patrolAroundConfig.MaxStableDays, patrolLocationTypes);
         }
 
         private string ParseId(string id)
@@ -207,6 +241,29 @@ namespace CustomSpawns.Data.Adapter
             if(partyTemplate == null)
                 throw new ArgumentException("PartyTemplate " + partyTemplateId + " is not defined. You have to add this party template via xml or use an existing template.");
             return partyTemplate;
+        }
+
+        private bool ReinforcementTemplateExists(string partyTemplateId)
+        {
+            // Invasion XML stores the raw StringId because the same value is used directly by the
+            // reinforcement scheduler. Do not route it through FindPartyTemplate/ParseId, which
+            // expects the qualified "PartyTemplate.Id" syntax used by ordinary spawn attributes.
+            return _objectManager.GetObject<PartyTemplateObject>(partyTemplateId) != null ||
+                   _campaignObjectManager.Find<PartyTemplateObject>(partyTemplateId) != null;
+        }
+
+        private void ValidateInvasionBehaviourTemplate(string spawnPartyTemplateId, string? templateId)
+        {
+            if (_partyBehaviourDao == null)
+            {
+                throw new ArgumentException("Invasion configuration validation requires the party behaviour DAO.");
+            }
+
+            PartyBehaviourDto? template = string.IsNullOrWhiteSpace(templateId)
+                ? null
+                : _partyBehaviourDao.FindById(templateId!);
+            InvasionRuntimeConfigurationValidator.ValidateEffectiveSiegeTemplate(spawnPartyTemplateId, templateId,
+                template != null, template?.PriorityPartyBehaviours ?? Array.Empty<PriorityPartyBehaviourData>());
         }
 
         private Color ResolveColour(string? colour)

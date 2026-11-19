@@ -17,29 +17,50 @@ namespace CustomSpawns.CampaignData.Implementations
     {
         static DailyLogger()
         {
-            var config = new LoggingConfiguration();
-
             var assemblyFolder = Path.GetDirectoryName(typeof(DailyLogger).Assembly.Location);
             var modRootFolder = Path.GetFullPath(Path.Combine(assemblyFolder, "..", ".."));
+
+            // NLog.config sets the levels and targets; it finds the mod's folder through this item.
+            GlobalDiagnosticsContext.Set("modRoot", modRootFolder);
+            var configPath = Path.Combine(modRootFolder, "ModuleData", "NLog.config");
+            var config = File.Exists(configPath)
+                ? new XmlLoggingConfiguration(configPath)
+                : DefaultConfiguration(modRootFolder);
+#if DEBUG
+            // A debug build logs at Debug at least, whatever NLog.config says.
+            foreach (var rule in config.LoggingRules)
+            {
+                if (!rule.IsLoggingEnabledForLevel(LogLevel.Debug))
+                {
+                    rule.EnableLoggingForLevels(LogLevel.Debug, LogLevel.Fatal);
+                }
+            }
+#endif
+            LogManager.Configuration = config;
+        }
+
+        private static LoggingConfiguration DefaultConfiguration(string modRootFolder)
+        {
+            var config = new LoggingConfiguration();
             var logFilePath = Path.Combine(modRootFolder, "Logs", "${shortdate}.log");
 
             var logfile = new FileTarget("logfile")
             {
                 FileName = logFilePath,
-                Layout = "${longdate}|${level:uppercase=true}|${logger}|${message}",
+                Layout = "${longdate}|${level:uppercase=true}|${logger}|${message}${onexception:inner=${newline}${exception:format=tostring}}",
                 CreateDirs = true,
                 AutoFlush = true
             };
 
             var logconsole = new ConsoleTarget("logconsole")
             {
-                Layout = "${longdate}|${level:uppercase=true}|${logger}|${message}"
+                Layout = "${longdate}|${level:uppercase=true}|${logger}|${message}${onexception:inner=${newline}${exception:format=tostring}}"
             };
 
             config.AddRule(LogLevel.Info, LogLevel.Fatal, logfile);
             config.AddRule(LogLevel.Info, LogLevel.Fatal, logconsole);
 
-            LogManager.Configuration = config;
+            return config;
         }
 
         private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
@@ -73,13 +94,23 @@ namespace CustomSpawns.CampaignData.Implementations
         {
             WriteString(s);
         }
-        
+
+        public void Trace(string s)
+        {
+            WriteString(s, LogLevel.Trace);
+        }
+
         private void WriteString(string s)
+        {
+            WriteString(s, LogLevel.Info);
+        }
+
+        private void WriteString(string s, LogLevel level)
         {
             try
             {
                 var line = string.Format("Campaign Day {0}| {1}", _dayCount, s);
-                Logger.Info(line);
+                Logger.Log(level, line);
             }
             catch (System.Exception ex)
             {

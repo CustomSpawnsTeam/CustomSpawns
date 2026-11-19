@@ -161,7 +161,7 @@ namespace CustomSpawns.Utils
             return min;
         }
 
-        public static Settlement GetClosestNonHostileCityAmong(MobileParty mb, List<SpawnSettlementType> preferredTypes = null, Settlement exception = null)
+        public static Settlement GetClosestNonHostileCityAmong(MobileParty mb, IReadOnlyList<SpawnSettlementType> preferredTypes = null, Settlement exception = null)
         {
             List<Settlement> viableSettlements = new List<Settlement>();
             foreach (Settlement s in Settlement.All)

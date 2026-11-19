@@ -5,13 +5,14 @@ using CustomSpawns.Data.Adapter;
 using CustomSpawns.Data.Dto;
 using CustomSpawns.Data.Reader.Impl;
 using CustomSpawns.Exception;
+using CustomSpawns.Invasions;
 using CustomSpawns.Utils;
 using TaleWorlds.Core;
 using TaleWorlds.Localization;
 
 namespace CustomSpawns.Data.Dao
 {
-    public class SpawnDao
+    public class SpawnDao : ISpawnDao
     {
         private readonly SpawnDataReader _spawnDataReader;
         private readonly SpawnDtoAdapter _spawnDtoAdapter;
@@ -54,8 +55,28 @@ namespace CustomSpawns.Data.Dao
                     })
                     .Where(spawn => spawn != null)
                     .ToList()!;
+                RefuseInvasionsSharingAClan(_spawns);
             }
             return _spawns;
+        }
+
+        // A clan may be invaded for once. The refusal is reported and the spawn dropped, the way an
+        // invalid spawn is, since the invasion it configures cannot be told apart from the first one's.
+        private void RefuseInvasionsSharingAClan(List<SpawnDto> spawns)
+        {
+            IReadOnlyList<string> refused = InvasionRuntimeConfigurationValidator.FindInvasionsSharingAClan(spawns
+                .Where(spawn => spawn.Invasion != null)
+                .Select(spawn => new KeyValuePair<string, string>(spawn.PartyTemplate.StringId,
+                    spawn.SpawnClan.StringId)));
+
+            foreach (string partyTemplateId in refused)
+            {
+                SpawnDto spawn = spawns.First(candidate => candidate.PartyTemplate.StringId == partyTemplateId);
+                _messageBoxService.ShowMessage("Custom Spawns ignored the invasion spawn '" + partyTemplateId +
+                                               "' because clan '" + spawn.SpawnClan.StringId +
+                                               "' is already invaded for by an earlier spawn. A clan may be invaded for once.");
+                spawns.Remove(spawn);
+            }
         }
 
         public IList<SpawnDto> FindAll()
@@ -88,7 +109,7 @@ namespace CustomSpawns.Data.Dao
             return spawn;
         }
 
-        internal static T? FindUniqueParent<T>(IEnumerable<T> candidates, out bool isAmbiguous)
+        public static T? FindUniqueParent<T>(IEnumerable<T> candidates, out bool isAmbiguous)
             where T : class
         {
             using IEnumerator<T> enumerator = candidates.GetEnumerator();

@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Xml;
 using System.Xml.Serialization;
+using CustomSpawns.Invasions;
 
 namespace CustomSpawns.Data.Model
 {
@@ -16,6 +17,7 @@ namespace CustomSpawns.Data.Model
         private List<string>? _overridenKingdomSpawns;
         private List<string>? _overridenCultureSpawns;
         private List<string>? _supportingParties;
+        private string? _priorityPartyBehaviourTemplateId;
 
         [DefaultValue(1), XmlElement(ElementName = "MaximumOnMap")]
         public int MaximumOnMap { get; set; } = 1;
@@ -62,14 +64,8 @@ namespace CustomSpawns.Data.Model
         [XmlElement(ElementName="PartyType")]
         public string? PartyType { get; set; }
         
-        [DefaultValue(false), XmlElement(ElementName="PatrolAroundSpawn")]
-        public bool IsConfiguredToPatrolAroundSpawn { get; set; }
-
         [DefaultValue(0f), XmlElement(ElementName = "MinimumNumberOfDaysUntilSpawn")]
         public int MinimumNumberOfDaysUntilSpawn { get; set; }
-
-        [DefaultValue(false), XmlElement(ElementName = "AttackClosestIfIdleForADay")]
-        public bool AttackClosestIfIdleForADay { get; set; }
 
         [DefaultValue(""), XmlElement(ElementName = "TrySpawnAt")]
         public string TrySpawnAt { get; set; } = "";
@@ -91,6 +87,24 @@ namespace CustomSpawns.Data.Model
 
         [XmlElement(ElementName="PatrolAroundClosestLestInterruptedAndSwitch")]
         public PatrolAroundConfig? PatrolAroundConfig { get; set; }
+
+        // Makes the spawn an invasion that takes and holds fiefs. Left out, the spawn is an ordinary party.
+        [XmlElement(ElementName = "Invasion")]
+        public InvasionConfig? Invasion { get; set; }
+
+        [XmlElement(ElementName = "PriorityPartyBehaviourTemplateId")]
+        public string? PriorityPartyBehaviourTemplateId
+        {
+            get => _priorityPartyBehaviourTemplateId;
+            set
+            {
+                _priorityPartyBehaviourTemplateId = value;
+                PriorityPartyBehaviourTemplateIdSpecified = true;
+            }
+        }
+
+        [XmlIgnore]
+        public bool PriorityPartyBehaviourTemplateIdSpecified { get; set; }
 
         [XmlAttribute(AttributeName="party_template")]
         public string PartyTemplate { get; set; }

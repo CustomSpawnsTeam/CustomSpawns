@@ -14,18 +14,18 @@ namespace CustomSpawns.Utils
     public class SpawnCheats
     {
         private static SpawnDao? _spawnDao;
-        private static Spawner? _spawner;
-        
-        public SpawnCheats(Spawner spawner, SpawnDao spawnDao)
+        private static SpawnGroupService? _spawnGroupService;
+
+        public SpawnCheats(SpawnGroupService spawnGroupService, SpawnDao spawnDao)
         {
-            _spawner = spawner;
+            _spawnGroupService = spawnGroupService;
             _spawnDao = spawnDao;
         }
-        
+
         [CommandLineFunctionality.CommandLineArgumentFunction("cs_spawn", "campaign")]
         public static string SpawnCustomSpawnParty(List<string> strings)
         {
-            if (_spawner == null || _spawnDao == null)
+            if (_spawnGroupService == null || _spawnDao == null)
             {
                 return "Error: CustomSpawns' dependencies are not initialised.";
             }
@@ -60,8 +60,12 @@ namespace CustomSpawns.Utils
             {
                 return "Could not find any settlements to spawn " + strings[0] + ".";
             }
-            _spawner.SpawnParty(settlement, spawn.SpawnClan, spawn.PartyTemplate);
-            spawn.SpawnAlongWith.ToList().ForEach(subSpawn => _spawner.SpawnParty(settlement, spawn.SpawnClan, subSpawn.templateObject));
+
+            MobileParty? mainParty = _spawnGroupService.Spawn(spawn, settlement, spawn.SpawnClan);
+            if (mainParty == null)
+            {
+                return "Could not spawn " + strings[0] + ".";
+            }
             return "Party " + strings[0] + " spawned at " + settlement.Name;
         }
     }

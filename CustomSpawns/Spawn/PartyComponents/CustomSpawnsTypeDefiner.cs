@@ -1,4 +1,9 @@
-﻿using TaleWorlds.SaveSystem;
+using System.Collections.Generic;
+using CustomSpawns.AI.Behaviours;
+using CustomSpawns.AI.Model;
+using CustomSpawns.Invasions.Adapters;
+using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.SaveSystem;
 
 namespace CustomSpawns.Spawn.PartyComponents
 {
@@ -16,6 +21,38 @@ namespace CustomSpawns.Spawn.PartyComponents
         {
             AddClassDefinition(typeof(CustomSpawnsPartyComponent), 1);
             AddClassDefinition(typeof(CsPartyData), 2);
+            AddClassDefinition(typeof(PatrolAroundClosestLestInterruptedAndSwitchBehaviour.PatrolState), 3);
+            AddClassDefinition(typeof(SettlementOffensiveBehaviourState), 4);
+            AddClassDefinition(typeof(InvasionStateSaveData), 6);
+            AddClassDefinition(typeof(InvasionSaveData), 7);
+            AddClassDefinition(typeof(InvasionCaptureSaveData), 8);
+            AddClassDefinition(typeof(InvasionFootholdSaveData), 9);
+            AddClassDefinition(typeof(InvasionCaptureEvidenceSaveData), 10);
+            AddClassDefinition(typeof(InvasionReinforcementScheduleSaveData), 11);
+            AddClassDefinition(typeof(InvasionCapitalObjectiveSaveData), 12);
+        }
+
+        protected override void DefineEnumTypes()
+        {
+            AddEnumDefinition(typeof(SettlementOffensivePhase), 5);
+        }
+
+        protected override void DefineContainerDefinitions()
+        {
+            ConstructContainerDefinition(typeof(List<InvasionSaveData>));
+            ConstructContainerDefinition(typeof(List<InvasionCaptureSaveData>));
+            ConstructContainerDefinition(typeof(List<InvasionFootholdSaveData>));
+            ConstructContainerDefinition(typeof(List<InvasionCaptureEvidenceSaveData>));
+            ConstructContainerDefinition(typeof(List<InvasionReinforcementScheduleSaveData>));
+            ConstructContainerDefinition(typeof(List<MobileParty>));
+            ConstructContainerDefinition(typeof(List<string>));
+            ConstructContainerDefinition(typeof(Dictionary<string, string>));
+            ConstructContainerDefinition(typeof(Dictionary<
+                MobileParty, CsPartyData>));
+            ConstructContainerDefinition(typeof(Dictionary<MobileParty,
+                PatrolAroundClosestLestInterruptedAndSwitchBehaviour.PatrolState>));
+            ConstructContainerDefinition(typeof(Dictionary<MobileParty,
+                SettlementOffensiveBehaviourState>));
         }
     }
 }

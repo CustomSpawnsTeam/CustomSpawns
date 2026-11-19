@@ -1,10 +1,13 @@
 using System.Collections.Generic;
 using System.Reflection;
+using CustomSpawns.AI.Behaviours;
+using CustomSpawns.AI.Model;
 using CustomSpawns.Data.Dao;
 using CustomSpawns.Spawn;
 using CustomSpawns.Spawn.PartyComponents;
 using NUnit.Framework;
 using TaleWorlds.SaveSystem;
+using TaleWorlds.SaveSystem.Definition;
 
 namespace CustomSpawns.Tests.Spawn
 {
@@ -16,6 +19,7 @@ namespace CustomSpawns.Tests.Spawn
             Assert.AreEqual(1, SaveId("_partyOwner"));
             Assert.AreEqual(2, SaveId("_name"));
             Assert.AreEqual(3, SaveId("_homeSettlement"));
+            Assert.AreEqual(4, SaveId("_leader"));
         }
 
         [Test]
@@ -49,6 +53,19 @@ namespace CustomSpawns.Tests.Spawn
         }
 
         [Test]
+        public void DeathMessage_SuppressesOnlyAdoptedPartiesAndPersistingOriginalInvasions()
+        {
+            CsPartyData original = new CsPartyData("primary", "primary", true, null);
+            CsPartyData escort = new CsPartyData("escort", "primary", false, null, null, "Escort");
+            CsPartyData adopted = new CsPartyData("adopted", "primary", false, null, null, "Adopted");
+
+            Assert.True(SpawnBehaviour.ShouldSuppressDeathMessage(original, _ => true));
+            Assert.False(SpawnBehaviour.ShouldSuppressDeathMessage(original, _ => false));
+            Assert.False(SpawnBehaviour.ShouldSuppressDeathMessage(escort, _ => true));
+            Assert.True(SpawnBehaviour.ShouldSuppressDeathMessage(adopted, _ => false));
+        }
+
+        [Test]
         public void PrimaryIdentity_RestoresAndRemovesTheOwningSpawnCounter()
         {
             var spawnCounts = new Dictionary<string, int> { ["primary"] = 0 };
@@ -69,6 +86,30 @@ namespace CustomSpawns.Tests.Spawn
             Assert.AreEqual(2, SaveId<CsPartyData>("_owningSpawnTemplateId"));
             Assert.AreEqual(3, SaveId<CsPartyData>("_isPrimarySpawn"));
             Assert.AreEqual(4, SaveId<CsPartyData>("_latestClosestSettlement"));
+            Assert.AreEqual(5, SaveId<CsPartyData>("_supportedParty"));
+            Assert.AreEqual(8, SaveId<CsPartyData>("_partyRole"));
+        }
+
+        [Test]
+        public void TypeDefiner_RegistersSettlementOffensivePhaseEnumWithUniqueId()
+        {
+            var context = new DefinitionContext();
+            var definer = new CustomSpawnsTypeDefiner();
+            typeof(SaveableTypeDefiner).GetMethod("Initialize",
+                    BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(definer, new object[] { context });
+            typeof(CustomSpawnsTypeDefiner).GetMethod("DefineEnumTypes",
+                    BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(definer, null);
+
+            object? definition = typeof(DefinitionContext).GetMethod("GetEnumDefinition",
+                    BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(context, new object[] { typeof(SettlementOffensivePhase) });
+
+            Assert.That(definition, Is.InstanceOf<TypeDefinitionBase>());
+            TypeDefinitionBase typeDefinition = (TypeDefinitionBase)definition!;
+            Assert.That(typeDefinition.Type, Is.EqualTo(typeof(SettlementOffensivePhase)));
+            Assert.That(((TypeSaveId)typeDefinition.SaveId).Id, Is.EqualTo(7_955_640));
         }
 
         [Test]

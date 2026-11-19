@@ -21,6 +21,9 @@ namespace CustomSpawns.Spawn.PartyComponents
         [SaveableField(3)]
         private Settlement _homeSettlement = null!;
 
+        [SaveableField(4)]
+        private Hero? _leader;
+
         private bool _isRegisteredWithClan;
 
         public CustomSpawnsPartyComponent(Hero partyOwner, TextObject name, Settlement homeSettlement)
@@ -32,9 +35,12 @@ namespace CustomSpawns.Spawn.PartyComponents
 
         /**
          * This is the clan that owns the party.
-         * Generally this would be the clan leader.
+         * Generally this would be the clan leader, but when a lord has been generated to lead the
+         * party it has to be that lord: Bannerlord dereferences Party.Owner.PartyBelongedTo when the
+         * party captures a fortification, and the clan leader belongs to no party.
+         * Vanilla keeps the same invariant in LordPartyComponent.OnChangePartyLeader.
          */
-        public override Hero PartyOwner => _partyOwner;
+        public override Hero PartyOwner => _leader ?? _partyOwner;
 
         /**
          * This is the name of the party on the campaign map.
@@ -45,7 +51,28 @@ namespace CustomSpawns.Spawn.PartyComponents
          * This is the settlement the party has spawned at.
          */
         public override Settlement HomeSettlement => _homeSettlement;
-        
+
+        /**
+         * This is the hero leading the party on the campaign map.
+         * It is null unless the party was given a generated lord, which sieges require.
+         */
+        public override Hero Leader => _leader!;
+
+        /**
+         * Makes the given hero lead this party, enrolling it at the front of the member roster
+         * so that Bannerlord tracks the hero as belonging to this party.
+         */
+        public void AssignLeader(Hero leader)
+        {
+            _leader = leader;
+            if (MobileParty.MemberRoster.FindIndexOfTroop(leader.CharacterObject) < 0)
+            {
+                MobileParty.AddElementToMemberRoster(leader.CharacterObject, 1, true);
+            }
+
+            ApplyPartyInvariants();
+        }
+
         protected override void OnMobilePartySetOnCreation()
         {
             ApplyPartyInvariants();
@@ -81,7 +108,7 @@ namespace CustomSpawns.Spawn.PartyComponents
             _homeSettlement = state.HomeSettlement!;
         }
 
-        internal static LegacyPartyState RepairLegacyState(Hero? savedOwner, Hero? currentOwner, Clan? actualClan,
+        public static LegacyPartyState RepairLegacyState(Hero? savedOwner, Hero? currentOwner, Clan? actualClan,
             TextObject? savedName, TextObject? currentName, Settlement? savedHomeSettlement, Settlement? currentHomeSettlement)
         {
             Hero? partyOwner = savedOwner ?? currentOwner;
@@ -94,22 +121,23 @@ namespace CustomSpawns.Spawn.PartyComponents
                 savedName ?? currentName, savedHomeSettlement ?? currentHomeSettlement);
         }
 
-        internal static bool ShouldRegisterWithClan(Clan? clan)
+        public static bool ShouldRegisterWithClan(Clan? clan)
         {
             return clan != null;
         }
 
-        internal static bool ShouldFinalizeWithClan(bool isRegisteredWithClan)
+        public static bool ShouldFinalizeWithClan(bool isRegisteredWithClan)
         {
             return isRegisteredWithClan;
         }
 
         private void ApplyPartyInvariants()
         {
-            if (_partyOwner?.Clan != null)
+            Hero? partyOwner = PartyOwner;
+            if (partyOwner?.Clan != null)
             {
-                MobileParty.ActualClan = _partyOwner.Clan;
-                MobileParty.Party.SetCustomOwner(_partyOwner);
+                MobileParty.ActualClan = partyOwner.Clan;
+                MobileParty.Party.SetCustomOwner(partyOwner);
             }
 
             if (_name != null)
@@ -126,7 +154,7 @@ namespace CustomSpawns.Spawn.PartyComponents
             MobileParty.Party.SetVisualAsDirty();
         }
 
-        internal readonly struct LegacyPartyState
+        public readonly struct LegacyPartyState
         {
             public Hero? PartyOwner { get; }
             public TextObject? Name { get; }

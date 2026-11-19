@@ -1,4 +1,4 @@
-﻿using CustomSpawns.Utils;
+using CustomSpawns.Utils;
 using TaleWorlds.Localization;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
@@ -10,19 +10,22 @@ namespace CustomSpawns.Spawn
     {
         private readonly BanditPartySpawnFactory _banditPartySpawnFactory;
         private readonly CustomPartySpawnFactory _customPartySpawnFactory;
+        private readonly BesiegingPartyLordResolver _besiegingPartyLordResolver;
         private readonly MessageBoxService _messageBoxService;
         private readonly ModDebug _modDebug;
 
         public Spawner(BanditPartySpawnFactory banditPartySpawnFactory, CustomPartySpawnFactory customPartySpawnFactory,
-            MessageBoxService messageBoxService, ModDebug modDebug)
+            BesiegingPartyLordResolver besiegingPartyLordResolver, MessageBoxService messageBoxService, ModDebug modDebug)
         {
             _banditPartySpawnFactory = banditPartySpawnFactory;
             _customPartySpawnFactory = customPartySpawnFactory;
+            _besiegingPartyLordResolver = besiegingPartyLordResolver;
             _messageBoxService = messageBoxService;
             _modDebug = modDebug;
         }
 
-        public MobileParty SpawnParty(Settlement spawnedSettlement, Clan clan, PartyTemplateObject templateObject, TextObject? partyName = null)
+        public MobileParty? SpawnParty(Settlement spawnedSettlement, Clan clan, PartyTemplateObject templateObject,
+            TextObject? partyName = null, string? priorityPartyBehaviourTemplateId = null)
         {
             try
             {
@@ -34,7 +37,10 @@ namespace CustomSpawns.Spawn
                 {
                     return _banditPartySpawnFactory.SpawnParty(spawnedSettlement, name, clan, templateObject);
                 }
-                return _customPartySpawnFactory.SpawnParty(spawnedSettlement, name, clan, templateObject);
+
+                MobileParty party = _customPartySpawnFactory.SpawnParty(spawnedSettlement, name, clan, templateObject);
+                _besiegingPartyLordResolver.AssignLordWhenPartyBesieges(party, clan, priorityPartyBehaviourTemplateId);
+                return party;
             }
             catch (System.Exception e)
             {

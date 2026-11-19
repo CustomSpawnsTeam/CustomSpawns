@@ -8,6 +8,7 @@
   <string id="SpawnAPIWarn002" text="Possible invalid spawn data. Spawning of party terminated." />
   <string id="SpawnAPIWarn003" text="Could not find Campaign Data config file for type {NAME}" />
   <string id="SpawnAPIDebug001" text="CustomSpawns: Spawning {NAME} at {POSITION} in settlement {SETTLEMENT}" />
+  <string id="SpawnAPIDebug002" text="CustomSpawns: {NAME} now leads the besieging party {PARTY}" />
   <string id="SpawnAPIErr001" text="CustomSpawns error has occured, please report to mod developer:" />
   <string id="SpawnAPIErr002" text="Could not parse dialogue consequnce:{NEWLINE}{TEXT}{NEWLINE}Error Message:{NEWLINE}{ERROR}" />
   <string id="SpawnAPIMsg000" text="Custom Spawns API loaded" />

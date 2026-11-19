@@ -15,8 +15,15 @@ namespace CustomSpawns.Spawn
         protected override MobileParty CreateParty(Settlement spawnedSettlement, Clan clan,
             PartyTemplateObject templateObject, TextObject partyName)
         {
-            MobileParty party = BanditPartyComponent.CreateBanditParty(templateObject.StringId + "_" + 1, clan,
-                GetHomeHideout(spawnedSettlement, clan), false, templateObject, spawnedSettlement.Position);
+            string partyId = templateObject.StringId + "_" + 1;
+            Hideout? hideout = GetHomeHideout(spawnedSettlement, clan);
+            // The native bandit counts key on the party's home settlement, so a party with no hideout has to be
+            // homed on a settlement the way looters are.
+            MobileParty party = hideout == null
+                ? BanditPartyComponent.CreateLooterParty(partyId, clan, spawnedSettlement, false, templateObject,
+                    spawnedSettlement.Position)
+                : BanditPartyComponent.CreateBanditParty(partyId, clan, hideout, false, templateObject,
+                    spawnedSettlement.Position);
             return InitParty(party, partyName ?? clan.Name, spawnedSettlement, clan);
         }
 
@@ -49,8 +56,8 @@ namespace CustomSpawns.Spawn
             {
                 return spawnedSettlement.Hideout;
             }
-            // non-native bandit clans might not have any hideouts on the map
-            // however, it looks like passing a nullable hideout to the bandit party doesn't crash  
+            // Non-native bandit clans might not have any hideouts on the map, and a native clan has none until one
+            // is infested.
             return GetNearestHideoutFromSettlement(spawnedSettlement, clan);
         }
 

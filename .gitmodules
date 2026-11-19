@@ -1,0 +1,3 @@
+[submodule "submodules/bannerlord-agent"]
+	path = submodules/bannerlord-agent
+	url = https://github.com/JoeFwd/bannerlord-agent.git
