@@ -23,8 +23,7 @@ namespace CustomSpawns.Invasions.Bank.Adapters
             TroopRoster roster = party.MemberRoster;
             bool isLordParty = party.PartyComponent is LordPartyComponent;
             int room = isLordParty
-                ? (int)Campaign.Current.Models.PartySizeLimitModel.GetPartyMemberSizeLimit(party.Party, false)
-                    .ResultNumber - roster.TotalManCount
+                ? party.Party.PartySizeLimit - roster.TotalManCount
                 : 0;
 
             return new InvasionWarband(party.StringId, party.ActualClan?.StringId, isLordParty,

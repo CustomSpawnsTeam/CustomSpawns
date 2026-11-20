@@ -1,3 +1,8 @@
+Version: 2.3.0
+Game Version: v1.5.7
+* Breaking Change: Custom Spawns now requires Bannerlord v1.5.7.
+* Documentation: docs/invasions.md lists the bonuses an invasion gets: larger lord parties, free armies, armies that hold together, garrisons that stay and a supply train.
+---------------------------------------------------------------------------------------------------
 Version: 2.2.0
 Game Versions: v1.4.7,v1.4.8
 * Breaking Change: Custom Spawns now requires Bannerlord v1.4.7 or later.

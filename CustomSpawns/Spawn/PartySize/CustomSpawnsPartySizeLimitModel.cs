@@ -23,9 +23,10 @@ namespace CustomSpawns.Spawn.PartySize
 
         public override int MinimumNumberOfVillagersAtVillagerParty => _decorated.MinimumNumberOfVillagersAtVillagerParty;
 
-        public override ExplainedNumber GetPartyMemberSizeLimit(PartyBase party, bool includeDescriptions = false)
+        public override ExplainedNumber GetPartyMemberSizeLimit(PartyBase party, bool isCurrentlyAtSea,
+            bool includeDescriptions = false)
         {
-            ExplainedNumber partySizeLimit = _decorated.GetPartyMemberSizeLimit(party, true);
+            ExplainedNumber partySizeLimit = _decorated.GetPartyMemberSizeLimit(party, isCurrentlyAtSea, true);
             MobileParty mobileParty = party.MobileParty;
             return mobileParty == null
                 ? partySizeLimit

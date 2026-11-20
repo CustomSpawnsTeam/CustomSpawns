@@ -38,9 +38,9 @@ namespace CustomSpawns.Diplomacy
             return _diplomacyModel.GetStrengthThresholdForNonMutualWarsToBeIgnoredToJoinKingdom(kingdomToJoin);
         }
 
-        public override float GetRelationIncreaseFactor(Hero hero1, Hero hero2, float relationValue)
+        public override int GetEffectiveRelationChange(Hero originalHero, Hero originalGainedRelationWith, int relationChange)
         {
-            return _diplomacyModel.GetRelationIncreaseFactor(hero1, hero2, relationValue);
+            return _diplomacyModel.GetEffectiveRelationChange(originalHero, originalGainedRelationWith, relationChange);
         }
 
         public override int GetInfluenceAwardForSettlementCapturer(Settlement settlement)
