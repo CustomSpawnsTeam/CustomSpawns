@@ -89,6 +89,7 @@ namespace CustomSpawns.Invasions.Adapters
         private readonly BannerlordInvasionCoalitions _bannerlordInvasionCoalitions;
         private readonly InvasionConquestSaveStore _invasionConquestSaveStore;
         private readonly InvasionLineClans _invasionLineClans = new();
+        private readonly InvasionBeatenKingdoms _invasionBeatenKingdoms = new();
         private readonly InvasionCloneDiplomacy _invasionCloneDiplomacy;
 
         // Whose wars each invasion fights and which kingdom it conquers; the diplomacy rules ask it too.
@@ -190,10 +191,10 @@ namespace CustomSpawns.Invasions.Adapters
                     new InvasionTargetChoice()),
                 new BannerlordInvasionFrontOpenings(_bannerlordInvasionFiefGarrisons, bannerlordInvasionNeighbours,
                     bannerlordInvasionRealms, invasionConquestFronts),
-                BannerlordInvasionConquestStances, invasionConquests, _invasionLineClans);
+                BannerlordInvasionConquestStances, invasionConquests, _invasionLineClans, _invasionBeatenKingdoms);
             _bannerlordInvasionLineRefills = new BannerlordInvasionLineRefills(() => State,
                 _bannerlordInvasionConfigurations, bannerlordInvasionFollowerLaunches, invasionConquests,
-                invasionClans, invasionCapitals);
+                invasionClans, invasionCapitals, _invasionBeatenKingdoms);
             InvasionLordPartySizeObserver = new InvasionLordPartySizeObserver(
                 new InvasionLordPartySize(() => State, _bannerlordInvasionConfigurations), _invasionGarrisonArmyLords);
             InvasionGarrisonArmyCampaign = new InvasionGarrisonArmyCampaign(() => State, spawns, _invasionTroopBank,
@@ -288,6 +289,10 @@ namespace CustomSpawns.Invasions.Adapters
             dataStore.SyncData("_invasionGarrisonArmyLords", ref garrisonArmyLords);
             Dictionary<string, string>? lineClans = dataStore.IsSaving ? _invasionLineClans.Export() : null;
             dataStore.SyncData("_invasionLineClans", ref lineClans);
+            Dictionary<string, string>? beatenKingdoms = dataStore.IsSaving
+                ? _invasionBeatenKingdoms.Export()
+                : null;
+            dataStore.SyncData("_invasionBeatenKingdoms", ref beatenKingdoms);
             string? coalitionAnswer = dataStore.IsSaving ? _invasionCoalitionPlayerChoice.Export() : null;
             dataStore.SyncData("_invasionCoalitionAnswer", ref coalitionAnswer);
             List<string>? coalitionLines = dataStore.IsSaving ? _invasionStandingCoalitions.Export() : null;
@@ -301,6 +306,7 @@ namespace CustomSpawns.Invasions.Adapters
             State = saved?.ToState() ?? new InvasionState();
             _invasionConquestSaveStore.Restore(conquests);
             _invasionLineClans.Restore(lineClans);
+            _invasionBeatenKingdoms.Restore(beatenKingdoms);
             _invasionCoalitionPlayerChoice.Restore(coalitionAnswer);
             _invasionStandingCoalitions.Restore(coalitionLines);
             _invasionCloneDiplomacy.InheritAll(_invasionLineClans);

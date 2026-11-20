@@ -10,8 +10,8 @@ namespace CustomSpawns.Invasions.Conquest.Adapters
 {
     /**
      * Keeps an invasion at war with the kingdom it is conquering and leaves every other kingdom to its own
-     * diplomacy. Once that kingdom has fallen the invader turns on the bordering kingdom it gains most by
-     * fighting.
+     * diplomacy. Once that kingdom has fallen its line is credited with beating it, and the invader turns on the
+     * bordering kingdom it gains most by fighting.
      */
     public sealed class BannerlordInvasionConquestWars
     {
@@ -25,6 +25,7 @@ namespace CustomSpawns.Invasions.Conquest.Adapters
         private readonly BannerlordInvasionConquestStances _bannerlordInvasionConquestStances;
         private readonly InvasionConquests _invasionConquests;
         private readonly InvasionLineClans _invasionLineClans;
+        private readonly InvasionBeatenKingdoms _invasionBeatenKingdoms;
 
         public BannerlordInvasionConquestWars(Func<InvasionState> state,
             BannerlordInvasionConfigurations bannerlordInvasionConfigurations,
@@ -33,7 +34,8 @@ namespace CustomSpawns.Invasions.Conquest.Adapters
             BannerlordInvasionRetargets bannerlordInvasionRetargets,
             BannerlordInvasionFrontOpenings bannerlordInvasionFrontOpenings,
             BannerlordInvasionConquestStances bannerlordInvasionConquestStances,
-            InvasionConquests invasionConquests, InvasionLineClans invasionLineClans)
+            InvasionConquests invasionConquests, InvasionLineClans invasionLineClans,
+            InvasionBeatenKingdoms invasionBeatenKingdoms)
         {
             _state = state;
             _bannerlordInvasionConfigurations = bannerlordInvasionConfigurations;
@@ -44,6 +46,7 @@ namespace CustomSpawns.Invasions.Conquest.Adapters
             _bannerlordInvasionConquestStances = bannerlordInvasionConquestStances;
             _invasionConquests = invasionConquests;
             _invasionLineClans = invasionLineClans;
+            _invasionBeatenKingdoms = invasionBeatenKingdoms;
         }
 
         // The first fief an invasion that conquers takes from a kingdom makes that kingdom its target.
@@ -98,6 +101,12 @@ namespace CustomSpawns.Invasions.Conquest.Adapters
                 }
 
                 bool hasFallen = _bannerlordInvasionRealms.HasFallen(conquest.TargetKingdomId);
+
+                // Seen before the invasion turns away, while the fallen kingdom is still its target.
+                if (hasFallen)
+                {
+                    _invasionBeatenKingdoms.ObserveFall(FindLineTemplateId(invasion), conquest.TargetKingdomId);
+                }
 
                 if ((hasFallen || IsAllyRealm(invasion, conquest.TargetKingdomId)) &&
                     !_bannerlordInvasionRetargets.Retarget(invasion, conquest))
@@ -157,6 +166,10 @@ namespace CustomSpawns.Invasions.Conquest.Adapters
                 _invasionLineClans.CanLead(invasion.ClanId, conquest.InvasionClanId, leaderTemplateId != null &&
                     _state().FindFightingInvasion(conquest.InvasionClanId)?.SpawnTemplateId == leaderTemplateId));
         }
+
+        // A copy runs its line's first spawn; a configured follower names the spawn it follows.
+        private string FindLineTemplateId(Invasion invasion) =>
+            _bannerlordInvasionConfigurations.FindLeaderTemplateId(invasion.SpawnTemplateId) ?? invasion.SpawnTemplateId;
 
         // A target that is an allied invasion's realm, as a save from before allies were left out of the choice holds.
         private bool IsAllyRealm(Invasion invasion, string kingdomId)

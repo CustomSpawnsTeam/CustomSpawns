@@ -10,7 +10,8 @@ namespace CustomSpawns.Invasions.Lines.Adapters
 {
     /**
      * Lands the next realm of every conquering invasion line still owed one; see InvasionLineRefill. A fallen
-     * kingdom counts whoever brought it down, so long as no invasion clan ruled it. The line's realms are every
+     * kingdom no invasion clan ruled counts only for the lines that were conquering it when it fell; see
+     * InvasionBeatenKingdoms. The line's realms are every
      * invasion of its first spawn still fighting: the first itself, its configured followers and its copies,
      * and every founded one whose kingdom has fallen, since a fallen realm is never replaced.
      */
@@ -23,13 +24,14 @@ namespace CustomSpawns.Invasions.Lines.Adapters
         private readonly InvasionConquests _invasionConquests;
         private readonly IInvasionClanRepository _invasionClans;
         private readonly IInvasionCapitalRepository _invasionCapitals;
+        private readonly InvasionBeatenKingdoms _invasionBeatenKingdoms;
         private readonly InvasionLineRefill _invasionLineRefill = new();
 
         public BannerlordInvasionLineRefills(Func<InvasionState> state,
             BannerlordInvasionConfigurations bannerlordInvasionConfigurations,
             BannerlordInvasionFollowerLaunches bannerlordInvasionFollowerLaunches,
             InvasionConquests invasionConquests, IInvasionClanRepository invasionClans,
-            IInvasionCapitalRepository invasionCapitals)
+            IInvasionCapitalRepository invasionCapitals, InvasionBeatenKingdoms invasionBeatenKingdoms)
         {
             _state = state;
             _bannerlordInvasionConfigurations = bannerlordInvasionConfigurations;
@@ -37,6 +39,7 @@ namespace CustomSpawns.Invasions.Lines.Adapters
             _invasionConquests = invasionConquests;
             _invasionClans = invasionClans;
             _invasionCapitals = invasionCapitals;
+            _invasionBeatenKingdoms = invasionBeatenKingdoms;
         }
 
         public void CheckDaily()
@@ -49,7 +52,8 @@ namespace CustomSpawns.Invasions.Lines.Adapters
             }
 
             InvasionState state = _state();
-            int fallen = Kingdom.All.Count(kingdom => kingdom.IsEliminated && !IsInvasionRealm(kingdom));
+            List<string> fallenKingdomIds = Kingdom.All.Where(kingdom => kingdom.IsEliminated && !IsInvasionRealm(kingdom))
+                .Select(kingdom => kingdom.StringId).ToList();
             List<Invasion> fighting = state.Invasions
                 .Where(invasion => state.FindFightingInvasion(invasion.ClanId) == invasion).ToList();
 
@@ -63,6 +67,7 @@ namespace CustomSpawns.Invasions.Lines.Adapters
                 }
 
                 List<Invasion> invasions = line.ToList();
+                int fallen = _invasionBeatenKingdoms.CountBeatenBy(line.Key, fallenKingdomIds);
                 int fallenRealms = state.FallenRealmTemplateIds.Count(templateId =>
                     FindLineTemplateId(templateId) == line.Key);
                 bool hasStandingRealm = invasions.Any(invasion =>
