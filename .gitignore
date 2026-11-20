@@ -89,3 +89,21 @@ ipch/
 
 # Rider
 .idea/
+
+# Agent tooling
+/.agents/
+/.claude/
+/.codex/
+/.mcp.json
+/apm_modules/
+/submodules/
+/runtime-evidence/
+
+# Deployed module output and runtime logs
+/Logs/
+/ModuleData/
+/Schema/
+/SubModule.xml
+
+# Fody generated schema
+FodyWeavers.xsd
