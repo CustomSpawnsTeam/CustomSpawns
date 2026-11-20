@@ -1,3 +1,5 @@
 <Project>
   <Import Project="$(MSBuildThisFileDirectory)/build/*.props" />
+  <!-- Machine-specific values such as GabpToken; untracked, see docs/agent-setup.md -->
+  <Import Project="$(MSBuildThisFileDirectory)/local.props" Condition="Exists('$(MSBuildThisFileDirectory)/local.props')" />
 </Project>

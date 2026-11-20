@@ -90,20 +90,28 @@ ipch/
 # Rider
 .idea/
 
-# Agent tooling
+# APM dependencies and generated agent client output
+apm_modules/
 /.agents/
 /.claude/
 /.codex/
 /.mcp.json
-/apm_modules/
-/submodules/
-/runtime-evidence/
 
-# Deployed module output and runtime logs
-/Logs/
+# Generated module deployment (source lives in CustomSpawns/_Module)
 /ModuleData/
-/Schema/
 /SubModule.xml
 
-# Fody generated schema
-FodyWeavers.xsd
+# Runtime logs and generated Fody schema
+/Logs/
+/CustomSpawns/FodyWeavers.xsd
+
+# Machine-specific build values (GABP token)
+/local.props
+
+# Agent working files, playtest evidence and saves
+/.superpowers/
+/runtime-evidence/
+*.sav
+bridge.json
+.gabs*/
+TestResults/

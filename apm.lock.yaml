@@ -1,0 +1,1228 @@
+lockfile_version: '1'
+apm_version: 0.33.0
+dependencies:
+- repo_url: joefwd/bannerlord-agent
+  materialization_repo_url: JoeFwd/bannerlord-agent
+  name: bannerlord-agent
+  host: github.com
+  resolved_commit: 1d5d2e50a7ed8677448fa1bab6a534c51f0876d6
+  resolved_ref: v0.2.1
+  version: 0.2.1
+  package_type: apm_package
+  deployed_files:
+  - .agents/skills/bannerlord-crafting-offsets
+  - .agents/skills/bannerlord-crafting-offsets/SKILL.md
+  - .agents/skills/bannerlord-crafting-offsets/agents/openai.yaml
+  - .agents/skills/bannerlord-crafting-offsets/references/diagnostic-patterns.md
+  - .agents/skills/bannerlord-debug
+  - .agents/skills/bannerlord-debug/SKILL.md
+  - .agents/skills/bannerlord-debug/references/bannerlord-debugging-workflow.md
+  - .agents/skills/bannerlord-debug/references/gabs-protocol.md
+  - .agents/skills/bannerlord-debug/references/gabs-runtime-workarounds.md
+  - .agents/skills/bannerlord-debug/references/jetbrains-debugger-tips.md
+  - .agents/skills/bannerlord-gabs-battle-manager
+  - .agents/skills/bannerlord-gabs-battle-manager/SKILL.md
+  - .agents/skills/bannerlord-gabs-session-reset
+  - .agents/skills/bannerlord-gabs-session-reset/SKILL.md
+  - .agents/skills/bannerlord-gabs-start
+  - .agents/skills/bannerlord-gabs-start/SKILL.md
+  - .agents/skills/bannerlord-lord-hall-battle
+  - .agents/skills/bannerlord-lord-hall-battle/SKILL.md
+  - .agents/skills/bannerlord-lord-hall-battle/agents/openai.yaml
+  - .agents/skills/bannerlord-lord-hall-battle/references/native-contract.md
+  - .agents/skills/bannerlord-lord-hall-battle/references/navmesh.md
+  - .agents/skills/bannerlord-modding-tools
+  - .agents/skills/bannerlord-modding-tools/SKILL.md
+  - .agents/skills/bannerlord-modding-tools/agents/openai.yaml
+  - .agents/skills/bannerlord-modding-tools/references/navmesh.md
+  - .agents/skills/bannerlord-music-classify
+  - .agents/skills/bannerlord-music-classify/SKILL.md
+  - .agents/skills/bannerlord-navmesh-preview
+  - .agents/skills/bannerlord-navmesh-preview/SKILL.md
+  - .agents/skills/bannerlord-navmesh-preview/scripts/render_navmesh_preview.py
+  - .agents/skills/bannerlord-navmesh-studio
+  - .agents/skills/bannerlord-navmesh-studio/SKILL.md
+  - .agents/skills/bannerlord-navmesh-studio/requirements.txt
+  - .agents/skills/bannerlord-sprite-analyze
+  - .agents/skills/bannerlord-sprite-analyze/SKILL.md
+  - .agents/skills/bannerlord-sprite-extract
+  - .agents/skills/bannerlord-sprite-extract/SKILL.md
+  - .agents/skills/bannerlord-sprite-inject
+  - .agents/skills/bannerlord-sprite-inject/SKILL.md
+  - .agents/skills/bannerlord-sprite-list
+  - .agents/skills/bannerlord-sprite-list/SKILL.md
+  - .claude/agents/bannerlord-debug-playtester.md
+  - .claude/hooks/bannerlord-agent/.apm/hooks/context/bannerlord-agent.md
+  - .claude/hooks/bannerlord-agent/.apm/hooks/scripts/jb-pause-guard.ps1
+  - .claude/hooks/bannerlord-agent/.apm/hooks/scripts/session-start.ps1
+  - .claude/skills/bannerlord-crafting-offsets
+  - .claude/skills/bannerlord-crafting-offsets/SKILL.md
+  - .claude/skills/bannerlord-crafting-offsets/agents/openai.yaml
+  - .claude/skills/bannerlord-crafting-offsets/references/diagnostic-patterns.md
+  - .claude/skills/bannerlord-debug
+  - .claude/skills/bannerlord-debug/SKILL.md
+  - .claude/skills/bannerlord-debug/references/bannerlord-debugging-workflow.md
+  - .claude/skills/bannerlord-debug/references/gabs-protocol.md
+  - .claude/skills/bannerlord-debug/references/gabs-runtime-workarounds.md
+  - .claude/skills/bannerlord-debug/references/jetbrains-debugger-tips.md
+  - .claude/skills/bannerlord-gabs-battle-manager
+  - .claude/skills/bannerlord-gabs-battle-manager/SKILL.md
+  - .claude/skills/bannerlord-gabs-session-reset
+  - .claude/skills/bannerlord-gabs-session-reset/SKILL.md
+  - .claude/skills/bannerlord-gabs-start
+  - .claude/skills/bannerlord-gabs-start/SKILL.md
+  - .claude/skills/bannerlord-lord-hall-battle
+  - .claude/skills/bannerlord-lord-hall-battle/SKILL.md
+  - .claude/skills/bannerlord-lord-hall-battle/agents/openai.yaml
+  - .claude/skills/bannerlord-lord-hall-battle/references/native-contract.md
+  - .claude/skills/bannerlord-lord-hall-battle/references/navmesh.md
+  - .claude/skills/bannerlord-modding-tools
+  - .claude/skills/bannerlord-modding-tools/SKILL.md
+  - .claude/skills/bannerlord-modding-tools/agents/openai.yaml
+  - .claude/skills/bannerlord-modding-tools/references/navmesh.md
+  - .claude/skills/bannerlord-music-classify
+  - .claude/skills/bannerlord-music-classify/SKILL.md
+  - .claude/skills/bannerlord-navmesh-preview
+  - .claude/skills/bannerlord-navmesh-preview/SKILL.md
+  - .claude/skills/bannerlord-navmesh-preview/scripts/render_navmesh_preview.py
+  - .claude/skills/bannerlord-navmesh-studio
+  - .claude/skills/bannerlord-navmesh-studio/SKILL.md
+  - .claude/skills/bannerlord-navmesh-studio/requirements.txt
+  - .claude/skills/bannerlord-sprite-analyze
+  - .claude/skills/bannerlord-sprite-analyze/SKILL.md
+  - .claude/skills/bannerlord-sprite-extract
+  - .claude/skills/bannerlord-sprite-extract/SKILL.md
+  - .claude/skills/bannerlord-sprite-inject
+  - .claude/skills/bannerlord-sprite-inject/SKILL.md
+  - .claude/skills/bannerlord-sprite-list
+  - .claude/skills/bannerlord-sprite-list/SKILL.md
+  - .codex/agents/bannerlord-debug-playtester.toml
+  - .codex/hooks/bannerlord-agent/.apm/hooks/context/bannerlord-agent.md
+  - .codex/hooks/bannerlord-agent/.apm/hooks/scripts/jb-pause-guard.ps1
+  - .codex/hooks/bannerlord-agent/.apm/hooks/scripts/session-start.ps1
+  deployed_file_hashes:
+    .agents/skills/bannerlord-crafting-offsets/SKILL.md: sha256:15b13fc32bf6bc072648e83d62a9c55ef247af9d71782b46475496b956b48ab6
+    .agents/skills/bannerlord-crafting-offsets/agents/openai.yaml: sha256:ca1bc42e1ae500347dfe1938d4c0244d6f10bcdaed34a1f8f46cd40aac0bb6e8
+    .agents/skills/bannerlord-crafting-offsets/references/diagnostic-patterns.md: sha256:fb98fb6faa2b6a61a0ded2187e1e945fc77fac19519bf42a98cce23374210cee
+    .agents/skills/bannerlord-debug/SKILL.md: sha256:7dbd82b8fdd94de903071d2a7b5d542b0c989c3179b18a1306a65d5faedfb444
+    .agents/skills/bannerlord-debug/references/bannerlord-debugging-workflow.md: sha256:01ff7ab3e61abc0fa88a07dc438499ed1b0c1c8504e18b6c9e61cef7705d7905
+    .agents/skills/bannerlord-debug/references/gabs-protocol.md: sha256:dbe4a14ddc01c00fcdaa39d6cff29598b843ef14f1e14bbf335b1355b52dee58
+    .agents/skills/bannerlord-debug/references/gabs-runtime-workarounds.md: sha256:d66149dd9d006bc5c5f934ca473f28511ec7a0b7f75971f39e74708bc22bb198
+    .agents/skills/bannerlord-debug/references/jetbrains-debugger-tips.md: sha256:99925a81583b5b61ba191b67c904059ae7ff2964da71afed82c919f7018a54a6
+    .agents/skills/bannerlord-gabs-battle-manager/SKILL.md: sha256:a3de17a74a2c5f1f76cbfd5b303a7d34e1a1b5ddc48fe2fd8d184207c5907855
+    .agents/skills/bannerlord-gabs-session-reset/SKILL.md: sha256:29d45d120e0e240b0159e2a455d40c195c2ed32c3ae31d71c32fcce8beb87d14
+    .agents/skills/bannerlord-gabs-start/SKILL.md: sha256:41d5379ea49c5649682488a28837def6637961f278fa90b77fef04d680c0feea
+    .agents/skills/bannerlord-lord-hall-battle/SKILL.md: sha256:aa0c81a6be11e8ce5407e22a648ed798c72fb85a1a579db8e034b60070cd732a
+    .agents/skills/bannerlord-lord-hall-battle/agents/openai.yaml: sha256:26357ddcbd7753158c304ad41ec7dd7e90470bb66a700d98101eb7aa0c9adc0b
+    .agents/skills/bannerlord-lord-hall-battle/references/native-contract.md: sha256:05553333bb00eef6120a86c16758f23074072383154149c45f2e5c01b7583210
+    .agents/skills/bannerlord-lord-hall-battle/references/navmesh.md: sha256:a0e35d2bf65b9cb1e0864f6d5cf2da05d92a9ad9c638be98ad3cd937bab32745
+    .agents/skills/bannerlord-modding-tools/SKILL.md: sha256:5c93b5ee86cbe0cce64c57860a42720c414945194a4d2690c2b3f56afd10e553
+    .agents/skills/bannerlord-modding-tools/agents/openai.yaml: sha256:f2f4feaac03ac1ba5b7c03c1b32a71d2c8f8fd6e40afab183fd2863d89c2bd0a
+    .agents/skills/bannerlord-modding-tools/references/navmesh.md: sha256:c7cc391e3abb863dae8e5fcc54fa5ed88eedb0583e7f28117ce07f908b7904ce
+    .agents/skills/bannerlord-music-classify/SKILL.md: sha256:d2d5b6cd58ab45dbf20ab9b17a3a170cfa889c74f7f775b9932abfc43f84556f
+    .agents/skills/bannerlord-navmesh-preview/SKILL.md: sha256:32e6cb871a1bef63a842bda34a5b4a21bc5fd803911be28b2432df52ac255a72
+    .agents/skills/bannerlord-navmesh-preview/scripts/render_navmesh_preview.py: sha256:c0d0f10fdb20a23e098ae3e64b13e5dde066b0f86cfa730e32f2078c8f730fad
+    .agents/skills/bannerlord-navmesh-studio/SKILL.md: sha256:2383a3f2c79a7b264b59021cfdfc7194e5f332284c34ef214e463cdd381fa06b
+    .agents/skills/bannerlord-navmesh-studio/requirements.txt: sha256:7c5ac097ee8de36da2332eeab81666c24df70f72e2b76835f4ec2b2b7460dfb4
+    .agents/skills/bannerlord-sprite-analyze/SKILL.md: sha256:f6c96740bc10de3528af30cf99a01dbdbff325a0051a3af150326ede374ad9c3
+    .agents/skills/bannerlord-sprite-extract/SKILL.md: sha256:b0fa8ec87a865aae45732096662e4d3c3e3733be5aad769e4359f21db67985bf
+    .agents/skills/bannerlord-sprite-inject/SKILL.md: sha256:418760d7dd821a1e178602903f65c0bb994b4c16745665214b3183fbd683ea20
+    .agents/skills/bannerlord-sprite-list/SKILL.md: sha256:ba0e7b823e25da11a3586f7e3c93a02075d7e33d294efa0a5d73b57123bc441e
+    .claude/agents/bannerlord-debug-playtester.md: sha256:e4633a5c8479276552f7036e0729f80abc15aa0be2c7c20c190500c1d797c3b4
+    .claude/hooks/bannerlord-agent/.apm/hooks/context/bannerlord-agent.md: sha256:252933fded3fc9438a530ebc033ed94dee09b2fef1b7ba81594c89c781c67ddb
+    .claude/hooks/bannerlord-agent/.apm/hooks/scripts/jb-pause-guard.ps1: sha256:b9b0cd0323fef3f8fad1b1a2b720583772b99f466ae251c259cd3d1358e657c3
+    .claude/hooks/bannerlord-agent/.apm/hooks/scripts/session-start.ps1: sha256:6c85e41a38541e92297dfc8dde4485dc375304b7634f83b0ba95e48ebacfdb9c
+    .claude/skills/bannerlord-crafting-offsets/SKILL.md: sha256:15b13fc32bf6bc072648e83d62a9c55ef247af9d71782b46475496b956b48ab6
+    .claude/skills/bannerlord-crafting-offsets/agents/openai.yaml: sha256:ca1bc42e1ae500347dfe1938d4c0244d6f10bcdaed34a1f8f46cd40aac0bb6e8
+    .claude/skills/bannerlord-crafting-offsets/references/diagnostic-patterns.md: sha256:fb98fb6faa2b6a61a0ded2187e1e945fc77fac19519bf42a98cce23374210cee
+    .claude/skills/bannerlord-debug/SKILL.md: sha256:7dbd82b8fdd94de903071d2a7b5d542b0c989c3179b18a1306a65d5faedfb444
+    .claude/skills/bannerlord-debug/references/bannerlord-debugging-workflow.md: sha256:01ff7ab3e61abc0fa88a07dc438499ed1b0c1c8504e18b6c9e61cef7705d7905
+    .claude/skills/bannerlord-debug/references/gabs-protocol.md: sha256:dbe4a14ddc01c00fcdaa39d6cff29598b843ef14f1e14bbf335b1355b52dee58
+    .claude/skills/bannerlord-debug/references/gabs-runtime-workarounds.md: sha256:d66149dd9d006bc5c5f934ca473f28511ec7a0b7f75971f39e74708bc22bb198
+    .claude/skills/bannerlord-debug/references/jetbrains-debugger-tips.md: sha256:99925a81583b5b61ba191b67c904059ae7ff2964da71afed82c919f7018a54a6
+    .claude/skills/bannerlord-gabs-battle-manager/SKILL.md: sha256:a3de17a74a2c5f1f76cbfd5b303a7d34e1a1b5ddc48fe2fd8d184207c5907855
+    .claude/skills/bannerlord-gabs-session-reset/SKILL.md: sha256:29d45d120e0e240b0159e2a455d40c195c2ed32c3ae31d71c32fcce8beb87d14
+    .claude/skills/bannerlord-gabs-start/SKILL.md: sha256:41d5379ea49c5649682488a28837def6637961f278fa90b77fef04d680c0feea
+    .claude/skills/bannerlord-lord-hall-battle/SKILL.md: sha256:aa0c81a6be11e8ce5407e22a648ed798c72fb85a1a579db8e034b60070cd732a
+    .claude/skills/bannerlord-lord-hall-battle/agents/openai.yaml: sha256:26357ddcbd7753158c304ad41ec7dd7e90470bb66a700d98101eb7aa0c9adc0b
+    .claude/skills/bannerlord-lord-hall-battle/references/native-contract.md: sha256:05553333bb00eef6120a86c16758f23074072383154149c45f2e5c01b7583210
+    .claude/skills/bannerlord-lord-hall-battle/references/navmesh.md: sha256:a0e35d2bf65b9cb1e0864f6d5cf2da05d92a9ad9c638be98ad3cd937bab32745
+    .claude/skills/bannerlord-modding-tools/SKILL.md: sha256:5c93b5ee86cbe0cce64c57860a42720c414945194a4d2690c2b3f56afd10e553
+    .claude/skills/bannerlord-modding-tools/agents/openai.yaml: sha256:f2f4feaac03ac1ba5b7c03c1b32a71d2c8f8fd6e40afab183fd2863d89c2bd0a
+    .claude/skills/bannerlord-modding-tools/references/navmesh.md: sha256:c7cc391e3abb863dae8e5fcc54fa5ed88eedb0583e7f28117ce07f908b7904ce
+    .claude/skills/bannerlord-music-classify/SKILL.md: sha256:d2d5b6cd58ab45dbf20ab9b17a3a170cfa889c74f7f775b9932abfc43f84556f
+    .claude/skills/bannerlord-navmesh-preview/SKILL.md: sha256:32e6cb871a1bef63a842bda34a5b4a21bc5fd803911be28b2432df52ac255a72
+    .claude/skills/bannerlord-navmesh-preview/scripts/render_navmesh_preview.py: sha256:c0d0f10fdb20a23e098ae3e64b13e5dde066b0f86cfa730e32f2078c8f730fad
+    .claude/skills/bannerlord-navmesh-studio/SKILL.md: sha256:2383a3f2c79a7b264b59021cfdfc7194e5f332284c34ef214e463cdd381fa06b
+    .claude/skills/bannerlord-navmesh-studio/requirements.txt: sha256:7c5ac097ee8de36da2332eeab81666c24df70f72e2b76835f4ec2b2b7460dfb4
+    .claude/skills/bannerlord-sprite-analyze/SKILL.md: sha256:f6c96740bc10de3528af30cf99a01dbdbff325a0051a3af150326ede374ad9c3
+    .claude/skills/bannerlord-sprite-extract/SKILL.md: sha256:b0fa8ec87a865aae45732096662e4d3c3e3733be5aad769e4359f21db67985bf
+    .claude/skills/bannerlord-sprite-inject/SKILL.md: sha256:418760d7dd821a1e178602903f65c0bb994b4c16745665214b3183fbd683ea20
+    .claude/skills/bannerlord-sprite-list/SKILL.md: sha256:ba0e7b823e25da11a3586f7e3c93a02075d7e33d294efa0a5d73b57123bc441e
+    .codex/agents/bannerlord-debug-playtester.toml: sha256:79d83cd4ae3dfd3c588aa16586bc395bd70b8590cbb059540c0ea70602744ce6
+    .codex/hooks/bannerlord-agent/.apm/hooks/context/bannerlord-agent.md: sha256:252933fded3fc9438a530ebc033ed94dee09b2fef1b7ba81594c89c781c67ddb
+    .codex/hooks/bannerlord-agent/.apm/hooks/scripts/jb-pause-guard.ps1: sha256:b9b0cd0323fef3f8fad1b1a2b720583772b99f466ae251c259cd3d1358e657c3
+    .codex/hooks/bannerlord-agent/.apm/hooks/scripts/session-start.ps1: sha256:6c85e41a38541e92297dfc8dde4485dc375304b7634f83b0ba95e48ebacfdb9c
+  content_hash: sha256:52ca9001cffe90cca0c94b2037b2bf72a3d86f1185e9eb1fa9d93ed2227ae32d
+deployments:
+- kind: project-relative
+  target: claude
+  value: .claude/agents/bannerlord-debug-playtester.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:e4633a5c8479276552f7036e0729f80abc15aa0be2c7c20c190500c1d797c3b4
+- kind: project-relative
+  target: claude
+  value: .claude/hooks/bannerlord-agent/.apm/hooks/context/bannerlord-agent.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:252933fded3fc9438a530ebc033ed94dee09b2fef1b7ba81594c89c781c67ddb
+- kind: project-relative
+  target: claude
+  value: .claude/hooks/bannerlord-agent/.apm/hooks/scripts/jb-pause-guard.ps1
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:b9b0cd0323fef3f8fad1b1a2b720583772b99f466ae251c259cd3d1358e657c3
+- kind: project-relative
+  target: claude
+  value: .claude/hooks/bannerlord-agent/.apm/hooks/scripts/session-start.ps1
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:6c85e41a38541e92297dfc8dde4485dc375304b7634f83b0ba95e48ebacfdb9c
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-agent-settings
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-agent-settings/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:b6c80e18562a17e81e47badb2bd4312a63b620a094ca8b1f8f9bd6053c8f0a0d
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-crafting-offsets
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-crafting-offsets/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:15b13fc32bf6bc072648e83d62a9c55ef247af9d71782b46475496b956b48ab6
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-crafting-offsets/agents/openai.yaml
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:ca1bc42e1ae500347dfe1938d4c0244d6f10bcdaed34a1f8f46cd40aac0bb6e8
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-crafting-offsets/references/diagnostic-patterns.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:fb98fb6faa2b6a61a0ded2187e1e945fc77fac19519bf42a98cce23374210cee
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-debug
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-debug/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:7dbd82b8fdd94de903071d2a7b5d542b0c989c3179b18a1306a65d5faedfb444
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-debug/references/bannerlord-debugging-workflow.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:01ff7ab3e61abc0fa88a07dc438499ed1b0c1c8504e18b6c9e61cef7705d7905
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-debug/references/gabs-protocol.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:dbe4a14ddc01c00fcdaa39d6cff29598b843ef14f1e14bbf335b1355b52dee58
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-debug/references/gabs-runtime-workarounds.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:d66149dd9d006bc5c5f934ca473f28511ec7a0b7f75971f39e74708bc22bb198
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-debug/references/jetbrains-debugger-tips.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:99925a81583b5b61ba191b67c904059ae7ff2964da71afed82c919f7018a54a6
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-gabs-battle-manager
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-gabs-battle-manager/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:a3de17a74a2c5f1f76cbfd5b303a7d34e1a1b5ddc48fe2fd8d184207c5907855
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-gabs-session-reset
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-gabs-session-reset/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:29d45d120e0e240b0159e2a455d40c195c2ed32c3ae31d71c32fcce8beb87d14
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-gabs-start
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-gabs-start/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:41d5379ea49c5649682488a28837def6637961f278fa90b77fef04d680c0feea
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-lord-hall-battle
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-lord-hall-battle/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:aa0c81a6be11e8ce5407e22a648ed798c72fb85a1a579db8e034b60070cd732a
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-lord-hall-battle/agents/openai.yaml
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:26357ddcbd7753158c304ad41ec7dd7e90470bb66a700d98101eb7aa0c9adc0b
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-lord-hall-battle/references/native-contract.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:05553333bb00eef6120a86c16758f23074072383154149c45f2e5c01b7583210
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-lord-hall-battle/references/navmesh.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:a0e35d2bf65b9cb1e0864f6d5cf2da05d92a9ad9c638be98ad3cd937bab32745
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-modding-tools
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-modding-tools/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:5c93b5ee86cbe0cce64c57860a42720c414945194a4d2690c2b3f56afd10e553
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-modding-tools/agents/openai.yaml
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:f2f4feaac03ac1ba5b7c03c1b32a71d2c8f8fd6e40afab183fd2863d89c2bd0a
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-modding-tools/references/navmesh.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:c7cc391e3abb863dae8e5fcc54fa5ed88eedb0583e7f28117ce07f908b7904ce
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-music-classify
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-music-classify/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:d2d5b6cd58ab45dbf20ab9b17a3a170cfa889c74f7f775b9932abfc43f84556f
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-navmesh-preview
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-navmesh-preview/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:32e6cb871a1bef63a842bda34a5b4a21bc5fd803911be28b2432df52ac255a72
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-navmesh-preview/scripts/render_navmesh_preview.py
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:c0d0f10fdb20a23e098ae3e64b13e5dde066b0f86cfa730e32f2078c8f730fad
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-navmesh-studio
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-navmesh-studio/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:2383a3f2c79a7b264b59021cfdfc7194e5f332284c34ef214e463cdd381fa06b
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-navmesh-studio/requirements.txt
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:7c5ac097ee8de36da2332eeab81666c24df70f72e2b76835f4ec2b2b7460dfb4
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-sprite-analyze
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-sprite-analyze/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:f6c96740bc10de3528af30cf99a01dbdbff325a0051a3af150326ede374ad9c3
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-sprite-extract
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-sprite-extract/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:b0fa8ec87a865aae45732096662e4d3c3e3733be5aad769e4359f21db67985bf
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-sprite-inject
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-sprite-inject/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:418760d7dd821a1e178602903f65c0bb994b4c16745665214b3183fbd683ea20
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-sprite-list
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/bannerlord-sprite-list/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:ba0e7b823e25da11a3586f7e3c93a02075d7e33d294efa0a5d73b57123bc441e
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-crafting-offsets
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: null
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-crafting-offsets/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:15b13fc32bf6bc072648e83d62a9c55ef247af9d71782b46475496b956b48ab6
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-crafting-offsets/agents/openai.yaml
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:ca1bc42e1ae500347dfe1938d4c0244d6f10bcdaed34a1f8f46cd40aac0bb6e8
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-crafting-offsets/references/diagnostic-patterns.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:fb98fb6faa2b6a61a0ded2187e1e945fc77fac19519bf42a98cce23374210cee
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-debug
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: null
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-debug/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:7dbd82b8fdd94de903071d2a7b5d542b0c989c3179b18a1306a65d5faedfb444
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-debug/references/bannerlord-debugging-workflow.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:01ff7ab3e61abc0fa88a07dc438499ed1b0c1c8504e18b6c9e61cef7705d7905
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-debug/references/gabs-protocol.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:dbe4a14ddc01c00fcdaa39d6cff29598b843ef14f1e14bbf335b1355b52dee58
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-debug/references/gabs-runtime-workarounds.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:d66149dd9d006bc5c5f934ca473f28511ec7a0b7f75971f39e74708bc22bb198
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-debug/references/jetbrains-debugger-tips.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:99925a81583b5b61ba191b67c904059ae7ff2964da71afed82c919f7018a54a6
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-gabs-battle-manager
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: null
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-gabs-battle-manager/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:a3de17a74a2c5f1f76cbfd5b303a7d34e1a1b5ddc48fe2fd8d184207c5907855
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-gabs-session-reset
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: null
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-gabs-session-reset/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:29d45d120e0e240b0159e2a455d40c195c2ed32c3ae31d71c32fcce8beb87d14
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-gabs-start
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: null
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-gabs-start/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:41d5379ea49c5649682488a28837def6637961f278fa90b77fef04d680c0feea
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-lord-hall-battle
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: null
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-lord-hall-battle/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:aa0c81a6be11e8ce5407e22a648ed798c72fb85a1a579db8e034b60070cd732a
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-lord-hall-battle/agents/openai.yaml
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:26357ddcbd7753158c304ad41ec7dd7e90470bb66a700d98101eb7aa0c9adc0b
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-lord-hall-battle/references/native-contract.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:05553333bb00eef6120a86c16758f23074072383154149c45f2e5c01b7583210
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-lord-hall-battle/references/navmesh.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:a0e35d2bf65b9cb1e0864f6d5cf2da05d92a9ad9c638be98ad3cd937bab32745
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-modding-tools
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: null
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-modding-tools/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:5c93b5ee86cbe0cce64c57860a42720c414945194a4d2690c2b3f56afd10e553
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-modding-tools/agents/openai.yaml
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:f2f4feaac03ac1ba5b7c03c1b32a71d2c8f8fd6e40afab183fd2863d89c2bd0a
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-modding-tools/references/navmesh.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:c7cc391e3abb863dae8e5fcc54fa5ed88eedb0583e7f28117ce07f908b7904ce
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-music-classify
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: null
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-music-classify/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:d2d5b6cd58ab45dbf20ab9b17a3a170cfa889c74f7f775b9932abfc43f84556f
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-navmesh-preview
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: null
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-navmesh-preview/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:32e6cb871a1bef63a842bda34a5b4a21bc5fd803911be28b2432df52ac255a72
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-navmesh-preview/scripts/render_navmesh_preview.py
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:c0d0f10fdb20a23e098ae3e64b13e5dde066b0f86cfa730e32f2078c8f730fad
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-navmesh-studio
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: null
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-navmesh-studio/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:2383a3f2c79a7b264b59021cfdfc7194e5f332284c34ef214e463cdd381fa06b
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-navmesh-studio/requirements.txt
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:7c5ac097ee8de36da2332eeab81666c24df70f72e2b76835f4ec2b2b7460dfb4
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-sprite-analyze
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: null
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-sprite-analyze/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:f6c96740bc10de3528af30cf99a01dbdbff325a0051a3af150326ede374ad9c3
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-sprite-extract
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: null
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-sprite-extract/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:b0fa8ec87a865aae45732096662e4d3c3e3733be5aad769e4359f21db67985bf
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-sprite-inject
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: null
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-sprite-inject/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:418760d7dd821a1e178602903f65c0bb994b4c16745665214b3183fbd683ea20
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-sprite-list
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: null
+- kind: project-relative
+  target: codex
+  value: .agents/skills/bannerlord-sprite-list/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:ba0e7b823e25da11a3586f7e3c93a02075d7e33d294efa0a5d73b57123bc441e
+- kind: project-relative
+  target: codex
+  value: .codex/agents/bannerlord-debug-playtester.toml
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:79d83cd4ae3dfd3c588aa16586bc395bd70b8590cbb059540c0ea70602744ce6
+- kind: project-relative
+  target: codex
+  value: .codex/hooks/bannerlord-agent/.apm/hooks/context/bannerlord-agent.md
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:252933fded3fc9438a530ebc033ed94dee09b2fef1b7ba81594c89c781c67ddb
+- kind: project-relative
+  target: codex
+  value: .codex/hooks/bannerlord-agent/.apm/hooks/scripts/jb-pause-guard.ps1
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:b9b0cd0323fef3f8fad1b1a2b720583772b99f466ae251c259cd3d1358e657c3
+- kind: project-relative
+  target: codex
+  value: .codex/hooks/bannerlord-agent/.apm/hooks/scripts/session-start.ps1
+  runtime: null
+  scope: project
+  owners:
+  - joefwd/bannerlord-agent
+  active_owner: joefwd/bannerlord-agent
+  content_hash: sha256:6c85e41a38541e92297dfc8dde4485dc375304b7634f83b0ba95e48ebacfdb9c
+- kind: project-relative
+  target: legacy
+  value: .agents/skills/bannerlord-agent-settings
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+- kind: project-relative
+  target: legacy
+  value: .agents/skills/bannerlord-agent-settings/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:b6c80e18562a17e81e47badb2bd4312a63b620a094ca8b1f8f9bd6053c8f0a0d
+- kind: uri
+  target: mcp
+  value: bannerlord-game-controller
+  runtime: claude
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+- kind: uri
+  target: mcp
+  value: bannerlord-search-1_2_12
+  runtime: claude
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+- kind: uri
+  target: mcp
+  value: bannerlord-search-1_3_15
+  runtime: claude
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+- kind: uri
+  target: mcp
+  value: bannerlord-search-1_4_8
+  runtime: claude
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+- kind: uri
+  target: mcp
+  value: jetbrains-debugger
+  runtime: claude
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+- kind: uri
+  target: mcp
+  value: music-analysis
+  runtime: claude
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+- kind: uri
+  target: mcp
+  value: bannerlord-game-controller
+  runtime: codex
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+- kind: uri
+  target: mcp
+  value: bannerlord-search-1_2_12
+  runtime: codex
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+- kind: uri
+  target: mcp
+  value: bannerlord-search-1_3_15
+  runtime: codex
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+- kind: uri
+  target: mcp
+  value: bannerlord-search-1_4_8
+  runtime: codex
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+- kind: uri
+  target: mcp
+  value: jetbrains-debugger
+  runtime: codex
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+- kind: uri
+  target: mcp
+  value: music-analysis
+  runtime: codex
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+mcp_servers:
+- bannerlord-game-controller
+- bannerlord-search-1_2_12
+- bannerlord-search-1_3_15
+- bannerlord-search-1_4_8
+- jetbrains-debugger
+- music-analysis
+mcp_configs:
+  bannerlord-game-controller:
+    name: bannerlord-game-controller
+    transport: stdio
+    args:
+    - run
+    - --isolated
+    - --no-project
+    - apm_modules/JoeFwd/bannerlord-agent/.apm/mcp/mcp-http-stdio-bridge.py
+    - --url
+    - http://localhost:8080/mcp
+    registry: false
+    command: uv
+  bannerlord-search-1_2_12:
+    name: bannerlord-search-1_2_12
+    transport: stdio
+    args:
+    - run
+    - --isolated
+    - --no-project
+    - apm_modules/JoeFwd/bannerlord-agent/.apm/mcp/mcp-http-stdio-bridge.py
+    - --url
+    - http://localhost:5000
+    registry: false
+    command: uv
+  bannerlord-search-1_3_15:
+    name: bannerlord-search-1_3_15
+    transport: stdio
+    args:
+    - run
+    - --isolated
+    - --no-project
+    - apm_modules/JoeFwd/bannerlord-agent/.apm/mcp/mcp-http-stdio-bridge.py
+    - --url
+    - http://localhost:5001
+    registry: false
+    command: uv
+  bannerlord-search-1_4_8:
+    name: bannerlord-search-1_4_8
+    transport: stdio
+    args:
+    - run
+    - --isolated
+    - --no-project
+    - apm_modules/JoeFwd/bannerlord-agent/.apm/mcp/mcp-http-stdio-bridge.py
+    - --url
+    - http://localhost:5002
+    registry: false
+    command: uv
+  jetbrains-debugger:
+    name: jetbrains-debugger
+    transport: stdio
+    args:
+    - run
+    - --isolated
+    - --no-project
+    - apm_modules/JoeFwd/bannerlord-agent/.apm/mcp/mcp-http-stdio-bridge.py
+    - --url
+    - http://localhost:29202/debugger-mcp/streamable-http
+    registry: false
+    command: uv
+  music-analysis:
+    name: music-analysis
+    transport: stdio
+    args:
+    - --with
+    - mcp==1.30.0
+    - mcp_local_music_analysis@0.1.0
+    registry: false
+    command: uvx
+mcp_target_servers:
+  claude:
+  - bannerlord-game-controller
+  - bannerlord-search-1_2_12
+  - bannerlord-search-1_3_15
+  - bannerlord-search-1_4_8
+  - jetbrains-debugger
+  - music-analysis
+  codex:
+  - bannerlord-game-controller
+  - bannerlord-search-1_2_12
+  - bannerlord-search-1_3_15
+  - bannerlord-search-1_4_8
+  - jetbrains-debugger
+  - music-analysis
+mcp_config_provenance:
+  bannerlord-game-controller: bannerlord-agent
+  bannerlord-search-1_2_12: bannerlord-agent
+  bannerlord-search-1_3_15: bannerlord-agent
+  bannerlord-search-1_4_8: bannerlord-agent
+  jetbrains-debugger: bannerlord-agent
+  music-analysis: bannerlord-agent
+local_deployed_files:
+- .agents/skills/bannerlord-agent-settings
+- .agents/skills/bannerlord-agent-settings/SKILL.md
+- .claude/skills/bannerlord-agent-settings
+- .claude/skills/bannerlord-agent-settings/SKILL.md
+local_deployed_file_hashes:
+  .agents/skills/bannerlord-agent-settings/SKILL.md: sha256:b6c80e18562a17e81e47badb2bd4312a63b620a094ca8b1f8f9bd6053c8f0a0d
+  .claude/skills/bannerlord-agent-settings/SKILL.md: sha256:b6c80e18562a17e81e47badb2bd4312a63b620a094ca8b1f8f9bd6053c8f0a0d

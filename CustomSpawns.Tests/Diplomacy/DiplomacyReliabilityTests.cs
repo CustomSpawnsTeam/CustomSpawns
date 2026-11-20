@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using CustomSpawns.Data.Reader;
 using CustomSpawns.Diplomacy;
+using CustomSpawns.Invasions.Alliances;
 using Moq;
 using NUnit.Framework;
 using TaleWorlds.CampaignSystem;
@@ -92,11 +93,24 @@ namespace CustomSpawns.Tests.Diplomacy
             var membership = new ForceNoKingdomMembershipProvider(ForceNoKingdomProvider("force_no_kingdom"));
 
             Assert.AreEqual(ForceNoKingdomMembershipAction.LeaveKingdom,
-                membership.GetAction("force_no_kingdom", hasKingdom: true, isMercenary: false));
+                membership.GetAction("force_no_kingdom", hasKingdom: true, isMercenary: false,
+                    rulesOwnKingdom: false));
             Assert.AreEqual(ForceNoKingdomMembershipAction.LeaveKingdomAsMercenary,
-                membership.GetAction("force_no_kingdom", hasKingdom: true, isMercenary: true));
+                membership.GetAction("force_no_kingdom", hasKingdom: true, isMercenary: true,
+                    rulesOwnKingdom: false));
             Assert.AreEqual(ForceNoKingdomMembershipAction.None,
-                membership.GetAction("force_no_kingdom", hasKingdom: false, isMercenary: false));
+                membership.GetAction("force_no_kingdom", hasKingdom: false, isMercenary: false,
+                    rulesOwnKingdom: false));
+        }
+
+        [Test]
+        public void ForceNoKingdomMembership_WhenRulingItsOwnKingdom_StaysInIt()
+        {
+            var membership = new ForceNoKingdomMembershipProvider(ForceNoKingdomProvider("force_no_kingdom"));
+
+            Assert.AreEqual(ForceNoKingdomMembershipAction.None,
+                membership.GetAction("force_no_kingdom", hasKingdom: true, isMercenary: false,
+                    rulesOwnKingdom: true));
         }
 
         [Test]
@@ -154,6 +168,21 @@ namespace CustomSpawns.Tests.Diplomacy
             Assert.AreEqual(DiplomacyReconciliationAction.DeclareWar, action);
         }
 
+        [TestCase(InvasionWarStance.War, DiplomacyReconciliationAction.MakePeace, DiplomacyReconciliationAction.DeclareWar)]
+        [TestCase(InvasionWarStance.Open, DiplomacyReconciliationAction.DeclareWar, DiplomacyReconciliationAction.None)]
+        [TestCase(InvasionWarStance.Peace, DiplomacyReconciliationAction.DeclareWar, DiplomacyReconciliationAction.MakePeace)]
+        [TestCase(InvasionWarStance.Policy, DiplomacyReconciliationAction.DeclareWar, DiplomacyReconciliationAction.DeclareWar)]
+        [TestCase(InvasionWarStance.Policy, DiplomacyReconciliationAction.None, DiplomacyReconciliationAction.None)]
+        public void Reconciliation_AConquestsStanceOutranksTheConfiguredPolicy(InvasionWarStance stance,
+            DiplomacyReconciliationAction configured, DiplomacyReconciliationAction expected)
+        {
+            var reconciliation = new CustomSpawnsDiplomacyReconciliationProvider(
+                new CustomSpawnsClanDiplomacyProvider(new Mock<ISuzerainProvider>().Object,
+                    new Mock<IDataReader<Dictionary<string, Data.Model.Diplomacy>>>().Object));
+
+            Assert.AreEqual(expected, reconciliation.ApplyStance(configured, stance));
+        }
+
         [Test]
         public void MissingConfiguredClanIds_AreCollectedWithoutFirstFailure()
         {
@@ -162,7 +191,7 @@ namespace CustomSpawns.Tests.Diplomacy
             {
                 ["not_loaded"] = new Data.Model.Diplomacy()
             });
-            var provider = new CustomSpawnsDiplomacyFactionsProvider(reader.Object);
+            var provider = new CustomSpawnsDiplomacyFactionsProvider(reader.Object, new Mock<IClanFinder>().Object);
 
             IList<Clan> clans = provider.GetConfiguredClans(out IList<string> missingClanIds);
 

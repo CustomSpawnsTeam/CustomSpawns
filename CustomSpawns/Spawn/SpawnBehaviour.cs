@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CustomSpawns.CampaignData.Implementations;
@@ -7,12 +7,12 @@ using CustomSpawns.Data;
 using CustomSpawns.Data.Dao;
 using CustomSpawns.Data.Dto;
 using CustomSpawns.Economics;
+using CustomSpawns.Invasions;
 using CustomSpawns.Spawn.PartySize;
 using CustomSpawns.UtilityBehaviours;
 using CustomSpawns.Utils;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Map;
-using TaleWorlds.Localization;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 
@@ -21,7 +21,7 @@ namespace CustomSpawns.Spawn
     class SpawnBehaviour : CampaignBehaviorBase
     {
         private readonly Dictionary<string, int> _numberOfSpawns;
-        private readonly Spawner _spawner;
+        private readonly SpawnGroupService _spawnGroupService;
         private readonly SpawnDao _spawnDao;
         private readonly DynamicSpawnData _dynamicSpawnData;
         private readonly DevestationMetricData _devestationMetricData;
@@ -29,13 +29,15 @@ namespace CustomSpawns.Spawn
         private readonly MessageBoxService _messageBoxService;
         private readonly DailyLogger _dailyLogger;
         private readonly ModDebug _modDebug;
+        private readonly Func<CsPartyData, bool> _hasPersistentInvasionGroup;
+        private readonly Func<string, bool> _isInvasionUnderway;
         
         #region Data Management
 
         private int _lastRedundantDataUpdate = 0;
 
         public SpawnBehaviour(
-            Spawner spawner,
+            SpawnGroupService spawnGroupService,
             SpawnDao spawnDao,
             DynamicSpawnData dynamicSpawnData,
             SaveInitialiser saveInitialiser,
@@ -44,10 +46,12 @@ namespace CustomSpawns.Spawn
             MessageBoxService messageBoxService,
             DailyLogger dailyLogger,
             ModDebug modDebug,
-            PartySizeCalculatedSubject partySizeCalculatedSubject
+            PartySizeCalculatedSubject partySizeCalculatedSubject,
+            Func<CsPartyData, bool> hasPersistentInvasion,
+            Func<string, bool> isInvasionUnderway
         )
         {
-            _spawner = spawner;
+            _spawnGroupService = spawnGroupService;
             _spawnDao = spawnDao;
             _dynamicSpawnData = dynamicSpawnData;
             _devestationMetricData = devestationMetricData;
@@ -57,10 +61,12 @@ namespace CustomSpawns.Spawn
             _numberOfSpawns = new();
             _configLoader = configLoader;
             _dailyLogger = dailyLogger;
+            _hasPersistentInvasionGroup = hasPersistentInvasion;
+            _isInvasionUnderway = isInvasionUnderway;
             saveInitialiser.RunCallbackOnFirstCampaignTick(OnSaveStart);
             // Set the party size of a custom party to the size of the actual spawned party
             // This cancels the speed malus that is applied to non-lordly parties that are too big
-            partySizeCalculatedSubject.Register(new PartySizeResizerOnFirstCalculation(spawnDao));
+            partySizeCalculatedSubject.Register(new PartySizeResizerOnFirstCalculation(spawnDao, dynamicSpawnData));
         }
 
         private void HourlyCheckData()
@@ -212,9 +218,18 @@ namespace CustomSpawns.Spawn
                 IList<SpawnDto> spawns = _spawnDao.FindAll();
                 foreach (SpawnDto spawn in spawns)
                 {
+                    // An invasion's reinforcements come through its own capital, not a second landing beside it.
+                    // An invasion that follows another is launched by that one's conquest, never by chance.
+                    if (spawn.Invasion != null && (_isInvasionUnderway(spawn.PartyTemplate.StringId) ||
+                                                   spawn.Invasion.FollowsInvasion != null))
+                    {
+                        continue;
+                    }
+
                     for (int i = 0; i < spawn.RepeatSpawnRolls; i++)
                     {
-                        if (_numberOfSpawns[spawn.PartyTemplate.StringId] <= spawn.MaximumOnMap && (spawn.MinimumNumberOfDaysUntilSpawn < (int)Math.Ceiling(Campaign.Current.Models.CampaignTimeModel.CampaignStartTime.ElapsedDaysUntilNow)))
+                        // MaximumConcurrentPrimaries is what this test keeps on the map.
+                        if (_numberOfSpawns[spawn.PartyTemplate.StringId] < spawn.MaximumConcurrentPrimaries && (spawn.MinimumNumberOfDaysUntilSpawn < (int)Math.Ceiling(Campaign.Current.Models.CampaignTimeModel.CampaignStartTime.ElapsedDaysUntilNow)))
                         {
                             float currentChanceOfSpawn = ComputeChanceSpawn(spawn);
                             float spawnChanceFlatMultiplier = _configLoader.Config.SpawnChanceFlatMultiplier;
@@ -237,23 +252,10 @@ namespace CustomSpawns.Spawn
                             }
 
                             Clan spawnClan = GetSpawnClan(spawn, spawnSettlement, configuredSpawnClan);
-                            MobileParty spawnedParty = _spawner.SpawnParty(spawnSettlement, spawnClan, spawn.PartyTemplate, new TextObject(spawn.Name));
+                            MobileParty spawnedParty = _spawnGroupService.Spawn(spawn, spawnSettlement, spawnClan);
                             if (spawnedParty == null)
                                 return;
-                            _dynamicSpawnData.RegisterPrimaryParty(spawnedParty, spawn.PartyTemplate.StringId);
                             _numberOfSpawns[spawn.PartyTemplate.StringId]++; //increment for can spawn and chance modifications
-                                                           //dynamic data registration
-                            //AI Checks!
-                            HandleAIChecks(spawnedParty, spawn, spawnSettlement);
-                            //accompanying spawns
-                            foreach (var accomp in spawn.SpawnAlongWith)
-                            {
-                                MobileParty juniorParty = _spawner.SpawnParty(spawnSettlement, spawnClan, accomp.templateObject, new TextObject(accomp.name));
-                                if (juniorParty == null)
-                                    continue;
-                                _dynamicSpawnData.RegisterSupportingParty(juniorParty, spawn.PartyTemplate.StringId);
-                                HandleAIChecks(juniorParty, spawn, spawnSettlement); //junior party has same AI behaviour as main party. TODO in future add some junior party AI and reconstruction.
-                            }
                             //message if available
                             if (spawn.SpawnMessage != null)
                             {
@@ -296,6 +298,8 @@ namespace CustomSpawns.Spawn
 
         private void HandleDeathMessage(MobileParty mobileParty, CsPartyData partyData)
         {
+            if (ShouldSuppressDeathMessage(partyData, _hasPersistentInvasionGroup))
+                return;
             SpawnDto? spawn = partyData.OwningSpawnTemplateId == null
                 ? null
                 : _spawnDao.FindByPartyTemplateId(partyData.OwningSpawnTemplateId);
@@ -306,44 +310,20 @@ namespace CustomSpawns.Spawn
             }
         }
 
+        public static bool ShouldSuppressDeathMessage(CsPartyData partyData,
+            Func<CsPartyData, bool> hasPersistentInvasion)
+        {
+            return partyData.IsAdopted ||
+                   (partyData.IsPrimarySpawn && hasPersistentInvasion(partyData));
+        }
+
         #endregion
         
         private void HandleAIChecks(MobileParty mb, SpawnDto dto, Settlement spawnedSettlement) //TODO handle sub parties being reconstructed!
         {
-            try
-            {
-                bool invalid = false;
-                Dictionary<string, bool> aiRegistrations = new();
-                if (dto.PatrolAroundSpawn)
-                {
-                    bool success = AI.AIManager.HourlyPatrolAroundSpawn.RegisterParty(mb, spawnedSettlement);
-                    aiRegistrations.Add("Patrol around spawn behaviour: ", success);
-                    invalid = invalid ? true : !success;
-                }
-                if (dto.AttackClosestIfIdleForADay)
-                {
-                    bool success = AI.AIManager.AttackClosestIfIdleForADayBehaviour.RegisterParty(mb);
-                    aiRegistrations.Add("Attack Closest Settlement If Idle for A Day Behaviour: ", success);
-                    invalid = invalid ? true : !success;
-                }
-                if (dto.PatrolAroundClosestLestInterruptedAndSwitch.isValidData)
-                {
-                    bool success = AI.AIManager.PatrolAroundClosestLestInterruptedAndSwitchBehaviour.RegisterParty(mb, 
-                        new AI.PatrolAroundClosestLestInterruptedAndSwitchBehaviour.PatrolAroundClosestLestInterruptedAndSwitchBehaviourData(mb, dto.PatrolAroundClosestLestInterruptedAndSwitch));
-                    aiRegistrations.Add("Patrol Around Closest Lest Interrupted And Switch Behaviour: ", success);
-                    invalid = invalid ? true : !success;
-                }
-                if (invalid && _configLoader.Config.IsDebugMode)
-                {
-                    _messageBoxService.ShowMessage("Custom Spawns AI XML registration error has occured. The party being registered was: " + mb.StringId +
-                                                       "\n Here is more info about the behaviours being registered: \n" + String.Join("\n", aiRegistrations.Keys));
-                }
-            }
-            catch (System.Exception e)
-            {
-                _messageBoxService.ShowCustomSpawnsErrorMessage(e);
-            }
+            // mb.SetMovePatrolAroundPoint(mb.Position, mb.NavigationCapability);
         }
+
         private Settlement GetSpawnSettlement(SpawnDto dto, Clan spawnClan, Func<Settlement , bool> exceptionPredicate, Random rand = null)
         {
             if (rand == null)
@@ -387,7 +367,7 @@ namespace CustomSpawns.Spawn
             return spawnSettlement;
         }
 
-        internal static bool TryDecrementPrimarySpawnCount(IDictionary<string, int> numberOfSpawns, CsPartyData partyData)
+        public static bool TryDecrementPrimarySpawnCount(IDictionary<string, int> numberOfSpawns, CsPartyData partyData)
         {
             if (!partyData.IsPrimarySpawn || partyData.OwningSpawnTemplateId == null
                                           || !numberOfSpawns.ContainsKey(partyData.OwningSpawnTemplateId))
@@ -399,7 +379,7 @@ namespace CustomSpawns.Spawn
             return true;
         }
 
-        internal static bool TryIncrementPrimarySpawnCount(IDictionary<string, int> numberOfSpawns,
+        public static bool TryIncrementPrimarySpawnCount(IDictionary<string, int> numberOfSpawns,
             CsPartyData? partyData)
         {
             if (partyData == null || !partyData.IsPrimarySpawn || partyData.OwningSpawnTemplateId == null
@@ -412,7 +392,7 @@ namespace CustomSpawns.Spawn
             return true;
         }
 
-        internal static T ResolveSpawnClan<T>(bool inheritClanFromSettlement, T configuredSpawnClan, T? settlementOwnerClan)
+        public static T ResolveSpawnClan<T>(bool inheritClanFromSettlement, T configuredSpawnClan, T? settlementOwnerClan)
             where T : class
         {
             return inheritClanFromSettlement && settlementOwnerClan != null ? settlementOwnerClan : configuredSpawnClan;

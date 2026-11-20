@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using CustomSpawns.Data.Dao;
+using CustomSpawns.Invasions;
 using CustomSpawns.Utils;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
@@ -19,15 +20,18 @@ namespace CustomSpawns.Spawn.PartySize
      */
     public class PartySizeResizerOnFirstCalculation : IPartySizeLimitObserver
     {
-        private static SpawnDao? _spawnDao;
+        private static ISpawnDao? _spawnDao;
+        private static DynamicSpawnData? _dynamicSpawnData;
         private static readonly TextObject ResizeInitialPartySizeText = new ("CustomSpawns: Resize initial party size");
         
         /**
          * @param spawnDao the repository for all spawns
+         * @param dynamicSpawnData the registry of the parties this mod owns
          */
-        public PartySizeResizerOnFirstCalculation(SpawnDao spawnDao)
+        public PartySizeResizerOnFirstCalculation(ISpawnDao spawnDao, DynamicSpawnData dynamicSpawnData)
         {
             _spawnDao = spawnDao;
+            _dynamicSpawnData = dynamicSpawnData;
         }
 
         /**
@@ -45,11 +49,22 @@ namespace CustomSpawns.Spawn.PartySize
             return explainedPartySizeLimit;
         }
 
-        private static bool IsCustomSpawnsParty(MobileParty mobileParty)
+        /**
+         * A party this mod has taken ownership of is one of ours whatever it is called: a lord party the
+         * game fields for an invasion clan arrives under a party name no spawn template matches.
+         */
+        public static bool IsCustomSpawnsParty(MobileParty mobileParty)
         {
+            if (_dynamicSpawnData?.GetDynamicSpawnData(mobileParty) != null)
+            {
+                return true;
+            }
+
             string isolatedPartyStringId = CampaignUtils.IsolateMobilePartyStringID(mobileParty);
             return _spawnDao!.FindAllPartyTemplateId().Any(spawnId => spawnId.Equals(isolatedPartyStringId))
-                   || _spawnDao.FindAllSubPartyTemplateId().Any(spawnId => spawnId.Equals(isolatedPartyStringId));
+                   || _spawnDao.FindAllSubPartyTemplateId().Any(spawnId => spawnId.Equals(isolatedPartyStringId))
+                   || _spawnDao.FindAll().Any(spawn => spawn.Invasion?.ReinforcementRules
+                       .Any(rule => rule.PartyTemplateId == isolatedPartyStringId) == true);
         }
         
         private static bool IsInitialPartySizeResized(ExplainedNumber explainedPartySize)

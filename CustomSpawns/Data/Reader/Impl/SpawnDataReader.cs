@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Xml.Serialization;
 using CustomSpawns.Data.Model;
+using CustomSpawns.Invasions;
 using CustomSpawns.ModIntegration;
 using CustomSpawns.Utils;
 using Path = System.IO.Path;
@@ -44,21 +45,55 @@ namespace CustomSpawns.Data.Reader.Impl
 
         private Spawns ConstructListFromXML(string filePath)
         {
+            using Stream stream = new FileStream(filePath, FileMode.Open);
+            return DeserializeAndResolve(stream,
+                error => _messageBoxService.ShowCustomSpawnsErrorMessage(error, "the parsing of " + filePath));
+        }
+
+        public static Spawns DeserializeAndResolve(Stream stream, Action<System.Exception> onError)
+        {
             XmlSerializer serialiser = new XmlSerializer(typeof(Spawns));
-            using Stream writer = new FileStream(filePath, FileMode.Open);
             try
             {
-                return (Spawns) serialiser.Deserialize(writer);
-            }
-            catch (ArgumentException e)
-            {
-                _messageBoxService.ShowCustomSpawnsErrorMessage(e, "the parsing of " + filePath);
-                return new Spawns
+                Spawns? document = serialiser.Deserialize(stream) as Spawns;
+                if (document == null)
                 {
-                    AllSpawns = new()
-                };
+                    throw new InvalidOperationException("Spawn data XML root deserialized to null.");
+                }
+
+                List<Model.Spawn> validSpawns = new();
+                foreach (Model.Spawn spawn in document.AllSpawns ?? new List<Model.Spawn>())
+                {
+                    try
+                    {
+                        if (spawn.Invasion != null)
+                        {
+                            InvasionConfigValidator.Validate(spawn.Invasion);
+                        }
+                        validSpawns.Add(spawn);
+                    }
+                    catch (ArgumentException error)
+                    {
+                        onError(new ArgumentException("Invasion configuration for spawn '" + spawn.PartyTemplate + "' is invalid: " +
+                                                      error.Message, error));
+                    }
+                }
+                document.AllSpawns = validSpawns;
+                return document;
+            }
+            catch (ArgumentException error)
+            {
+                onError(error);
+                return EmptySpawns();
+            }
+            catch (InvalidOperationException error)
+            {
+                onError(error);
+                return EmptySpawns();
             }
         }
+
+        private static Spawns EmptySpawns() => new() { AllSpawns = new List<Model.Spawn>() };
         
         private void EnsureWarnIDQUalities(IList<Model.Spawn> data)
         {

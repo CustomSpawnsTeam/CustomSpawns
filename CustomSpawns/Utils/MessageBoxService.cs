@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using BUTR.MessageBoxPInvoke.Helpers;
+using NLog;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
 
@@ -7,6 +8,7 @@ namespace CustomSpawns.Utils
 {
     public class MessageBoxService
     {
+        private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         private readonly Dictionary<string, int> _numberOfTimesShown = new();
 
         public void ShowCustomSpawnsErrorMessage(System.Exception? e, string during = "")
@@ -22,10 +24,17 @@ namespace CustomSpawns.Utils
                 errorMessage = e.Message + " AT " + e.Source + " " + duringMessage + "TRACE: " + e.StackTrace;
             }
             string shown = new TextObject("{=SpawnAPIErr001}CustomSpawns error has occured, please report to mod developer: ").ToString() + errorMessage;
-            ShowMessage(shown);
+            Logger.Error(e, "Custom Spawns error " + duringMessage);
+            Show(shown);
         }
 
-        public void ShowMessage(string errorMessage)
+        public virtual void ShowMessage(string errorMessage)
+        {
+            Logger.Warn(errorMessage);
+            Show(errorMessage);
+        }
+
+        private void Show(string errorMessage)
         {
             if (!_numberOfTimesShown.ContainsKey(errorMessage))
             {

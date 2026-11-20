@@ -10,7 +10,7 @@ namespace CustomSpawns.Data.Model
         public float MinStableDays { get; set; }
 
         [DefaultValue(10f), XmlAttribute(AttributeName = "max_stable_days")]
-        public float MaxStableDays { get; set; }
+        public float MaxStableDays { get; set; } = 10f;
 
         [XmlAttribute(AttributeName = "try_patrol_around")]
         public string? PatrolLocationType { get; set; }
