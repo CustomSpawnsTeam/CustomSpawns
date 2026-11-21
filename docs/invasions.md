@@ -21,8 +21,9 @@ every rule in full.
    never below `MinimumCapitalGarrison`, and so does a beaten lord coming back. A lord who is captured
    or flees is removed for good.
 5. **Holding fiefs.** Every other fief is topped up from the bank to `MinimumFiefGarrison`, and the
-   lords lay no new siege while one is short. The invasion's garrisons do not desert over wages or
-   party size, and the banked men eat none of the capital's food.
+   lords lay no new siege while one is short. The invasion's garrisons do not desert for being over
+   their size limit, and the men beyond that limit eat none of their town's food. See
+   [What an invasion gets](#what-an-invasion-gets).
 6. **Conquest.** The first kingdom it takes a fief from becomes its target, but never the player's
    kingdom: a fief taken from the player names no target. It stays at war with that kingdom until it
    falls, and its lords prefer that kingdom's sieges. Then it turns on the best prey on its borders,
@@ -41,6 +42,24 @@ every rule in full.
     collapses.
 
 While an invasion fights, its spawn rolls no new force.
+
+## What an invasion gets
+
+An invasion lands with no standing at court, no wage budget and no farmland, so it is spared some of
+vanilla's costs. Each bonus lasts only while the invasion is still fighting.
+
+- **Bigger lord parties.** Each lord may lead `LordPartySizeBonus` more men than vanilla's limit.
+  Only a lord's own party grows.
+- **Free armies.** Its lords raise armies whatever their influence. Calling lords to an army and
+  boosting its cohesion cost them nothing.
+- **Armies that hold together.** A garrison army never loses cohesion while its lord lives. Nor does
+  an army gathered to retake the capital, until it is allowed to advance.
+- **Garrisons that stay.** A garrison in a fief the invasion holds does not desert for being over its
+  size limit, and the crowding does not count against its morale. It still runs if its morale breaks,
+  and loses up to five men a day while its wages go unpaid. A garrison army's lord loses no men to
+  desertion at all.
+- **A supply train.** Men in a garrison beyond its size limit eat none of the town's food. The town
+  shows the saving as *Invasion supply train*. The men within the limit eat as any garrison does.
 
 ## Configuration
 
