@@ -11,7 +11,11 @@ jobs:
     with:
       mod_id: CustomSpawns
       workshop_id: 2878685456
+      nexusmods_mod_id: "411"
+      # Calradia at War's bundle stays the mod page's primary download
+      nexusmods_primary_download: false
     secrets:
       STEAM_WORKSHOP_LOGIN: ${{ secrets.STEAM_WORKSHOP_LOGIN }}
       STEAM_WORKSHOP_PASSWORD: ${{ secrets.STEAM_WORKSHOP_PASSWORD }}
       STEAM_WORKSHOP_AUTH_CODE: ${{ secrets.STEAM_WORKSHOP_AUTH_CODE }}
+      NEXUSMODS_APIKEY: ${{ secrets.NEXUSMODS_APIKEY }}
