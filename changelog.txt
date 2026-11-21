@@ -1,6 +1,13 @@
 Version: 2.2.0
-Game Version: v1.4.7
-* Breaking Change: Custom Spawns now requires Bannerlord v1.4.7.
+Game Versions: v1.4.7,v1.4.8
+* Breaking Change: Custom Spawns now requires Bannerlord v1.4.7 or later.
+* Feature: Invasions. A spawn's new <Invasion> block lands a foreign host on a coast, conquers a kingdom and founds a realm of its own around a capital, then keeps conquering kingdom after kingdom, opening a new allied realm for each one it takes. See docs/invasions.md.
+* Feature: Invasion reinforcement waves land in the capital's garrison, which funds the invasion's lords and periodically leads part of the garrison out as an army.
+* Feature: An invasion realm moves a fallen capital to its nearest fit fief, retakes a lost capital, and spares its garrisons desertion.
+* Feature: An invasion's realms make war and peace as one line and join each other's sieges, while the other kingdoms join battles against it and band into a coalition once it holds too much of the land.
+* Feature: Priority party behaviours. Spawned parties can patrol, raid the closest village or besiege the closest town or castle, configured per spawn or from shared templates in PartyBehaviours.xml. See docs/party-behaviour-api.md.
+* Fix: A bandit party without a hideout now goes home the way looters do.
+* Improvement: Logging is set in ModuleData/NLog.config. By default the log opens with the game, module and submod setup, records errors with their stack traces and campaign events, and summarises each invasion's strength weekly. Debug adds invasion banking, desertion and daily strength; Trace adds AI state changes and invasion battles and losses. A debug build logs at Debug at least.
 * Replaced legacy Harmony patches with Bannerlord's supported campaign models and event registrations.
 * Fixed custom-party persistence and cleanup across save loads and party removal.
 * Fixed custom faction diplomacy enforcement, including peace directives being overridden by constant-war rules.
