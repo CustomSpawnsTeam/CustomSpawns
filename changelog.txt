@@ -1,3 +1,4 @@
+---------------------------------------------------------------------------------------------------
 Version: 2.3.0
 Game Version: v1.5.7
 * Breaking Change: Custom Spawns now requires Bannerlord v1.5.7.
