@@ -30,6 +30,9 @@ namespace CustomSpawns.Invasions.Lines
             _lineTemplateIdsByKingdomId.TryGetValue(kingdomId, out HashSet<string> lineTemplateIds) &&
             lineTemplateIds.Contains(lineTemplateId);
 
+        public bool HasBeatenAny(string lineTemplateId) =>
+            _lineTemplateIdsByKingdomId.Values.Any(lineTemplateIds => lineTemplateIds.Contains(lineTemplateId));
+
         // How many of the fallen kingdoms the line beat.
         public int CountBeatenBy(string lineTemplateId, IEnumerable<string> fallenKingdomIds) =>
             fallenKingdomIds.Count(kingdomId => WasBeatenBy(lineTemplateId, kingdomId));

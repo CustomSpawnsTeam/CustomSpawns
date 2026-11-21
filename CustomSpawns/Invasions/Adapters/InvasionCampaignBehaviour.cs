@@ -21,6 +21,8 @@ using CustomSpawns.Invasions.Lines;
 using CustomSpawns.Invasions.Lines.Adapters;
 using CustomSpawns.Invasions.Lords;
 using CustomSpawns.Invasions.Lords.Adapters;
+using CustomSpawns.Invasions.PlayerSparing;
+using CustomSpawns.Invasions.PlayerSparing.Adapters;
 using CustomSpawns.Invasions.Reinforcements;
 using CustomSpawns.Invasions.Reinforcements.Adapters;
 using CustomSpawns.Spawn;
@@ -110,6 +112,9 @@ namespace CustomSpawns.Invasions.Adapters
         // Which battles nearby a lord of a coalition, or of a line, joins beside its allies; the party AI model asks it.
         public BannerlordInvasionAlliedBattles BannerlordInvasionAlliedBattles { get; }
 
+        // Which settlements an invasion spares on its first landing; the siege target policy asks it.
+        public IInvasionLandingSparing InvasionLandingSparing { get; }
+
         public InvasionCampaignBehaviour(SpawnDao spawns, DynamicSpawnData parties,
             SaveInitialiser initialiser, IInvasionCapitalRepository invasionCapitals,
             IInvasionClanRepository invasionClans, SpawnGroupService spawnGroupService,
@@ -184,14 +189,19 @@ namespace CustomSpawns.Invasions.Adapters
                     invasionClans, _invasionLineClans, _invasionCloneDiplomacy),
                 bannerlordInvasionRealms, invasionConquests, new InvasionLandingSiteChoice(),
                 new InvasionFollowerChoice());
+            InvasionPlayerSparing invasionPlayerSparing = new(new BannerlordInvasionPlayerRealm(),
+                _invasionBeatenKingdoms);
+            InvasionLandingSparing = new BannerlordInvasionLandingSparing(() => State,
+                _bannerlordInvasionConfigurations, invasionPlayerSparing);
             _bannerlordInvasionConquestWars = new BannerlordInvasionConquestWars(() => State,
                 _bannerlordInvasionConfigurations, bannerlordInvasionRealms,
                 bannerlordInvasionAlliances,
                 new BannerlordInvasionRetargets(bannerlordInvasionNeighbours, invasionConquests,
-                    new InvasionTargetChoice()),
+                    new InvasionTargetChoice(), _bannerlordInvasionConfigurations, invasionPlayerSparing),
                 new BannerlordInvasionFrontOpenings(_bannerlordInvasionFiefGarrisons, bannerlordInvasionNeighbours,
                     bannerlordInvasionRealms, invasionConquestFronts),
-                BannerlordInvasionConquestStances, invasionConquests, _invasionLineClans, _invasionBeatenKingdoms);
+                BannerlordInvasionConquestStances, invasionConquests, _invasionLineClans, _invasionBeatenKingdoms,
+                invasionPlayerSparing);
             _bannerlordInvasionLineRefills = new BannerlordInvasionLineRefills(() => State,
                 _bannerlordInvasionConfigurations, bannerlordInvasionFollowerLaunches, invasionConquests,
                 invasionClans, invasionCapitals, _invasionBeatenKingdoms);

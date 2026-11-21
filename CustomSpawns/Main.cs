@@ -22,6 +22,7 @@ using CustomSpawns.Invasions.CapitalObjectives.Adapters;
 using CustomSpawns.Invasions.Conquest.Adapters;
 using CustomSpawns.Invasions.GarrisonArmies.Adapters;
 using CustomSpawns.Invasions.Lords.Adapters;
+using CustomSpawns.Invasions.PlayerSparing.Adapters;
 using CustomSpawns.Invasions.Reinforcements.Adapters;
 using CustomSpawns.ModIntegration;
 using CustomSpawns.RewardSystem;
@@ -151,9 +152,12 @@ namespace CustomSpawns
             var invasionCoastalSiegeTargetPolicy = new InvasionCoastalSiegeTargetPolicy(
                 _invasionCampaignBehaviour, new BannerlordMapPathQuery(),
                 party => siegeStates.Find(party)?.Target);
+            // An invasion never lands on a settlement the player holds, whatever the coast allows.
+            var invasionPlayerSparingSiegeTargetPolicy = new InvasionPlayerSparingSiegeTargetPolicy(
+                invasionCoastalSiegeTargetPolicy, _invasionCampaignBehaviour.InvasionLandingSparing);
             IPriorityPartyBehaviour[] priorityPartyBehaviours =
                 PartyBehaviourRegistrations.CreateBehaviours(_dynamicSpawnData,
-                    invasionCoastalSiegeTargetPolicy, siegeStates);
+                    invasionPlayerSparingSiegeTargetPolicy, siegeStates);
             var partyBehaviourLookup = new SpawnPartyBehaviourLookup(_spawnDao, _partyBehaviourDao,
                 _messageBoxService);
             _invasionCampaignBehaviour.ConfigureCapitalObjectives(

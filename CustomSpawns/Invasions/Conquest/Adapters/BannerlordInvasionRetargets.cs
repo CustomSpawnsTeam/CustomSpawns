@@ -1,25 +1,35 @@
 using System.Collections.Generic;
 using System.Linq;
 using CustomSpawns.Invasions.Adapters;
+using CustomSpawns.Invasions.PlayerSparing;
 using NLog;
 using TaleWorlds.CampaignSystem;
 
 namespace CustomSpawns.Invasions.Conquest.Adapters
 {
-    // Turns a conquering invasion on another kingdom, once its target falls or as borders move.
+    /**
+     * Turns a conquering invasion on another kingdom, once its target falls or as borders move. Until its line has
+     * beaten a kingdom it never turns on the player's.
+     */
     public sealed class BannerlordInvasionRetargets
     {
         private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         private readonly BannerlordInvasionNeighbours _bannerlordInvasionNeighbours;
         private readonly InvasionConquests _invasionConquests;
         private readonly InvasionTargetChoice _invasionTargetChoice;
+        private readonly BannerlordInvasionConfigurations _bannerlordInvasionConfigurations;
+        private readonly InvasionPlayerSparing _invasionPlayerSparing;
 
         public BannerlordInvasionRetargets(BannerlordInvasionNeighbours bannerlordInvasionNeighbours,
-            InvasionConquests invasionConquests, InvasionTargetChoice invasionTargetChoice)
+            InvasionConquests invasionConquests, InvasionTargetChoice invasionTargetChoice,
+            BannerlordInvasionConfigurations bannerlordInvasionConfigurations,
+            InvasionPlayerSparing invasionPlayerSparing)
         {
             _bannerlordInvasionNeighbours = bannerlordInvasionNeighbours;
             _invasionConquests = invasionConquests;
             _invasionTargetChoice = invasionTargetChoice;
+            _bannerlordInvasionConfigurations = bannerlordInvasionConfigurations;
+            _invasionPlayerSparing = invasionPlayerSparing;
         }
 
         /**
@@ -31,7 +41,7 @@ namespace CustomSpawns.Invasions.Conquest.Adapters
             IFaction? invader = invasion.FindLeadingClan()?.MapFaction;
             IReadOnlyList<InvasionNeighbour> neighbours = invader == null
                 ? new InvasionNeighbour[0]
-                : _bannerlordInvasionNeighbours.FindNeighbours(invader);
+                : FindCandidates(invasion, invader);
             string? kingdomId = _invasionTargetChoice.FindNextTarget(neighbours, FindAlliedTargets(conquest));
 
             if (kingdomId == null)
@@ -59,7 +69,7 @@ namespace CustomSpawns.Invasions.Conquest.Adapters
                 return;
             }
 
-            IReadOnlyList<InvasionNeighbour> neighbours = _bannerlordInvasionNeighbours.FindNeighbours(invader);
+            IReadOnlyList<InvasionNeighbour> neighbours = FindCandidates(invasion, invader);
             string previousTargetId = conquest.TargetKingdomId;
             string? kingdomId = _invasionTargetChoice.Reconsider(conquest, rules, neighbours,
                 FindAlliedTargets(conquest), CampaignTime.Now.ToDays);
@@ -75,6 +85,11 @@ namespace CustomSpawns.Invasions.Conquest.Adapters
                         " neighbours=[" + _bannerlordInvasionNeighbours.Format(neighbours) + "] day=" +
                         CampaignTime.Now.ToDays);
         }
+
+        private IReadOnlyList<InvasionNeighbour> FindCandidates(Invasion invasion, IFaction invader) =>
+            _invasionPlayerSparing.FindTargetCandidates(
+                _bannerlordInvasionConfigurations.FindLineTemplateId(invasion.SpawnTemplateId),
+                _bannerlordInvasionNeighbours.FindNeighbours(invader));
 
         private IEnumerable<string> FindAlliedTargets(InvasionConquest conquest) =>
             _invasionConquests.FindAllies(conquest).Select(ally => ally.TargetKingdomId).ToList();

@@ -8,7 +8,10 @@ every rule in full.
 ## How an invasion runs
 
 1. **Landing.** The spawn fires like any other, with its escorts. With `FirstConquestMustBeSupplyBase`
-   its parties besiege nothing but a coastal town until they hold one.
+   its parties besiege nothing but a coastal town until they hold one. Until it founds its capital it
+   besieges nothing the player holds: no fief of the player's clan, nor of the kingdom the player rules
+   or serves, as a vassal or a mercenary. It lands at the nearest settlement the player does not hold,
+   and with none in reach it raids and patrols until one opens up.
 2. **Capital.** The first town it takes becomes its capital and the clan's new kingdom. The escorts
    join the capital's garrison.
 3. **The bank.** The capital's garrison is the invasion's troop bank. Each reinforcement rule pays a
@@ -20,9 +23,11 @@ every rule in full.
 5. **Holding fiefs.** Every other fief is topped up from the bank to `MinimumFiefGarrison`, and the
    lords lay no new siege while one is short. The invasion's garrisons do not desert over wages or
    party size, and the banked men eat none of the capital's food.
-6. **Conquest.** The first kingdom it takes a fief from becomes its target. It stays at war with that
-   kingdom until it falls, and its lords prefer that kingdom's sieges. Then it turns on the best prey
-   on its borders. Every fief it holds raises the other kingdoms' wish to declare war on it.
+6. **Conquest.** The first kingdom it takes a fief from becomes its target, but never the player's
+   kingdom: a fief taken from the player names no target. It stays at war with that kingdom until it
+   falls, and its lords prefer that kingdom's sieges. Then it turns on the best prey on its borders,
+   which can be the player's kingdom once its line has beaten a kingdom. Every fief it holds raises
+   the other kingdoms' wish to declare war on it.
 7. **Garrison army.** With `GarrisonArmy`, part of the bank marches out now and then as one besieging
    army under a lord made for it. When that lord is beaten, his men return to the capital.
 8. **New realms.** Every kingdom the invasion conquers launches a new invasion realm on a distant

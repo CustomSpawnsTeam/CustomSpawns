@@ -3,6 +3,7 @@ using System.Linq;
 using CustomSpawns.Invasions.Adapters;
 using CustomSpawns.Invasions.Alliances.Adapters;
 using CustomSpawns.Invasions.Lines;
+using CustomSpawns.Invasions.PlayerSparing;
 using NLog;
 using TaleWorlds.CampaignSystem;
 
@@ -26,6 +27,7 @@ namespace CustomSpawns.Invasions.Conquest.Adapters
         private readonly InvasionConquests _invasionConquests;
         private readonly InvasionLineClans _invasionLineClans;
         private readonly InvasionBeatenKingdoms _invasionBeatenKingdoms;
+        private readonly InvasionPlayerSparing _invasionPlayerSparing;
 
         public BannerlordInvasionConquestWars(Func<InvasionState> state,
             BannerlordInvasionConfigurations bannerlordInvasionConfigurations,
@@ -35,7 +37,7 @@ namespace CustomSpawns.Invasions.Conquest.Adapters
             BannerlordInvasionFrontOpenings bannerlordInvasionFrontOpenings,
             BannerlordInvasionConquestStances bannerlordInvasionConquestStances,
             InvasionConquests invasionConquests, InvasionLineClans invasionLineClans,
-            InvasionBeatenKingdoms invasionBeatenKingdoms)
+            InvasionBeatenKingdoms invasionBeatenKingdoms, InvasionPlayerSparing invasionPlayerSparing)
         {
             _state = state;
             _bannerlordInvasionConfigurations = bannerlordInvasionConfigurations;
@@ -47,9 +49,13 @@ namespace CustomSpawns.Invasions.Conquest.Adapters
             _invasionConquests = invasionConquests;
             _invasionLineClans = invasionLineClans;
             _invasionBeatenKingdoms = invasionBeatenKingdoms;
+            _invasionPlayerSparing = invasionPlayerSparing;
         }
 
-        // The first fief an invasion that conquers takes from a kingdom makes that kingdom its target.
+        /**
+         * The first fief an invasion that conquers takes from a kingdom makes that kingdom its target. A fief taken
+         * from the player's kingdom names no first target: the next fief taken from another kingdom does.
+         */
         public void ObserveConquest(Clan? newOwnerClan, Clan? previousOwnerClan)
         {
             Invasion? invasion = _state().FindFightingInvasion(newOwnerClan?.StringId);
@@ -61,10 +67,12 @@ namespace CustomSpawns.Invasions.Conquest.Adapters
 
             // A follower that lost track of its leader picks up the alliance again rather than standing alone.
             InvasionConquest? leader = FindLeaderConquest(invasion);
+            string? previousOwnerKingdomId = previousOwnerClan?.Kingdom?.StringId;
             InvasionConquest? conquest = leader != null
-                ? _invasionConquests.BeginFollowing(invasion.ClanId, leader, previousOwnerClan?.Kingdom?.StringId,
+                ? _invasionConquests.BeginFollowing(invasion.ClanId, leader, previousOwnerKingdomId,
                     CampaignTime.Now.ToDays)
-                : _invasionConquests.Begin(invasion.ClanId, previousOwnerClan?.Kingdom?.StringId,
+                : _invasionConquests.Begin(invasion.ClanId,
+                    _invasionPlayerSparing.FindFirstTarget(FindLineTemplateId(invasion), previousOwnerKingdomId),
                     CampaignTime.Now.ToDays);
 
             if (conquest == null)
@@ -167,9 +175,8 @@ namespace CustomSpawns.Invasions.Conquest.Adapters
                     _state().FindFightingInvasion(conquest.InvasionClanId)?.SpawnTemplateId == leaderTemplateId));
         }
 
-        // A copy runs its line's first spawn; a configured follower names the spawn it follows.
         private string FindLineTemplateId(Invasion invasion) =>
-            _bannerlordInvasionConfigurations.FindLeaderTemplateId(invasion.SpawnTemplateId) ?? invasion.SpawnTemplateId;
+            _bannerlordInvasionConfigurations.FindLineTemplateId(invasion.SpawnTemplateId);
 
         // A target that is an allied invasion's realm, as a save from before allies were left out of the choice holds.
         private bool IsAllyRealm(Invasion invasion, string kingdomId)

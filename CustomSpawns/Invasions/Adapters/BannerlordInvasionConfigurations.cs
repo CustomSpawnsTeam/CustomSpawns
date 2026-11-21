@@ -63,6 +63,10 @@ namespace CustomSpawns.Invasions.Adapters
         // The party template of the invasion this one was launched for; null for one that came on its own.
         public string? FindLeaderTemplateId(string spawnTemplateId) => Find(spawnTemplateId)?.FollowsInvasion;
 
+        // The spawn a line is known by: a copy runs its line's first spawn, a configured follower names the one it follows.
+        public string FindLineTemplateId(string spawnTemplateId) =>
+            FindLeaderTemplateId(spawnTemplateId) ?? spawnTemplateId;
+
         public SpawnDto? FindSpawn(string spawnTemplateId) => _spawnDao.FindByPartyTemplateId(spawnTemplateId);
 
         private InvasionData? Find(string spawnTemplateId) =>

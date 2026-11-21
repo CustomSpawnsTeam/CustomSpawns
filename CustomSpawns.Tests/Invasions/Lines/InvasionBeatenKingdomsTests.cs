@@ -29,6 +29,18 @@ namespace CustomSpawns.Tests.Invasions.Lines
         }
 
         [Test]
+        public void ALineHasBeatenAKingdomOnlyOnceOneFellToIt()
+        {
+            var beatenKingdoms = new InvasionBeatenKingdoms();
+            bool before = beatenKingdoms.HasBeatenAny(Humar);
+            beatenKingdoms.ObserveFall(Humar, "vlandia");
+
+            Assert.That(before, Is.False);
+            Assert.That(beatenKingdoms.HasBeatenAny(Humar), Is.True);
+            Assert.That(beatenKingdoms.HasBeatenAny(Makko), Is.False);
+        }
+
+        [Test]
         public void AKingdomNoInvasionTargetedCountsForNoLine()
         {
             var beatenKingdoms = new InvasionBeatenKingdoms();
